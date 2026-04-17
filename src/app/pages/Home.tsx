@@ -348,8 +348,9 @@ export default function Home() {
             <div>
               <h4 className="text-white font-semibold mb-4">Giới thiệu</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-[#4ade80] transition-colors">Về CarMatch</a></li>
-                <li><a href="#" className="hover:text-[#4ade80] transition-colors">Đội xe</a></li>
+                <li><a href="#about" className="hover:text-[#4ade80] transition-colors">Về CarMatch</a></li>
+                <li><a href="#fleet" className="hover:text-[#4ade80] transition-colors">Đội xe</a></li>
+                <li><Link to="/blog" className="hover:text-[#4ade80] transition-colors">Tin tức</Link></li>
                 <li><a href="#" className="hover:text-[#4ade80] transition-colors">Điều khoản</a></li>
                 <li><a href="#" className="hover:text-[#4ade80] transition-colors">Chính sách</a></li>
               </ul>
