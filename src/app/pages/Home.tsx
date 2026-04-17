@@ -110,9 +110,9 @@ export default function Home() {
               Đội xe 20+ chiếc | Giao xe tận nơi | Hỗ trợ 24/7
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-200 transition-all hover:scale-105">
+              <a href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer" className="px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-200 transition-all hover:scale-105 text-center">
                 Đặt xe qua Zalo
-              </button>
+              </a>
               <button className="px-8 py-3 bg-transparent text-white border-2 border-white rounded-full font-semibold hover:bg-white/10 transition-all">
                 Xem đội xe
               </button>
@@ -361,7 +361,7 @@ export default function Home() {
               <h4 className="text-white font-semibold mb-4">Liên hệ</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>Hà Nội, Việt Nam</li>
-                <li>Zalo: 0xxx-xxx-xxx</li>
+                <li>Zalo: <a href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer" className="hover:text-[#4ade80] transition-colors">0975 563 290</a></li>
                 <li>Email: info@carmatch.vn</li>
                 <li>Hotline: 1900-xxxx</li>
               </ul>

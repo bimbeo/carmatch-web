@@ -17,7 +17,7 @@ import {
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { cars, formatPrice } from '@/data/cars';
 
-const ZALO_LINK = 'https://zalo.me/0';
+const ZALO_LINK = 'https://zalo.me/0975563290';
 
 export default function CarDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -362,7 +362,7 @@ export default function CarDetail() {
               <h4 className="text-white font-semibold mb-4">Liên hệ</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>Hà Nội, Việt Nam</li>
-                <li>Zalo: 0xxx-xxx-xxx</li>
+                <li>Zalo: <a href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer" className="hover:text-[#4ade80] transition-colors">0975 563 290</a></li>
                 <li>Email: info@carmatch.vn</li>
                 <li>Hotline: 1900-xxxx</li>
               </ul>
