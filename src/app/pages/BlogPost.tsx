@@ -33,44 +33,40 @@ function formatDate(dateStr: string) {
 const portableTextComponents = {
   block: {
     h2: ({ children }: { children?: React.ReactNode }) => (
-      <h2 className="text-2xl font-bold text-white mt-8 mb-4">{children}</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">{children}</h2>
     ),
     h3: ({ children }: { children?: React.ReactNode }) => (
-      <h3 className="text-xl font-bold text-white mt-6 mb-3">{children}</h3>
+      <h3 className="text-xl font-bold text-gray-900 mt-6 mb-3">{children}</h3>
     ),
     normal: ({ children }: { children?: React.ReactNode }) => (
-      <p className="text-gray-300 leading-relaxed mb-4">{children}</p>
+      <p className="text-gray-700 leading-relaxed mb-4">{children}</p>
     ),
     blockquote: ({ children }: { children?: React.ReactNode }) => (
-      <blockquote className="border-l-4 border-[#4ade80] pl-4 italic text-gray-400 my-6">
+      <blockquote className="border-l-4 border-green-500 pl-4 italic text-gray-600 my-6 bg-green-50 py-2 rounded-r-lg">
         {children}
       </blockquote>
     ),
   },
   marks: {
     strong: ({ children }: { children?: React.ReactNode }) => (
-      <strong className="text-white font-semibold">{children}</strong>
+      <strong className="text-gray-900 font-semibold">{children}</strong>
     ),
     em: ({ children }: { children?: React.ReactNode }) => (
       <em className="italic">{children}</em>
     ),
     link: ({ value, children }: { value?: { href: string }; children?: React.ReactNode }) => (
-      <a
-        href={value?.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-[#4ade80] hover:underline"
-      >
+      <a href={value?.href} target="_blank" rel="noopener noreferrer"
+        className="text-green-600 hover:underline">
         {children}
       </a>
     ),
   },
   list: {
     bullet: ({ children }: { children?: React.ReactNode }) => (
-      <ul className="text-gray-300 ml-6 mb-4 space-y-1 list-disc">{children}</ul>
+      <ul className="text-gray-700 ml-6 mb-4 space-y-1 list-disc">{children}</ul>
     ),
     number: ({ children }: { children?: React.ReactNode }) => (
-      <ol className="text-gray-300 ml-6 mb-4 space-y-1 list-decimal">{children}</ol>
+      <ol className="text-gray-700 ml-6 mb-4 space-y-1 list-decimal">{children}</ol>
     ),
   },
   types: {
@@ -118,16 +114,16 @@ export default function BlogPost() {
   }, [slug]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
 
-      <main className="pt-24 pb-16">
+      <main className="pt-24 pb-16 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back link */}
           <Link
             to="/blog"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-[#4ade80] transition-colors text-sm mb-8"
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors text-sm mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
             Quay lại Blog
@@ -135,32 +131,30 @@ export default function BlogPost() {
 
           {loading ? (
             <div className="space-y-6 animate-pulse">
-              <div className="h-8 bg-[#1a1a1a] rounded w-3/4" />
-              <div className="h-5 bg-[#1a1a1a] rounded w-1/2" />
-              <div className="aspect-[16/9] bg-[#1a1a1a] rounded-xl" />
+              <div className="h-8 bg-gray-100 rounded w-3/4" />
+              <div className="h-5 bg-gray-100 rounded w-1/2" />
+              <div className="aspect-[16/9] bg-gray-100 rounded-xl" />
               <div className="space-y-3">
-                <div className="h-4 bg-[#1a1a1a] rounded" />
-                <div className="h-4 bg-[#1a1a1a] rounded w-5/6" />
-                <div className="h-4 bg-[#1a1a1a] rounded w-4/6" />
+                <div className="h-4 bg-gray-100 rounded" />
+                <div className="h-4 bg-gray-100 rounded w-5/6" />
+                <div className="h-4 bg-gray-100 rounded w-4/6" />
               </div>
             </div>
           ) : notFound || !post ? (
             <div className="text-center py-20">
-              <p className="text-gray-400 text-xl mb-4">Không tìm thấy bài viết.</p>
-              <Link to="/blog" className="text-[#4ade80] hover:underline">
+              <p className="text-gray-500 text-xl mb-4">Không tìm thấy bài viết.</p>
+              <Link to="/blog" className="text-green-600 hover:underline">
                 Xem tất cả bài viết
               </Link>
             </div>
           ) : (
-            <article>
+            <article className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
               {/* Categories */}
               {post.categories && post.categories.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {post.categories.map((cat) => (
-                    <span
-                      key={cat}
-                      className="px-3 py-1 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold rounded-full"
-                    >
+                    <span key={cat}
+                      className="px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">
                       {cat}
                     </span>
                   ))}
@@ -174,14 +168,14 @@ export default function BlogPost() {
 
               {/* Author + Date */}
               <div className="flex items-center gap-3 text-gray-500 text-sm mb-6">
-                {post.author && <span className="text-gray-400">{post.author}</span>}
+                {post.author && <span className="text-gray-600">{post.author}</span>}
                 {post.author && post.publishedAt && <span>·</span>}
                 {post.publishedAt && <span>{formatDate(post.publishedAt)}</span>}
               </div>
 
               {/* Excerpt */}
               {post.excerpt && (
-                <p className="text-lg text-gray-400 leading-relaxed mb-8 border-l-2 border-[#4ade80]/40 pl-4">
+                <p className="text-lg text-gray-600 leading-relaxed mb-8 border-l-4 border-green-400 pl-4 bg-green-50 py-3 rounded-r-lg">
                   {post.excerpt}
                 </p>
               )}

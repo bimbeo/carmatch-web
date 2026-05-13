@@ -19,14 +19,14 @@ interface Post {
 
 function SkeletonCard() {
   return (
-    <div className="bg-[#111111] rounded-2xl overflow-hidden border border-white/5 animate-pulse">
-      <div className="aspect-[16/9] bg-[#1a1a1a]" />
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
+      <div className="aspect-[16/9] bg-gray-100" />
       <div className="p-6 space-y-3">
-        <div className="h-4 bg-[#1a1a1a] rounded w-1/4" />
-        <div className="h-6 bg-[#1a1a1a] rounded w-3/4" />
-        <div className="h-4 bg-[#1a1a1a] rounded w-full" />
-        <div className="h-4 bg-[#1a1a1a] rounded w-2/3" />
-        <div className="h-3 bg-[#1a1a1a] rounded w-1/2 mt-4" />
+        <div className="h-4 bg-gray-100 rounded w-1/4" />
+        <div className="h-6 bg-gray-100 rounded w-3/4" />
+        <div className="h-4 bg-gray-100 rounded w-full" />
+        <div className="h-4 bg-gray-100 rounded w-2/3" />
+        <div className="h-3 bg-gray-100 rounded w-1/2 mt-4" />
       </div>
     </div>
   );
@@ -60,90 +60,72 @@ export default function Blog() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-gray-50 text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
 
       {/* Hero */}
-      <section className="pt-16">
-        <div className="border-t-2 border-[#4ade80] bg-[#0a0a0a]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              Blog & Tin tức
-            </h1>
-            <p className="text-lg text-gray-400 max-w-xl">
-              Kinh nghiệm thuê xe, mẹo lái xe và cập nhật từ CarMatch
-            </p>
-          </div>
+      <div className="bg-white border-b border-gray-100 pt-24 pb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-green-600 font-semibold text-sm uppercase tracking-wide mb-2">Blog</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
+            Kinh nghiệm & Tin tức
+          </h1>
+          <p className="text-gray-500 max-w-xl">
+            Hướng dẫn thuê xe, mẹo lái xe và kinh nghiệm du lịch từ CarMatch
+          </p>
         </div>
-      </section>
+      </div>
 
       {/* Blog Grid */}
-      <section className="py-16">
+      <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {error ? (
-            <div className="text-center py-20 text-gray-400">{error}</div>
+            <div className="text-center py-20 text-gray-500">{error}</div>
           ) : loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
             </div>
           ) : posts.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-gray-400 text-lg">Chưa có bài viết nào.</p>
-              <p className="text-gray-600 text-sm mt-2">Hãy quay lại sau nhé!</p>
+              <p className="text-gray-500 text-lg">Chưa có bài viết nào.</p>
+              <p className="text-gray-400 text-sm mt-2">Hãy quay lại sau nhé!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
               {posts.map((post) => (
                 <Link
                   key={post._id}
                   to={`/blog/${post.slug.current}`}
-                  className="block bg-[#111111] rounded-2xl overflow-hidden border border-white/5 hover:border-[#4ade80]/30 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-[#4ade80]/10 group"
+                  className="block bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all group"
                 >
-                  {/* Image */}
-                  <div className="aspect-[16/9] overflow-hidden">
+                  <div className="aspect-[16/9] overflow-hidden bg-gray-100">
                     {post.mainImageUrl ? (
-                      <img
-                        src={post.mainImageUrl}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      <img src={post.mainImageUrl} alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#111111] to-[#0d0d0d] flex items-center justify-center">
-                        <Car className="w-12 h-12 text-gray-700" />
+                      <div className="w-full h-full bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+                        <Car className="w-12 h-12 text-green-300" />
                       </div>
                     )}
                   </div>
-
                   <div className="p-6">
-                    {/* Categories */}
                     {post.categories && post.categories.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {post.categories.map((cat) => (
-                          <span
-                            key={cat}
-                            className="px-2 py-0.5 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold rounded-full"
-                          >
+                          <span key={cat} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">
                             {cat}
                           </span>
                         ))}
                       </div>
                     )}
-
-                    {/* Title */}
-                    <h2 className="text-lg font-bold text-white group-hover:text-[#4ade80] transition-colors mb-2 line-clamp-2">
+                    <h2 className="text-base font-bold text-gray-900 group-hover:text-green-600 transition-colors mb-2 line-clamp-2">
                       {post.title}
                     </h2>
-
-                    {/* Excerpt */}
                     {post.excerpt && (
-                      <p className="text-gray-400 text-sm leading-relaxed line-clamp-2 mb-4">
-                        {post.excerpt}
-                      </p>
+                      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-4">{post.excerpt}</p>
                     )}
-
-                    {/* Author + Date */}
-                    <div className="flex items-center gap-2 text-gray-500 text-xs mt-auto">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs">
                       {post.author && <span>{post.author}</span>}
                       {post.author && post.publishedAt && <span>·</span>}
                       {post.publishedAt && <span>{formatDate(post.publishedAt)}</span>}
