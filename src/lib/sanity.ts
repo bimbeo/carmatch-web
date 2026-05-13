@@ -1,6 +1,6 @@
 import { createClient } from '@sanity/client'
 
-export const sanityClient = createClient({
+export const client = createClient({
   projectId: 'zwazjo4q',
   dataset: 'production',
   useCdn: true,
@@ -18,6 +18,9 @@ export const postsQuery = `*[_type == "post"] | order(publishedAt desc) {
   "categories": categories[]->title,
   author
 }`
+
+// Alias for backwards compatibility
+export const sanityClient = client
 
 export const postBySlugQuery = `*[_type == "post" && slug.current == $slug][0] {
   _id,

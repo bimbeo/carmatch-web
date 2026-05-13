@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Car, Facebook, Instagram } from 'lucide-react';
+import { Car } from 'lucide-react';
 import { sanityClient, postsQuery } from '@/lib/sanity';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import ZaloFAB from '../components/ZaloFAB';
 
 interface Post {
   _id: string;
@@ -58,28 +61,8 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <Car className="w-6 h-6 text-[#4ade80]" />
-              <span className="text-xl font-bold text-white">CarMatch</span>
-            </Link>
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/#fleet" className="text-sm text-gray-300 hover:text-white transition-colors">Thuê xe tự lái</Link>
-              <Link to="/#b2b" className="text-sm text-gray-300 hover:text-white transition-colors">Thuê xe dài hạn</Link>
-              <Link to="/blog" className="text-sm text-[#4ade80] font-medium transition-colors">Blog</Link>
-              <Link to="/#contact" className="text-sm text-gray-300 hover:text-white transition-colors">Liên hệ</Link>
-            </div>
-            <div className="hidden md:block">
-              <button className="px-6 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-200 transition-colors">
-                Đặt xe ngay
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
+      <ZaloFAB />
 
       {/* Hero */}
       <section className="pt-16">
@@ -173,61 +156,7 @@ export default function Blog() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-black border-t border-white/5 py-12 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Car className="w-6 h-6 text-[#4ade80]" />
-                <span className="text-xl font-bold text-white">CarMatch</span>
-              </div>
-              <p className="text-gray-400 text-sm mb-4">Cho thuê xe tự lái Hà Nội</p>
-              <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 bg-[#4ade80]/10 rounded-lg flex items-center justify-center hover:bg-[#4ade80]/20 transition-colors">
-                  <span className="text-[#4ade80] font-bold text-sm">Z</span>
-                </a>
-                <a href="#" className="w-10 h-10 bg-[#4ade80]/10 rounded-lg flex items-center justify-center hover:bg-[#4ade80]/20 transition-colors">
-                  <Facebook className="w-5 h-5 text-[#4ade80]" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-[#4ade80]/10 rounded-lg flex items-center justify-center hover:bg-[#4ade80]/20 transition-colors">
-                  <Instagram className="w-5 h-5 text-[#4ade80]" />
-                </a>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Dịch vụ</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="/#fleet" className="hover:text-[#4ade80] transition-colors">Thuê xe tự lái</a></li>
-                <li><a href="/#b2b" className="hover:text-[#4ade80] transition-colors">Thuê xe dài hạn</a></li>
-                <li><a href="/#b2b" className="hover:text-[#4ade80] transition-colors">Thuê xe doanh nghiệp</a></li>
-                <li><a href="/#contact" className="hover:text-[#4ade80] transition-colors">Thuê xe sân bay</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Giới thiệu</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="/#about" className="hover:text-[#4ade80] transition-colors">Về CarMatch</a></li>
-                <li><Link to="/blog" className="hover:text-[#4ade80] transition-colors">Tin tức</Link></li>
-                <li><a href="#" className="hover:text-[#4ade80] transition-colors">Điều khoản</a></li>
-                <li><a href="#" className="hover:text-[#4ade80] transition-colors">Chính sách</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Liên hệ</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>Hà Nội, Việt Nam</li>
-                <li>Zalo: 0xxx-xxx-xxx</li>
-                <li>Email: info@carmatch.vn</li>
-                <li>Hotline: 1900-xxxx</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-white/5 pt-8 text-center text-sm text-gray-500">
-            © 2025 CarMatch. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
