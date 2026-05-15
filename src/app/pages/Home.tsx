@@ -629,15 +629,15 @@ export default function Home() {
             </div>
 
             {/* Editorial layout: left = 2 small stacked, right = 1 large hero */}
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-5 lg:h-[520px]">
 
               {/* Left column: 2 small posts */}
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-5 h-full">
                 {posts.slice(1, 3).map((post) => (
                   <Link
                     key={post._id}
                     to={`/blog/${post.slug.current}`}
-                    className="group relative rounded-2xl overflow-hidden flex-1 min-h-[180px] bg-gray-200"
+                    className="group relative rounded-2xl overflow-hidden flex-1 min-h-[200px] bg-gray-200"
                   >
                     {post.mainImageUrl ? (
                       <img
@@ -673,7 +673,7 @@ export default function Home() {
               {posts[0] && (
                 <Link
                   to={`/blog/${posts[0].slug.current}`}
-                  className="group relative rounded-2xl overflow-hidden min-h-[400px] lg:min-h-0 bg-gray-200"
+                  className="group relative rounded-2xl overflow-hidden min-h-[420px] lg:h-full bg-gray-200"
                 >
                   {posts[0].mainImageUrl ? (
                     <img
