@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { MessageCircle, Phone, Info, ChevronDown } from 'lucide-react';
+import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck } from 'lucide-react';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -204,6 +204,16 @@ function calculateRental(
 const PICKUP_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 const RETURN_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 
+// ─── Pickup locations ─────────────────────────────────────────────────────────
+const DELIVERY_FEE_PER_WAY = 100_000;
+
+const LOCATIONS = [
+  { id: 'times-city',   name: 'Times City',             address: 'Hai Bà Trưng, Hà Nội', mapUrl: 'https://maps.app.goo.gl/aytjYtSmkNVvDnJb9' },
+  { id: 'ocean-park',   name: 'Ocean Park',             address: 'Gia Lâm, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/G8UHdiVEqe7TFqxk9' },
+  { id: 'manor',        name: 'The Manor Central Park', address: 'Bắc Từ Liêm, Hà Nội',  mapUrl: 'https://maps.app.goo.gl/8fAgFRwDGLgUqX5n7' },
+  { id: 'trung-lan',    name: 'Trung Lân Gara',         address: 'Bắc Từ Liêm, Hà Nội',  mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 interface Props {
   basePrice: number;
@@ -217,11 +227,27 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
   const [pickupHour, setPickupHour] = useState(20);
   const [returnDate, setReturnDate] = useState(toDateStr(addDays(today, 2)));
   const [returnHour, setReturnHour] = useState(20);
+  const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>('self');
+  const [selectedLocation, setSelectedLocation] = useState('times-city');
 
-  const result = useMemo(
+  const rentalResult = useMemo(
     () => calculateRental(pickupDate, pickupHour, returnDate, returnHour, basePrice),
     [pickupDate, pickupHour, returnDate, returnHour, basePrice],
   );
+
+  const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
+
+  const result = useMemo(() => {
+    if (!rentalResult.valid) return rentalResult;
+    const extraFees = deliveryMode === 'delivery'
+      ? [{ label: 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
+      : [];
+    return {
+      ...rentalResult,
+      fees: [...rentalResult.fees, ...extraFees],
+      total: rentalResult.total + deliveryFee,
+    };
+  }, [rentalResult, deliveryMode, deliveryFee]);
 
   const savings =
     priceMonth && basePrice > 0
@@ -235,10 +261,15 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
 
   const handleBook = () => {
     const priceText = result.valid ? fmtVND(result.total) : 'báo giá';
+    const loc = LOCATIONS.find(l => l.id === selectedLocation)!;
+    const locationLine = deliveryMode === 'self'
+      ? `📍 Địa điểm: ${loc.name} (${loc.address})`
+      : `🚗 Giao xe tận nơi (phí 100.000đ/chiều)`;
     const msg = encodeURIComponent(
       `[ĐẶT XE - ${carName}]\n` +
       `📅 Nhận xe: ${displayDate(pickupDate)} lúc ${pickupHour}:00\n` +
       `📅 Trả xe: ${displayDate(returnDate)} lúc ${returnHour}:00\n` +
+      `${locationLine}\n` +
       `💰 Dự kiến: ${priceText}\n\n` +
       `Anh/chị xác nhận giúp lịch xe và giá thuê ạ!`,
     );
@@ -328,6 +359,90 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             </div>
+          </div>
+        </div>
+
+        {/* ── Location / delivery ── */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Địa điểm giao nhận xe
+          </label>
+          <div className="space-y-2">
+            {/* Option 1: self pickup */}
+            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${deliveryMode === 'self' ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <input
+                type="radio"
+                name="deliveryMode"
+                value="self"
+                checked={deliveryMode === 'self'}
+                onChange={() => setDeliveryMode('self')}
+                className="mt-0.5 accent-brand-600"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-800 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                    Tôi tự đến lấy xe
+                  </span>
+                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Miễn phí</span>
+                </div>
+
+                {/* Sub-locations */}
+                {deliveryMode === 'self' && (
+                  <div className="mt-2.5 space-y-1.5 pl-1">
+                    {LOCATIONS.map(loc => (
+                      <label key={loc.id} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="location"
+                          value={loc.id}
+                          checked={selectedLocation === loc.id}
+                          onChange={() => setSelectedLocation(loc.id)}
+                          className="accent-brand-600"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm text-gray-700 font-medium">{loc.name}</span>
+                          <span className="text-xs text-gray-400 ml-1.5">{loc.address}</span>
+                        </div>
+                        <a
+                          href={loc.mapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="text-xs text-brand-500 hover:text-brand-700 hover:underline shrink-0"
+                        >
+                          Bản đồ
+                        </a>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </label>
+
+            {/* Option 2: delivery */}
+            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${deliveryMode === 'delivery' ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <input
+                type="radio"
+                name="deliveryMode"
+                value="delivery"
+                checked={deliveryMode === 'delivery'}
+                onChange={() => setDeliveryMode('delivery')}
+                className="mt-0.5 accent-brand-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-800 flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-gray-400" />
+                    Tôi muốn được giao xe tận nơi
+                  </span>
+                  <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">+100k/chiều</span>
+                </div>
+                {deliveryMode === 'delivery' && (
+                  <p className="text-xs text-gray-400 mt-1">Áp dụng trong nội thành Hà Nội. Phí 2 chiều (giao + trả): {fmtVND(DELIVERY_FEE_PER_WAY * 2)}</p>
+                )}
+              </div>
+            </label>
           </div>
         </div>
 
