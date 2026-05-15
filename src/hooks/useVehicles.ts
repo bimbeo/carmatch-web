@@ -110,6 +110,7 @@ function mapToCar(v: SupabaseVehicle): Car {
   const fuel = mapFuelType(vm.fuel_type || '');
 
   return {
+    id: v.id,
     slug: makeSlug(make, model, variant, v.id),
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
     brand: make,

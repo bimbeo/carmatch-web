@@ -224,7 +224,7 @@ export default function B2B() {
             <p className="text-gray-500 text-center mb-10">Xem toàn bộ đội xe để chọn mẫu phù hợp</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {featuredCars.map((car) => (
-                <CarCard key={car.slug} car={car} />
+                <CarCard key={car.id} car={car} />
               ))}
             </div>
             <div className="text-center mt-8">

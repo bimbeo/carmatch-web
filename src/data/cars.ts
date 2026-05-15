@@ -1,4 +1,5 @@
 export interface Car {
+  id: string;
   slug: string;
   name: string;
   brand: string;
@@ -26,6 +27,7 @@ const conditions = [
 
 export const cars: Car[] = [
   {
+    id: 'vinfast-vf8',
     slug: 'vinfast-vf8',
     name: 'VinFast VF8',
     brand: 'VinFast',
@@ -47,6 +49,7 @@ export const cars: Car[] = [
     description: 'SUV điện cao cấp nhất của VinFast. Công nghệ ADAS tiên tiến, vận hành êm ái, phù hợp cho cả gia đình và công tác doanh nghiệp.',
   },
   {
+    id: 'vinfast-vf6',
     slug: 'vinfast-vf6',
     name: 'VinFast VF6',
     brand: 'VinFast',
@@ -68,6 +71,7 @@ export const cars: Car[] = [
     description: 'Crossover điện cỡ trung của VinFast. Tiết kiệm chi phí vận hành, phù hợp di chuyển nội thành và các chuyến ngắn ngày.',
   },
   {
+    id: 'vinfast-vf5',
     slug: 'vinfast-vf5',
     name: 'VinFast VF5',
     brand: 'VinFast',
@@ -88,6 +92,7 @@ export const cars: Car[] = [
     description: 'Xe điện nhỏ gọn, linh hoạt nhất trong dòng VinFast. Lý tưởng cho di chuyển nội thành và những ai mới trải nghiệm xe điện.',
   },
   {
+    id: 'toyota-innova',
     slug: 'toyota-innova',
     name: 'Toyota Innova',
     brand: 'Toyota',
@@ -109,6 +114,7 @@ export const cars: Car[] = [
     description: 'Minivan 7 chỗ quen thuộc và đáng tin cậy. Không gian rộng rãi, phù hợp cho gia đình lớn hoặc nhóm bạn đi du lịch.',
   },
   {
+    id: 'kia-carnival',
     slug: 'kia-carnival',
     name: 'Kia Carnival',
     brand: 'Kia',
@@ -130,6 +136,7 @@ export const cars: Car[] = [
     description: 'MPV cao cấp hàng đầu phân khúc. Nội thất sang trọng, cửa trượt điện, phù hợp cho sự kiện đặc biệt và di chuyển VIP.',
   },
   {
+    id: 'hyundai-creta',
     slug: 'hyundai-creta',
     name: 'Hyundai Creta',
     brand: 'Hyundai',
