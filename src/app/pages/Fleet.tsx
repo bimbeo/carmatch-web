@@ -37,15 +37,15 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`relative px-3.5 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${
+      className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
         active
-          ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+          ? 'bg-gray-900 text-white border-gray-900'
           : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
       }`}
     >
       {children}
       {count !== undefined && count > 0 && !active && (
-        <span className="ml-1 text-xs text-gray-400">({count})</span>
+        <span className="ml-0.5 text-gray-400">{count}</span>
       )}
     </button>
   );
@@ -154,91 +154,68 @@ export default function Fleet() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         {/* ── Filter panel ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-8 divide-y divide-gray-50">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-8">
 
-          {/* Row: Brand */}
-          {brands.length > 1 && (
-            <div className="flex flex-wrap items-center gap-2 px-5 py-3.5">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-16 shrink-0">Hãng xe</span>
-              <div className="flex flex-wrap gap-2">
-                <Chip active={brandFilter === 'all'} onClick={() => setBrandFilter('all')}>
-                  Tất cả
-                </Chip>
+          <div className="px-4 py-3 space-y-2.5">
+            {/* Brand row */}
+            {brands.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-14 shrink-0">Hãng xe</span>
+                <Chip active={brandFilter === 'all'} onClick={() => setBrandFilter('all')}>Tất cả</Chip>
                 {brands.map((b) => (
-                  <Chip
-                    key={b}
-                    active={brandFilter === b}
-                    count={brandCounts[b]}
-                    onClick={() => setBrandFilter(b)}
-                  >
+                  <Chip key={b} active={brandFilter === b} count={brandCounts[b]} onClick={() => setBrandFilter(b)}>
                     {b}
                   </Chip>
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Row: Fuel */}
-          <div className="flex flex-wrap items-center gap-2 px-5 py-3.5">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-16 shrink-0">Nhiên liệu</span>
-            <div className="flex flex-wrap gap-2">
-              <Chip active={fuelFilter === 'all'} onClick={() => setFuelFilter('all')}>Tất cả</Chip>
-              <Chip active={fuelFilter === 'Điện'} count={fuelCounts['Điện']} onClick={() => setFuelFilter('Điện')}>
-                ⚡ Điện
-              </Chip>
-              <Chip active={fuelFilter === 'Xăng'} count={fuelCounts['Xăng']} onClick={() => setFuelFilter('Xăng')}>
-                Xăng
-              </Chip>
-              {hasDiesel && (
-                <Chip active={fuelFilter === 'Dầu'} count={fuelCounts['Dầu']} onClick={() => setFuelFilter('Dầu')}>
-                  Dầu
-                </Chip>
-              )}
-            </div>
-          </div>
+            {/* Fuel + Seats on same row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {/* Fuel */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-14 shrink-0">Nhiên liệu</span>
+                <Chip active={fuelFilter === 'all'} onClick={() => setFuelFilter('all')}>Tất cả</Chip>
+                <Chip active={fuelFilter === 'Điện'} count={fuelCounts['Điện']} onClick={() => setFuelFilter('Điện')}>⚡ Điện</Chip>
+                <Chip active={fuelFilter === 'Xăng'} count={fuelCounts['Xăng']} onClick={() => setFuelFilter('Xăng')}>Xăng</Chip>
+                {hasDiesel && <Chip active={fuelFilter === 'Dầu'} count={fuelCounts['Dầu']} onClick={() => setFuelFilter('Dầu')}>Dầu</Chip>}
+              </div>
 
-          {/* Row: Seats */}
-          <div className="flex flex-wrap items-center gap-2 px-5 py-3.5">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-16 shrink-0">Số chỗ</span>
-            <div className="flex flex-wrap gap-2">
-              <Chip active={seatsFilter === 'all'} onClick={() => setSeatsFilter('all')}>Tất cả</Chip>
-              {availableSeats.map((s) => (
-                <Chip
-                  key={s}
-                  active={seatsFilter === String(s)}
-                  count={seatCounts[s]}
-                  onClick={() => setSeatsFilter(String(s) as SeatsFilter)}
-                >
-                  {s} chỗ
-                </Chip>
-              ))}
+              <div className="w-px h-4 bg-gray-200 hidden sm:block" />
+
+              {/* Seats */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-10 shrink-0">Số chỗ</span>
+                <Chip active={seatsFilter === 'all'} onClick={() => setSeatsFilter('all')}>Tất cả</Chip>
+                {availableSeats.map((s) => (
+                  <Chip key={s} active={seatsFilter === String(s)} count={seatCounts[s]}
+                    onClick={() => setSeatsFilter(String(s) as SeatsFilter)}>
+                    {s} chỗ
+                  </Chip>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Row: Sort + result count + reset */}
-          <div className="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50/60 rounded-b-2xl">
-            <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0" />
+          {/* Sort bar */}
+          <div className="flex items-center gap-3 px-4 py-2 border-t border-gray-50">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand-300"
+              className="bg-transparent text-gray-600 text-xs rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-200 border border-gray-200"
             >
               <option value="default">Mặc định</option>
               <option value="price-asc">Giá thấp → cao</option>
               <option value="price-desc">Giá cao → thấp</option>
             </select>
 
-            <span className="text-sm text-gray-500 ml-1">
-              {loading ? '...' : <><strong className="text-gray-900">{filtered.length}</strong> xe</>}
+            <span className="text-xs text-gray-400">
+              {loading ? '...' : <><strong className="text-gray-700">{filtered.length}</strong> xe</>}
             </span>
 
             {activeCount > 0 && (
-              <button
-                onClick={resetAll}
-                className="ml-auto flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-                Xóa bộ lọc ({activeCount})
+              <button onClick={resetAll} className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors">
+                <X className="w-3 h-3" /> Xóa lọc
               </button>
             )}
           </div>
