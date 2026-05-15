@@ -92,60 +92,110 @@ export default function Home() {
       <ZaloFAB />
 
       {/* ── HERO ─────────────────────────────────────────────── */}
-      <section className="relative pt-16 overflow-hidden bg-gradient-to-br from-brand-50 via-white to-brand-50">
-        {/* Decorative blobs */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-100/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-brand-100/30 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
+      <section className="relative pt-16 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-          <div className="max-w-3xl">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-8">
-              <HomeIcon className="w-3.5 h-3.5" />
-              Dịch vụ xe cho cư dân đô thị Hà Nội
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+
+            {/* ── Left: copy ── */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-8">
+                <HomeIcon className="w-3.5 h-3.5" />
+                Dịch vụ xe cho cư dân đô thị Hà Nội
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+                Không cần sở hữu xe<br />
+                <span className="text-brand-600">vẫn luôn có xe dùng</span>
+              </h1>
+
+              <p className="text-gray-600 text-lg sm:text-xl mb-3 leading-relaxed">
+                Thuê xe ngày hoặc theo tháng —{' '}
+                <span className="text-gray-900 font-semibold">giao tận sảnh tòa nhà</span>
+              </p>
+              <p className="text-gray-500 text-sm mb-10">
+                Vinhomes · Ecopark · The Manor · Linh Đàm · Xe điện VinFast · Đặt qua Zalo 5 phút
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href={ZALO_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold text-base rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Đặt xe qua Zalo
+                </a>
+                <Link
+                  to="/xe"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                  <Car className="w-5 h-5" />
+                  Xem tất cả xe
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 mt-8">
+                {['Giao xe tận tòa nhà', 'Bảo hiểm đầy đủ', 'Hoàn cọc ngay khi trả xe'].map((t) => (
+                  <div key={t} className="flex items-center gap-1.5 text-sm text-gray-500">
+                    <CheckCircle2 className="w-4 h-4 text-brand-500" />
+                    {t}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight mb-6">
-              Không cần sở hữu xe<br />
-              <span className="text-brand-600">vẫn luôn có xe dùng</span>
-            </h1>
+            {/* ── Right: hero image ── */}
+            <div className="relative hidden lg:block">
+              {/* Main image */}
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
+                <img
+                  src="https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-photos/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/cover-1778821651508-_CM_Giao_xe_2_1_.png"
+                  alt="Xe CarMatch"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+              </div>
 
-            <p className="text-gray-600 text-xl sm:text-2xl mb-3 leading-relaxed">
-              Thuê xe ngày hoặc theo tháng —{' '}
-              <span className="text-gray-900 font-semibold">giao tận sảnh tòa nhà</span>
-            </p>
-            <p className="text-gray-500 text-base mb-10">
-              Vinhomes · Ecopark · The Manor · Linh Đàm · Xe điện VinFast · Đặt qua Zalo 5 phút
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href={ZALO_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-brand-600 text-white font-bold text-lg rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Đặt xe qua Zalo
-              </a>
-              <Link
-                to="/thue-xe-thang"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-gray-800 font-semibold text-lg rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
-              >
-                Xem gói thuê tháng
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            </div>
-
-            {/* Trust mini badges */}
-            <div className="flex flex-wrap items-center gap-4 mt-8">
-              {['Giao xe tận tòa nhà', 'Bảo hiểm đầy đủ', 'Hoàn cọc ngay khi trả xe'].map((t) => (
-                <div key={t} className="flex items-center gap-1.5 text-sm text-gray-500">
-                  <CheckCircle2 className="w-4 h-4 text-brand-500" />
-                  {t}
+              {/* Floating: fleet count */}
+              <div className="absolute -left-6 top-8 bg-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 border border-gray-100">
+                <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
+                  <Car className="w-5 h-5 text-brand-600" />
                 </div>
-              ))}
+                <div>
+                  <div className="text-xs text-gray-500">Đội xe sẵn sàng</div>
+                  <div className="font-bold text-gray-900">27 mẫu xe</div>
+                </div>
+              </div>
+
+              {/* Floating: confirm time */}
+              <div className="absolute -right-4 bottom-12 bg-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 border border-gray-100">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Xác nhận trong</div>
+                  <div className="font-bold text-gray-900">30 phút</div>
+                </div>
+              </div>
+
+              {/* Small thumbnail strip */}
+              <div className="absolute -bottom-4 left-6 right-6 flex gap-2">
+                {[
+                  'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-media/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/vehicle_photos/1778821656178-_CM_Giao_xe_2.png',
+                  'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-media/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/vehicle_photos/1778821654322-_CM_Giao_xe_2_4_.png',
+                  'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-media/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/vehicle_photos/1778821653003-_CM_Giao_xe_2_2_.png',
+                ].map((src, i) => (
+                  <div key={i} className="flex-1 aspect-video rounded-xl overflow-hidden shadow-lg border-2 border-white">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
             </div>
+
           </div>
         </div>
       </section>
