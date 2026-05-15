@@ -148,52 +148,56 @@ export default function Home() {
               </div>
             </div>
 
-            {/* ── Right: hero image ── */}
-            <div className="relative hidden lg:block">
-              {/* Main image */}
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
-                <img
-                  src="https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-photos/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/cover-1778821651508-_CM_Giao_xe_2_1_.png"
-                  alt="Xe CarMatch"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+            {/* ── Right: live fleet preview ── */}
+            <div className="hidden lg:flex flex-col gap-3 w-[400px]">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Xe sẵn sàng hôm nay</span>
+                <Link to="/xe" className="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+                  Xem tất cả <ArrowRight className="w-3 h-3" />
+                </Link>
               </div>
 
-              {/* Floating: fleet count */}
-              <div className="absolute -left-6 top-8 bg-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 border border-gray-100">
-                <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
-                  <Car className="w-5 h-5 text-brand-600" />
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Đội xe sẵn sàng</div>
-                  <div className="font-bold text-gray-900">27 mẫu xe</div>
-                </div>
-              </div>
-
-              {/* Floating: confirm time */}
-              <div className="absolute -right-4 bottom-12 bg-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 border border-gray-100">
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center shrink-0">
-                  <Zap className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Xác nhận trong</div>
-                  <div className="font-bold text-gray-900">30 phút</div>
-                </div>
-              </div>
-
-              {/* Small thumbnail strip */}
-              <div className="absolute -bottom-4 left-6 right-6 flex gap-2">
-                {[
-                  'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-media/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/vehicle_photos/1778821656178-_CM_Giao_xe_2.png',
-                  'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-media/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/vehicle_photos/1778821654322-_CM_Giao_xe_2_4_.png',
-                  'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/vehicle-media/4993a0b7-e81c-481d-8be0-c333899a9a11/717d1d8b-c295-494c-8ab8-6712b3c3489f/vehicle_photos/1778821653003-_CM_Giao_xe_2_2_.png',
-                ].map((src, i) => (
-                  <div key={i} className="flex-1 aspect-video rounded-xl overflow-hidden shadow-lg border-2 border-white">
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+              {cars.filter(c => c.price > 0).slice(0, 2).map(car => (
+                <Link
+                  key={car.id}
+                  to={`/xe/${car.slug}`}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex"
+                >
+                  <div className="w-28 shrink-0 bg-gray-100">
+                    <img src={car.images[0]} alt={car.name} className="w-full h-full object-cover" />
                   </div>
-                ))}
-              </div>
+                  <div className="flex-1 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-sm text-gray-900 leading-tight">{car.name}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{car.seats} chỗ · {car.fuel}</div>
+                      </div>
+                      <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">Sẵn sàng</span>
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <span className="font-bold text-brand-600">{Math.round(car.price / 1000)}k</span>
+                      <span className="text-xs text-gray-400">/ngày</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+
+              <Link
+                to="/xe"
+                className="bg-brand-50 border border-brand-100 rounded-2xl p-3.5 flex items-center justify-between hover:bg-brand-100/60 transition-colors"
+              >
+                <div className="flex -space-x-2">
+                  {cars.filter(c => c.price > 0).slice(2, 6).map((car, i) => (
+                    <div key={car.id} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-gray-100" style={{ zIndex: 4 - i }}>
+                      <img src={car.images[0]} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-sm font-semibold text-brand-700">
+                  +{Math.max(0, cars.filter(c => c.price > 0).length - 2)} xe khác
+                </span>
+                <ArrowRight className="w-4 h-4 text-brand-600" />
+              </Link>
             </div>
 
           </div>
