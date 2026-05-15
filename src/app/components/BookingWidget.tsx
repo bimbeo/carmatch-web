@@ -229,6 +229,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
   const [returnHour, setReturnHour] = useState(20);
   const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>('self');
   const [selectedLocation, setSelectedLocation] = useState('times-city');
+  const [copied, setCopied] = useState(false);
 
   const rentalResult = useMemo(
     () => calculateRental(pickupDate, pickupHour, returnDate, returnHour, basePrice),
@@ -259,21 +260,32 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
     if (v >= returnDate) setReturnDate(toDateStr(addDays(new Date(v), 1)));
   };
 
-  const handleBook = () => {
+  const buildMessage = () => {
     const priceText = result.valid ? fmtVND(result.total) : 'báo giá';
     const loc = LOCATIONS.find(l => l.id === selectedLocation)!;
     const locationLine = deliveryMode === 'self'
       ? `📍 Địa điểm: ${loc.name} (${loc.address})`
       : `🚗 Giao xe tận nơi (phí 100.000đ/chiều)`;
-    const msg = encodeURIComponent(
+    return (
       `[ĐẶT XE - ${carName}]\n` +
       `📅 Nhận xe: ${displayDate(pickupDate)} lúc ${pickupHour}:00\n` +
       `📅 Trả xe: ${displayDate(returnDate)} lúc ${returnHour}:00\n` +
       `${locationLine}\n` +
       `💰 Dự kiến: ${priceText}\n\n` +
-      `Anh/chị xác nhận giúp lịch xe và giá thuê ạ!`,
+      `Anh/chị xác nhận giúp lịch xe và giá thuê ạ!`
     );
-    window.open(`${ZALO_LINK}?text=${msg}`, '_blank');
+  };
+
+  const handleBook = async () => {
+    const msg = buildMessage();
+    try {
+      await navigator.clipboard.writeText(msg);
+    } catch {
+      // clipboard blocked — silently open Zalo anyway
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 4000);
+    window.open(ZALO_LINK, '_blank');
   };
 
   return (
@@ -477,6 +489,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
         )}
 
         {/* ── CTAs ── */}
+        {copied && (
+          <div className="flex items-start gap-2.5 bg-green-50 border border-green-200 rounded-xl px-3.5 py-2.5 text-sm text-green-700 animate-fade-in">
+            <span className="text-base leading-none mt-0.5">✓</span>
+            <span>Đã copy nội dung đặt xe — <strong>paste (dán)</strong> vào ô chat Zalo là xong!</span>
+          </div>
+        )}
         <button
           onClick={handleBook}
           className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200"
