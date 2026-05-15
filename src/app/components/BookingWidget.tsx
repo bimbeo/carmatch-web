@@ -229,7 +229,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
   const [returnHour, setReturnHour] = useState(20);
   const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>('self');
   const [selectedLocation, setSelectedLocation] = useState('times-city');
-  const [copied, setCopied] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const rentalResult = useMemo(
     () => calculateRental(pickupDate, pickupHour, returnDate, returnHour, basePrice),
@@ -276,19 +276,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
     );
   };
 
-  const handleBook = async () => {
-    const msg = buildMessage();
+  const handleBook = () => setShowModal(true);
+
+  const handleConfirmZalo = async () => {
     try {
-      await navigator.clipboard.writeText(msg);
-    } catch {
-      // clipboard blocked — silently open Zalo anyway
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 4000);
+      await navigator.clipboard.writeText(buildMessage());
+    } catch { /* blocked */ }
     window.open(ZALO_LINK, '_blank');
+    setShowModal(false);
   };
 
   return (
+    <>
     <div className="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden">
       {/* ── Price header ── */}
       <div className="px-5 pt-5 pb-4 border-b border-gray-100">
@@ -489,12 +488,6 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
         )}
 
         {/* ── CTAs ── */}
-        {copied && (
-          <div className="flex items-start gap-2.5 bg-green-50 border border-green-200 rounded-xl px-3.5 py-2.5 text-sm text-green-700 animate-fade-in">
-            <span className="text-base leading-none mt-0.5">✓</span>
-            <span>Đã copy nội dung đặt xe — <strong>paste (dán)</strong> vào ô chat Zalo là xong!</span>
-          </div>
-        )}
         <button
           onClick={handleBook}
           className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200"
@@ -523,5 +516,78 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
         </ul>
       </div>
     </div>
+
+    {/* ── Booking confirm modal ── */}
+    {showModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        onClick={() => setShowModal(false)}
+      >
+        <div
+          className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="px-5 pt-5 pb-3 border-b border-gray-100">
+            <h3 className="font-bold text-gray-900 text-base">Xác nhận thông tin đặt xe</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Kiểm tra lại trước khi gửi Zalo</p>
+          </div>
+
+          {/* Booking summary */}
+          <div className="px-5 py-4 space-y-2.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Xe</span>
+              <span className="font-semibold text-gray-800">{carName}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Nhận xe</span>
+              <span className="font-semibold text-gray-800">{displayDate(pickupDate)} · {pickupHour}:00</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Trả xe</span>
+              <span className="font-semibold text-gray-800">{displayDate(returnDate)} · {returnHour}:00</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Địa điểm</span>
+              <span className="font-semibold text-gray-800 text-right max-w-[55%]">
+                {deliveryMode === 'self'
+                  ? LOCATIONS.find(l => l.id === selectedLocation)?.name
+                  : 'Giao tận nơi'}
+              </span>
+            </div>
+            {result.valid && (
+              <div className="flex justify-between text-sm pt-1 border-t border-gray-100">
+                <span className="text-gray-500">Dự kiến</span>
+                <span className="font-bold text-brand-600 text-base">{fmtVND(result.total)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Instruction */}
+          <div className="mx-5 mb-4 flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5 text-xs text-blue-700">
+            <span className="text-sm mt-0.5">💬</span>
+            <span>Nội dung đặt xe sẽ được <strong>tự động copy</strong>. Sau khi Zalo mở, <strong>nhấn giữ vào ô chat → Dán</strong> là xong!</span>
+          </div>
+
+          {/* Actions */}
+          <div className="px-5 pb-5 flex gap-2.5">
+            <button
+              onClick={() => setShowModal(false)}
+              className="flex-1 py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            >
+              Sửa lại
+            </button>
+            <button
+              onClick={handleConfirmZalo}
+              className="flex-[2] py-2.5 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Copy & Mở Zalo
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
