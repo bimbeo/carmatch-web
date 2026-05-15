@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
-  MessageCircle, Zap, ChevronLeft, ChevronRight, Phone,
-  MapPin, Star, BadgeCheck, Clock,
+  Zap, ChevronLeft, ChevronRight, Phone,
+  MapPin, Star, BadgeCheck, Clock, MessageCircle,
 } from 'lucide-react';
 import { formatPrice } from '@/data/cars';
 import { useVehicles } from '@/hooks/useVehicles';
@@ -11,6 +11,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
+import BookingWidget from '../components/BookingWidget';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -315,69 +316,25 @@ export default function CarDetail() {
             </Link>
           </div>
 
-          {/* ── RIGHT COLUMN — Booking card (sticky) ──────────── */}
+          {/* ── RIGHT COLUMN — Booking widget (sticky) ────────── */}
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-24 space-y-4">
 
-              {/* Price card */}
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                {/* Daily price */}
-                <div className="mb-4">
-                  {car.price > 0 ? (
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-3xl font-bold text-brand-600">{formatPrice(car.price)}</span>
-                      <span className="text-gray-400 text-sm">/ngày</span>
-                    </div>
-                  ) : (
-                    <div className="text-2xl font-bold text-brand-600">Liên hệ báo giá</div>
-                  )}
-                  {car.priceMonth && (
-                    <div className="flex items-center gap-2 mt-2 p-2.5 bg-gray-50 rounded-xl">
-                      <div>
-                        <div className="text-xs text-gray-400">Thuê theo tháng</div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-base font-bold text-gray-900">{formatPrice(car.priceMonth)}</span>
-                          <span className="text-xs text-gray-400">/tháng</span>
-                        </div>
-                      </div>
-                      {car.price > 0 && (
-                        <span className="ml-auto text-xs font-semibold text-green-700 bg-green-50 border border-green-100 px-2 py-1 rounded-full whitespace-nowrap">
-                          Tiết kiệm {Math.round((1 - car.priceMonth / (car.price * 30)) * 100)}%
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+              {/* Booking widget with pricing calculator */}
+              <BookingWidget
+                basePrice={car.price}
+                carName={car.name}
+                priceMonth={car.priceMonth}
+              />
 
-                {/* Trust badges */}
-                <div className="space-y-2.5 py-4 border-y border-gray-100 mb-4">
+              {/* Trust badges */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                <div className="space-y-2.5">
                   <TrustBadge icon={<Shield className="w-4 h-4" />} text="Bảo hiểm vật chất 2 chiều" />
                   <TrustBadge icon={<BadgeCheck className="w-4 h-4" />} text="Xe kiểm định kỹ trước chuyến" />
                   <TrustBadge icon={<Clock className="w-4 h-4" />} text="Xác nhận trong 30 phút" />
                   <TrustBadge icon={<MapPin className="w-4 h-4" />} text="Giao xe tận tòa nhà" />
                 </div>
-
-                {/* CTAs */}
-                <a
-                  href={zaloHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors shadow-sm shadow-brand-200 mb-3"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Đặt xe qua Zalo
-                </a>
-                <a
-                  href={`tel:${ZALO_NUMBER}`}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-white text-gray-700 rounded-xl font-semibold border border-gray-200 hover:bg-gray-50 transition-colors text-sm"
-                >
-                  <Phone className="w-4 h-4" />
-                  Gọi {ZALO_NUMBER}
-                </a>
-
-                <p className="text-center text-gray-400 text-xs mt-3">
-                  Phản hồi 7h–22h · Không cọc trước khi xác nhận
-                </p>
               </div>
 
               {/* How to rent */}
