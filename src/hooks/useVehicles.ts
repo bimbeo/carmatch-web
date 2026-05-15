@@ -69,6 +69,26 @@ interface SupabaseVehicle {
   } | null;
 }
 
+interface VehicleMediaFile {
+  category?: string | null;
+  fileUrl?: string | null;
+  mimeType?: string | null;
+}
+
+function isVehicleImageMedia(file: unknown): file is VehicleMediaFile {
+  if (!file || typeof file !== 'object') return false;
+  const media = file as VehicleMediaFile;
+  return Boolean(
+    media.fileUrl &&
+      media.category === 'vehicle_photos' &&
+      (!media.mimeType || media.mimeType.startsWith('image/'))
+  );
+}
+
+function uniqueImages(urls: string[]): string[] {
+  return Array.from(new Set(urls.map((url) => url.trim()).filter(Boolean)));
+}
+
 function mapToCar(v: SupabaseVehicle): Car {
   const vm = v.vehicle_models || {};
   const make = vm.make || '';
@@ -81,6 +101,11 @@ function mapToCar(v: SupabaseVehicle): Car {
     (externalRefs.vehiclePhotoUrl as string) ||
     (externalRefs.imageUrl as string) ||
     '';
+  const mediaFiles = Array.isArray(externalRefs.mediaFiles) ? externalRefs.mediaFiles : [];
+  const galleryImages = uniqueImages([
+    coverImage,
+    ...mediaFiles.filter(isVehicleImageMedia).map((file) => file.fileUrl || ''),
+  ]);
 
   const fuel = mapFuelType(vm.fuel_type || '');
 
@@ -96,7 +121,7 @@ function mapToCar(v: SupabaseVehicle): Car {
     amenities: [],
     conditions: DEFAULT_CONDITIONS,
     available: v.status === 'available',
-    images: [coverImage || PLACEHOLDER_IMAGE],
+    images: galleryImages.length > 0 ? galleryImages : [PLACEHOLDER_IMAGE],
     category: mapCategory(fuel),
     description: variant ? `${make} ${model} ${variant} — ${v.color || ''}`.trim() : undefined,
     useCases: undefined,
