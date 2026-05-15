@@ -125,47 +125,48 @@ function calculateRental(
   else if (returnHour >= 22) lateFee = 200_000;
   else if (returnHour >= 21) lateFee = 100_000;
 
-  // Is last segment a half-day?
-  // Applies only when: return is on a weekday AND pickup was evening (≥19h) AND return before noon
-  const lastSegHalf = !isReturnWeekend && pickupHour >= 19 && returnHour <= 12;
-
-  // Is first segment a half-day? (midday pickup: 12h ≤ t < 16h → adds 0.5 day at front)
-  const firstSegHalf = pickupHour >= 12 && pickupHour < 16;
-
   // ── Calculate base days ─────────────────────────────────────────────────────
-  let baseDays: number;
-  let daysLabel: string;
+  // Logic dựa theo ca xe CarMatch:
+  //   • Sáng (7h–11h): ngày đầu tính đủ 1 ngày → baseDays = calDays + 1
+  //   • Trưa (12h–15h): ngày đầu tính nửa ngày  → baseDays = calDays + 0.5
+  //       Ngoại lệ: nếu trả xe trước 12h ngày hôm sau (2 nửa ca = 1 ngày) → baseDays = calDays
+  //   • Chiều/tối (16h+): tính theo số ca đêm chuẩn → baseDays = calDays
+  //       Ngoại lệ: tối (≥19h) + trả sáng sớm (≤12h) = nửa ngày = 70% BP
 
-  if (lastSegHalf && !firstSegHalf) {
-    if (calDays === 1) {
-      // Case 10: evening pickup, early return next morning → 70% BP
-      baseDays = 0.7; // sentinel for 70% × BP
-      daysLabel = 'Nửa ngày (×70%)';
+  let baseDays: number;
+
+  if (pickupHour <= 11) {
+    // Sáng sớm: ngày đầu tiên tính full → +1
+    baseDays = calDays + 1;
+  } else if (pickupHour <= 15) {
+    // Trưa: ngày đầu tính nửa → +0.5
+    // Nhưng nếu trả trước 12h hôm sau = 2 nửa ca = 1 ngày (không cộng thêm)
+    if (returnHour <= 12 && !isReturnWeekend) {
+      baseDays = calDays; // case 13: 2 nửa ca = calDays ngày
     } else {
-      baseDays = (calDays - 1) + 0.7;
-      daysLabel = `${calDays - 1} ngày + nửa ngày`;
+      baseDays = calDays + 0.5; // case 9: 1.5 ngày
     }
-  } else if (firstSegHalf && !lastSegHalf) {
-    // Case 9: afternoon pickup + next day afternoon return → 1.5 days
-    baseDays = calDays + 0.5;
-    daysLabel = `${calDays}.5 ngày`;
-  } else if (firstSegHalf && lastSegHalf) {
-    // Case 13: 2 half-days = 1 full day
-    baseDays = calDays;
-    daysLabel = calDays === 1 ? '1 ngày (2 nửa ca)' : `${calDays} ngày`;
   } else {
+    // Chiều muộn / tối (16h+): tính theo số ca đêm
     baseDays = calDays;
-    daysLabel = calDays === 1 ? '1 ngày' : `${calDays} ngày`;
+    // Tối (≥19h) + trả sáng sớm hôm sau (≤12h) = nửa ngày cuối
+    if (pickupHour >= 19 && returnHour <= 12 && !isReturnWeekend) {
+      baseDays = calDays === 1 ? 0.7 : (calDays - 1) + 0.7;
+    }
   }
 
-  // Compute base amount
+  // Compute base amount (baseDays = 0.7 là sentinel cho "70% BP")
   let baseAmount: number;
   if (baseDays === 0.7) {
     baseAmount = Math.round(BP * 0.7);
   } else {
-    // Handle fractional days (e.g. 1.5 = 1 × BP + 0.5 × BP)
     baseAmount = Math.round(BP * baseDays);
   }
+
+  const daysLabel = baseDays === 0.7 ? 'Nửa ngày (×70%)'
+    : baseDays % 1 === 0 ? (baseDays === 1 ? '1 ngày' : `${baseDays} ngày`)
+    : baseDays === Math.floor(baseDays) + 0.7 ? `${Math.floor(baseDays)} ngày + nửa ngày (×70%)`
+    : `${baseDays} ngày`;
 
   fees.push({ label: daysLabel, amount: baseAmount });
 
