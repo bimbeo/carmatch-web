@@ -79,6 +79,18 @@
 }
 
 @theme inline {
+  /* CarMatch brand palette — base: #11163e (navy) */
+  --color-brand-50:  #eef0f8;
+  --color-brand-100: #d4d8ef;
+  --color-brand-200: #aab0df;
+  --color-brand-300: #7f88cf;
+  --color-brand-400: #5560bf;
+  --color-brand-500: #2a3896;
+  --color-brand-600: #11163e;
+  --color-brand-700: #0d1130;
+  --color-brand-800: #090c22;
+  --color-brand-900: #050714;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

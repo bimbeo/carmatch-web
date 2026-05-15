@@ -7,6 +7,7 @@ const ZALO_LINK = 'https://zalo.me/0975563290';
 const navLinks = [
   { href: '/xe', label: 'Thuê xe tự lái' },
   { href: '/thue-xe-thang', label: 'Thuê xe tháng' },
+  { href: '/hop-tac', label: 'Hợp tác chủ xe' },
   { href: '/gioi-thieu', label: 'Giới thiệu' },
   { href: '/blog', label: 'Blog' },
 ];
@@ -28,7 +29,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <Car className="w-6 h-6 text-green-600" />
+            <Car className="w-6 h-6 text-brand-600" />
             <span className="text-xl font-bold text-gray-900">CarMatch</span>
           </Link>
 
@@ -40,7 +41,7 @@ export default function Navbar() {
                 to={link.href}
                 className={`text-sm font-medium transition-colors ${
                   location.pathname === link.href
-                    ? 'text-green-600'
+                    ? 'text-brand-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -55,7 +56,7 @@ export default function Navbar() {
               href={ZALO_LINK}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5 bg-green-600 text-white rounded-full font-semibold text-sm hover:bg-green-700 transition-colors shadow-sm"
+              className="px-5 py-2.5 bg-brand-600 text-white rounded-full font-semibold text-sm hover:bg-brand-700 transition-colors shadow-sm"
             >
               Đặt xe qua Zalo
             </a>
@@ -83,7 +84,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${
                   location.pathname === link.href
-                    ? 'text-green-600 bg-green-50'
+                    ? 'text-brand-600 bg-brand-50'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -95,7 +96,7 @@ export default function Navbar() {
                 href={ZALO_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full px-4 py-3 bg-green-600 text-white rounded-full font-semibold text-sm text-center hover:bg-green-700 transition-colors"
+                className="block w-full px-4 py-3 bg-brand-600 text-white rounded-full font-semibold text-sm text-center hover:bg-brand-700 transition-colors"
               >
                 Đặt xe qua Zalo
               </a>

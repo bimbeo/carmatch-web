@@ -42,7 +42,7 @@ const portableTextComponents = {
       <p className="text-gray-700 leading-relaxed mb-4">{children}</p>
     ),
     blockquote: ({ children }: { children?: React.ReactNode }) => (
-      <blockquote className="border-l-4 border-green-500 pl-4 italic text-gray-600 my-6 bg-green-50 py-2 rounded-r-lg">
+      <blockquote className="border-l-4 border-brand-500 pl-4 italic text-gray-600 my-6 bg-brand-50 py-2 rounded-r-lg">
         {children}
       </blockquote>
     ),
@@ -56,7 +56,7 @@ const portableTextComponents = {
     ),
     link: ({ value, children }: { value?: { href: string }; children?: React.ReactNode }) => (
       <a href={value?.href} target="_blank" rel="noopener noreferrer"
-        className="text-green-600 hover:underline">
+        className="text-brand-600 hover:underline">
         {children}
       </a>
     ),
@@ -113,6 +113,16 @@ export default function BlogPost() {
       });
   }, [slug]);
 
+  useEffect(() => {
+    if (post) {
+      document.title = `${post.seoTitle || post.title} | CarMatch`;
+    }
+
+    return () => {
+      document.title = 'CarMatch — Thuê Xe Tự Lái Hà Nội | Giá Từ 800K/Ngày';
+    };
+  }, [post]);
+
   return (
     <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
@@ -123,7 +133,7 @@ export default function BlogPost() {
           {/* Back link */}
           <Link
             to="/blog"
-            className="inline-flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors text-sm mb-8"
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-600 transition-colors text-sm mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
             Quay lại Blog
@@ -143,7 +153,7 @@ export default function BlogPost() {
           ) : notFound || !post ? (
             <div className="text-center py-20">
               <p className="text-gray-500 text-xl mb-4">Không tìm thấy bài viết.</p>
-              <Link to="/blog" className="text-green-600 hover:underline">
+              <Link to="/blog" className="text-brand-600 hover:underline">
                 Xem tất cả bài viết
               </Link>
             </div>
@@ -154,7 +164,7 @@ export default function BlogPost() {
                 <div className="flex flex-wrap gap-2 mb-4">
                   {post.categories.map((cat) => (
                     <span key={cat}
-                      className="px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                      className="px-3 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-full border border-brand-200">
                       {cat}
                     </span>
                   ))}
@@ -162,7 +172,7 @@ export default function BlogPost() {
               )}
 
               {/* Title */}
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-4">
                 {post.title}
               </h1>
 
@@ -175,7 +185,7 @@ export default function BlogPost() {
 
               {/* Excerpt */}
               {post.excerpt && (
-                <p className="text-lg text-gray-600 leading-relaxed mb-8 border-l-4 border-green-400 pl-4 bg-green-50 py-3 rounded-r-lg">
+                <p className="text-lg text-gray-600 leading-relaxed mb-8 border-l-4 border-brand-400 pl-4 bg-brand-50 py-3 rounded-r-lg">
                   {post.excerpt}
                 </p>
               )}
@@ -193,20 +203,20 @@ export default function BlogPost() {
 
               {/* Body */}
               {post.body && post.body.length > 0 && (
-                <div className="prose prose-invert max-w-none">
+                <div className="prose max-w-none">
                   <PortableText value={post.body} components={portableTextComponents} />
                 </div>
               )}
 
               {/* Zalo CTA */}
-              <div className="mt-12 bg-gradient-to-br from-[#4ade80]/10 to-transparent border border-[#4ade80]/20 rounded-2xl p-8 text-center">
-                <h3 className="text-white font-bold text-xl mb-2">Sẵn sàng trải nghiệm?</h3>
-                <p className="text-gray-400 mb-6">Đặt xe ngay qua Zalo — xác nhận trong 30 phút</p>
+              <div className="mt-12 bg-brand-50 border border-brand-100 rounded-2xl p-8 text-center">
+                <h3 className="text-gray-900 font-bold text-xl mb-2">Sẵn sàng trải nghiệm?</h3>
+                <p className="text-gray-500 mb-6">Đặt xe ngay qua Zalo — xác nhận trong 30 phút</p>
                 <a
                   href="https://zalo.me/0975563290"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#4ade80] text-black rounded-full font-bold hover:bg-[#22c55e] transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-colors"
                 >
                   <MessageCircle className="w-4 h-4" />
                   Đặt xe qua Zalo
@@ -214,10 +224,10 @@ export default function BlogPost() {
               </div>
 
               {/* Back link bottom */}
-              <div className="mt-8 pt-8 border-t border-white/5">
+              <div className="mt-8 pt-8 border-t border-gray-100">
                 <Link
                   to="/blog"
-                  className="inline-flex items-center gap-2 text-gray-400 hover:text-[#4ade80] transition-colors text-sm"
+                  className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-600 transition-colors text-sm"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Quay lại Blog

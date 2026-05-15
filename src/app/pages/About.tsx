@@ -42,10 +42,10 @@ export default function About() {
       <ZaloFAB />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 px-4 bg-gradient-to-br from-green-50 via-white to-emerald-50">
+      <section className="pt-32 pb-16 px-4 bg-gradient-to-br from-brand-50 via-white to-brand-50">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Về <span className="text-green-600">CarMatch</span>
+            Về <span className="text-brand-600">CarMatch</span>
           </h1>
           <p className="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto">
             CarMatch ra đời từ niềm tin đơn giản: thuê xe tự lái phải dễ dàng, minh bạch và đáng tin cậy.
@@ -59,7 +59,7 @@ export default function About() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-green-600 mb-1">{stat.value}</div>
+                <div className="text-3xl sm:text-4xl font-bold text-brand-600 mb-1">{stat.value}</div>
                 <div className="text-gray-500 text-sm">{stat.label}</div>
               </div>
             ))}
@@ -86,8 +86,8 @@ export default function About() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {commitments.map((item) => (
               <div key={item.title} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-all">
-                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4">
-                  <item.icon className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center mb-4">
+                  <item.icon className="w-6 h-6 text-brand-600" />
                 </div>
                 <h3 className="text-gray-900 font-semibold mb-2">{item.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
@@ -105,7 +105,7 @@ export default function About() {
             {processSteps.map((step) => (
               <div key={step.step} className="flex gap-5">
                 <div className="shrink-0">
-                  <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center shadow-sm shadow-green-200">
+                  <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center shadow-sm shadow-brand-200">
                     <span className="text-white font-bold text-sm">{step.step}</span>
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export default function About() {
             <ul className="space-y-4">
               {conditions.map((cond) => (
                 <li key={cond} className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
                   <span className="text-gray-700 text-sm">{cond}</span>
                 </li>
               ))}
@@ -138,12 +138,12 @@ export default function About() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50">
+      <section className="py-20 px-4 bg-gradient-to-br from-brand-50 to-brand-50">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Sẵn sàng khởi hành?</h2>
           <p className="text-gray-600 mb-8">Đặt xe ngay hôm nay qua Zalo — xác nhận trong 30 phút.</p>
           <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-full hover:bg-green-700 transition-colors shadow-md shadow-green-200">
+            className="inline-flex items-center gap-2 px-8 py-4 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200">
             Đặt xe qua Zalo
             <ArrowRight className="w-4 h-4" />
           </a>

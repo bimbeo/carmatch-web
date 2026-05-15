@@ -67,7 +67,7 @@ export default function Blog() {
       {/* Hero */}
       <div className="bg-white border-b border-gray-100 pt-24 pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-green-600 font-semibold text-sm uppercase tracking-wide mb-2">Blog</p>
+          <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Blog</p>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
             Kinh nghiệm & Tin tức
           </h1>
@@ -104,8 +104,8 @@ export default function Blog() {
                       <img src={post.mainImageUrl} alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
-                        <Car className="w-12 h-12 text-green-300" />
+                      <div className="w-full h-full bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center">
+                        <Car className="w-12 h-12 text-brand-300" />
                       </div>
                     )}
                   </div>
@@ -113,13 +113,13 @@ export default function Blog() {
                     {post.categories && post.categories.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {post.categories.map((cat) => (
-                          <span key={cat} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                          <span key={cat} className="px-2 py-0.5 bg-brand-50 text-brand-700 text-xs font-semibold rounded-full border border-brand-200">
                             {cat}
                           </span>
                         ))}
                       </div>
                     )}
-                    <h2 className="text-base font-bold text-gray-900 group-hover:text-green-600 transition-colors mb-2 line-clamp-2">
+                    <h2 className="text-base font-bold text-gray-900 group-hover:text-brand-600 transition-colors mb-2 line-clamp-2">
                       {post.title}
                     </h2>
                     {post.excerpt && (

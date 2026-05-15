@@ -12,7 +12,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <Car className="w-6 h-6 text-green-400" />
+              <Car className="w-6 h-6 text-brand-400" />
               <span className="text-xl font-bold text-white">CarMatch</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-5">
@@ -79,7 +79,7 @@ export default function Footer() {
               <li>
                 <a href={`tel:${PHONE.replace(/\s/g, '')}`}
                   className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors group">
-                  <Phone className="w-4 h-4 mt-0.5 shrink-0 group-hover:text-green-400 transition-colors" />
+                  <Phone className="w-4 h-4 mt-0.5 shrink-0 group-hover:text-brand-400 transition-colors" />
                   <span className="text-sm">{PHONE}</span>
                 </a>
               </li>
@@ -93,7 +93,7 @@ export default function Footer() {
               <li>
                 <a href="mailto:info@carmatch.vn"
                   className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors group">
-                  <Mail className="w-4 h-4 mt-0.5 shrink-0 group-hover:text-green-400 transition-colors" />
+                  <Mail className="w-4 h-4 mt-0.5 shrink-0 group-hover:text-brand-400 transition-colors" />
                   <span className="text-sm">info@carmatch.vn</span>
                 </a>
               </li>
