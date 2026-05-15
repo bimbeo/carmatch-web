@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router';
-import { ArrowRight, Star, CheckCircle2, Building2, MessageCircle, Zap, Shield, Clock, MapPin, Home as HomeIcon, Car } from 'lucide-react';
+import { ArrowRight, Star, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapPin, Home as HomeIcon, Car, ChevronLeft, ChevronRight, Key } from 'lucide-react';
 import { sanityClient, postsQuery } from '@/lib/sanity';
 import { useVehicles } from '@/hooks/useVehicles';
+import { usePromotions } from '@/hooks/usePromotions';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
@@ -74,15 +75,36 @@ interface Post {
   slug: { current: string };
   publishedAt: string;
   excerpt?: string;
+  mainImageUrl?: string;
+  categories?: string[];
 }
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const { cars } = useVehicles();
+  const { promotions } = usePromotions();
+  const [promoIndex, setPromoIndex] = useState(0);
+  const promoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     sanityClient.fetch<Post[]>(postsQuery).then((data) => setPosts(data?.slice(0, 3) ?? []));
   }, []);
+
+  // Auto-advance promo carousel
+  useEffect(() => {
+    if (promotions.length < 2) return;
+    promoTimerRef.current = setInterval(() => setPromoIndex((i) => (i + 1) % promotions.length), 5000);
+    return () => { if (promoTimerRef.current) clearInterval(promoTimerRef.current); };
+  }, [promotions.length]);
+
+  const promoNext = () => {
+    if (promoTimerRef.current) clearInterval(promoTimerRef.current);
+    setPromoIndex((i) => (i + 1) % promotions.length);
+  };
+  const promoPrev = () => {
+    if (promoTimerRef.current) clearInterval(promoTimerRef.current);
+    setPromoIndex((i) => (i - 1 + promotions.length) % promotions.length);
+  };
 
   const allCarsPreview = cars.slice(0, 6);
 
@@ -316,6 +338,111 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── PROMO BANNERS ─────────────────────────────────────── */}
+      {promotions.length > 0 && (
+        <section className="py-16 px-4 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Khuyến mãi</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Ưu đãi đang chạy</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                {promotions.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPromoIndex(i)}
+                    className={`rounded-full transition-all ${i === promoIndex ? 'w-6 h-2 bg-brand-600' : 'w-2 h-2 bg-gray-200 hover:bg-gray-300'}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop: 3-column grid */}
+            <div className="hidden md:grid md:grid-cols-3 gap-5">
+              {promotions.map((promo) => {
+                const isExternal = promo.link_url?.startsWith('http');
+                const cardContent = (
+                  <div className="relative rounded-2xl overflow-hidden group cursor-pointer aspect-[16/9]">
+                    <img
+                      src={promo.image_url}
+                      alt={promo.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    {promo.badge_text && (
+                      <span className="absolute top-3 left-3 px-2.5 py-1 bg-brand-600 text-white text-xs font-bold rounded-full">
+                        {promo.badge_text}
+                      </span>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="text-white font-bold text-base leading-snug mb-1">{promo.title}</h3>
+                      {promo.subtitle && (
+                        <p className="text-white/80 text-xs leading-relaxed line-clamp-2">{promo.subtitle}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+                return promo.link_url ? (
+                  isExternal ? (
+                    <a key={promo.id} href={promo.link_url} target="_blank" rel="noopener noreferrer">{cardContent}</a>
+                  ) : (
+                    <Link key={promo.id} to={promo.link_url}>{cardContent}</Link>
+                  )
+                ) : (
+                  <div key={promo.id}>{cardContent}</div>
+                );
+              })}
+            </div>
+
+            {/* Mobile: single-card carousel */}
+            <div className="md:hidden relative">
+              {(() => {
+                const promo = promotions[promoIndex];
+                if (!promo) return null;
+                const isExternal = promo.link_url?.startsWith('http');
+                const cardContent = (
+                  <div className="relative rounded-2xl overflow-hidden aspect-[16/9]">
+                    <img src={promo.image_url} alt={promo.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    {promo.badge_text && (
+                      <span className="absolute top-3 left-3 px-2.5 py-1 bg-brand-600 text-white text-xs font-bold rounded-full">
+                        {promo.badge_text}
+                      </span>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <h3 className="text-white font-bold text-lg leading-snug mb-1">{promo.title}</h3>
+                      {promo.subtitle && <p className="text-white/80 text-sm">{promo.subtitle}</p>}
+                    </div>
+                  </div>
+                );
+                return (
+                  <>
+                    {promo.link_url ? (
+                      isExternal ? (
+                        <a href={promo.link_url} target="_blank" rel="noopener noreferrer">{cardContent}</a>
+                      ) : (
+                        <Link to={promo.link_url}>{cardContent}</Link>
+                      )
+                    ) : cardContent}
+                    {promotions.length > 1 && (
+                      <>
+                        <button onClick={promoPrev} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button onClick={promoNext} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── WHY CARMATCH ──────────────────────────────────────── */}
       <section className="py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
@@ -485,7 +612,7 @@ export default function Home() {
 
       {/* ── BLOG PREVIEW ──────────────────────────────────────── */}
       {posts.length > 0 && (
-        <section className="py-20 px-4 bg-white">
+        <section className="py-20 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-end justify-between mb-10">
               <div>
@@ -500,28 +627,177 @@ export default function Home() {
                 Xem tất cả <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {posts.map((post) => (
+
+            {/* Editorial layout: left = 2 small stacked, right = 1 large hero */}
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-5">
+
+              {/* Left column: 2 small posts */}
+              <div className="flex flex-col gap-5">
+                {posts.slice(1, 3).map((post) => (
+                  <Link
+                    key={post._id}
+                    to={`/blog/${post.slug.current}`}
+                    className="group relative rounded-2xl overflow-hidden flex-1 min-h-[180px] bg-gray-200"
+                  >
+                    {post.mainImageUrl ? (
+                      <img
+                        src={post.mainImageUrl}
+                        alt={post.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-brand-700 to-brand-500" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+                    <div className="relative p-5 h-full flex flex-col justify-end">
+                      {post.categories?.[0] && (
+                        <span className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-2">
+                          {post.categories[0]}
+                        </span>
+                      )}
+                      <h3 className="text-white font-bold text-base leading-snug group-hover:text-brand-200 transition-colors line-clamp-2">
+                        {post.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-white/60 text-xs">
+                          {new Date(post.publishedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5 text-white/60 group-hover:text-brand-300 transition-colors" />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Right column: 1 large featured post */}
+              {posts[0] && (
                 <Link
-                  key={post._id}
-                  to={`/blog/${post.slug.current}`}
-                  className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md hover:border-gray-200 transition-all group"
+                  to={`/blog/${posts[0].slug.current}`}
+                  className="group relative rounded-2xl overflow-hidden min-h-[400px] lg:min-h-0 bg-gray-200"
                 >
-                  <div className="text-gray-400 text-xs mb-3">
-                    {new Date(post.publishedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                  </div>
-                  <h3 className="text-gray-900 font-semibold mb-3 group-hover:text-brand-600 transition-colors leading-snug">
-                    {post.title}
-                  </h3>
-                  {post.excerpt && (
-                    <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">{post.excerpt}</p>
+                  {posts[0].mainImageUrl ? (
+                    <img
+                      src={posts[0].mainImageUrl}
+                      alt={posts[0].title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />
                   )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  {/* Featured badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 bg-brand-600 text-white text-xs font-bold rounded-full">
+                      ✦ Nổi bật
+                    </span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-7">
+                    {posts[0].categories?.[0] && (
+                      <span className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-3 block">
+                        {posts[0].categories[0]}
+                      </span>
+                    )}
+                    <h3 className="text-white font-bold text-2xl sm:text-3xl leading-snug mb-3 group-hover:text-brand-200 transition-colors">
+                      {posts[0].title}
+                    </h3>
+                    {posts[0].excerpt && (
+                      <p className="text-white/75 text-sm leading-relaxed mb-4 line-clamp-2">{posts[0].excerpt}</p>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <span className="text-white/60 text-sm">
+                        {new Date(posts[0].publishedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </span>
+                      <span className="text-white/40">·</span>
+                      <span className="text-white text-sm font-semibold flex items-center gap-1.5 group-hover:text-brand-300 transition-colors">
+                        Đọc bài <ArrowRight className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
                 </Link>
-              ))}
+              )}
+            </div>
+
+            <div className="text-center mt-8">
+              <Link
+                to="/blog"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-full hover:border-gray-300 hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
+              >
+                Xem tất cả bài viết <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </section>
       )}
+
+      {/* ── CAR OWNER PARTNERSHIP ─────────────────────────────── */}
+      <section className="py-20 px-4 bg-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left: text */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/90 rounded-full text-xs font-semibold mb-6">
+                <Key className="w-3.5 h-3.5" />
+                Dành cho chủ xe
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-5 leading-tight">
+                Xe đang nằm một chỗ?<br />
+                <span className="text-brand-400">Hãy để xe sinh lời</span>
+              </h2>
+              <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+                Gửi xe vào đội CarMatch — chúng tôi lo toàn bộ từ vận hành, bảo dưỡng, bảo hiểm đến tìm khách. Bạn chỉ cần nhận doanh thu hàng tháng.
+              </p>
+              <ul className="space-y-3 mb-10">
+                {[
+                  'Thu nhập thụ động từ 10–25 triệu/xe/tháng',
+                  'CarMatch chịu trách nhiệm toàn bộ vận hành',
+                  'Xe được bảo hiểm & bảo dưỡng định kỳ',
+                  'Báo cáo doanh thu minh bạch theo tháng',
+                  'Rút xe lại bất cứ lúc nào — không ràng buộc dài hạn',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-gray-300 text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  to="/hop-tac"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-lg"
+                >
+                  Tìm hiểu hợp tác ngay
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <a
+                  href="https://zalo.me/0975563290"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-white/20 text-white font-semibold rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Hỏi qua Zalo
+                </a>
+              </div>
+            </div>
+
+            {/* Right: stat cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { value: '10–25M', label: 'Thu nhập/xe/tháng', icon: '💰' },
+                { value: '100%', label: 'CarMatch lo vận hành', icon: '🔧' },
+                { value: '48h', label: 'Onboard xe vào đội', icon: '⚡' },
+                { value: '0đ', label: 'Chi phí tham gia ban đầu', icon: '🎁' },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors">
+                  <span className="text-2xl mb-3 block">{stat.icon}</span>
+                  <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+                  <div className="text-gray-400 text-xs leading-snug">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── DỊCH VỤ SẮP CÓ ───────────────────────────────────── */}
       <section className="py-20 px-4 bg-gray-50">
