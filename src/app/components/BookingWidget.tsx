@@ -33,16 +33,17 @@ function displayDate(dateStr: string): string {
 }
 
 // ─── Pricing engine ───────────────────────────────────────────────────────────
-// Based on CarMatch pricing formula spreadsheet
-// Key rules:
-//   • Ca xe: 7h–20h (standard)
+// CarMatch pricing rules (updated):
 //   • Minimum booking: 4 hours
-//   • No booking start after 17h same-day
-//   • Half-day = BP × 70%; only applies on weekdays (weekend = auto full day)
-//   • Early pickup surcharge: 17–19h = +100k, 16–17h = +200k
+//   • Half-day (70% BP): booking within 1 session only
+//       - Buổi sáng: pickup 7h–12h AND return ≤ 12h (same day)
+//       - Buổi chiều: pickup 13h–20h AND return ≤ 20h (same day)
+//       - Otherwise (crosses sessions or spans longer) = 1 full day
+//   • Multi-day: BP × days, with early/late surcharges
+//   • Weekend surcharge: +100k ONLY when booking = exactly 1 day (same-day or 1 overnight)
+//       on T7 or CN. No surcharge for 2+ day rentals.
+//   • Early pickup surcharge (multi-day): 17–19h = +100k, 16–17h = +200k
 //   • Late return surcharge: 21–22h = +100k, 22–23h = +200k, ≥23h = +0.5 BP
-//   • Weekend surcharge: T7 return = +100k, CN return (weekday origin) = +200k
-//                         T7 pickup → CN return = +100k, CN pickup → weekday = none
 
 interface Fee {
   label: string;
@@ -80,9 +81,6 @@ function calculateRental(
   if (calDays < 0 || (calDays === 0 && returnHour <= pickupHour)) {
     return { valid: false, error: 'Giờ trả phải sau giờ nhận', total: 0, fees: [] };
   }
-  if (calDays === 0 && pickupHour >= 17) {
-    return { valid: false, error: 'Không thể nhận xe sau 17h trong ngày', total: 0, fees: [] };
-  }
 
   const fees: Fee[] = [];
   const pDow = pDate.getDay(); // 0=Sun, 6=Sat
@@ -90,17 +88,26 @@ function calculateRental(
   const isReturnSat = rDow === 6;
   const isReturnSun = rDow === 0;
   const isReturnWeekend = isReturnSat || isReturnSun;
-  const isPickupSat = pDow === 6;
-  const isPickupWeekday = pDow >= 1 && pDow <= 5;
+  const isPickupWeekend = pDow === 0 || pDow === 6;
+  // isPickupWeekend used for same-day weekend check above
 
   // ── SAME DAY ────────────────────────────────────────────────────────────────
   if (calDays === 0) {
-    // All same-day: return ≤ 20h = half day (70%), > 20h = full day
-    const base = returnHour <= 20 ? Math.round(BP * 0.7) : BP;
-    fees.push({
-      label: returnHour <= 20 ? `Nửa ngày × 70%` : '1 ngày',
-      amount: base,
-    });
+    // Half-day: booking must be WITHIN one session
+    //   Buổi sáng: pickup ∈ [7,12] AND return ≤ 12
+    //   Buổi chiều: pickup ∈ [13,20] AND return ≤ 20
+    const inMorning = pickupHour >= 7 && pickupHour <= 12 && returnHour <= 12;
+    const inAfternoon = pickupHour >= 13 && returnHour <= 20;
+    const isHalfDay = inMorning || inAfternoon;
+
+    let base = isHalfDay ? Math.round(BP * 0.7) : BP;
+    fees.push({ label: isHalfDay ? 'Nửa ngày (×70%)' : '1 ngày', amount: base });
+
+    // Weekend surcharge: +100k for 1-day booking on T7 or CN
+    if (isPickupWeekend) {
+      fees.push({ label: 'Phụ phí cuối tuần', amount: 100_000 });
+      base += 100_000;
+    }
     return { valid: true, total: base, fees };
   }
 
@@ -170,25 +177,17 @@ function calculateRental(
   }
 
   // ── Weekend surcharge ────────────────────────────────────────────────────────
+  // Rule: +100k ONLY when total rental = exactly 1 overnight day (calDays === 1)
+  //       AND that day falls on T7 or CN.
+  //       For 2+ day rentals: no weekend surcharge.
   let weekendFee = 0;
-  let weekendLabel = '';
-  if (isReturnSat) {
+  if (calDays === 1 && (isReturnSat || isReturnSun || isReturnWeekend)) {
     weekendFee = 100_000;
-    weekendLabel = 'Phụ phí Thứ 7';
-  } else if (isReturnSun) {
-    if (isPickupSat) {
-      weekendFee = 100_000; // T7 pickup → CN return (case 49)
-      weekendLabel = 'Phụ phí cuối tuần';
-    } else if (isPickupWeekday) {
-      weekendFee = 200_000; // weekday pickup → CN return (case 43)
-      weekendLabel = 'Phụ phí Chủ nhật';
-    }
-    // CN pickup → weekday return: no surcharge (cases 54-62)
   }
 
   if (lateFee > 0) fees.push({ label: 'Phụ phí quá giờ', amount: lateFee });
   if (earlyFee > 0) fees.push({ label: 'Phụ phí nhận xe sớm', amount: earlyFee });
-  if (weekendFee > 0) fees.push({ label: weekendLabel, amount: weekendFee });
+  if (weekendFee > 0) fees.push({ label: 'Phụ phí cuối tuần (T7/CN)', amount: weekendFee });
 
   const total = baseAmount + lateFee + earlyFee + weekendFee;
 
@@ -201,7 +200,7 @@ function calculateRental(
 }
 
 // ─── Hour options ─────────────────────────────────────────────────────────────
-const PICKUP_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+const PICKUP_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 const RETURN_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 
 // ─── Component ────────────────────────────────────────────────────────────────
