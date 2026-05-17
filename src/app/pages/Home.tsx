@@ -79,6 +79,16 @@ interface Post {
   categories?: string[];
 }
 
+// Fallback images for blog posts without mainImage
+const BLOG_FALLBACKS = [
+  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80', // car on road
+  'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1200&q=80', // night driving
+  'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=1200&q=80', // mountain road
+];
+function blogImage(post: Post, index: number): string {
+  return post.mainImageUrl ?? BLOG_FALLBACKS[index % BLOG_FALLBACKS.length];
+}
+
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const { cars } = useVehicles();
@@ -633,21 +643,17 @@ export default function Home() {
 
               {/* Left column: 2 small posts */}
               <div className="flex flex-col gap-5 h-full">
-                {posts.slice(1, 3).map((post) => (
+                {posts.slice(1, 3).map((post, i) => (
                   <Link
                     key={post._id}
                     to={`/blog/${post.slug.current}`}
                     className="group relative rounded-2xl overflow-hidden flex-1 min-h-[200px] bg-gray-200"
                   >
-                    {post.mainImageUrl ? (
-                      <img
-                        src={post.mainImageUrl}
-                        alt={post.title}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-brand-700 to-brand-500" />
-                    )}
+                    <img
+                      src={blogImage(post, i + 1)}
+                      alt={post.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
                     <div className="relative p-5 h-full flex flex-col justify-end">
                       {post.categories?.[0] && (
@@ -675,15 +681,11 @@ export default function Home() {
                   to={`/blog/${posts[0].slug.current}`}
                   className="group relative rounded-2xl overflow-hidden min-h-[420px] lg:h-full bg-gray-200"
                 >
-                  {posts[0].mainImageUrl ? (
-                    <img
-                      src={posts[0].mainImageUrl}
-                      alt={posts[0].title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />
-                  )}
+                  <img
+                    src={blogImage(posts[0], 0)}
+                    alt={posts[0].title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   {/* Featured badge */}
                   <div className="absolute top-4 left-4">
