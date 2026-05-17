@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { PortableText } from '@portabletext/react';
-import { sanityClient, postBySlugQuery } from '@/lib/sanity';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -105,10 +104,15 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (!slug) return;
-    sanityClient
-      .fetch(postBySlugQuery, { slug })
+    fetch(`/api/posts/${encodeURIComponent(slug)}`)
+      .then((res) => {
+        if (res.status === 404) { setNotFound(true); setLoading(false); return null; }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data: Post | null) => {
-        if (!data) {
+        if (!data) return;
+        if (!data._id) {
           setNotFound(true);
         } else {
           setPost(data);

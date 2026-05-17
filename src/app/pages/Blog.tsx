@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Car } from 'lucide-react';
-import { sanityClient, postsQuery } from '@/lib/sanity';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -54,8 +53,11 @@ export default function Blog() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    sanityClient
-      .fetch(postsQuery)
+    fetch('/api/posts')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data: Post[]) => {
         setPosts(data);
         setLoading(false);
