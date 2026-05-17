@@ -3,8 +3,9 @@ import { createClient } from '@sanity/client'
 export const client = createClient({
   projectId: 'zwazjo4q',
   dataset: 'production',
-  useCdn: false,
+  useCdn: true,
   apiVersion: '2024-01-01',
+  perspective: 'published',
 })
 
 // Queries
