@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
+import { useSEO } from '@/hooks/useSEO';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -48,6 +49,12 @@ interface FormData {
 }
 
 export default function B2B() {
+  useSEO({
+    title: 'Thuê Xe Theo Tháng Hà Nội — Cư Dân & Doanh Nghiệp | CarMatch',
+    description: 'Gói thuê xe theo tháng tại Hà Nội: tiết kiệm 30–40% so với thuê ngày lẻ. Giao xe tận tòa nhà, hóa đơn VAT, linh hoạt 1–12 tháng. Báo giá miễn phí.',
+    canonical: 'https://carmatch.vn/thue-xe-thang',
+  });
+
   const [form, setForm] = useState<FormData>({
     name: '',
     quantity: '',

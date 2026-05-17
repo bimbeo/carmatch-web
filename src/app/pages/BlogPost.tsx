@@ -6,6 +6,7 @@ import { sanityClient, postBySlugQuery } from '@/lib/sanity';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import { useSEO } from '@/hooks/useSEO';
 
 interface Post {
   _id: string;
@@ -94,6 +95,13 @@ export default function BlogPost() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  useSEO({
+    title: post?.seoTitle ?? post?.title ?? 'Blog | CarMatch',
+    description: post?.seoDescription ?? post?.excerpt ?? 'Đọc bài viết mới nhất từ CarMatch về thuê xe tự lái Hà Nội.',
+    canonical: post ? `https://carmatch.vn/blog/${post.slug.current}` : undefined,
+    ogImage: post?.mainImageUrl ?? undefined,
+  });
 
   useEffect(() => {
     if (!slug) return;

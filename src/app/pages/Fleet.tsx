@@ -5,6 +5,7 @@ import CarCard from '../components/CarCard';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import { useSEO } from '@/hooks/useSEO';
 
 type FuelFilter  = 'all' | 'Điện' | 'Xăng' | 'Dầu';
 type SeatsFilter = 'all' | '4' | '5' | '7' | '8+';
@@ -52,6 +53,12 @@ function Chip({
 }
 
 export default function Fleet() {
+  useSEO({
+    title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | CarMatch',
+    description: 'Duyệt 20+ mẫu xe tự lái cho thuê tại Hà Nội: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 800K/ngày. Giao xe tận sảnh tòa nhà.',
+    canonical: 'https://carmatch.vn/xe',
+  });
+
   const { cars, loading, error } = useVehicles();
 
   const [brandFilter, setBrandFilter] = useState<string>('all');

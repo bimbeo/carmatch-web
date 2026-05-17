@@ -8,6 +8,7 @@ import { submitLead } from '@/hooks/useLeads';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import { useSEO } from '@/hooks/useSEO';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -107,6 +108,12 @@ interface FormData {
 }
 
 export default function Partner() {
+  useSEO({
+    title: 'Hợp Tác Chủ Xe — Kiếm 8–18 Triệu/Tháng | CarMatch',
+    description: 'Xe đỗ nhàn rỗi? Hợp tác với CarMatch để kiếm 8–18 triệu/tháng từ xe không dùng đến. Hợp đồng minh bạch, bảo hiểm đầy đủ, thanh toán đúng hạn.',
+    canonical: 'https://carmatch.vn/hop-tac',
+  });
+
   const [form, setForm] = useState<FormData>({
     name: '',
     phone: '',

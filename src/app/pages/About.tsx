@@ -2,6 +2,7 @@ import { Shield, Clock, Smile, Wrench, CheckCircle2, ArrowRight } from 'lucide-r
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import { useSEO } from '@/hooks/useSEO';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -36,6 +37,12 @@ const conditions = [
 ];
 
 export default function About() {
+  useSEO({
+    title: 'Về CarMatch — Dịch Vụ Thuê Xe Tự Lái Hà Nội',
+    description: 'CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, chuyên phục vụ cư dân chung cư cao cấp. Xe an toàn, bảo hiểm đầy đủ, giao xe tận sảnh tòa nhà.',
+    canonical: 'https://carmatch.vn/ve-chung-toi',
+  });
+
   return (
     <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />

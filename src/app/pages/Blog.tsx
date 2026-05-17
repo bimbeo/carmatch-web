@@ -5,6 +5,7 @@ import { sanityClient, postsQuery } from '@/lib/sanity';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import { useSEO } from '@/hooks/useSEO';
 
 interface Post {
   _id: string;
@@ -42,6 +43,12 @@ function formatDate(dateStr: string) {
 }
 
 export default function Blog() {
+  useSEO({
+    title: 'Blog — Kinh Nghiệm Thuê Xe & Ô Tô Hà Nội | CarMatch',
+    description: 'Bài viết hữu ích về thuê xe tự lái Hà Nội: kinh nghiệm, so sánh xe điện vs xăng, cung đường, giá thuê xe theo mùa và lưu ý khi thuê xe lần đầu.',
+    canonical: 'https://carmatch.vn/blog',
+  });
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
