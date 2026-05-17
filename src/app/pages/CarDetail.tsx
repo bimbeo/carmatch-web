@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
@@ -12,6 +12,7 @@ import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
 import BookingWidget from '../components/BookingWidget';
+import { useSEO } from '@/hooks/useSEO';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -107,12 +108,16 @@ export default function CarDetail() {
   const relatedCars = cars.filter((c) => c.slug !== slug && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.slug !== slug).slice(0, 3);
 
-  useEffect(() => {
-    if (car) {
-      document.title = `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | CarMatch`;
-    }
-    return () => { document.title = 'CarMatch — Thuê Xe Tự Lái Hà Nội | Giá Từ 800K/Ngày'; };
-  }, [car]);
+  useSEO({
+    title: car
+      ? `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | CarMatch`
+      : 'Thuê Xe Tự Lái Hà Nội | CarMatch',
+    description: car
+      ? `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày. Giao xe tận sảnh tòa nhà, bảo hiểm đầy đủ.`
+      : 'Xem chi tiết xe cho thuê tại CarMatch Hà Nội.',
+    canonical: car ? `https://carmatch.vn/xe/${car.slug}` : undefined,
+    ogImage: car?.images?.[0] ?? undefined,
+  });
 
   if (loading) {
     return (
