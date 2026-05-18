@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 
 export interface Promotion {
   id: string;
@@ -16,13 +15,16 @@ export function usePromotions() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from('promotions')
-      .select('id,title,subtitle,image_url,link_url,badge_text,sort_order')
-      .eq('active', true)
-      .order('sort_order', { ascending: true })
-      .then(({ data, error }) => {
-        if (!error && data) setPromotions(data as Promotion[]);
+    fetch('/api/promotions')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data: Promotion[]) => {
+        setPromotions(data);
+        setLoading(false);
+      })
+      .catch(() => {
         setLoading(false);
       });
   }, []);

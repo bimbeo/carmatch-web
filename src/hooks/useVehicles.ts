@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import type { Car } from '@/data/cars';
 
 // Default conditions shown on every car (same as ops rental policy)
@@ -141,21 +140,18 @@ export function useVehicles(): UseVehiclesResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .from('vehicles')
-      .select(
-        'id,display_name,plate_number,color,model_year,daily_base_price,current_km,status,published,external_refs,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
-      )
-      .eq('status', 'available')
-      .eq('published', true)
-      .order('daily_base_price', { ascending: true })
-      .then(({ data, error: err }) => {
-        if (err) {
-          console.error('[useVehicles]', err);
-          setError('Không thể tải danh sách xe. Vui lòng thử lại sau.');
-        } else {
-          setCars((data as SupabaseVehicle[]).map(mapToCar));
-        }
+    fetch('/api/vehicles')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data: SupabaseVehicle[]) => {
+        setCars(data.map(mapToCar));
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('[useVehicles]', err);
+        setError('Không thể tải danh sách xe. Vui lòng thử lại sau.');
         setLoading(false);
       });
   }, []);

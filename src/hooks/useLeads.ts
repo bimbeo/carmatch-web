@@ -1,5 +1,3 @@
-import { supabase } from '@/lib/supabaseClient';
-
 export interface LeadPayload {
   source: 'b2b' | 'partner';
   name: string;
@@ -14,10 +12,17 @@ export interface LeadPayload {
 }
 
 export async function submitLead(payload: LeadPayload): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await supabase.from('website_leads').insert([payload]);
-  if (error) {
-    console.error('[submitLead]', error.message);
-    return { ok: false, error: error.message };
+  try {
+    const res = await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}` };
+    return { ok: true };
+  } catch (err) {
+    console.error('[submitLead]', err);
+    return { ok: false, error: 'Network error' };
   }
-  return { ok: true };
 }
