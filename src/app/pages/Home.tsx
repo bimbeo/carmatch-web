@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router';
 import { ArrowRight, Star, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapPin, Home as HomeIcon, Car, ChevronLeft, ChevronRight, Key } from 'lucide-react';
-import { sanityClient, postsQuery } from '@/lib/sanity';
 import { useVehicles } from '@/hooks/useVehicles';
 import { usePromotions } from '@/hooks/usePromotions';
 import Navbar from '../components/Navbar';
@@ -97,7 +96,10 @@ export default function Home() {
   const promoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    sanityClient.fetch<Post[]>(postsQuery).then((data) => setPosts(data?.slice(0, 3) ?? []));
+    fetch('/api/posts')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: Post[]) => setPosts(Array.isArray(data) ? data.slice(0, 3) : []))
+      .catch(() => setPosts([]));
   }, []);
 
   // Auto-advance promo carousel
