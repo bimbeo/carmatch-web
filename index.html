@@ -30,26 +30,118 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
 
-    <!-- Structured Data: Local Business -->
+    <!-- Structured Data: AutoRental + Organization -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      "name": "CarMatch",
-      "description": "Dịch vụ cho thuê xe tự lái tại Hà Nội",
-      "url": "https://carmatch.vn",
-      "telephone": "+84975563290",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Hà Nội",
-        "addressCountry": "VN"
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "AutoRental",
+        "name": "CarMatch — Thuê Xe Tự Lái Hà Nội",
+        "description": "Dịch vụ thuê xe tự lái tại Hà Nội — giao xe tận sảnh chung cư. Giá từ 800.000đ/ngày. 20+ mẫu xe: VinFast VF5/VF6/VF8, Toyota Innova, Kia Carnival.",
+        "url": "https://carmatch.vn",
+        "telephone": "+84975563290",
+        "email": "info@carmatch.vn",
+        "image": "https://carmatch.vn/carmatch-logo.jpg",
+        "logo": "https://carmatch.vn/carmatch-logo.jpg",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Hà Nội",
+          "addressRegion": "Hà Nội",
+          "addressCountry": "VN"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 21.0285,
+          "longitude": 105.8542
+        },
+        "openingHoursSpecification": {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+          "opens": "07:00",
+          "closes": "22:00"
+        },
+        "priceRange": "800.000đ – 2.000.000đ/ngày",
+        "currenciesAccepted": "VND",
+        "paymentAccepted": "Chuyển khoản, Tiền mặt",
+        "areaServed": [
+          { "@type": "Place", "name": "Vinhomes Ocean Park, Gia Lâm, Hà Nội" },
+          { "@type": "Place", "name": "Vinhomes Smart City, Nam Từ Liêm, Hà Nội" },
+          { "@type": "Place", "name": "Vinhomes Times City, Hai Bà Trưng, Hà Nội" },
+          { "@type": "Place", "name": "Ecopark, Văn Giang, Hưng Yên" },
+          { "@type": "Place", "name": "The Manor Central Park, Bắc Từ Liêm, Hà Nội" }
+        ],
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "Gói thuê xe CarMatch",
+          "itemListElement": [
+            {
+              "@type": "Offer",
+              "name": "Thuê xe theo ngày",
+              "description": "Thuê xe tự lái theo ngày, giao xe tận sảnh tòa nhà",
+              "priceCurrency": "VND",
+              "price": "800000",
+              "eligibleDuration": { "@type": "QuantitativeValue", "value": 1, "unitCode": "DAY" }
+            },
+            {
+              "@type": "Offer",
+              "name": "Thuê xe theo tháng",
+              "description": "Gói thuê xe 22 ngày/tháng, tiết kiệm 30-40% so với thuê ngày",
+              "priceCurrency": "VND",
+              "price": "18000000",
+              "eligibleDuration": { "@type": "QuantitativeValue", "value": 1, "unitCode": "MON" }
+            }
+          ]
+        },
+        "sameAs": [
+          "https://zalo.me/0975563290",
+          "https://www.facebook.com/carmatch.vn"
+        ],
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "50",
+          "bestRating": "5"
+        }
       },
-      "openingHours": "Mo-Su 07:00-22:00",
-      "priceRange": "800.000đ - 2.000.000đ/ngày",
-      "sameAs": [
-        "https://zalo.me/0975563290"
-      ]
-    }
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Thuê xe tự lái CarMatch giá bao nhiêu?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Giá thuê xe tự lái tại CarMatch từ 800.000đ/ngày cho xe hạng nhỏ (VinFast VF5). Xe 7 chỗ từ 1.200.000đ/ngày. Gói tháng từ 18 triệu/tháng (22 ngày). Liên hệ Zalo 0975 563 290 để báo giá."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "CarMatch có giao xe tận nhà không?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Có. CarMatch giao xe tận sảnh tòa nhà tại Vinhomes Ocean Park, Vinhomes Smart City, Times City, Ecopark, The Manor và các khu đô thị Hà Nội. Phí giao nhận 100.000đ/chiều."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Cần giấy tờ gì để thuê xe tự lái tại CarMatch?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Cần CMND/CCCD và bằng lái xe hạng B trở lên còn hạn. Không cần thế chấp xe máy hay tài sản. Đặt cọc qua chuyển khoản."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "CarMatch có những loại xe nào?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "CarMatch có 20+ mẫu xe: VinFast VF5, VF6, VF8 (xe điện); Toyota Innova, Toyota Fortuner; Kia Carnival, Kia Seltos; Hyundai Tucson, Mazda CX-5. Xe mới, bảo hiểm đầy đủ."
+            }
+          }
+        ]
+      }
+    ]
     </script>
   </head>
   <body>
