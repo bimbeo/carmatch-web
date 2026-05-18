@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { ArrowRight, Star, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapPin, Home as HomeIcon, Car, ChevronLeft, ChevronRight, Key } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import { usePromotions } from '@/hooks/usePromotions';
+import { useSEO } from '@/hooks/useSEO';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
@@ -89,6 +90,12 @@ function blogImage(post: Post, index: number): string {
 }
 
 export default function Home() {
+  useSEO({
+    title: 'Thuê Xe Tự Lái Hà Nội — Giao Xe Tận Sảnh | CarMatch',
+    description: 'Thuê xe tự lái Hà Nội từ 800K/ngày. Giao xe tận sảnh Vinhomes, Ecopark, The Manor. Xác nhận 30 phút, đặt qua Zalo. 20+ mẫu xe + xe điện VinFast.',
+    canonical: 'https://carmatch.vn/',
+  });
+
   const [posts, setPosts] = useState<Post[]>([]);
   const { cars } = useVehicles();
   const { promotions } = usePromotions();

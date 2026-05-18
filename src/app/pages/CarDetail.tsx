@@ -31,16 +31,14 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
       <div className="space-y-3">
         {/* Main image */}
         <div
-          className="relative rounded-2xl overflow-hidden bg-gray-50 group cursor-zoom-in"
-          style={{ minHeight: 320 }}
+          className="relative rounded-2xl overflow-hidden bg-gray-100 group cursor-zoom-in aspect-[4/3]"
           onClick={() => setLightbox(true)}
         >
           <img
             key={active}
             src={images[active]}
             alt={`${name} - ảnh ${active + 1}`}
-            className="w-full object-contain transition-opacity duration-200"
-            style={{ maxHeight: 480, minHeight: 320, display: 'block', margin: '0 auto' }}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-200"
           />
           {/* Gradient overlay bottom */}
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-b-2xl" />
@@ -79,9 +77,9 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
                 className={`flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
                   i === active
                     ? 'border-brand-600 ring-2 ring-brand-100 opacity-100 scale-105'
-                    : 'border-transparent opacity-55 hover:opacity-90 hover:scale-105'
+                    : 'border-transparent opacity-60 hover:opacity-90 hover:scale-105'
                 }`}
-                style={{ width: 96, height: 68 }}
+                style={{ width: 112, height: 80 }}
               >
                 <img src={img} alt={`thumb ${i + 1}`} className="w-full h-full object-cover" />
               </button>
