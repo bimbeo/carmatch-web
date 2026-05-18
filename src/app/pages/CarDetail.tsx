@@ -20,58 +20,116 @@ const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
 /* ─── Image Gallery ─── */
 function Gallery({ images, name }: { images: string[]; name: string }) {
   const [active, setActive] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
   const multi = images.length > 1;
 
   const prev = () => setActive((i) => (i - 1 + images.length) % images.length);
   const next = () => setActive((i) => (i + 1) % images.length);
 
   return (
-    <div className="space-y-3">
-      {/* Main image */}
-      <div className="relative rounded-2xl overflow-hidden aspect-video bg-gray-100 group">
-        <img
-          src={images[active]}
-          alt={`${name} - ảnh ${active + 1}`}
-          className="w-full h-full object-cover transition-opacity duration-300"
-        />
+    <>
+      <div className="space-y-3">
+        {/* Main image */}
+        <div
+          className="relative rounded-2xl overflow-hidden bg-gray-50 group cursor-zoom-in"
+          style={{ minHeight: 320 }}
+          onClick={() => setLightbox(true)}
+        >
+          <img
+            key={active}
+            src={images[active]}
+            alt={`${name} - ảnh ${active + 1}`}
+            className="w-full object-contain transition-opacity duration-200"
+            style={{ maxHeight: 480, minHeight: 320, display: 'block', margin: '0 auto' }}
+          />
+          {/* Gradient overlay bottom */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-b-2xl" />
+
+          {multi && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); prev(); }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); next(); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+          <div className="absolute bottom-3 left-3 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full pointer-events-none">
+            {active + 1}/{images.length}
+          </div>
+          <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs px-2.5 py-1 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+            Nhấn để phóng to
+          </div>
+        </div>
+
+        {/* Thumbnails */}
         {multi && (
-          <>
-            <button
-              onClick={prev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={next}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full">
-              {active + 1}/{images.length}
-            </div>
-          </>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {images.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={`flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                  i === active
+                    ? 'border-brand-600 ring-2 ring-brand-100 opacity-100 scale-105'
+                    : 'border-transparent opacity-55 hover:opacity-90 hover:scale-105'
+                }`}
+                style={{ width: 96, height: 68 }}
+              >
+                <img src={img} alt={`thumb ${i + 1}`} className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Thumbnails */}
-      {multi && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {images.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => setActive(i)}
-              className={`flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden border-2 transition-all ${
-                i === active ? 'border-brand-600 opacity-100' : 'border-transparent opacity-60 hover:opacity-90'
-              }`}
-            >
-              <img src={img} alt={`thumb ${i + 1}`} className="w-full h-full object-cover" />
-            </button>
-          ))}
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center text-xl font-bold"
+            onClick={() => setLightbox(false)}
+          >
+            ✕
+          </button>
+          {multi && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); prev(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); next(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+          <img
+            src={images[active]}
+            alt={`${name} - ảnh ${active + 1}`}
+            className="max-w-full max-h-[90vh] object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+            {active + 1} / {images.length}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
