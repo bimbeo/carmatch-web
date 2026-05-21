@@ -194,18 +194,36 @@
 
 /* ─── react-day-picker CarMatch theme ─────────────────────────────────────── */
 .carmatch-cal .rdp {
-  --rdp-cell-size: 38px;
+  --rdp-cell-size: 36px;
   --rdp-accent-color: #11163e;
   --rdp-background-color: #eef0f8;
   --rdp-accent-color-dark: #2a3896;
   --rdp-outline: 2px solid #11163e;
   --rdp-outline-selected: 2px solid #11163e;
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  width: 100%;
 }
 
+/* Two months layout — equal width, flush */
 .carmatch-cal .rdp-months {
-  gap: 1.5rem;
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.carmatch-cal .rdp-month {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Caption row: month title + nav buttons in one row */
+.carmatch-cal .rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 8px 0;
 }
 
 .carmatch-cal .rdp-caption_label {
@@ -213,18 +231,28 @@
   font-size: 0.875rem;
   color: #11163e;
   text-transform: capitalize;
+  flex: 1;
+  text-align: center;
+}
+
+/* Nav buttons — show prev only on left month, next only on right month */
+.carmatch-cal .rdp-nav {
+  display: flex;
+  gap: 4px;
 }
 
 .carmatch-cal .rdp-nav_button {
   color: #11163e;
   border: 1px solid #d4d8ef;
   border-radius: 8px;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
+  background: white;
+  cursor: pointer;
 }
 
 .carmatch-cal .rdp-nav_button:hover {
@@ -234,16 +262,31 @@
 .carmatch-cal .rdp-head_cell {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #717182;
+  color: #9ca3af;
   text-transform: uppercase;
+  width: var(--rdp-cell-size);
+  padding: 4px 0;
+  text-align: center;
+}
+
+.carmatch-cal .rdp-cell {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  padding: 1px;
+  text-align: center;
 }
 
 .carmatch-cal .rdp-day {
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: #1a1a2e;
   transition: background 0.12s, color 0.12s;
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .carmatch-cal .rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
@@ -251,7 +294,7 @@
   color: #11163e;
 }
 
-.carmatch-cal .rdp-day_today:not(.rdp-day_selected) {
+.carmatch-cal .rdp-day_today:not(.rdp-day_range_start):not(.rdp-day_range_end) {
   color: #2a3896;
   font-weight: 700;
   text-decoration: underline;
@@ -276,8 +319,9 @@
 
 /* Disabled days (past) */
 .carmatch-cal .rdp-day_disabled {
-  color: #c5c7d0 !important;
+  color: #d1d5db !important;
   text-decoration: none;
+  cursor: default;
 }
 
 /* Blocked days (occupied) */
@@ -291,4 +335,14 @@
 
 .carmatch-cal .rdp-day_blocked:hover {
   background-color: #fecaca !important;
+}
+
+/* Table layout */
+.carmatch-cal .rdp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.carmatch-cal .rdp-tbody td {
+  padding: 0;
 }

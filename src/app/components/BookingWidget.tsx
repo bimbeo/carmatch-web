@@ -637,16 +637,22 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         onClick={() => setShowCalModal(false)}
       >
         <div
-          className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+          className="w-full max-w-[820px] bg-white rounded-2xl shadow-2xl overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <div>
-              <h3 className="font-bold text-gray-900 text-base">Chọn ngày thuê xe</h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {rangeStep === 'from' ? '👆 Chọn ngày nhận xe' : '👆 Chọn ngày trả xe'}
-              </p>
+            <div className="flex items-center gap-3">
+              {/* Step pills */}
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${rangeStep === 'from' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                <span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center text-[10px]">1</span>
+                Nhận xe
+              </div>
+              <span className="text-gray-300 text-xs">›</span>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${rangeStep === 'to' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                <span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center text-[10px]">2</span>
+                Trả xe
+              </div>
             </div>
             <button
               onClick={() => setShowCalModal(false)}
@@ -657,12 +663,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </div>
 
           {/* Day Picker */}
-          <div className="px-4 py-2 carmatch-cal">
+          <div className="px-6 py-3 carmatch-cal overflow-x-auto">
             <DayPicker
               mode="range"
               selected={selectedRange}
               onSelect={handleDaySelect as (range: { from?: Date; to?: Date } | undefined) => void}
               numberOfMonths={2}
+              pagedNavigation
               locale={vi}
               disabled={[
                 { before: today },
@@ -675,40 +682,44 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             />
           </div>
 
-          {/* Legend + Selected range summary */}
-          <div className="px-5 pb-4 pt-2 border-t border-gray-100">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
-              <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="w-4 h-4 rounded-full bg-brand-600 inline-block" />
+          {/* Bottom bar: legend + date summary + confirm */}
+          <div className="px-5 pb-4 pt-3 border-t border-gray-100">
+            {/* Legend row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3">
+              <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="w-3.5 h-3.5 rounded-full bg-brand-600 inline-block shrink-0" />
                 Ngày chọn
               </span>
-              <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="w-4 h-4 rounded-sm bg-brand-100 inline-block border border-brand-200" />
+              <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="w-3.5 h-3.5 rounded bg-brand-100 inline-block border border-brand-200 shrink-0" />
                 Trong khoảng
               </span>
-              <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="w-4 h-4 rounded-sm bg-red-100 inline-block border border-red-200" />
-                Đã có lịch (bận)
+              <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="w-3.5 h-3.5 rounded bg-red-100 inline-block border border-red-200 shrink-0" />
+                Đã có lịch
               </span>
-              <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="w-4 h-4 rounded-sm bg-gray-100 inline-block border border-gray-200 opacity-50" />
+              <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="w-3.5 h-3.5 rounded bg-gray-100 inline-block border border-gray-200 opacity-50 shrink-0" />
                 Không khả dụng
               </span>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5">
-                <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Nhận xe</div>
-                <div className="font-bold text-gray-900 text-sm mt-0.5">{displayDate(pickupDate)}</div>
-              </div>
-              <div className="text-gray-300 text-lg">→</div>
-              <div className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5">
-                <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Trả xe</div>
-                <div className="font-bold text-gray-900 text-sm mt-0.5">{displayDate(returnDate)}</div>
+            {/* Date chips + confirm button */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Nhận xe</div>
+                  <div className="font-bold text-gray-900 text-sm truncate">{displayDate(pickupDate)}</div>
+                </div>
+                <span className="text-gray-300 text-base shrink-0">→</span>
+                <div className="flex-1 min-w-0 text-right">
+                  <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Trả xe</div>
+                  <div className="font-bold text-gray-900 text-sm truncate">{displayDate(returnDate)}</div>
+                </div>
               </div>
               <button
                 onClick={() => setShowCalModal(false)}
-                className="flex-none py-2.5 px-5 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all"
+                className="shrink-0 py-2.5 px-6 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all"
               >
                 Xác nhận
               </button>
