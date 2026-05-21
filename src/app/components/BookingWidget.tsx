@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck, CalendarDays, X } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
@@ -630,8 +631,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       </div>
     </div>
 
-    {/* ── Calendar Modal ── */}
-    {showCalModal && (
+    {/* ── Calendar Modal — rendered via portal to escape sticky stacking context ── */}
+    {showCalModal && createPortal(
       <div
         className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         onClick={() => setShowCalModal(false)}
@@ -725,11 +726,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
-    {/* ── Booking confirm modal ── */}
-    {showModal && (
+    {/* ── Booking confirm modal — portal to escape sticky stacking context ── */}
+    {showModal && createPortal(
       <div
         className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
         onClick={() => setShowModal(false)}
@@ -797,7 +799,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
     </>
   );
