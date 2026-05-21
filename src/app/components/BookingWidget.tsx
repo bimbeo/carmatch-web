@@ -633,7 +633,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     {/* ── Calendar Modal ── */}
     {showCalModal && (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         onClick={() => setShowCalModal(false)}
       >
         <div
@@ -732,7 +732,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     {/* ── Booking confirm modal ── */}
     {showModal && (
       <div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
         onClick={() => setShowModal(false)}
       >
         <div
