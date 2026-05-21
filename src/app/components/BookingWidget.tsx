@@ -1,8 +1,124 @@
-import { useState, useMemo } from 'react';
-import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
+
+// ─── Availability types ────────────────────────────────────────────────────────
+
+interface BlockedRange {
+  from: string; // YYYY-MM-DD
+  to: string;   // YYYY-MM-DD
+  type: string; // rental | blocked | maintenance | ...
+  allDay: boolean;
+}
+
+function isDateInRange(dateStr: string, range: BlockedRange): boolean {
+  return dateStr >= range.from && dateStr <= range.to;
+}
+
+function isDateBlocked(dateStr: string, ranges: BlockedRange[]): boolean {
+  return ranges.some((r) => isDateInRange(dateStr, r));
+}
+
+function rangeOverlapsBlocked(fromStr: string, toStr: string, ranges: BlockedRange[]): BlockedRange[] {
+  return ranges.filter((r) => r.from <= toStr && r.to >= fromStr);
+}
+
+function fmtDateShort(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+// ─── Mini Availability Calendar ───────────────────────────────────────────────
+
+const WEEKDAYS_SHORT = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const MONTHS_VI = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+                   'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+
+interface MiniCalProps {
+  year: number;
+  month: number; // 0-based
+  blockedRanges: BlockedRange[];
+  pickupDate: string;
+  returnDate: string;
+  today: string;
+  onDateClick?: (dateStr: string) => void;
+}
+
+function MiniCal({ year, month, blockedRanges, pickupDate, returnDate, today, onDateClick }: MiniCalProps) {
+  // Build day grid
+  const firstDay = new Date(year, month, 1);
+  // JS getDay(): 0=Sun..6=Sat → convert to Mon-first index
+  const startOffset = (firstDay.getDay() + 6) % 7; // 0=Mon
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: (number | null)[] = [
+    ...Array(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // Pad to full rows
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  function pad(n: number) { return String(n).padStart(2, '0'); }
+  function dateStr(day: number) { return `${year}-${pad(month + 1)}-${pad(day)}`; }
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="text-xs font-semibold text-gray-600 text-center mb-2">
+        {MONTHS_VI[month]} {year}
+      </div>
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-px mb-1">
+        {WEEKDAYS_SHORT.map((d) => (
+          <div key={d} className="text-center text-[10px] font-medium text-gray-400">{d}</div>
+        ))}
+      </div>
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-px">
+        {cells.map((day, idx) => {
+          if (!day) return <div key={idx} />;
+          const ds = dateStr(day);
+          const isPast = ds < today;
+          const isBlocked = isDateBlocked(ds, blockedRanges);
+          const isPickup = ds === pickupDate;
+          const isReturn = ds === returnDate;
+          const inSelection = pickupDate && returnDate && ds > pickupDate && ds < returnDate;
+
+          let cellClass = 'relative flex items-center justify-center rounded text-[11px] h-6 cursor-default select-none ';
+          if (isPickup || isReturn) {
+            cellClass += 'bg-brand-600 text-white font-bold';
+          } else if (inSelection) {
+            cellClass += 'bg-brand-100 text-brand-700 font-medium';
+          } else if (isPast) {
+            cellClass += 'text-gray-300';
+          } else if (isBlocked) {
+            cellClass += 'bg-red-100 text-red-400 line-through cursor-not-allowed';
+          } else {
+            cellClass += 'text-gray-700 hover:bg-gray-100';
+            if (onDateClick) cellClass += ' cursor-pointer';
+          }
+
+          return (
+            <div
+              key={idx}
+              className={cellClass}
+              onClick={() => {
+                if (!isPast && !isBlocked && onDateClick) onDateClick(ds);
+              }}
+              title={isBlocked ? 'Xe đang bận ngày này' : undefined}
+            >
+              {day}
+              {ds === today && !isPickup && !isReturn && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-500 rounded-full" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,10 +151,9 @@ function displayDate(dateStr: string): string {
 // ─── Pricing engine ───────────────────────────────────────────────────────────
 // CarMatch pricing rules (updated):
 //   • Minimum booking: 4 hours
-//   • Half-day (70% BP): booking within 1 session only
-//       - Buổi sáng: pickup 7h–12h AND return ≤ 12h (same day)
-//       - Buổi chiều: pickup 13h–20h AND return ≤ 20h (same day)
-//       - Otherwise (crosses sessions or spans longer) = 1 full day
+//   • Pure half-day: 70% BP
+//       - Same-day within one session, or one overnight half-day (pickup ≥19h, return ≤12h)
+//   • Full-day + extra half-day: extra half-day is 50% BP
 //   • Multi-day: BP × days, with early/late surcharges
 //   • Weekend surcharge: +100k ONLY when booking = exactly 1 day (same-day or 1 overnight)
 //       on T7 or CN. No surcharge for 2+ day rentals.
@@ -131,7 +246,9 @@ function calculateRental(
   //   • Trưa (12h–15h): ngày đầu tính nửa ngày  → baseDays = calDays + 0.5
   //       Ngoại lệ: nếu trả xe trước 12h ngày hôm sau (2 nửa ca = 1 ngày) → baseDays = calDays
   //   • Chiều/tối (16h+): tính theo số ca đêm chuẩn → baseDays = calDays
-  //       Ngoại lệ: tối (≥19h) + trả sáng sớm (≤12h) = nửa ngày = 70% BP
+  //       Ngoại lệ: tối (≥19h) + trả sáng sớm (≤12h):
+  //         - chỉ 1 đêm = nửa ngày 70%
+  //         - từ 2 đêm trở lên = ngày nguyên + nửa ngày 50%
 
   let baseDays: number;
 
@@ -149,9 +266,11 @@ function calculateRental(
   } else {
     // Chiều muộn / tối (16h+): tính theo số ca đêm
     baseDays = calDays;
-    // Tối (≥19h) + trả sáng sớm hôm sau (≤12h) = nửa ngày cuối
+    // Tối (≥19h) + trả sáng sớm hôm sau (≤12h):
+    // - 1 đêm: pure half-day = 70% BP
+    // - 2+ đêm: phần lẻ nửa ngày chỉ tính 50% BP
     if (pickupHour >= 19 && returnHour <= 12 && !isReturnWeekend) {
-      baseDays = calDays === 1 ? 0.7 : (calDays - 1) + 0.7;
+      baseDays = calDays === 1 ? 0.7 : (calDays - 1) + 0.5;
     }
   }
 
@@ -163,9 +282,10 @@ function calculateRental(
     baseAmount = Math.round(BP * baseDays);
   }
 
+  const wholeDays = Math.floor(baseDays);
   const daysLabel = baseDays === 0.7 ? 'Nửa ngày (×70%)'
     : baseDays % 1 === 0 ? (baseDays === 1 ? '1 ngày' : `${baseDays} ngày`)
-    : baseDays === Math.floor(baseDays) + 0.7 ? `${Math.floor(baseDays)} ngày + nửa ngày (×70%)`
+    : baseDays === wholeDays + 0.5 ? `${wholeDays} ngày + nửa ngày (×50%)`
     : `${baseDays} ngày`;
 
   fees.push({ label: daysLabel, amount: baseAmount });
@@ -219,10 +339,12 @@ interface Props {
   basePrice: number;
   carName: string;
   priceMonth?: number;
+  vehicleId?: string;
 }
 
-export default function BookingWidget({ basePrice, carName, priceMonth }: Props) {
+export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId }: Props) {
   const today = new Date();
+  const todayStr = toDateStr(today);
   const [pickupDate, setPickupDate] = useState(toDateStr(addDays(today, 1)));
   const [pickupHour, setPickupHour] = useState(20);
   const [returnDate, setReturnDate] = useState(toDateStr(addDays(today, 2)));
@@ -230,6 +352,44 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
   const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>('self');
   const [selectedLocation, setSelectedLocation] = useState('times-city');
   const [showModal, setShowModal] = useState(false);
+
+  // ── Availability ──────────────────────────────────────────────────────────
+  const [blockedRanges, setBlockedRanges] = useState<BlockedRange[]>([]);
+  const [availLoading, setAvailLoading] = useState(false);
+  const [showAvailCal, setShowAvailCal] = useState(false);
+
+  // Calendar view: month/year for the mini calendar
+  const [calPage, setCalPage] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
+  });
+
+  const fetchAvailability = useCallback(async () => {
+    if (!vehicleId) return;
+    setAvailLoading(true);
+    try {
+      const from = toDateStr(today);
+      const to = toDateStr(addDays(today, 120));
+      const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setBlockedRanges(data.blockedRanges || []);
+    } catch {
+      // graceful — no availability shown
+    } finally {
+      setAvailLoading(false);
+    }
+  }, [vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    void fetchAvailability();
+  }, [fetchAvailability]);
+
+  // Detect if the selected range overlaps any blocked period
+  const conflicts = useMemo(
+    () => rangeOverlapsBlocked(pickupDate, returnDate, blockedRanges),
+    [pickupDate, returnDate, blockedRanges],
+  );
 
   const rentalResult = useMemo(
     () => calculateRental(pickupDate, pickupHour, returnDate, returnHour, basePrice),
@@ -372,6 +532,116 @@ export default function BookingWidget({ basePrice, carName, priceMonth }: Props)
             </div>
           </div>
         </div>
+
+        {/* ── Availability calendar toggle ── */}
+        {vehicleId && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAvailCal((v) => !v)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              {availLoading ? 'Đang tải lịch xe…' : 'Xem lịch trống'}
+              <ChevronDown className={`w-3 h-3 transition-transform ${showAvailCal ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showAvailCal && (
+              <div className="mt-2 border border-gray-100 rounded-xl p-3 bg-gray-50">
+                {/* Month nav */}
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setCalPage((p) => {
+                      const d = new Date(p.year, p.month - 1, 1);
+                      return { year: d.getFullYear(), month: d.getMonth() };
+                    })}
+                    className="p-1 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+                  <div className="flex gap-6">
+                    {/* Show 2 months side by side */}
+                    <MiniCal
+                      year={calPage.year}
+                      month={calPage.month}
+                      blockedRanges={blockedRanges}
+                      pickupDate={pickupDate}
+                      returnDate={returnDate}
+                      today={todayStr}
+                      onDateClick={(ds) => {
+                        if (ds >= todayStr) {
+                          if (!pickupDate || (pickupDate && returnDate) || ds < pickupDate) {
+                            setPickupDate(ds);
+                            setReturnDate(toDateStr(addDays(new Date(ds), 1)));
+                          } else {
+                            setReturnDate(ds);
+                          }
+                        }
+                      }}
+                    />
+                    {(() => {
+                      const next = new Date(calPage.year, calPage.month + 1, 1);
+                      return (
+                        <MiniCal
+                          year={next.getFullYear()}
+                          month={next.getMonth()}
+                          blockedRanges={blockedRanges}
+                          pickupDate={pickupDate}
+                          returnDate={returnDate}
+                          today={todayStr}
+                          onDateClick={(ds) => {
+                            if (ds >= todayStr) {
+                              if (!pickupDate || (pickupDate && returnDate) || ds < pickupDate) {
+                                setPickupDate(ds);
+                                setReturnDate(toDateStr(addDays(new Date(ds), 1)));
+                              } else {
+                                setReturnDate(ds);
+                              }
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCalPage((p) => {
+                      const d = new Date(p.year, p.month + 1, 1);
+                      return { year: d.getFullYear(), month: d.getMonth() };
+                    })}
+                    className="p-1 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+                </div>
+                {/* Legend */}
+                <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-brand-600 inline-block" /> Ngày chọn</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 inline-block" /> Đã có lịch</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 inline-block" /> Trống</span>
+                </div>
+              </div>
+            )}
+
+            {/* Conflict warning */}
+            {conflicts.length > 0 && (
+              <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+                <Info className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
+                <div>
+                  <div className="font-semibold mb-0.5">Xe đã có lịch trong khoảng này</div>
+                  {conflicts.map((r, i) => (
+                    <div key={i}>
+                      {fmtDateShort(r.from)} – {fmtDateShort(r.to)}
+                      {r.type === 'rental' ? ' (đang cho thuê)' : r.type === 'maintenance' ? ' (bảo dưỡng)' : ' (bận)'}
+                    </div>
+                  ))}
+                  <div className="mt-1 text-red-600">Liên hệ CarMatch để xác nhận lịch trống ạ.</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Location / delivery ── */}
         <div>

@@ -6,7 +6,7 @@ import {
   MapPin, Star, BadgeCheck, Clock, MessageCircle,
 } from 'lucide-react';
 import { formatPrice } from '@/data/cars';
-import { useVehicles } from '@/hooks/useVehicles';
+import { findVehicleBySlug, useVehicles } from '@/hooks/useVehicles';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -31,14 +31,21 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
       <div className="space-y-3">
         {/* Main image */}
         <div
-          className="relative rounded-2xl overflow-hidden bg-gray-100 group cursor-zoom-in aspect-[4/3]"
+          className="relative rounded-2xl overflow-hidden bg-slate-100 group cursor-zoom-in aspect-[4/3]"
           onClick={() => setLightbox(true)}
         >
+          <img
+            key={`bg-${active}`}
+            src={images[active]}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-20"
+          />
           <img
             key={active}
             src={images[active]}
             alt={`${name} - ảnh ${active + 1}`}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-200"
+            className="relative z-10 w-full h-full object-contain object-center transition-opacity duration-200"
           />
           {/* Gradient overlay bottom */}
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-b-2xl" />
@@ -160,9 +167,9 @@ function TrustBadge({ icon, text }: { icon: React.ReactNode; text: string }) {
 export default function CarDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { cars, loading } = useVehicles();
-  const car = cars.find((c) => c.slug === slug);
-  const relatedCars = cars.filter((c) => c.slug !== slug && c.category === car?.category).slice(0, 3);
-  const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.slug !== slug).slice(0, 3);
+  const car = findVehicleBySlug(cars, slug);
+  const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
+  const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
 
   useSEO({
     title: car
@@ -386,6 +393,7 @@ export default function CarDetail() {
                 basePrice={car.price}
                 carName={car.name}
                 priceMonth={car.priceMonth}
+                vehicleId={car.id}
               />
 
               {/* Trust badges */}
