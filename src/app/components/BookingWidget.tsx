@@ -637,7 +637,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         onClick={() => setShowCalModal(false)}
       >
         <div
-          className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
+          className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}

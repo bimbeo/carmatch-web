@@ -194,13 +194,17 @@
 
 /* ─── react-day-picker CarMatch theme ─────────────────────────────────────── */
 .carmatch-cal .rdp {
-  --rdp-cell-size: 42px;
+  --rdp-cell-size: 40px;
   --rdp-accent-color: #11163e;
   --rdp-background-color: #d4d8ef;
   --rdp-outline: 2px solid #11163e;
   --rdp-outline-selected: 2px solid #11163e;
-  margin: 0;
+  margin: 0 !important;  /* override default 1em */
   font-size: 0.875rem;
+}
+
+.carmatch-cal .rdp-month {
+  margin: 0 !important; /* override default 0 1em */
 }
 
 .carmatch-cal .rdp-caption_label {
