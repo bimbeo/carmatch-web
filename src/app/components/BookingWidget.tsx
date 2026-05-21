@@ -637,7 +637,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         onClick={() => setShowCalModal(false)}
       >
         <div
-          className="w-full max-w-[820px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+          className="w-full max-w-[860px] bg-white rounded-2xl shadow-2xl overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
@@ -663,7 +663,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </div>
 
           {/* Day Picker */}
-          <div className="px-6 py-3 carmatch-cal overflow-x-auto">
+          <div className="px-6 py-3 carmatch-cal">
             <DayPicker
               mode="range"
               selected={selectedRange}
