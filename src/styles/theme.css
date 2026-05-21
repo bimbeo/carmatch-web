@@ -193,65 +193,56 @@
 }
 
 /* ─── react-day-picker CarMatch theme ─────────────────────────────────────── */
-
-/* Base variables — keep react-day-picker layout intact, only tweak colors */
 .carmatch-cal .rdp {
-  --rdp-cell-size: 38px;
+  --rdp-cell-size: 42px;
   --rdp-accent-color: #11163e;
   --rdp-background-color: #d4d8ef;
-  --rdp-outline: 2px solid var(--rdp-accent-color);
-  --rdp-outline-selected: 2px solid var(--rdp-accent-color);
-  margin: 0 auto;
+  --rdp-outline: 2px solid #11163e;
+  --rdp-outline-selected: 2px solid #11163e;
+  margin: 0;
   font-size: 0.875rem;
 }
 
-/* Month gap */
-.carmatch-cal .rdp-months {
-  gap: 2.5rem;
-}
-
-/* Caption */
 .carmatch-cal .rdp-caption_label {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #11163e;
   text-transform: capitalize;
 }
 
-/* Nav buttons */
 .carmatch-cal .rdp-nav_button {
   color: #11163e;
-  border: 1px solid #d4d8ef;
-  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
   background: white;
+  width: 34px;
+  height: 34px;
   transition: background 0.15s;
 }
 .carmatch-cal .rdp-nav_button:hover {
   background-color: #eef0f8 !important;
 }
 
-/* Weekday headers */
 .carmatch-cal .rdp-head_cell {
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #9ca3af;
   text-transform: uppercase;
 }
 
-/* Day cells */
 .carmatch-cal .rdp-day {
-  border-radius: 8px;
-  font-size: 0.8125rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #1f2937;
   transition: background 0.1s, color 0.1s;
 }
+
 .carmatch-cal .rdp-day:hover:not([disabled]):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_blocked) {
   background-color: #eef0f8 !important;
   color: #11163e !important;
 }
 
-/* Today dot */
 .carmatch-cal .rdp-day_today:not(.rdp-day_range_start):not(.rdp-day_range_end) {
   font-weight: 800;
   color: #2a3896;
@@ -259,16 +250,16 @@
   text-underline-offset: 3px;
 }
 
-/* Selected range start / end */
+/* Range start & end — filled navy */
 .carmatch-cal .rdp-day_range_start,
 .carmatch-cal .rdp-day_range_end {
   background-color: #11163e !important;
   color: #fff !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   font-weight: 700;
 }
 
-/* In-range middle */
+/* Range middle */
 .carmatch-cal .rdp-day_range_middle {
   background-color: #d4d8ef !important;
   color: #11163e !important;
@@ -281,13 +272,14 @@
   opacity: 0.5;
 }
 
-/* Blocked = occupied slots */
+/* Blocked = occupied / booked */
 .carmatch-cal .rdp-day_blocked {
   background-color: #fee2e2 !important;
   color: #ef4444 !important;
   text-decoration: line-through !important;
   cursor: not-allowed !important;
   opacity: 1 !important;
+  border-radius: 10px !important;
 }
 .carmatch-cal .rdp-day_blocked:hover {
   background-color: #fecaca !important;

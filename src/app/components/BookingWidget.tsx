@@ -637,7 +637,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         onClick={() => setShowCalModal(false)}
       >
         <div
-          className="w-full max-w-[860px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+          className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
@@ -663,13 +663,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </div>
 
           {/* Day Picker */}
-          <div className="px-6 py-3 carmatch-cal">
+          <div className="carmatch-cal flex justify-center px-4 py-2">
             <DayPicker
               mode="range"
               selected={selectedRange}
               onSelect={handleDaySelect as (range: { from?: Date; to?: Date } | undefined) => void}
-              numberOfMonths={2}
-              pagedNavigation
+              numberOfMonths={1}
               locale={vi}
               disabled={[
                 { before: today },
