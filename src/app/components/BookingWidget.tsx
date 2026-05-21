@@ -638,7 +638,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         onClick={() => setShowCalModal(false)}
       >
         <div
-          className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]"
+          className="bg-white rounded-2xl shadow-2xl flex flex-col"
+          style={{ width: '90vw', maxWidth: 800, maxHeight: '90vh' }}
           onClick={e => e.stopPropagation()}
         >
           {/* ── Header ── */}
@@ -655,20 +656,22 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </div>
 
           {/* ── Calendar ── */}
-          <div className="carmatch-cal overflow-auto px-2 py-3">
-            <DayPicker
-              mode="range"
-              selected={selectedRange}
-              onSelect={handleDaySelect as (range: { from?: Date; to?: Date } | undefined) => void}
-              numberOfMonths={2}
-              pagedNavigation
-              locale={vi}
-              disabled={[{ before: today }, ...blockedIntervals]}
-              modifiers={{ blocked: blockedIntervals }}
-              modifiersClassNames={{ blocked: 'rdp-day_blocked' }}
-              fromDate={today}
-              showOutsideDays={false}
-            />
+          <div className="carmatch-cal overflow-x-auto py-3" style={{ minHeight: 280 }}>
+            <div style={{ minWidth: 620, padding: '0 16px' }}>
+              <DayPicker
+                mode="range"
+                selected={selectedRange}
+                onSelect={handleDaySelect as (range: { from?: Date; to?: Date } | undefined) => void}
+                numberOfMonths={2}
+                pagedNavigation
+                locale={vi}
+                disabled={[{ before: today }, ...blockedIntervals]}
+                modifiers={{ blocked: blockedIntervals }}
+                modifiersClassNames={{ blocked: 'rdp-day_blocked' }}
+                fromDate={today}
+                showOutsideDays={false}
+              />
+            </div>
           </div>
 
           {/* ── Legend ── */}
