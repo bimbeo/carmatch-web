@@ -34,17 +34,31 @@ function mapTransmission(raw: string): string {
   return 'Tự động';
 }
 
-function makeSlug(make: string, model: string, variant: string, id: string): string {
-  const base = [make, model, variant]
-    .filter(Boolean)
-    .join(' ')
+function slugify(text: string, fallback = ''): string {
+  const base = text
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/đ/gi, 'd')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return base || id;
+  return base || fallback;
+}
+
+function makeModelSlug(make: string, model: string, variant: string, id: string): string {
+  return slugify([make, model, variant].filter(Boolean).join(' '), id);
+}
+
+function makeDisplaySlug(v: SupabaseVehicle, make: string, model: string, variant: string): string {
+  const modelYear = v.model_year ? String(v.model_year) : '';
+  return slugify(v.display_name || [make, model, variant, modelYear].filter(Boolean).join(' '), v.id);
+}
+
+function makeDuplicateSlug(car: Car): string {
+  const colorPart = slugify(car.description?.split('—').pop()?.trim() || '');
+  const platePart = slugify(car.plateNumber || '');
+  const suffix = colorPart || platePart || car.id.slice(0, 8).toLowerCase();
+  return `${car.slug}-${suffix}`;
 }
 
 interface SupabaseVehicle {
@@ -88,11 +102,62 @@ function uniqueImages(urls: string[]): string[] {
   return Array.from(new Set(urls.map((url) => url.trim()).filter(Boolean)));
 }
 
+function uniquifyCarSlugs(cars: Car[]): Car[] {
+  const counts = new Map<string, number>();
+  cars.forEach((car) => counts.set(car.slug, (counts.get(car.slug) || 0) + 1));
+
+  const used = new Set<string>();
+  return cars.map((car) => {
+    const baseSlug = car.slug;
+    let nextSlug = baseSlug;
+
+    if ((counts.get(baseSlug) || 0) > 1) {
+      nextSlug = makeDuplicateSlug(car);
+      let index = 2;
+      while (used.has(nextSlug)) {
+        nextSlug = `${makeDuplicateSlug(car)}-${index}`;
+        index += 1;
+      }
+    }
+
+    used.add(nextSlug);
+    if (nextSlug === baseSlug) return car;
+
+    return {
+      ...car,
+      slug: nextSlug,
+      slugAliases: Array.from(new Set([...(car.slugAliases || []), baseSlug])),
+    };
+  });
+}
+
+function hasRealVehicleImage(car: Car): boolean {
+  return car.images.some((image) => image !== PLACEHOLDER_IMAGE);
+}
+
+export function findVehicleBySlug(cars: Car[], slug: string | undefined): Car | null {
+  if (!slug) return null;
+
+  const exact = cars.find((car) => car.slug === slug);
+  if (exact) return exact;
+
+  const aliasMatches = cars.filter((car) => car.slugAliases?.includes(slug));
+  if (aliasMatches.length === 0) return null;
+  if (aliasMatches.length === 1) return aliasMatches[0];
+
+  return (
+    aliasMatches.find((car) => car.slug.startsWith(`${slug}-`) && hasRealVehicleImage(car)) ||
+    aliasMatches.find((car) => car.slug.startsWith(`${slug}-`)) ||
+    aliasMatches.find(hasRealVehicleImage) ||
+    aliasMatches[0]
+  );
+}
+
 function mapToCar(v: SupabaseVehicle): Car {
-  const vm = v.vehicle_models || {};
-  const make = vm.make || '';
-  const model = vm.model || '';
-  const variant = vm.variant || '';
+  const vm = v.vehicle_models;
+  const make = vm?.make || '';
+  const model = vm?.model || '';
+  const variant = vm?.variant || '';
   const externalRefs =
     v.external_refs && typeof v.external_refs === 'object' ? v.external_refs : {};
   const coverImage =
@@ -106,17 +171,22 @@ function mapToCar(v: SupabaseVehicle): Car {
     ...mediaFiles.filter(isVehicleImageMedia).map((file) => file.fileUrl || ''),
   ]);
 
-  const fuel = mapFuelType(vm.fuel_type || '');
+  const fuel = mapFuelType(vm?.fuel_type || '');
+  const modelSlug = makeModelSlug(make, model, variant, v.id);
+  const displaySlug = makeDisplaySlug(v, make, model, variant);
+  const slugAliases = Array.from(new Set([modelSlug].filter((slug) => slug && slug !== displaySlug)));
 
   return {
     id: v.id,
-    slug: makeSlug(make, model, variant, v.id),
+    slug: displaySlug,
+    slugAliases,
+    plateNumber: v.plate_number || undefined,
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
     brand: make,
     price: v.daily_base_price || 0,
-    seats: vm.seats || 5,
+    seats: vm?.seats || 5,
     fuel,
-    transmission: mapTransmission(vm.transmission || ''),
+    transmission: mapTransmission(vm?.transmission || ''),
     kmPerDay: DEFAULT_KM_PER_DAY,
     amenities: [],
     conditions: DEFAULT_CONDITIONS,
@@ -146,7 +216,7 @@ export function useVehicles(): UseVehiclesResult {
         return res.json();
       })
       .then((data: SupabaseVehicle[]) => {
-        setCars(data.map(mapToCar));
+        setCars(uniquifyCarSlugs(data.map(mapToCar)));
         setLoading(false);
       })
       .catch((err) => {
@@ -165,6 +235,6 @@ export function useVehicle(slug: string | undefined): {
   loading: boolean;
 } {
   const { cars, loading } = useVehicles();
-  const car = slug ? cars.find((c) => c.slug === slug) ?? null : null;
+  const car = findVehicleBySlug(cars, slug);
   return { car, loading };
 }
