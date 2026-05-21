@@ -31,27 +31,31 @@ export default function CarCard({ car, compact = false }: CarCardProps) {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:border-gray-200 transition-all group">
       {/* Image */}
-      <div className="relative overflow-hidden aspect-video bg-gray-100">
+      <Link
+        to={`/xe/${car.slug}`}
+        aria-label={`Xem chi tiết ${car.name}`}
+        className="relative block overflow-hidden aspect-video bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+      >
         <img
           src={car.images[0]}
           alt={car.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
         />
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 pointer-events-none">
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm ${badge.class}`}>
             {badge.icon}
             {car.fuel}
           </span>
         </div>
         {car.popular && (
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-3 right-3 pointer-events-none">
             <span className="px-2.5 py-1 bg-brand-600 text-white rounded-full text-xs font-semibold shadow-sm">
               Phổ biến
             </span>
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="p-4">

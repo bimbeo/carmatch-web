@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Car, Phone, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 const PHONE = '0975 563 290';
@@ -11,9 +11,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <Car className="w-6 h-6 text-brand-400" />
-              <span className="text-xl font-bold text-white">CarMatch</span>
+            <Link to="/" className="mb-4 inline-flex items-center" aria-label="CarMatch">
+              <img
+                src="/brand/carmatch-lockup-white.png"
+                alt="CarMatch"
+                className="h-10 w-auto object-contain"
+              />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-5">
               Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Car, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -28,9 +28,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <Car className="w-6 h-6 text-brand-600" />
-            <span className="text-xl font-bold text-gray-900">CarMatch</span>
+          <Link to="/" className="flex items-center" aria-label="CarMatch">
+            <img
+              src="/brand/carmatch-lockup-navy.png"
+              alt="CarMatch"
+              className="h-9 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop Menu */}

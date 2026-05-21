@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { PortableText } from '@portabletext/react';
+import type { TypedObject } from '@portabletext/types';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -16,7 +17,7 @@ interface Post {
   mainImageUrl: string | null;
   categories: string[];
   author: string;
-  body: unknown[];
+  body: TypedObject[];
   seoTitle?: string;
   seoDescription?: string;
 }

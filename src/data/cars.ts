@@ -1,6 +1,8 @@
 export interface Car {
   id: string;
   slug: string;
+  slugAliases?: string[];
+  plateNumber?: string;
   name: string;
   brand: string;
   price: number;
