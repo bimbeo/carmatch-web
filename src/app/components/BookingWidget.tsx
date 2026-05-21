@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck, CalendarDays, X } from 'lucide-react';
+import { DayPicker } from 'react-day-picker';
+import { vi } from 'date-fns/locale';
+import 'react-day-picker/dist/style.css';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -13,14 +16,6 @@ interface BlockedRange {
   allDay: boolean;
 }
 
-function isDateInRange(dateStr: string, range: BlockedRange): boolean {
-  return dateStr >= range.from && dateStr <= range.to;
-}
-
-function isDateBlocked(dateStr: string, ranges: BlockedRange[]): boolean {
-  return ranges.some((r) => isDateInRange(dateStr, r));
-}
-
 function rangeOverlapsBlocked(fromStr: string, toStr: string, ranges: BlockedRange[]): BlockedRange[] {
   return ranges.filter((r) => r.from <= toStr && r.to >= fromStr);
 }
@@ -28,96 +23,6 @@ function rangeOverlapsBlocked(fromStr: string, toStr: string, ranges: BlockedRan
 function fmtDateShort(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getDate()}/${d.getMonth() + 1}`;
-}
-
-// ─── Mini Availability Calendar ───────────────────────────────────────────────
-
-const WEEKDAYS_SHORT = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-const MONTHS_VI = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
-                   'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
-
-interface MiniCalProps {
-  year: number;
-  month: number; // 0-based
-  blockedRanges: BlockedRange[];
-  pickupDate: string;
-  returnDate: string;
-  today: string;
-  onDateClick?: (dateStr: string) => void;
-}
-
-function MiniCal({ year, month, blockedRanges, pickupDate, returnDate, today, onDateClick }: MiniCalProps) {
-  // Build day grid
-  const firstDay = new Date(year, month, 1);
-  // JS getDay(): 0=Sun..6=Sat → convert to Mon-first index
-  const startOffset = (firstDay.getDay() + 6) % 7; // 0=Mon
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const cells: (number | null)[] = [
-    ...Array(startOffset).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-  // Pad to full rows
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  function pad(n: number) { return String(n).padStart(2, '0'); }
-  function dateStr(day: number) { return `${year}-${pad(month + 1)}-${pad(day)}`; }
-
-  return (
-    <div className="flex-1 min-w-0">
-      <div className="text-xs font-semibold text-gray-600 text-center mb-2">
-        {MONTHS_VI[month]} {year}
-      </div>
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-px mb-1">
-        {WEEKDAYS_SHORT.map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-gray-400">{d}</div>
-        ))}
-      </div>
-      {/* Day cells */}
-      <div className="grid grid-cols-7 gap-px">
-        {cells.map((day, idx) => {
-          if (!day) return <div key={idx} />;
-          const ds = dateStr(day);
-          const isPast = ds < today;
-          const isBlocked = isDateBlocked(ds, blockedRanges);
-          const isPickup = ds === pickupDate;
-          const isReturn = ds === returnDate;
-          const inSelection = pickupDate && returnDate && ds > pickupDate && ds < returnDate;
-
-          let cellClass = 'relative flex items-center justify-center rounded text-[11px] h-6 cursor-default select-none ';
-          if (isPickup || isReturn) {
-            cellClass += 'bg-brand-600 text-white font-bold';
-          } else if (inSelection) {
-            cellClass += 'bg-brand-100 text-brand-700 font-medium';
-          } else if (isPast) {
-            cellClass += 'text-gray-300';
-          } else if (isBlocked) {
-            cellClass += 'bg-red-100 text-red-400 line-through cursor-not-allowed';
-          } else {
-            cellClass += 'text-gray-700 hover:bg-gray-100';
-            if (onDateClick) cellClass += ' cursor-pointer';
-          }
-
-          return (
-            <div
-              key={idx}
-              className={cellClass}
-              onClick={() => {
-                if (!isPast && !isBlocked && onDateClick) onDateClick(ds);
-              }}
-              title={isBlocked ? 'Xe đang bận ngày này' : undefined}
-            >
-              {day}
-              {ds === today && !isPickup && !isReturn && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-500 rounded-full" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -148,17 +53,12 @@ function displayDate(dateStr: string): string {
   return `${days[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
 }
 
+function parseDateStr(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 // ─── Pricing engine ───────────────────────────────────────────────────────────
-// CarMatch pricing rules (updated):
-//   • Minimum booking: 4 hours
-//   • Pure half-day: 70% BP
-//       - Same-day within one session, or one overnight half-day (pickup ≥19h, return ≤12h)
-//   • Full-day + extra half-day: extra half-day is 50% BP
-//   • Multi-day: BP × days, with early/late surcharges
-//   • Weekend surcharge: +100k ONLY when booking = exactly 1 day (same-day or 1 overnight)
-//       on T7 or CN. No surcharge for 2+ day rentals.
-//   • Early pickup surcharge (multi-day): 17–19h = +100k, 16–17h = +200k
-//   • Late return surcharge: 21–22h = +100k, 22–23h = +200k, ≥23h = +0.5 BP
 
 interface Fee {
   label: string;
@@ -198,19 +98,14 @@ function calculateRental(
   }
 
   const fees: Fee[] = [];
-  const pDow = pDate.getDay(); // 0=Sun, 6=Sat
+  const pDow = pDate.getDay();
   const rDow = rDate.getDay();
   const isReturnSat = rDow === 6;
   const isReturnSun = rDow === 0;
   const isReturnWeekend = isReturnSat || isReturnSun;
   const isPickupWeekend = pDow === 0 || pDow === 6;
-  // isPickupWeekend used for same-day weekend check above
 
-  // ── SAME DAY ────────────────────────────────────────────────────────────────
   if (calDays === 0) {
-    // Half-day: booking must be WITHIN one session
-    //   Buổi sáng: pickup ∈ [7,12] AND return ≤ 12
-    //   Buổi chiều: pickup ∈ [13,20] AND return ≤ 20
     const inMorning = pickupHour >= 7 && pickupHour <= 12 && returnHour <= 12;
     const inAfternoon = pickupHour >= 13 && returnHour <= 20;
     const isHalfDay = inMorning || inAfternoon;
@@ -218,7 +113,6 @@ function calculateRental(
     let base = isHalfDay ? Math.round(BP * 0.7) : BP;
     fees.push({ label: isHalfDay ? 'Nửa ngày (×70%)' : '1 ngày', amount: base });
 
-    // Weekend surcharge: +100k for 1-day booking on T7 or CN
     if (isPickupWeekend) {
       fees.push({ label: 'Phụ phí cuối tuần', amount: 100_000 });
       base += 100_000;
@@ -226,55 +120,33 @@ function calculateRental(
     return { valid: true, total: base, fees };
   }
 
-  // ── MULTI-DAY ───────────────────────────────────────────────────────────────
-
-  // Early pickup surcharge
   let earlyFee = 0;
   if (pickupHour >= 17 && pickupHour < 19) earlyFee = 100_000;
   else if (pickupHour >= 16 && pickupHour < 17) earlyFee = 200_000;
 
-  // Late return surcharge
   let lateFee = 0;
   let lateExtraHalf = false;
   if (returnHour >= 23) lateExtraHalf = true;
   else if (returnHour >= 22) lateFee = 200_000;
   else if (returnHour >= 21) lateFee = 100_000;
 
-  // ── Calculate base days ─────────────────────────────────────────────────────
-  // Logic dựa theo ca xe CarMatch:
-  //   • Sáng (7h–11h): ngày đầu tính đủ 1 ngày → baseDays = calDays + 1
-  //   • Trưa (12h–15h): ngày đầu tính nửa ngày  → baseDays = calDays + 0.5
-  //       Ngoại lệ: nếu trả xe trước 12h ngày hôm sau (2 nửa ca = 1 ngày) → baseDays = calDays
-  //   • Chiều/tối (16h+): tính theo số ca đêm chuẩn → baseDays = calDays
-  //       Ngoại lệ: tối (≥19h) + trả sáng sớm (≤12h):
-  //         - chỉ 1 đêm = nửa ngày 70%
-  //         - từ 2 đêm trở lên = ngày nguyên + nửa ngày 50%
-
   let baseDays: number;
 
   if (pickupHour <= 11) {
-    // Sáng sớm: ngày đầu tiên tính full → +1
     baseDays = calDays + 1;
   } else if (pickupHour <= 15) {
-    // Trưa: ngày đầu tính nửa → +0.5
-    // Nhưng nếu trả trước 12h hôm sau = 2 nửa ca = 1 ngày (không cộng thêm)
-    if (returnHour <= 12 && !isReturnWeekend) {
-      baseDays = calDays; // case 13: 2 nửa ca = calDays ngày
+    if (returnHour <= 12) {
+      baseDays = calDays;
     } else {
-      baseDays = calDays + 0.5; // case 9: 1.5 ngày
+      baseDays = calDays + 0.5;
     }
   } else {
-    // Chiều muộn / tối (16h+): tính theo số ca đêm
     baseDays = calDays;
-    // Tối (≥19h) + trả sáng sớm hôm sau (≤12h):
-    // - 1 đêm: pure half-day = 70% BP
-    // - 2+ đêm: phần lẻ nửa ngày chỉ tính 50% BP
-    if (pickupHour >= 19 && returnHour <= 12 && !isReturnWeekend) {
+    if (pickupHour >= 19 && returnHour <= 12) {
       baseDays = calDays === 1 ? 0.7 : (calDays - 1) + 0.5;
     }
   }
 
-  // Compute base amount (baseDays = 0.7 là sentinel cho "70% BP")
   let baseAmount: number;
   if (baseDays === 0.7) {
     baseAmount = Math.round(BP * 0.7);
@@ -290,17 +162,12 @@ function calculateRental(
 
   fees.push({ label: daysLabel, amount: baseAmount });
 
-  // Late extra half-day (+0.5 BP when returning ≥ 23h)
   if (lateExtraHalf) {
     const halfExtra = Math.round(BP * 0.5);
     fees.push({ label: 'Nửa ca thêm (trả sau 23h)', amount: halfExtra });
     baseAmount += halfExtra;
   }
 
-  // ── Weekend surcharge ────────────────────────────────────────────────────────
-  // Rule: +100k ONLY when total rental = exactly 1 overnight day (calDays === 1)
-  //       AND that day falls on T7 or CN.
-  //       For 2+ day rentals: no weekend surcharge.
   let weekendFee = 0;
   if (calDays === 1 && (isReturnSat || isReturnSun || isReturnWeekend)) {
     weekendFee = 100_000;
@@ -356,26 +223,20 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   // ── Availability ──────────────────────────────────────────────────────────
   const [blockedRanges, setBlockedRanges] = useState<BlockedRange[]>([]);
   const [availLoading, setAvailLoading] = useState(false);
-  const [showAvailCal, setShowAvailCal] = useState(false);
-
-  // Calendar view: month/year for the mini calendar
-  const [calPage, setCalPage] = useState(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() };
-  });
+  const [showCalModal, setShowCalModal] = useState(false);
 
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
     setAvailLoading(true);
     try {
-      const from = toDateStr(today);
+      const from = todayStr;
       const to = toDateStr(addDays(today, 120));
       const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`);
       if (!res.ok) return;
       const data = await res.json();
       setBlockedRanges(data.blockedRanges || []);
     } catch {
-      // graceful — no availability shown
+      // graceful
     } finally {
       setAvailLoading(false);
     }
@@ -384,6 +245,16 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   useEffect(() => {
     void fetchAvailability();
   }, [fetchAvailability]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showCalModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showCalModal]);
 
   // Detect if the selected range overlaps any blocked period
   const conflicts = useMemo(
@@ -418,6 +289,54 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const handlePickupDate = (v: string) => {
     setPickupDate(v);
     if (v >= returnDate) setReturnDate(toDateStr(addDays(new Date(v), 1)));
+  };
+
+  // ── react-day-picker range selection ──────────────────────────────────────
+  // Convert blocked ranges to { from, to } Date objects for DayPicker disabled prop
+  const blockedIntervals = useMemo(
+    () => blockedRanges.map((r) => ({
+      from: parseDateStr(r.from),
+      to: parseDateStr(r.to),
+    })),
+    [blockedRanges],
+  );
+
+  const selectedRange = useMemo(() => ({
+    from: parseDateStr(pickupDate),
+    to: parseDateStr(returnDate),
+  }), [pickupDate, returnDate]);
+
+  // Step mode: first click = pickup, second = return
+  const [rangeStep, setRangeStep] = useState<'from' | 'to'>('from');
+
+  const handleDaySelect = (range: { from?: Date; to?: Date } | undefined) => {
+    if (!range) return;
+    if (rangeStep === 'from') {
+      if (range.from) {
+        const ds = toDateStr(range.from);
+        setPickupDate(ds);
+        setReturnDate(toDateStr(addDays(range.from, 1)));
+        setRangeStep('to');
+      }
+    } else {
+      if (range.to) {
+        const ds = toDateStr(range.to);
+        if (ds > pickupDate) {
+          setReturnDate(ds);
+          setRangeStep('from');
+        } else {
+          // clicked before pickup → reset pickup
+          setPickupDate(ds);
+          setReturnDate(toDateStr(addDays(new Date(ds), 1)));
+          setRangeStep('to');
+        }
+      } else if (range.from) {
+        const ds = toDateStr(range.from);
+        setPickupDate(ds);
+        setReturnDate(toDateStr(addDays(new Date(ds), 1)));
+        setRangeStep('to');
+      }
+    }
   };
 
   const buildMessage = () => {
@@ -486,7 +405,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             <input
               type="date"
               value={pickupDate}
-              min={toDateStr(today)}
+              min={todayStr}
               onChange={e => handlePickupDate(e.target.value)}
               className="col-span-3 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 transition-colors"
             />
@@ -533,96 +452,20 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </div>
         </div>
 
-        {/* ── Availability calendar toggle ── */}
+        {/* ── Availability calendar button ── */}
         {vehicleId && (
           <div>
             <button
               type="button"
-              onClick={() => setShowAvailCal((v) => !v)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors"
+              onClick={() => { setShowCalModal(true); setRangeStep('from'); }}
+              className="flex items-center gap-2 w-full py-2.5 px-3.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 text-sm font-semibold hover:bg-brand-100 transition-colors"
             >
-              <CalendarDays className="w-3.5 h-3.5" />
-              {availLoading ? 'Đang tải lịch xe…' : 'Xem lịch trống'}
-              <ChevronDown className={`w-3 h-3 transition-transform ${showAvailCal ? 'rotate-180' : ''}`} />
+              <CalendarDays className="w-4 h-4 shrink-0" />
+              {availLoading ? 'Đang tải lịch xe…' : 'Chọn ngày trên lịch'}
+              <span className="ml-auto text-brand-400 text-xs font-normal">
+                {displayDate(pickupDate)} → {displayDate(returnDate)}
+              </span>
             </button>
-
-            {showAvailCal && (
-              <div className="mt-2 border border-gray-100 rounded-xl p-3 bg-gray-50">
-                {/* Month nav */}
-                <div className="flex items-center justify-between mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setCalPage((p) => {
-                      const d = new Date(p.year, p.month - 1, 1);
-                      return { year: d.getFullYear(), month: d.getMonth() };
-                    })}
-                    className="p-1 rounded hover:bg-gray-200 transition-colors"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
-                  </button>
-                  <div className="flex gap-6">
-                    {/* Show 2 months side by side */}
-                    <MiniCal
-                      year={calPage.year}
-                      month={calPage.month}
-                      blockedRanges={blockedRanges}
-                      pickupDate={pickupDate}
-                      returnDate={returnDate}
-                      today={todayStr}
-                      onDateClick={(ds) => {
-                        if (ds >= todayStr) {
-                          if (!pickupDate || (pickupDate && returnDate) || ds < pickupDate) {
-                            setPickupDate(ds);
-                            setReturnDate(toDateStr(addDays(new Date(ds), 1)));
-                          } else {
-                            setReturnDate(ds);
-                          }
-                        }
-                      }}
-                    />
-                    {(() => {
-                      const next = new Date(calPage.year, calPage.month + 1, 1);
-                      return (
-                        <MiniCal
-                          year={next.getFullYear()}
-                          month={next.getMonth()}
-                          blockedRanges={blockedRanges}
-                          pickupDate={pickupDate}
-                          returnDate={returnDate}
-                          today={todayStr}
-                          onDateClick={(ds) => {
-                            if (ds >= todayStr) {
-                              if (!pickupDate || (pickupDate && returnDate) || ds < pickupDate) {
-                                setPickupDate(ds);
-                                setReturnDate(toDateStr(addDays(new Date(ds), 1)));
-                              } else {
-                                setReturnDate(ds);
-                              }
-                            }
-                          }}
-                        />
-                      );
-                    })()}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCalPage((p) => {
-                      const d = new Date(p.year, p.month + 1, 1);
-                      return { year: d.getFullYear(), month: d.getMonth() };
-                    })}
-                    className="p-1 rounded hover:bg-gray-200 transition-colors"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
-                  </button>
-                </div>
-                {/* Legend */}
-                <div className="flex items-center gap-3 text-[10px] text-gray-400">
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-brand-600 inline-block" /> Ngày chọn</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 inline-block" /> Đã có lịch</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 inline-block" /> Trống</span>
-                </div>
-              </div>
-            )}
 
             {/* Conflict warning */}
             {conflicts.length > 0 && (
@@ -786,6 +629,94 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         </ul>
       </div>
     </div>
+
+    {/* ── Calendar Modal ── */}
+    {showCalModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        onClick={() => setShowCalModal(false)}
+      >
+        <div
+          className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div>
+              <h3 className="font-bold text-gray-900 text-base">Chọn ngày thuê xe</h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {rangeStep === 'from' ? '👆 Chọn ngày nhận xe' : '👆 Chọn ngày trả xe'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowCalModal(false)}
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+
+          {/* Day Picker */}
+          <div className="px-4 py-2 carmatch-cal">
+            <DayPicker
+              mode="range"
+              selected={selectedRange}
+              onSelect={handleDaySelect as (range: { from?: Date; to?: Date } | undefined) => void}
+              numberOfMonths={2}
+              locale={vi}
+              disabled={[
+                { before: today },
+                ...blockedIntervals,
+              ]}
+              modifiers={{ blocked: blockedIntervals }}
+              modifiersClassNames={{ blocked: 'rdp-day_blocked' }}
+              fromDate={today}
+              showOutsideDays={false}
+            />
+          </div>
+
+          {/* Legend + Selected range summary */}
+          <div className="px-5 pb-4 pt-2 border-t border-gray-100">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
+              <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="w-4 h-4 rounded-full bg-brand-600 inline-block" />
+                Ngày chọn
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="w-4 h-4 rounded-sm bg-brand-100 inline-block border border-brand-200" />
+                Trong khoảng
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="w-4 h-4 rounded-sm bg-red-100 inline-block border border-red-200" />
+                Đã có lịch (bận)
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="w-4 h-4 rounded-sm bg-gray-100 inline-block border border-gray-200 opacity-50" />
+                Không khả dụng
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5">
+                <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Nhận xe</div>
+                <div className="font-bold text-gray-900 text-sm mt-0.5">{displayDate(pickupDate)}</div>
+              </div>
+              <div className="text-gray-300 text-lg">→</div>
+              <div className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5">
+                <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Trả xe</div>
+                <div className="font-bold text-gray-900 text-sm mt-0.5">{displayDate(returnDate)}</div>
+              </div>
+              <button
+                onClick={() => setShowCalModal(false)}
+                className="flex-none py-2.5 px-5 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── Booking confirm modal ── */}
     {showModal && (

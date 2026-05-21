@@ -191,3 +191,104 @@
     line-height: 1.5;
   }
 }
+
+/* ─── react-day-picker CarMatch theme ─────────────────────────────────────── */
+.carmatch-cal .rdp {
+  --rdp-cell-size: 38px;
+  --rdp-accent-color: #11163e;
+  --rdp-background-color: #eef0f8;
+  --rdp-accent-color-dark: #2a3896;
+  --rdp-outline: 2px solid #11163e;
+  --rdp-outline-selected: 2px solid #11163e;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.carmatch-cal .rdp-months {
+  gap: 1.5rem;
+}
+
+.carmatch-cal .rdp-caption_label {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #11163e;
+  text-transform: capitalize;
+}
+
+.carmatch-cal .rdp-nav_button {
+  color: #11163e;
+  border: 1px solid #d4d8ef;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.carmatch-cal .rdp-nav_button:hover {
+  background-color: #eef0f8;
+}
+
+.carmatch-cal .rdp-head_cell {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #717182;
+  text-transform: uppercase;
+}
+
+.carmatch-cal .rdp-day {
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #1a1a2e;
+  transition: background 0.12s, color 0.12s;
+}
+
+.carmatch-cal .rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+  background-color: #d4d8ef;
+  color: #11163e;
+}
+
+.carmatch-cal .rdp-day_today:not(.rdp-day_selected) {
+  color: #2a3896;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Selected start/end */
+.carmatch-cal .rdp-day_range_start,
+.carmatch-cal .rdp-day_range_end {
+  background-color: #11163e !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-weight: 700;
+}
+
+/* In-range days */
+.carmatch-cal .rdp-day_range_middle {
+  background-color: #d4d8ef !important;
+  color: #11163e !important;
+  border-radius: 0 !important;
+}
+
+/* Disabled days (past) */
+.carmatch-cal .rdp-day_disabled {
+  color: #c5c7d0 !important;
+  text-decoration: none;
+}
+
+/* Blocked days (occupied) */
+.carmatch-cal .rdp-day_blocked {
+  background-color: #fee2e2 !important;
+  color: #ef4444 !important;
+  border-radius: 8px !important;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.carmatch-cal .rdp-day_blocked:hover {
+  background-color: #fecaca !important;
+}
