@@ -17,6 +17,16 @@ interface BlockedRange {
   allDay: boolean;
 }
 
+interface PublicPromoCode {
+  code: string;
+  description: string;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  max_discount: number | null;
+  min_order: number;
+  expiresInDays: number | null;
+}
+
 function rangeOverlapsBlocked(fromStr: string, toStr: string, ranges: BlockedRange[]): BlockedRange[] {
   return ranges.filter((r) => r.from <= toStr && r.to >= fromStr);
 }
@@ -239,6 +249,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; description: string } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
+  const [promoList, setPromoList] = useState<PublicPromoCode[]>([]);
+  const [promoListLoading, setPromoListLoading] = useState(false);
 
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
@@ -376,6 +388,20 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       setPromoLoading(false);
     }
   };
+
+  const fetchPromoList = useCallback(async () => {
+    if (promoList.length > 0) return;
+    setPromoListLoading(true);
+    try {
+      const res = await fetch('/api/promo-list');
+      const data = await res.json();
+      setPromoList(Array.isArray(data) ? data : []);
+    } catch {
+      // graceful
+    } finally {
+      setPromoListLoading(false);
+    }
+  }, [promoList.length]);
 
   // Re-validate promo silently when the pre-discount order total changes.
   const prevTotalRef = useRef<number>(0);
@@ -661,7 +687,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
               {/* Promo code row */}
               <button
                 type="button"
-                onClick={() => setShowPromoModal(true)}
+                onClick={() => { setShowPromoModal(true); void fetchPromoList(); }}
                 className="flex items-center justify-between w-full text-sm text-brand-600 hover:text-brand-800 pt-1 border-t border-gray-200 mt-1 transition-colors"
               >
                 <span className="flex items-center gap-1.5">
@@ -1012,6 +1038,67 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
               </p>
             )}
           </div>
+
+          {/* Available codes list */}
+          {promoListLoading && (
+            <div className="px-5 pb-4 text-center text-xs text-gray-400">Đang tải mã khuyến mãi…</div>
+          )}
+          {!promoListLoading && promoList.length > 0 && (
+            <div className="px-5 pb-4">
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Mã khuyến mãi có thể áp dụng
+              </div>
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+                {promoList.map((c) => {
+                  const isApplied = promoApplied?.code === c.code;
+                  const belowMin = result.valid && c.min_order > 0 && (orderTotalBeforePromo < c.min_order);
+                  return (
+                    <div
+                      key={c.code}
+                      className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-colors ${
+                        isApplied
+                          ? 'border-green-300 bg-green-50'
+                          : belowMin
+                          ? 'border-gray-200 bg-gray-50 opacity-60'
+                          : 'border-gray-200 bg-white hover:border-brand-200 hover:bg-brand-50'
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-sm text-gray-900 tracking-wider">{c.code}</span>
+                          {c.expiresInDays !== null && c.expiresInDays <= 3 && (
+                            <span className="text-[10px] text-orange-500 font-semibold bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">
+                              Hết hạn sau {c.expiresInDays} ngày
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">{c.description}</div>
+                        {belowMin && (
+                          <div className="text-[11px] text-gray-400 mt-0.5">
+                            Đơn tối thiểu {c.min_order.toLocaleString('vi-VN')}đ
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={belowMin || isApplied}
+                        onClick={() => !belowMin && !isApplied && handlePromoValidate(c.code)}
+                        className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                          isApplied
+                            ? 'bg-green-100 text-green-700 cursor-default'
+                            : belowMin
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-95'
+                        }`}
+                      >
+                        {isApplied ? '✓ Đã dùng' : 'Áp dụng'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Currently applied */}
           {promoApplied && (
