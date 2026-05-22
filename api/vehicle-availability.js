@@ -20,12 +20,52 @@ const BLOCKING_TYPES = new Set([
 
 // Statuses that mean the slot is definitely taken
 const ACTIVE_STATUSES = ['planned', 'confirmed', 'in_progress', 'completed'];
+const DEFAULT_TIMEZONE_OFFSET = '+07:00';
+
+function addDays(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function todayInVietnam() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+function dateToStartAt(dateString) {
+  return `${dateString}T00:00:00${DEFAULT_TIMEZONE_OFFSET}`;
+}
+
+function dateToExclusiveEndAt(dateString) {
+  return `${addDays(dateString, 1)}T00:00:00${DEFAULT_TIMEZONE_OFFSET}`;
+}
+
+function datePartInVietnam(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return text.slice(0, 10);
+
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(parsed);
+}
 
 /**
  * GET /api/vehicle-availability?vehicleId=UUID&from=YYYY-MM-DD&to=YYYY-MM-DD
  *
  * Public endpoint — returns only date ranges + event type. No PII.
- * Cached 2 min at edge, stale-while-revalidate 5 min.
+ * Dynamic: availability must reflect admin calendar changes immediately.
  */
 export default async function handler(req, res) {
   // CORS
@@ -45,9 +85,9 @@ export default async function handler(req, res) {
     return res.status(200).json({ blockedRanges: [] });
   }
 
-  // Default window: today → 90 days ahead
-  const today = new Date().toISOString().slice(0, 10);
-  const ninetyDays = new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10);
+  // Default window: today → 90 days ahead, in Vietnam local dates.
+  const today = todayInVietnam();
+  const ninetyDays = addDays(today, 90);
   const fromDate = from || today;
   const toDate = to || ninetyDays;
 
@@ -61,8 +101,8 @@ export default async function handler(req, res) {
       .select('event_type, starts_at, ends_at, all_day, status, note, location_text')
       .eq('vehicle_id', vehicleId)
       .in('status', ACTIVE_STATUSES)
-      .lt('starts_at', `${toDate}T23:59:59Z`)
-      .gt('ends_at', `${fromDate}T00:00:00Z`)
+      .lt('starts_at', dateToExclusiveEndAt(toDate))
+      .gt('ends_at', dateToStartAt(fromDate))
       .order('starts_at');
 
     if (error) {
@@ -78,13 +118,13 @@ export default async function handler(req, res) {
         return BLOCKING_TYPES.has(e.event_type);
       })
       .map((e) => ({
-        from: e.starts_at.slice(0, 10),
-        to: e.ends_at.slice(0, 10),
+        from: datePartInVietnam(e.starts_at),
+        to: e.ends_at ? addDays(datePartInVietnam(e.ends_at), -1) : datePartInVietnam(e.starts_at),
         type: e.event_type,
         allDay: e.all_day,
       }));
 
-    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.status(200).json({ blockedRanges });
   } catch (err) {
     console.error('[vehicle-availability] Error:', err?.message);
