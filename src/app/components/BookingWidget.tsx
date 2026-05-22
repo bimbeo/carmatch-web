@@ -218,6 +218,11 @@ const LOCATIONS = [
   { id: 'trung-lan',    name: 'Trung Lân Gara',         address: 'Bắc Từ Liêm, Hà Nội',  mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
 ];
 
+// ─── Bank / QR config ─────────────────────────────────────────────────────────
+const BANK_ID = import.meta.env.VITE_BANK_ID || 'MB';
+const BANK_ACCOUNT = import.meta.env.VITE_BANK_ACCOUNT || '0399118989';
+const BANK_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || 'CONG TY TNHH CAR MATCH';
+
 // ─── Component ────────────────────────────────────────────────────────────────
 interface Props {
   basePrice: number;
@@ -251,6 +256,17 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoList, setPromoList] = useState<PublicPromoCode[]>([]);
   const [promoListLoading, setPromoListLoading] = useState(false);
+
+  // ── Booking flow ──────────────────────────────────────────────────────────
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerNote, setCustomerNote] = useState('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [bookingRef, setBookingRef] = useState('');
+  const [depositAmount, setDepositAmount] = useState(0);
 
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
@@ -389,6 +405,49 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     }
   };
 
+  const handleBookingSubmit = async () => {
+    if (!customerName.trim()) { setBookingError('Vui lòng nhập họ tên'); return; }
+    const phoneClean = customerPhone.trim().replace(/\s/g, '');
+    if (!/^(0[3-9]\d{8})$/.test(phoneClean)) { setBookingError('Số điện thoại không hợp lệ'); return; }
+
+    setBookingLoading(true);
+    setBookingError('');
+    try {
+      const loc = LOCATIONS.find(l => l.id === selectedLocation);
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicle_id: vehicleId || null,
+          car_name: carName,
+          customer_name: customerName.trim(),
+          customer_phone: phoneClean,
+          customer_note: customerNote.trim() || null,
+          pickup_date: pickupDate,
+          pickup_hour: pickupHour,
+          return_date: returnDate,
+          return_hour: returnHour,
+          delivery_mode: deliveryMode,
+          location_name: deliveryMode === 'self' ? loc?.name : 'Giao tận nơi',
+          base_amount: rentalResult.valid ? rentalResult.total : 0,
+          delivery_fee: deliveryFee,
+          promo_code: promoApplied?.code || null,
+          promo_discount: promoApplied?.discount || 0,
+          total_amount: result.valid ? result.total : 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi tạo đơn');
+      setBookingRef(data.bookingRef);
+      setDepositAmount(data.depositAmount);
+      setBookingStep(2);
+    } catch (e: unknown) {
+      setBookingError((e as Error)?.message || 'Lỗi kết nối, thử lại sau');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
   const fetchPromoList = useCallback(async () => {
     if (promoList.length > 0) return;
     setPromoListLoading(true);
@@ -459,6 +518,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     window.open(ZALO_LINK, '_blank');
     setShowModal(false);
   };
+
+  function buildVietQR(amount: number, info: string): string {
+    const encoded = encodeURIComponent(info);
+    const name = encodeURIComponent(BANK_NAME);
+    return `https://img.vietqr.io/image/${BANK_ID}-${BANK_ACCOUNT}-compact2.png?amount=${amount}&addInfo=${encoded}&accountName=${name}`;
+  }
 
   return (
     <>
@@ -731,20 +796,32 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
         {/* ── CTAs ── */}
         <button
-          onClick={handleBook}
-          className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200"
+          onClick={() => { setShowBookingModal(true); setBookingStep(1); setBookingError(''); }}
+          disabled={!result.valid}
+          className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <MessageCircle className="w-4 h-4" />
-          Đặt xe qua Zalo
+          <CalendarDays className="w-4 h-4" />
+          Đặt xe ngay
         </button>
 
-        <a
-          href={`tel:${ZALO_NUMBER}`}
-          className="w-full py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
-        >
-          <Phone className="w-4 h-4 text-gray-500" />
-          Gọi {ZALO_NUMBER}
-        </a>
+        <div className="grid grid-cols-2 gap-2">
+          <a
+            href={ZALO_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-sm"
+          >
+            <MessageCircle className="w-4 h-4 text-gray-400" />
+            Zalo
+          </a>
+          <a
+            href={`tel:${ZALO_NUMBER}`}
+            className="py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-sm"
+          >
+            <Phone className="w-4 h-4 text-gray-400" />
+            Gọi
+          </a>
+        </div>
 
         {/* Trust list */}
         <ul className="space-y-1 pt-0.5">
@@ -1143,6 +1220,251 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             >
               Đóng
             </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {/* ── Booking flow modal ── */}
+    {showBookingModal && createPortal(
+      <div
+        className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
+        onClick={() => bookingStep < 3 && setShowBookingModal(false)}
+      >
+        <div
+          className="w-full sm:max-w-md bg-white sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          style={{ maxHeight: '95vh' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* ── Step indicator ── */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
+            <div className="flex items-center gap-3">
+              {([1, 2, 3] as const).map(s => (
+                <div key={s} className="flex items-center gap-1.5">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                    bookingStep === s ? 'bg-brand-600 text-white'
+                    : bookingStep > s ? 'bg-green-500 text-white'
+                    : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {bookingStep > s ? '✓' : s}
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:inline ${bookingStep === s ? 'text-brand-600' : 'text-gray-400'}`}>
+                    {s === 1 ? 'Thông tin' : s === 2 ? 'Đặt cọc' : 'Xác nhận'}
+                  </span>
+                  {s < 3 && <div className="w-6 h-px bg-gray-200" />}
+                </div>
+              ))}
+            </div>
+            {bookingStep < 3 && (
+              <button onClick={() => setShowBookingModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-y-auto flex-1">
+
+            {/* ══ STEP 1: Info form ══ */}
+            {bookingStep === 1 && (
+              <div className="px-5 py-4 space-y-4">
+                {/* Booking summary */}
+                <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="font-bold text-gray-900 text-base">{carName}</div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Nhận xe</span>
+                    <span className="font-medium">{displayDate(pickupDate)} · {pickupHour}:00</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Trả xe</span>
+                    <span className="font-medium">{displayDate(returnDate)} · {returnHour}:00</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Địa điểm</span>
+                    <span className="font-medium text-right max-w-[55%]">
+                      {deliveryMode === 'self' ? LOCATIONS.find(l => l.id === selectedLocation)?.name : 'Giao tận nơi'}
+                    </span>
+                  </div>
+                  {promoApplied && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Mã {promoApplied.code}</span>
+                      <span className="font-medium">-{fmtVND(promoApplied.discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-gray-200">
+                    <span className="font-bold text-gray-800">Tổng dự kiến</span>
+                    <span className="font-bold text-brand-600 text-base">{result.valid ? fmtVND(result.total) : '—'}</span>
+                  </div>
+                </div>
+
+                {/* Customer form */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Họ và tên <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    value={customerName}
+                    onChange={e => { setCustomerName(e.target.value); setBookingError(''); }}
+                    placeholder="Nguyễn Văn A"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Số điện thoại <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    value={customerPhone}
+                    onChange={e => { setCustomerPhone(e.target.value); setBookingError(''); }}
+                    placeholder="0912 345 678"
+                    type="tel"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Ghi chú (tuỳ chọn)
+                  </label>
+                  <textarea
+                    value={customerNote}
+                    onChange={e => setCustomerNote(e.target.value)}
+                    placeholder="Yêu cầu đặc biệt, địa chỉ giao xe..."
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
+                  />
+                </div>
+                {bookingError && (
+                  <p className="text-xs text-red-500 font-medium flex items-center gap-1.5">
+                    <span>⚠</span> {bookingError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ══ STEP 2: QR deposit ══ */}
+            {bookingStep === 2 && (
+              <div className="px-5 py-4 space-y-4">
+                <div className="text-center">
+                  <div className="font-bold text-gray-900 text-base">Đặt cọc để giữ xe</div>
+                  <p className="text-sm text-gray-500 mt-1">Chuyển khoản <strong className="text-brand-600">{fmtVND(depositAmount)}</strong> để xác nhận đơn</p>
+                </div>
+
+                {/* QR code */}
+                <div className="flex justify-center">
+                  <div className="border-2 border-brand-100 rounded-2xl p-3 bg-white shadow-sm">
+                    <img
+                      src={buildVietQR(depositAmount, `DATXE ${bookingRef}`)}
+                      alt="QR chuyển khoản"
+                      className="w-52 h-52 object-contain"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                </div>
+
+                {/* Bank info */}
+                <div className="bg-brand-50 rounded-xl p-4 space-y-2 text-sm border border-brand-100">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Ngân hàng</span>
+                    <span className="font-bold text-gray-900">{BANK_ID} Bank</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Số tài khoản</span>
+                    <span className="font-bold text-gray-900 font-mono">{BANK_ACCOUNT}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Chủ tài khoản</span>
+                    <span className="font-bold text-gray-900 text-right max-w-[55%]">{BANK_NAME}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Số tiền</span>
+                    <span className="font-bold text-brand-600 text-base">{fmtVND(depositAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-start pt-1 border-t border-brand-200">
+                    <span className="text-gray-500 shrink-0">Nội dung CK</span>
+                    <span className="font-bold text-gray-900 font-mono bg-white px-2 py-0.5 rounded-lg border border-brand-200 text-xs tracking-wider">{`DATXE ${bookingRef}`}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-700">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                  <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để CarMatch xác nhận tự động. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
+                </div>
+              </div>
+            )}
+
+            {/* ══ STEP 3: Confirmation ══ */}
+            {bookingStep === 3 && (
+              <div className="px-5 py-6 text-center space-y-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-3xl">✓</span>
+                </div>
+                <div>
+                  <div className="font-bold text-gray-900 text-lg">Đặt xe thành công!</div>
+                  <p className="text-sm text-gray-500 mt-1">CarMatch sẽ xác nhận trong vòng <strong>30 phút</strong></p>
+                </div>
+                <div className="bg-brand-50 border border-brand-100 rounded-xl px-5 py-3 inline-block">
+                  <div className="text-xs text-brand-500 font-medium mb-1">Mã đặt xe của bạn</div>
+                  <div className="font-mono font-bold text-brand-700 text-xl tracking-widest">{bookingRef}</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 text-sm text-left space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Xe</span>
+                    <span className="font-semibold text-gray-800">{carName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Nhận xe</span>
+                    <span className="font-semibold text-gray-800">{displayDate(pickupDate)} · {pickupHour}:00</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Trả xe</span>
+                    <span className="font-semibold text-gray-800">{displayDate(returnDate)} · {returnHour}:00</span>
+                  </div>
+                  <div className="flex justify-between pt-1.5 border-t border-gray-200">
+                    <span className="text-gray-500">Tiền cọc đã CK</span>
+                    <span className="font-bold text-brand-600">{fmtVND(depositAmount)}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400">Lưu mã đặt xe để tra cứu. CarMatch sẽ liên hệ qua SĐT <strong>{customerPhone}</strong></p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer buttons */}
+          <div className="px-5 py-4 border-t border-gray-100 shrink-0 space-y-2">
+            {bookingStep === 1 && (
+              <button
+                onClick={handleBookingSubmit}
+                disabled={bookingLoading}
+                className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+              >
+                {bookingLoading ? <span className="animate-spin">⟳</span> : <CalendarDays className="w-4 h-4" />}
+                {bookingLoading ? 'Đang xử lý…' : 'Tiếp tục — Xem QR đặt cọc'}
+              </button>
+            )}
+            {bookingStep === 2 && (
+              <>
+                <button
+                  onClick={() => setBookingStep(3)}
+                  className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 active:scale-[0.98] transition-all"
+                >
+                  Tôi đã chuyển khoản xong ✓
+                </button>
+                <button
+                  onClick={() => setBookingStep(1)}
+                  className="w-full py-2.5 border border-gray-200 text-gray-500 font-medium rounded-xl text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Quay lại
+                </button>
+              </>
+            )}
+            {bookingStep === 3 && (
+              <button
+                onClick={() => { setShowBookingModal(false); setBookingStep(1); setCustomerName(''); setCustomerPhone(''); setCustomerNote(''); }}
+                className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-all"
+              >
+                Đóng
+              </button>
+            )}
           </div>
         </div>
       </div>,
