@@ -685,41 +685,35 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 </div>
               ))}
               {/* Promo code row */}
-              <button
-                type="button"
-                onClick={() => { setShowPromoModal(true); void fetchPromoList(); }}
-                className={`flex items-center justify-between w-full px-1 py-2 mt-1 border-t border-dashed border-gray-200 transition-colors rounded-lg hover:bg-gray-50 ${
-                  promoApplied ? 'text-green-600' : 'text-brand-600 hover:text-brand-800'
-                }`}
-              >
-                <span className="flex items-center gap-2 text-sm">
-                  <Tag className="w-3.5 h-3.5 shrink-0" />
-                  {promoApplied ? (
-                    <span className="font-semibold">{promoApplied.code} — {promoApplied.description}</span>
-                  ) : (
-                    <span className="font-medium">Thêm mã khuyến mãi</span>
-                  )}
-                </span>
-                {promoApplied ? (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => { e.stopPropagation(); setPromoApplied(null); }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setPromoApplied(null);
-                      }
-                    }}
-                    className="text-xs text-gray-400 hover:text-red-500 transition-colors px-1 font-medium"
+              {promoApplied ? (
+                /* Applied state: compact, no duplicate description */
+                <div className="flex items-center justify-between pt-2 mt-1 border-t border-dashed border-gray-200">
+                  <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                    <Tag className="w-3 h-3 shrink-0" />
+                    ✓ {promoApplied.code}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPromoApplied(null)}
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium"
                   >
                     Xoá
+                  </button>
+                </div>
+              ) : (
+                /* Empty state: invite to add code */
+                <button
+                  type="button"
+                  onClick={() => { setShowPromoModal(true); void fetchPromoList(); }}
+                  className="flex items-center justify-between w-full px-1 py-2 mt-1 border-t border-dashed border-gray-200 text-brand-600 hover:text-brand-800 transition-colors rounded-lg hover:bg-gray-50"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <Tag className="w-3.5 h-3.5 shrink-0" />
+                    Thêm mã khuyến mãi
                   </span>
-                ) : (
                   <span className="text-xs text-gray-400 font-medium">Nhập mã ›</span>
-                )}
-              </button>
+                </button>
+              )}
             </div>
             <div className="flex justify-between items-center px-4 py-3 bg-brand-50 border-t border-brand-100">
               <div>
