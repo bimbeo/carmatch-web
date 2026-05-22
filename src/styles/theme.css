@@ -209,9 +209,63 @@
   margin: 0 !important;
 }
 
-/* Add gap between the two months */
+/* Two months: centered, equal gap */
 .carmatch-cal .rdp-months {
   gap: 2rem;
+  justify-content: center;
+}
+
+/* Caption row: nav buttons inline with month title (like Mioto) */
+.carmatch-cal .rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 8px;
+  position: relative;
+}
+
+.carmatch-cal .rdp-caption_label {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  color: #11163e;
+  text-transform: capitalize;
+  order: 2;
+  padding: 0 4px;
+}
+
+/* Nav sits alongside label, not at extremes */
+.carmatch-cal .rdp-nav {
+  position: static;
+  display: flex;
+  order: 1;
+}
+
+.carmatch-cal .rdp-nav_button_next {
+  order: 3;
+}
+
+.carmatch-cal .rdp-nav_button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #11163e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.carmatch-cal .rdp-nav_button:hover {
+  background-color: #eef0f8 !important;
+}
+
+.carmatch-cal .rdp-nav_button[disabled] {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .carmatch-cal .rdp-caption_label {

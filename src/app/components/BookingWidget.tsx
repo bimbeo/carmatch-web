@@ -28,8 +28,12 @@ function fmtDateShort(dateStr: string): string {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Format a Date to YYYY-MM-DD using LOCAL time (avoids UTC-offset day shift in VN GMT+7) */
 function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function addDays(d: Date, n: number): Date {
@@ -48,10 +52,12 @@ function fmtVND(n: number): string {
   return n.toLocaleString('vi-VN') + 'đ';
 }
 
+/** Display YYYY-MM-DD as "T6 22/5" — parse manually to avoid UTC offset bug */
 function displayDate(dateStr: string): string {
-  const d = new Date(dateStr);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d); // local midnight
   const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-  return `${days[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+  return `${days[date.getDay()]} ${date.getDate()}/${date.getMonth() + 1}`;
 }
 
 function parseDateStr(str: string): Date {
@@ -211,7 +217,8 @@ interface Props {
 }
 
 export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId }: Props) {
-  const today = new Date();
+  // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
+  const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
   const [pickupDate, setPickupDate] = useState(toDateStr(addDays(today, 1)));
   const [pickupHour, setPickupHour] = useState(20);
