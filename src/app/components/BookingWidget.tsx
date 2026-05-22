@@ -317,35 +317,27 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   // Step mode: first click = pickup, second = return
   const [rangeStep, setRangeStep] = useState<'from' | 'to'>('from');
 
-  const handleDaySelect = (range: { from?: Date; to?: Date } | undefined) => {
-    if (!range) return;
+  // Use onDayClick instead of onSelect — onSelect has stale-range issues in v8
+  // when an existing range is already selected and user starts fresh
+  const handleDayClick = useCallback((day: Date, modifiers: Record<string, boolean>) => {
+    if (modifiers.disabled || modifiers.blocked) return;
+    const ds = toDateStr(day);
     if (rangeStep === 'from') {
-      if (range.from) {
-        const ds = toDateStr(range.from);
-        setPickupDate(ds);
-        setReturnDate(toDateStr(addDays(range.from, 1)));
-        setRangeStep('to');
-      }
+      setPickupDate(ds);
+      setReturnDate(toDateStr(addDays(day, 1)));
+      setRangeStep('to');
     } else {
-      if (range.to) {
-        const ds = toDateStr(range.to);
-        if (ds > pickupDate) {
-          setReturnDate(ds);
-          setRangeStep('from');
-        } else {
-          // clicked before pickup → reset pickup
-          setPickupDate(ds);
-          setReturnDate(toDateStr(addDays(new Date(ds), 1)));
-          setRangeStep('to');
-        }
-      } else if (range.from) {
-        const ds = toDateStr(range.from);
+      if (ds > pickupDate) {
+        setReturnDate(ds);
+        setRangeStep('from');
+      } else {
+        // clicked same day or before pickup → restart from this day
         setPickupDate(ds);
-        setReturnDate(toDateStr(addDays(new Date(ds), 1)));
+        setReturnDate(toDateStr(addDays(day, 1)));
         setRangeStep('to');
       }
     }
-  };
+  }, [rangeStep, pickupDate]);
 
   const buildMessage = () => {
     const priceText = result.valid ? fmtVND(result.total) : 'báo giá';
@@ -646,7 +638,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       >
         <div
           className="bg-white rounded-2xl shadow-2xl flex flex-col"
-          style={{ width: '90vw', maxWidth: 800, maxHeight: '90vh' }}
+          style={{ width: '90vw', maxWidth: 700, maxHeight: '92vh' }}
           onClick={e => e.stopPropagation()}
         >
           {/* ── Header ── */}
@@ -663,12 +655,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </div>
 
           {/* ── Calendar ── */}
-          <div className="carmatch-cal overflow-x-auto py-3" style={{ minHeight: 280 }}>
-            <div style={{ minWidth: 620, padding: '0 16px' }}>
+          <div className="carmatch-cal overflow-x-auto py-2" style={{ minHeight: 260 }}>
+            <div style={{ minWidth: 560, padding: '0 12px' }}>
               <DayPicker
                 mode="range"
                 selected={selectedRange}
-                onSelect={handleDaySelect as (range: { from?: Date; to?: Date } | undefined) => void}
+                onDayClick={handleDayClick}
                 numberOfMonths={2}
                 pagedNavigation
                 locale={vi}
