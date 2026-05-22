@@ -1037,58 +1037,55 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 <span>⚠</span> {promoError}
               </p>
             )}
-          </div>
 
-          {/* Available codes list */}
-          {promoListLoading && (
-            <div className="px-5 pb-4 text-center text-xs text-gray-400">Đang tải mã khuyến mãi…</div>
-          )}
-          {!promoListLoading && promoList.length > 0 && (
-            <div className="px-5 pb-4">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                Mã khuyến mãi có thể áp dụng
-              </div>
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+            {/* Available promo codes list */}
+            {promoListLoading && (
+              <p className="mt-3 text-center text-xs text-gray-400">Đang tải mã khuyến mãi…</p>
+            )}
+            {!promoListLoading && promoList.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  Mã đang có
+                </p>
+                <div className="space-y-2 max-h-52 overflow-y-auto">
                 {promoList.map((c) => {
                   const isApplied = promoApplied?.code === c.code;
-                  const belowMin = result.valid && c.min_order > 0 && (orderTotalBeforePromo < c.min_order);
+                  const belowMin = result.valid && c.min_order > 0 && orderTotalBeforePromo < c.min_order;
                   return (
                     <div
                       key={c.code}
-                      className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-colors ${
-                        isApplied
-                          ? 'border-green-300 bg-green-50'
-                          : belowMin
-                          ? 'border-gray-200 bg-gray-50 opacity-60'
-                          : 'border-gray-200 bg-white hover:border-brand-200 hover:bg-brand-50'
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                        isApplied ? 'border-green-300 bg-green-50'
+                        : belowMin ? 'border-gray-200 bg-gray-50 opacity-60'
+                        : 'border-gray-200 hover:border-brand-300 hover:bg-brand-50'
                       }`}
                     >
-                      <div className="min-w-0 flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono font-bold text-sm text-gray-900 tracking-wider">{c.code}</span>
+                          <span className="font-mono font-bold text-sm tracking-widest text-gray-900">
+                            {c.code}
+                          </span>
                           {c.expiresInDays !== null && c.expiresInDays <= 3 && (
-                            <span className="text-[10px] text-orange-500 font-semibold bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-semibold text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">
                               Hết hạn sau {c.expiresInDays} ngày
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 mt-0.5">{c.description}</div>
+                        <p className="text-xs text-gray-500 mt-0.5">{c.description}</p>
                         {belowMin && (
-                          <div className="text-[11px] text-gray-400 mt-0.5">
+                          <p className="text-[11px] text-gray-400 mt-0.5">
                             Đơn tối thiểu {c.min_order.toLocaleString('vi-VN')}đ
-                          </div>
+                          </p>
                         )}
                       </div>
                       <button
                         type="button"
                         disabled={belowMin || isApplied}
-                        onClick={() => !belowMin && !isApplied && handlePromoValidate(c.code)}
+                        onClick={() => { if (!belowMin && !isApplied) void handlePromoValidate(c.code); }}
                         className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                          isApplied
-                            ? 'bg-green-100 text-green-700 cursor-default'
-                            : belowMin
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-95'
+                          isApplied ? 'bg-green-100 text-green-700 cursor-default'
+                          : belowMin ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-95'
                         }`}
                       >
                         {isApplied ? '✓ Đã dùng' : 'Áp dụng'}
@@ -1096,9 +1093,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     </div>
                   );
                 })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Currently applied */}
           {promoApplied && (
