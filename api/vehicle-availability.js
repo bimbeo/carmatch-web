@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabase
       .from('vehicle_schedule_events')
-      .select('event_type, starts_at, ends_at, all_day, status')
+      .select('event_type, starts_at, ends_at, all_day, status, note, location_text')
       .eq('vehicle_id', vehicleId)
       .in('status', ACTIVE_STATUSES)
       .lt('starts_at', `${toDate}T23:59:59Z`)
@@ -71,7 +71,12 @@ export default async function handler(req, res) {
     }
 
     const blockedRanges = (data || [])
-      .filter((e) => BLOCKING_TYPES.has(e.event_type))
+      .filter((e) => {
+        // Exclude internal cost-tracking entries created by /vehicle-assignment-review.
+        // These have note='FALSE' and location_text='Chi phí' — they are NOT real customer bookings.
+        if (e.note === 'FALSE' || e.location_text === 'Chi phí') return false;
+        return BLOCKING_TYPES.has(e.event_type);
+      })
       .map((e) => ({
         from: e.starts_at.slice(0, 10),
         to: e.ends_at.slice(0, 10),
