@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck, CalendarDays, X } from 'lucide-react';
+import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck, CalendarDays, X, Tag } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
@@ -233,6 +233,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [availLoading, setAvailLoading] = useState(false);
   const [showCalModal, setShowCalModal] = useState(false);
 
+  // ── Promo code ────────────────────────────────────────────────────────────
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; description: string } | null>(null);
+  const [promoError, setPromoError] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
     setAvailLoading(true);
@@ -276,18 +283,22 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   );
 
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
+  const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee : 0;
 
   const result = useMemo(() => {
     if (!rentalResult.valid) return rentalResult;
-    const extraFees = deliveryMode === 'delivery'
+    const extraFees: Fee[] = deliveryMode === 'delivery'
       ? [{ label: 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
+      : [];
+    const promoFee: Fee[] = promoApplied
+      ? [{ label: `Mã ${promoApplied.code}`, amount: -promoApplied.discount, highlight: true }]
       : [];
     return {
       ...rentalResult,
-      fees: [...rentalResult.fees, ...extraFees],
-      total: rentalResult.total + deliveryFee,
+      fees: [...rentalResult.fees, ...extraFees, ...promoFee],
+      total: Math.max(0, orderTotalBeforePromo - (promoApplied?.discount ?? 0)),
     };
-  }, [rentalResult, deliveryMode, deliveryFee]);
+  }, [rentalResult, deliveryMode, deliveryFee, orderTotalBeforePromo, promoApplied]);
 
   const savings =
     priceMonth && basePrice > 0
@@ -339,17 +350,75 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     }
   }, [rangeStep, pickupDate]);
 
+  const handlePromoValidate = async (codeToCheck?: string) => {
+    const code = (codeToCheck ?? promoInput).trim().toUpperCase();
+    if (!code) { setPromoError('Vui lòng nhập mã khuyến mãi'); return; }
+
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const res = await fetch('/api/promo-validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, orderTotal: orderTotalBeforePromo, countUsage: true }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromoApplied({ code: data.code, discount: data.discount, description: data.description });
+        setShowPromoModal(false);
+        setPromoInput('');
+      } else {
+        setPromoError(data.error || 'Mã không hợp lệ');
+      }
+    } catch {
+      setPromoError('Lỗi kết nối, thử lại sau');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  // Re-validate promo silently when the pre-discount order total changes.
+  const prevTotalRef = useRef<number>(0);
+  useEffect(() => {
+    if (!promoApplied) return;
+    if (!result.valid) return;
+    if (prevTotalRef.current === orderTotalBeforePromo) return;
+    prevTotalRef.current = orderTotalBeforePromo;
+    void (async () => {
+      try {
+        const res = await fetch('/api/promo-validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: promoApplied.code, orderTotal: orderTotalBeforePromo, countUsage: false }),
+        });
+        const data = await res.json();
+        if (data.valid) {
+          setPromoApplied(prev => prev ? { ...prev, discount: data.discount } : null);
+        } else {
+          setPromoApplied(null);
+          setPromoError(data.error || 'Mã không còn áp dụng được cho đơn hàng này');
+        }
+      } catch {
+        // Network error — keep existing discount, don't clear.
+      }
+    })();
+  }, [orderTotalBeforePromo, result.valid]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const buildMessage = () => {
     const priceText = result.valid ? fmtVND(result.total) : 'báo giá';
     const loc = LOCATIONS.find(l => l.id === selectedLocation)!;
     const locationLine = deliveryMode === 'self'
       ? `📍 Địa điểm: ${loc.name} (${loc.address})`
       : `🚗 Giao xe tận nơi (phí 100.000đ/chiều)`;
+    const promoLine = promoApplied
+      ? `🏷️ Mã giảm giá: ${promoApplied.code} (${promoApplied.description})\n`
+      : '';
     return (
       `[ĐẶT XE - ${carName}]\n` +
       `📅 Nhận xe: ${displayDate(pickupDate)} lúc ${pickupHour}:00\n` +
       `📅 Trả xe: ${displayDate(returnDate)} lúc ${returnHour}:00\n` +
       `${locationLine}\n` +
+      `${promoLine}` +
       `💰 Dự kiến: ${priceText}\n\n` +
       `Anh/chị xác nhận giúp lịch xe và giá thuê ạ!`
     );
@@ -581,10 +650,48 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             <div className="px-4 py-3 space-y-2">
               {result.fees.map((fee, i) => (
                 <div key={i} className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500">{fee.label}</span>
-                  <span className="font-semibold text-gray-800">{fmtVND(fee.amount)}</span>
+                  <span className={fee.amount < 0 ? 'text-green-600 font-medium' : 'text-gray-500'}>
+                    {fee.label}
+                  </span>
+                  <span className={`font-semibold ${fee.amount < 0 ? 'text-green-600' : 'text-gray-800'}`}>
+                    {fee.amount < 0 ? '-' : ''}{fmtVND(Math.abs(fee.amount))}
+                  </span>
                 </div>
               ))}
+              {/* Promo code row */}
+              <button
+                type="button"
+                onClick={() => setShowPromoModal(true)}
+                className="flex items-center justify-between w-full text-sm text-brand-600 hover:text-brand-800 pt-1 border-t border-gray-200 mt-1 transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5" />
+                  {promoApplied ? (
+                    <span className="font-semibold text-green-600">{promoApplied.code} — {promoApplied.description}</span>
+                  ) : (
+                    <span className="font-medium">Mã khuyến mãi</span>
+                  )}
+                </span>
+                {promoApplied ? (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); setPromoApplied(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setPromoApplied(null);
+                      }
+                    }}
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors px-1"
+                  >
+                    ✕ Xoá
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">›</span>
+                )}
+              </button>
             </div>
             <div className="flex justify-between items-center px-4 py-3 bg-brand-50 border-t border-brand-100">
               <div>
@@ -811,10 +918,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
               </span>
             </div>
             {result.valid && (
-              <div className="flex justify-between text-sm pt-1 border-t border-gray-100">
-                <span className="text-gray-500">Dự kiến</span>
-                <span className="font-bold text-brand-600 text-base">{fmtVND(result.total)}</span>
-              </div>
+              <>
+                {promoApplied && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Mã {promoApplied.code}</span>
+                    <span className="font-semibold">-{fmtVND(promoApplied.discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm pt-1 border-t border-gray-100">
+                  <span className="text-gray-500">Dự kiến</span>
+                  <span className="font-bold text-brand-600 text-base">{fmtVND(result.total)}</span>
+                </div>
+              </>
             )}
           </div>
 
@@ -838,6 +953,90 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             >
               <MessageCircle className="w-4 h-4" />
               Copy & Mở Zalo
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {/* ── Promo code modal — portal ── */}
+    {showPromoModal && createPortal(
+      <div
+        className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        onClick={() => { setShowPromoModal(false); setPromoError(''); }}
+      >
+        <div
+          className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-brand-600" />
+              <h3 className="font-bold text-gray-900 text-base">Mã khuyến mãi</h3>
+            </div>
+            <button
+              onClick={() => { setShowPromoModal(false); setPromoError(''); }}
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+
+          {/* Input */}
+          <div className="px-5 py-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={promoInput}
+                onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                onKeyDown={e => e.key === 'Enter' && handlePromoValidate()}
+                placeholder="Nhập mã khuyến mãi"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold tracking-widest uppercase focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors placeholder:font-normal placeholder:tracking-normal"
+                autoCapitalize="characters"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => handlePromoValidate()}
+                disabled={promoLoading || !promoInput.trim()}
+                className="shrink-0 px-5 py-2.5 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {promoLoading ? '…' : 'Áp dụng'}
+              </button>
+            </div>
+            {promoError && (
+              <p className="mt-2 text-xs text-red-500 font-medium flex items-center gap-1">
+                <span>⚠</span> {promoError}
+              </p>
+            )}
+          </div>
+
+          {/* Currently applied */}
+          {promoApplied && (
+            <div className="mx-5 mb-4 flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+              <div>
+                <div className="text-xs text-green-700 font-bold">{promoApplied.code}</div>
+                <div className="text-xs text-green-600 mt-0.5">{promoApplied.description}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setPromoApplied(null); setShowPromoModal(false); }}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors px-2 py-1"
+              >
+                Xoá
+              </button>
+            </div>
+          )}
+
+          {/* Close */}
+          <div className="px-5 pb-5">
+            <button
+              onClick={() => { setShowPromoModal(false); setPromoError(''); }}
+              className="w-full py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            >
+              Đóng
             </button>
           </div>
         </div>
