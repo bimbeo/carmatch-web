@@ -3,8 +3,88 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
-async function sendZNSAdmin({ bookingRef, carName, customerName, customerPhone, pickupText, returnText, totalAmount, depositAmount }) {
-  const accessToken = process.env.ZALO_OA_ACCESS_TOKEN;
+/**
+ * Load Zalo access token from Supabase app_config.
+ * Auto-refreshes if the token expires within 30 minutes.
+ * Falls back to ZALO_OA_ACCESS_TOKEN env var on first run or DB error.
+ */
+async function getZaloAccessToken(supabase) {
+  try {
+    const { data: rows } = await supabase
+      .from('app_config')
+      .select('key, value')
+      .in('key', ['zalo_access_token', 'zalo_refresh_token', 'zalo_access_token_expires_at']);
+
+    const cfg = Object.fromEntries((rows || []).map(r => [r.key, r.value]));
+
+    let accessToken = cfg.zalo_access_token;
+    let refreshToken = cfg.zalo_refresh_token;
+    const expiresAt = cfg.zalo_access_token_expires_at;
+
+    // Seed from env on first run (placeholder value in DB)
+    if (!accessToken || accessToken === 'LOAD_FROM_ENV') {
+      accessToken = process.env.ZALO_OA_ACCESS_TOKEN || '';
+    }
+    if (!refreshToken || refreshToken === 'LOAD_FROM_ENV') {
+      refreshToken = process.env.ZALO_OA_REFRESH_TOKEN || '';
+    }
+
+    // Refresh if expiry unknown or within 30 minutes
+    const needsRefresh = !expiresAt
+      || expiresAt === 'LOAD_FROM_ENV'
+      || new Date(expiresAt) < new Date(Date.now() + 30 * 60 * 1000);
+
+    if (needsRefresh && refreshToken && refreshToken !== 'LOAD_FROM_ENV') {
+      const appId = process.env.ZALO_APP_ID;
+      const appSecret = process.env.ZALO_APP_SECRET;
+      if (appId && appSecret) {
+        const refreshRes = await fetch('https://oauth.zaloapp.com/v4/oa/access_token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'secret_key': appSecret,
+          },
+          body: new URLSearchParams({
+            app_id: appId,
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken,
+          }),
+        });
+        const json = await refreshRes.json();
+        if (json.access_token) {
+          const newAccess = json.access_token;
+          const newRefresh = json.refresh_token || refreshToken;
+          const newExpiry = new Date(Date.now() + (Number(json.expires_in) || 90000) * 1000).toISOString();
+          await supabase.from('app_config').upsert([
+            { key: 'zalo_access_token', value: newAccess, updated_at: new Date().toISOString() },
+            { key: 'zalo_refresh_token', value: newRefresh, updated_at: new Date().toISOString() },
+            { key: 'zalo_access_token_expires_at', value: newExpiry, updated_at: new Date().toISOString() },
+          ]);
+          console.log('[bookings] Zalo token refreshed, expires:', newExpiry);
+          return newAccess;
+        } else {
+          console.error('[bookings] Zalo refresh failed:', json.error_description || json.error);
+        }
+      }
+    } else if (accessToken && (!expiresAt || expiresAt === 'LOAD_FROM_ENV')) {
+      // First run — persist env token + set expiry (assume fresh, ~25 hrs)
+      const newExpiry = new Date(Date.now() + 90000 * 1000).toISOString();
+      await supabase.from('app_config').upsert([
+        { key: 'zalo_access_token', value: accessToken, updated_at: new Date().toISOString() },
+        { key: 'zalo_refresh_token', value: refreshToken, updated_at: new Date().toISOString() },
+        { key: 'zalo_access_token_expires_at', value: newExpiry, updated_at: new Date().toISOString() },
+      ]);
+    }
+
+    return accessToken;
+  } catch (err) {
+    console.error('[bookings] getZaloAccessToken error:', err.message);
+    // Fallback to env var
+    return process.env.ZALO_OA_ACCESS_TOKEN || '';
+  }
+}
+
+async function sendZNSAdmin({ accessToken, bookingRef, carName, customerName, customerPhone, pickupText, returnText, totalAmount, depositAmount }) {
   const templateId = process.env.ZALO_ADMIN_TEMPLATE_ID;
   const adminPhone = '0975563290';
 
@@ -195,17 +275,20 @@ export default async function handler(req, res) {
     }).catch(err => console.error('[bookings] Resend error:', err.message));
   }
 
-  // Fire-and-forget ZNS
-  sendZNSAdmin({
-    bookingRef,
-    carName: body.car_name,
-    customerName: body.customer_name,
-    customerPhone: body.customer_phone,
-    pickupText,
-    returnText,
-    totalAmount: body.total_amount,
-    depositAmount,
-  }).catch(() => {});
+  // Fire-and-forget ZNS (token auto-refreshes via Supabase)
+  getZaloAccessToken(supabase).then(accessToken =>
+    sendZNSAdmin({
+      accessToken,
+      bookingRef,
+      carName: body.car_name,
+      customerName: body.customer_name,
+      customerPhone: body.customer_phone,
+      pickupText,
+      returnText,
+      totalAmount: body.total_amount,
+      depositAmount,
+    })
+  ).catch(() => {});
 
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({ bookingRef, depositAmount });
