@@ -56,7 +56,7 @@ export default function BookingConfirm() {
     setError('');
     setData(null);
     try {
-      const res = await fetch(`/api/booking-lookup?ref=${encodeURIComponent(ref.trim())}`);
+      const res = await fetch(`/api/bookings?ref=${encodeURIComponent(ref.trim())}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Không tìm thấy');
       setData(json);
