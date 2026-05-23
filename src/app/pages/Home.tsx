@@ -40,9 +40,9 @@ const features = [
     desc: 'Giao đến nhà, văn phòng, sân bay Nội Bài trong nội thành Hà Nội.',
   },
   {
-    icon: MessageCircle,
-    title: 'Đặt xe qua Zalo dễ dàng',
-    desc: 'Nhắn tin Zalo, xác nhận lịch và nhận xe trong vòng 30 phút.',
+    icon: Key,
+    title: 'Đặt xe online, cọc ngay',
+    desc: 'Đặt xe trực tuyến 24/7, chuyển khoản cọc 30% qua QR — xác nhận tự động trong 30 phút.',
   },
   {
     icon: Clock,
@@ -54,18 +54,18 @@ const features = [
 const howItWorks = [
   {
     step: '01',
-    title: 'Chọn xe & nhắn Zalo',
-    desc: 'Xem fleet, chọn xe phù hợp và nhắn Zalo để hỏi lịch trống.',
+    title: 'Chọn xe & đặt online',
+    desc: 'Chọn xe, chọn ngày giờ nhận/trả, điền thông tin — đặt xe trực tiếp trên trang trong 2 phút.',
   },
   {
     step: '02',
-    title: 'Xác nhận & ký hợp đồng',
-    desc: 'Xuất trình CCCD + GPLX, đặt cọc và ký hợp đồng đơn giản.',
+    title: 'Chuyển khoản cọc 30%',
+    desc: 'Quét QR VietQR để chuyển cọc. Mã đặt xe tự động tạo, CarMatch xác nhận ngay trong ngày.',
   },
   {
     step: '03',
     title: 'Nhận xe & lên đường',
-    desc: 'Xe giao tận nơi. Kiểm tra xe cùng nhân viên, rồi tự do khởi hành!',
+    desc: 'Xuất trình CCCD + GPLX. Xe giao tận nơi — kiểm tra cùng nhân viên rồi khởi hành!',
   },
 ];
 
@@ -160,11 +160,18 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  to="/xe"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold text-base rounded-full hover:bg-brand-700 active:scale-[0.98] transition-all shadow-md shadow-brand-200"
+                >
+                  <Car className="w-5 h-5" />
+                  Đặt xe ngay
+                </Link>
                 <a
                   href={ZALO_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold text-base rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
                 >
                   <MessageCircle className="w-5 h-5" />
                   Đặt xe qua Zalo
@@ -876,7 +883,7 @@ export default function Home() {
             Cư dân của bạn đặt xe chưa?
           </h2>
           <p className="text-gray-600 text-xl mb-10">
-            Nhắn Zalo ngay — CarMatch giao xe tận sảnh trong 30 phút
+            Đặt xe online hoặc nhắn Zalo — CarMatch xác nhận trong 30 phút
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a

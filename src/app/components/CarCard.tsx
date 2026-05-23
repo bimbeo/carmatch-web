@@ -1,8 +1,6 @@
 import { Link } from 'react-router';
-import { Users, Zap, Fuel, MessageCircle } from 'lucide-react';
+import { Users, Zap, Fuel, CalendarDays } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
-
-const ZALO_LINK = 'https://zalo.me/0975563290';
 
 const fuelBadge: Record<Car['fuel'], { class: string; icon: React.ReactNode }> = {
   'Điện': {
@@ -26,7 +24,6 @@ interface CarCardProps {
 
 export default function CarCard({ car, compact = false }: CarCardProps) {
   const badge = fuelBadge[car.fuel];
-  const zaloMessage = encodeURIComponent(`Xin chào CarMatch! Tôi muốn hỏi về xe ${car.name}`);
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:border-gray-200 transition-all group">
@@ -97,15 +94,13 @@ export default function CarCard({ car, compact = false }: CarCardProps) {
           >
             Chi tiết
           </Link>
-          <a
-            href={`${ZALO_LINK}?text=${zaloMessage}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to={`/xe/${car.slug}`}
             className="flex-1 py-2.5 text-center text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors flex items-center justify-center gap-1.5"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Đặt ngay
-          </a>
+            <CalendarDays className="w-3.5 h-3.5" />
+            Đặt xe
+          </Link>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
@@ -170,6 +170,7 @@ export default function CarDetail() {
   const car = findVehicleBySlug(cars, slug);
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
+  const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
 
   useSEO({
     title: car
@@ -181,6 +182,15 @@ export default function CarDetail() {
     canonical: car ? `https://carmatch.vn/xe/${car.slug}` : undefined,
     ogImage: car?.images?.[0] ?? undefined,
   });
+
+  useEffect(() => {
+    fetch('/api/promo-list')
+      .then(r => r.json())
+      .then((data: { code: string; description: string }[]) => {
+        setActivePromoCodes(Array.isArray(data) ? data.slice(0, 2) : []);
+      })
+      .catch(() => {});
+  }, []);
 
   if (loading) {
     return (
@@ -388,12 +398,34 @@ export default function CarDetail() {
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-24 space-y-4">
 
+              {/* Promo banner */}
+              {activePromoCodes.length > 0 && (
+                <div className="mb-3 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-4 py-3">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-base">🎁</span>
+                    <span className="text-sm font-bold text-green-800">Ưu đãi đang có</span>
+                  </div>
+                  <div className="space-y-1">
+                    {activePromoCodes.map(p => (
+                      <div key={p.code} className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-green-700 bg-white border border-green-200 px-2 py-0.5 rounded-md">
+                          {p.code}
+                        </span>
+                        <span className="text-xs text-green-700">{p.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-green-600 mt-1.5">Nhập mã trong bước đặt xe để được giảm giá</p>
+                </div>
+              )}
+
               {/* Booking widget with pricing calculator */}
               <BookingWidget
                 basePrice={car.price}
                 carName={car.name}
                 priceMonth={car.priceMonth}
                 vehicleId={car.id}
+                kmPerDay={car.kmPerDay}
               />
 
               {/* Trust badges */}

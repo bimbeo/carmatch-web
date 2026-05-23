@@ -27,8 +27,40 @@ interface PublicPromoCode {
   expiresInDays: number | null;
 }
 
-function rangeOverlapsBlocked(fromStr: string, toStr: string, ranges: BlockedRange[]): BlockedRange[] {
-  return ranges.filter((r) => r.from <= toStr && r.to >= fromStr);
+/**
+ * Phân loại conflict thành 2 loại:
+ * - hard: xe đang bận rõ ràng trong khoảng đặt (báo đỏ, không nên đặt)
+ * - boundary: ngày pickup trùng ngày xe trả ca trước, hoặc ngày trả trùng ngày xe nhận ca sau
+ *   → xe CÓ THỂ sẵn sàng tối đó, chỉ cần cảnh báo vàng để khách xác nhận giờ
+ */
+function categorizeConflicts(
+  fromStr: string,
+  toStr: string,
+  ranges: BlockedRange[],
+): { hard: BlockedRange[]; boundary: BlockedRange[] } {
+  const hard: BlockedRange[] = [];
+  const boundary: BlockedRange[] = [];
+
+  for (const r of ranges) {
+    // Không overlap gì cả
+    if (r.from > toStr || r.to < fromStr) continue;
+
+    // Ngày pickup đúng bằng ngày xe trả ca trước
+    // (xe về tối hôm đó → có thể nhận ca tiếp sau 21-22h)
+    const pickupOnReturnDay = r.to === fromStr;
+
+    // Ngày trả đúng bằng ngày xe bắt đầu ca sau
+    // (ca sau nhận buổi tối → xe cần trả trước đó)
+    const returnOnPickupDay = r.from === toStr;
+
+    if (pickupOnReturnDay || returnOnPickupDay) {
+      boundary.push(r);
+    } else {
+      hard.push(r);
+    }
+  }
+
+  return { hard, boundary };
 }
 
 function fmtDateShort(dateStr: string): string {
@@ -235,9 +267,10 @@ interface Props {
   carName: string;
   priceMonth?: number;
   vehicleId?: string;
+  kmPerDay?: number;
 }
 
-export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId }: Props) {
+export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, kmPerDay = 300 }: Props) {
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
@@ -306,10 +339,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   }, [showCalModal]);
 
   // Detect if the selected range overlaps any blocked period
-  const conflicts = useMemo(
-    () => rangeOverlapsBlocked(pickupDate, returnDate, blockedRanges),
+  const { hard: hardConflicts, boundary: boundaryConflicts } = useMemo(
+    () => categorizeConflicts(pickupDate, returnDate, blockedRanges),
     [pickupDate, returnDate, blockedRanges],
   );
+
+  // Giữ biến `conflicts` để tương thích với calendar modifiers bên dưới
+  const conflicts = [...hardConflicts, ...boundaryConflicts];
 
   const rentalResult = useMemo(
     () => calculateRental(pickupDate, pickupHour, returnDate, returnHour, basePrice),
@@ -347,10 +383,15 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   // ── react-day-picker range selection ──────────────────────────────────────
   // Convert blocked ranges to { from, to } Date objects for DayPicker disabled prop
   const blockedIntervals = useMemo(
-    () => blockedRanges.map((r) => ({
-      from: parseDateStr(r.from),
-      to: parseDateStr(r.to),
-    })),
+    () => blockedRanges.map((r) => {
+      const fromDate = parseDateStr(r.from);
+      // Không disable ngày trả xe (to) trên calendar — khách vẫn có thể chọn
+      // ngày đó để nhận ca tiếp (tối hôm đó sau khi xe về). Chỉ block đến ngày trước đó.
+      const effectiveTo = r.from === r.to
+        ? parseDateStr(r.to)               // 1-day rental: vẫn block ngày đó
+        : addDays(parseDateStr(r.to), -1); // multi-day: chỉ block đến to-1
+      return { from: fromDate, to: effectiveTo };
+    }),
     [blockedRanges],
   );
 
@@ -560,7 +601,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       'Bảo hiểm chuyến đi: 0đ',
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
-      'Giới hạn: 300 km/ngày | Phụ trội: 3.000đ/km | 100.000đ/giờ',
+      `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: 3.000đ/km | 100.000đ/giờ`,
       'Liên hệ: Car Match Vận Hành 0971593290',
     ].filter(l => l !== null).join('\n');
     try {
@@ -670,19 +711,45 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
               </span>
             </button>
 
-            {/* Conflict warning */}
-            {conflicts.length > 0 && (
+            {/* Hard conflict — xe đang bận hẳn — cảnh báo đỏ */}
+            {hardConflicts.length > 0 && (
               <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
                 <Info className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
                 <div>
                   <div className="font-semibold mb-0.5">Xe đã có lịch trong khoảng này</div>
-                  {conflicts.map((r, i) => (
+                  {hardConflicts.map((r, i) => (
                     <div key={i}>
                       {fmtDateShort(r.from)} – {fmtDateShort(r.to)}
                       {r.type === 'rental' ? ' (đang cho thuê)' : r.type === 'maintenance' ? ' (bảo dưỡng)' : ' (bận)'}
                     </div>
                   ))}
                   <div className="mt-1 text-red-600">Liên hệ CarMatch để xác nhận lịch trống ạ.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Boundary day — xe về / nhận khách tối hôm đó — cảnh báo vàng mềm */}
+            {boundaryConflicts.length > 0 && hardConflicts.length === 0 && (
+              <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+                <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                <div>
+                  {boundaryConflicts.map((r, i) => {
+                    const isPickupBoundary = r.to === pickupDate; // khách nhận xe đúng ngày xe ca trước trả
+                    return (
+                      <div key={i} className={`font-semibold ${i > 0 ? 'mt-1' : 'mb-0.5'}`}>
+                        {isPickupBoundary
+                          ? `Xe có lịch về tối ngày ${fmtDateShort(r.to)}`
+                          : `Xe có lịch nhận khách từ tối ngày ${fmtDateShort(r.from)}`
+                        }
+                      </div>
+                    );
+                  })}
+                  <div>
+                    {boundaryConflicts.some(r => r.to === pickupDate)
+                      ? <><strong>Giờ nhận từ 21:00 trở đi</strong> để đảm bảo xe đã kiểm tra và bàn giao.</>
+                      : <><strong>Trả xe trước 20:00</strong> để CarMatch kịp chuẩn bị cho ca tiếp theo.</>
+                    }{' '}CarMatch sẽ xác nhận lại lịch với bạn.
+                  </div>
                 </div>
               </div>
             )}
@@ -1519,7 +1586,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   </div>
 
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs text-slate-500">
-                    <div className="flex justify-between"><span>Giới hạn Km</span><span className="text-slate-700">300 km/ngày</span></div>
+                    <div className="flex justify-between"><span>Giới hạn Km</span><span className="text-slate-700">{kmPerDay} km/ngày</span></div>
                     <div className="flex justify-between"><span>Phụ trội quá km</span><span className="text-slate-700">3.000 đ/km</span></div>
                     <div className="flex justify-between"><span>Phụ trội quá giờ</span><span className="text-slate-700">100.000 đ/giờ</span></div>
                   </div>
