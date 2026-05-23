@@ -12,6 +12,7 @@ import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
 import BookingWidget from '../components/BookingWidget';
+import CarReviews from '../components/CarReviews';
 import { useSEO } from '@/hooks/useSEO';
 
 const ZALO_NUMBER = '0975563290';
@@ -393,6 +394,8 @@ export default function CarDetail() {
                 </div>
               </div>
             </div>
+
+            <CarReviews carSlug={car.slug} />
 
             {/* Back button mobile */}
             <Link

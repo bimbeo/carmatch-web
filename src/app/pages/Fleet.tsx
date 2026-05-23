@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import CarCard from '../components/CarCard';
+import DateRangeFilter from '../components/DateRangeFilter';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -65,6 +66,8 @@ export default function Fleet() {
   const [fuelFilter,  setFuelFilter]  = useState<FuelFilter>('all');
   const [seatsFilter, setSeatsFilter] = useState<SeatsFilter>('all');
   const [sortBy,      setSortBy]      = useState<SortOption>('default');
+  const [unavailableModels, setUnavailableModels] = useState<string[]>([]);
+  const [dateFilterActive, setDateFilterActive] = useState(false);
 
   // ── derive available facet values from unfiltered data ──────────────────────
   const brands = useMemo(() => {
@@ -121,10 +124,13 @@ export default function Fleet() {
       if (seatsFilter === '8+') r = r.filter((c) => c.seats >= 8);
       else r = r.filter((c) => c.seats === Number(seatsFilter));
     }
+    if (unavailableModels.length > 0) {
+      r = r.filter((c) => !unavailableModels.includes(c.name));
+    }
     if (sortBy === 'price-asc')  r.sort((a, b) => (a.price || 9_999_999) - (b.price || 9_999_999));
     if (sortBy === 'price-desc') r.sort((a, b) => (b.price || 0) - (a.price || 0));
     return r;
-  }, [cars, brandFilter, fuelFilter, seatsFilter, sortBy]);
+  }, [cars, brandFilter, fuelFilter, seatsFilter, sortBy, unavailableModels]);
 
   const activeCount =
     (brandFilter  !== 'all' ? 1 : 0) +
@@ -159,6 +165,13 @@ export default function Fleet() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <DateRangeFilter onFilter={setUnavailableModels} onActiveChange={setDateFilterActive} />
+
+        {dateFilterActive && !loading && (
+          <div className="mb-5 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700">
+            Đang lọc: {filtered.length} xe available cho ngày bạn chọn
+          </div>
+        )}
 
         {/* ── Filter panel ── */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-8">
