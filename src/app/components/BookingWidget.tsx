@@ -220,8 +220,10 @@ const LOCATIONS = [
 
 // ─── Bank / QR config ─────────────────────────────────────────────────────────
 const BANK_ID = import.meta.env.VITE_BANK_ID || 'MB';
-const BANK_ACCOUNT = import.meta.env.VITE_BANK_ACCOUNT || '0399118989';
+const BANK_ACCOUNT_RAW = import.meta.env.VITE_BANK_ACCOUNT || '';
+const BANK_ACCOUNT = BANK_ACCOUNT_RAW === '0399118989' ? '' : BANK_ACCOUNT_RAW;
 const BANK_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || 'CONG TY TNHH CAR MATCH';
+const BANK_QR_ENABLED = Boolean(BANK_ACCOUNT);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 interface Props {
@@ -440,7 +442,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       if (!res.ok) throw new Error(data.error || 'Lỗi tạo đơn');
       setBookingRef(data.bookingRef);
       setDepositAmount(data.depositAmount);
-      setBookingStep(2);
+      setBookingStep(BANK_QR_ENABLED ? 2 : 3);
     } catch (e: unknown) {
       setBookingError((e as Error)?.message || 'Lỗi kết nối, thử lại sau');
     } finally {
@@ -1349,46 +1351,54 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <p className="text-sm text-gray-500 mt-1">Chuyển khoản <strong className="text-brand-600">{fmtVND(depositAmount)}</strong> để xác nhận đơn</p>
                 </div>
 
-                {/* QR code */}
-                <div className="flex justify-center">
-                  <div className="border-2 border-brand-100 rounded-2xl p-3 bg-white shadow-sm">
-                    <img
-                      src={buildVietQR(depositAmount, `DATXE ${bookingRef}`)}
-                      alt="QR chuyển khoản"
-                      className="w-52 h-52 object-contain"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                </div>
+                {BANK_QR_ENABLED ? (
+                  <>
+                    {/* QR code */}
+                    <div className="flex justify-center">
+                      <div className="border-2 border-brand-100 rounded-2xl p-3 bg-white shadow-sm">
+                        <img
+                          src={buildVietQR(depositAmount, `DATXE ${bookingRef}`)}
+                          alt="QR chuyển khoản"
+                          className="w-52 h-52 object-contain"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    </div>
 
-                {/* Bank info */}
-                <div className="bg-brand-50 rounded-xl p-4 space-y-2 text-sm border border-brand-100">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Ngân hàng</span>
-                    <span className="font-bold text-gray-900">{BANK_ID} Bank</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Số tài khoản</span>
-                    <span className="font-bold text-gray-900 font-mono">{BANK_ACCOUNT}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Chủ tài khoản</span>
-                    <span className="font-bold text-gray-900 text-right max-w-[55%]">{BANK_NAME}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Số tiền</span>
-                    <span className="font-bold text-brand-600 text-base">{fmtVND(depositAmount)}</span>
-                  </div>
-                  <div className="flex justify-between items-start pt-1 border-t border-brand-200">
-                    <span className="text-gray-500 shrink-0">Nội dung CK</span>
-                    <span className="font-bold text-gray-900 font-mono bg-white px-2 py-0.5 rounded-lg border border-brand-200 text-xs tracking-wider">{`DATXE ${bookingRef}`}</span>
-                  </div>
-                </div>
+                    {/* Bank info */}
+                    <div className="bg-brand-50 rounded-xl p-4 space-y-2 text-sm border border-brand-100">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Ngân hàng</span>
+                        <span className="font-bold text-gray-900">{BANK_ID} Bank</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Số tài khoản</span>
+                        <span className="font-bold text-gray-900 font-mono">{BANK_ACCOUNT}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Chủ tài khoản</span>
+                        <span className="font-bold text-gray-900 text-right max-w-[55%]">{BANK_NAME}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Số tiền</span>
+                        <span className="font-bold text-brand-600 text-base">{fmtVND(depositAmount)}</span>
+                      </div>
+                      <div className="flex justify-between items-start pt-1 border-t border-brand-200">
+                        <span className="text-gray-500 shrink-0">Nội dung CK</span>
+                        <span className="font-bold text-gray-900 font-mono bg-white px-2 py-0.5 rounded-lg border border-brand-200 text-xs tracking-wider">{`DATXE ${bookingRef}`}</span>
+                      </div>
+                    </div>
 
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-700">
-                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-                  <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để CarMatch xác nhận tự động. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
-                </div>
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-700">
+                      <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                      <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để CarMatch xác nhận tự động. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+                    CarMatch chưa bật QR chuyển khoản online. Đơn của bạn đã được gửi tới CSKH, team sẽ liên hệ để xác nhận lịch xe và hướng dẫn đặt cọc bằng tài khoản chính thức.
+                  </div>
+                )}
               </div>
             )}
 
@@ -1420,11 +1430,14 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     <span className="font-semibold text-gray-800">{displayDate(returnDate)} · {returnHour}:00</span>
                   </div>
                   <div className="flex justify-between pt-1.5 border-t border-gray-200">
-                    <span className="text-gray-500">Tiền cọc đã CK</span>
+                    <span className="text-gray-500">{BANK_QR_ENABLED ? 'Tiền cọc đã CK' : 'Tiền cọc dự kiến'}</span>
                     <span className="font-bold text-brand-600">{fmtVND(depositAmount)}</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400">Lưu mã đặt xe để tra cứu. CarMatch sẽ liên hệ qua SĐT <strong>{customerPhone}</strong></p>
+                <p className="text-xs text-gray-400">
+                  Lưu mã đặt xe để tra cứu. CarMatch sẽ liên hệ qua SĐT <strong>{customerPhone}</strong>
+                  {!BANK_QR_ENABLED ? ' và gửi hướng dẫn đặt cọc chính thức.' : '.'}
+                </p>
               </div>
             )}
           </div>
@@ -1438,7 +1451,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2"
               >
                 {bookingLoading ? <span className="animate-spin">⟳</span> : <CalendarDays className="w-4 h-4" />}
-                {bookingLoading ? 'Đang xử lý…' : 'Tiếp tục — Xem QR đặt cọc'}
+                {bookingLoading ? 'Đang xử lý…' : BANK_QR_ENABLED ? 'Tiếp tục — Xem QR đặt cọc' : 'Gửi yêu cầu đặt xe'}
               </button>
             )}
             {bookingStep === 2 && (
