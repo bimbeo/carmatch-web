@@ -75,6 +75,10 @@ function parseDateStr(str: string): Date {
   return new Date(y, m - 1, d);
 }
 
+function displayDateSlash(dateStr: string): string {
+  return dateStr.split('-').reverse().join('/');
+}
+
 // ─── Pricing engine ───────────────────────────────────────────────────────────
 
 interface Fee {
@@ -526,6 +530,43 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     const name = encodeURIComponent(BANK_NAME);
     return `https://img.vietqr.io/image/${BANK_ID}-${BANK_ACCOUNT}-compact2.png?amount=${amount}&addInfo=${encoded}&accountName=${name}`;
   }
+
+  const selectedLocationInfo = LOCATIONS.find(l => l.id === selectedLocation);
+  const finalTotal = result.valid ? result.total : 0;
+  const promoDiscount = promoApplied?.discount ?? 0;
+  const appliedPromo = promoApplied?.code ?? '';
+  const pickupDt = parseDateStr(pickupDate);
+  pickupDt.setHours(pickupHour, 0, 0, 0);
+  const returnDt = parseDateStr(returnDate);
+  returnDt.setHours(returnHour, 0, 0, 0);
+  const rentalDays = Math.max(1, Math.ceil((returnDt.getTime() - pickupDt.getTime()) / 86_400_000));
+  const remainingAmount = Math.max(0, finalTotal - depositAmount);
+
+  const copyBookingConfirmation = async () => {
+    const lines = [
+      'ĐƠN XÁC NHẬN ĐẶT XE',
+      `Mã Booking: ${bookingRef}`,
+      `Khách hàng: ${customerName}`,
+      `Số điện thoại: ${customerPhone}`,
+      `Tên xe: ${carName}`,
+      `Giờ nhận xe: ${pickupHour} giờ ngày ${displayDateSlash(pickupDate)}`,
+      `Giờ trả xe: ${returnHour} giờ ngày ${displayDateSlash(returnDate)}`,
+      `Số ngày thuê: ${rentalDays} ngày`,
+      '',
+      `Tổng giá: ${finalTotal.toLocaleString('vi-VN')}đ`,
+      promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
+      `${BANK_QR_ENABLED ? 'Đã cọc' : 'Tiền cọc dự kiến'}: ${depositAmount.toLocaleString('vi-VN')}đ`,
+      deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
+      'Bảo hiểm chuyến đi: 0đ',
+      `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
+      '',
+      'Giới hạn: 300 km/ngày | Phụ trội: 3.000đ/km | 100.000đ/giờ',
+      'Liên hệ: Car Match Vận Hành 0971593290',
+    ].filter(l => l !== null).join('\n');
+    try {
+      await navigator.clipboard.writeText(lines);
+    } catch { /* clipboard may be blocked */ }
+  };
 
   return (
     <>
@@ -1404,45 +1445,120 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
             {/* ══ STEP 3: Confirmation ══ */}
             {bookingStep === 3 && (
-              <div className="px-5 py-6 text-center space-y-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                  <span className="text-3xl">✓</span>
-                </div>
-                <div>
-                  <div className="font-bold text-gray-900 text-lg">Đặt xe thành công!</div>
-                  <p className="text-sm text-gray-500 mt-1">CarMatch sẽ xác nhận trong vòng <strong>30 phút</strong></p>
-                </div>
-                <div className="bg-brand-50 border border-brand-100 rounded-xl px-5 py-3 inline-block">
-                  <div className="text-xs text-brand-500 font-medium mb-1">Mã đặt xe của bạn</div>
-                  <div className="font-mono font-bold text-brand-700 text-xl tracking-widest">{bookingRef}</div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4 text-sm text-left space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Xe</span>
-                    <span className="font-semibold text-gray-800">{carName}</span>
+              <div className="px-5 py-5 space-y-4">
+                {/* Header xác nhận */}
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 mb-3">
+                    <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Nhận xe</span>
-                    <span className="font-semibold text-gray-800">{displayDate(pickupDate)} · {pickupHour}:00</span>
+                  <h3 className="text-lg font-bold text-slate-900">Đặt xe thành công!</h3>
+                  <p className="text-sm text-slate-500 mt-1">Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút</p>
+                </div>
+
+                {/* Card xác nhận */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="font-black text-slate-900 text-base">ĐƠN XÁC NHẬN ĐẶT XE</span>
+                    <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Đã đặt</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Trả xe</span>
-                    <span className="font-semibold text-gray-800">{displayDate(returnDate)} · {returnHour}:00</span>
+
+                  <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                    <span className="text-slate-500 whitespace-nowrap">Mã Booking</span>
+                    <span className="font-bold text-blue-600">{bookingRef}</span>
+
+                    <span className="text-slate-500">Khách hàng</span>
+                    <span className="font-semibold text-slate-900">{customerName}</span>
+
+                    <span className="text-slate-500">Số điện thoại</span>
+                    <span className="font-semibold text-slate-900">{customerPhone}</span>
+
+                    <span className="text-slate-500">Tên xe</span>
+                    <span className="font-semibold text-slate-900">{carName}</span>
+
+                    <span className="text-slate-500">Nhận xe</span>
+                    <span className="font-semibold text-slate-900">{pickupHour} giờ ngày {displayDateSlash(pickupDate)}</span>
+
+                    <span className="text-slate-500">Trả xe</span>
+                    <span className="font-semibold text-slate-900">{returnHour} giờ ngày {displayDateSlash(returnDate)}</span>
+
+                    <span className="text-slate-500">Số ngày thuê</span>
+                    <span className="font-semibold text-slate-900">{rentalDays} ngày</span>
                   </div>
-                  <div className="flex justify-between pt-1.5 border-t border-gray-200">
-                    <span className="text-gray-500">{BANK_QR_ENABLED ? 'Tiền cọc đã CK' : 'Tiền cọc dự kiến'}</span>
-                    <span className="font-bold text-brand-600">{fmtVND(depositAmount)}</span>
+
+                  <div className="border-t border-slate-200 pt-2 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Tổng giá</span>
+                      <span className="font-bold text-slate-900">{finalTotal.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                    {promoDiscount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Giảm giá ({appliedPromo})</span>
+                        <span className="font-semibold text-green-600">-{promoDiscount.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">{BANK_QR_ENABLED ? 'Đã cọc (chuyển khoản)' : 'Tiền cọc dự kiến'}</span>
+                      <span className="font-semibold text-blue-600">{depositAmount.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                    {deliveryFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Phí giao nhận xe</span>
+                        <span className="font-semibold text-slate-900">{deliveryFee.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Bảo hiểm chuyến đi</span>
+                      <span className="text-slate-400">0đ</span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1">
+                      <span className="font-bold text-slate-900">Thanh toán khi nhận xe</span>
+                      <span className="font-black text-red-600 text-base">{remainingAmount.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-2 space-y-1 text-xs text-slate-500">
+                    <div className="flex justify-between"><span>Giới hạn Km</span><span className="text-slate-700">300 km/ngày</span></div>
+                    <div className="flex justify-between"><span>Phụ trội quá km</span><span className="text-slate-700">3.000 đ/km</span></div>
+                    <div className="flex justify-between"><span>Phụ trội quá giờ</span><span className="text-slate-700">100.000 đ/giờ</span></div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
+                    <p className="font-semibold text-slate-700">Thủ tục thuê xe</p>
+                    <p className="text-slate-500">• Căn cước, bằng lái (xác minh, không giữ lại)</p>
+                    <p className="text-slate-500">• Tài sản thế chấp (giữ lại): Theo thoả thuận</p>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
+                    <p className="font-semibold text-slate-700">Liên hệ nhận xe & xử lý sự cố</p>
+                    <p className="text-slate-500">📞 Car Match Vận Hành: <span className="font-semibold text-slate-800">0971 593 290</span></p>
+                    {selectedLocationInfo?.name && (
+                      <p className="text-slate-500">📍 {selectedLocationInfo.name}</p>
+                    )}
                   </div>
                 </div>
-                <p className="text-xs text-gray-400">
-                  Lưu mã đặt xe để tra cứu. CarMatch sẽ liên hệ qua SĐT <strong>{customerPhone}</strong>
-                  {!BANK_QR_ENABLED ? ' và gửi hướng dẫn đặt cọc chính thức.' : '.'}
-                </p>
+
+                {/* Nút copy */}
+                <button
+                  onClick={() => void copyBookingConfirmation()}
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  📋 Copy xác nhận
+                </button>
+
+                <button
+                  onClick={() => { setShowBookingModal(false); setBookingStep(1); setCustomerName(''); setCustomerPhone(''); setCustomerNote(''); }}
+                  className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-cyan-400 py-3 text-sm font-bold text-white shadow hover:from-cyan-600 hover:to-cyan-500 transition-all"
+                >
+                  Đóng
+                </button>
               </div>
             )}
           </div>
 
           {/* Footer buttons */}
+          {bookingStep < 3 && (
           <div className="px-5 py-4 border-t border-gray-100 shrink-0 space-y-2">
             {bookingStep === 1 && (
               <button
@@ -1470,15 +1586,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 </button>
               </>
             )}
-            {bookingStep === 3 && (
-              <button
-                onClick={() => { setShowBookingModal(false); setBookingStep(1); setCustomerName(''); setCustomerPhone(''); setCustomerNote(''); }}
-                className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-all"
-              >
-                Đóng
-              </button>
-            )}
           </div>
+          )}
         </div>
       </div>,
       document.body
