@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await supabase
     .from('promo_codes')
-    .select('code, discount_type, discount_value, min_order_amount, max_uses, used_count, expires_at, active')
+    .select('code, description, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active')
     .eq('active', true)
     .order('created_at', { ascending: false });
 
@@ -40,28 +40,34 @@ export default async function handler(req, res) {
     if (p.expires_at && new Date(p.expires_at) < now) {
       applicable = false;
       reason = 'Đã hết hạn';
-    } else if (p.max_uses !== null && p.max_uses !== undefined && Number(p.used_count || 0) >= Number(p.max_uses)) {
+    } else if (p.uses_limit !== null && p.uses_limit !== undefined && Number(p.uses_count || 0) >= Number(p.uses_limit)) {
       applicable = false;
       reason = 'Đã hết lượt sử dụng';
-    } else if (p.min_order_amount && totalAmount > 0 && totalAmount < Number(p.min_order_amount)) {
+    } else if (p.min_order && p.min_order > 0 && totalAmount > 0 && totalAmount < Number(p.min_order)) {
       applicable = false;
-      reason = `Đơn tối thiểu ${Number(p.min_order_amount).toLocaleString('vi-VN')}đ`;
+      reason = `Đơn tối thiểu ${Number(p.min_order).toLocaleString('vi-VN')}đ`;
     }
 
     const discountValue = Number(p.discount_value || 0);
+    const maxDiscount = p.max_discount ? Number(p.max_discount) : null;
+
     let discountAmount = 0;
     if (applicable && totalAmount > 0) {
       if (p.discount_type === 'percent') {
         discountAmount = Math.round((totalAmount * discountValue) / 100 / 10000) * 10000;
+        if (maxDiscount !== null) discountAmount = Math.min(discountAmount, maxDiscount);
       } else {
         discountAmount = discountValue;
       }
       discountAmount = Math.max(0, Math.min(discountAmount, totalAmount));
     }
 
-    const description = p.discount_type === 'percent'
-      ? `Giảm ${discountValue}%`
-      : `Giảm ${Number(discountValue).toLocaleString('vi-VN')}đ`;
+    // Build description: use DB description if available, else auto-generate
+    let description = p.description || (
+      p.discount_type === 'percent'
+        ? `Giảm ${discountValue}%${maxDiscount ? ` (tối đa ${Number(maxDiscount).toLocaleString('vi-VN')}đ)` : ''}`
+        : `Giảm ${Number(discountValue).toLocaleString('vi-VN')}đ`
+    );
 
     let expiresWarning = null;
     if (p.expires_at && applicable) {
@@ -73,6 +79,7 @@ export default async function handler(req, res) {
       code: p.code,
       discount_type: p.discount_type,
       discount_value: discountValue,
+      max_discount: maxDiscount,
       discount_amount: discountAmount,
       description,
       applicable,

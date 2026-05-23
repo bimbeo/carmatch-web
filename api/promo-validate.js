@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await supabase
     .from('promo_codes')
-    .select('code, discount_type, discount_value, min_order_amount, max_uses, used_count, expires_at, active')
+    .select('code, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active')
     .eq('code', code)
     .eq('active', true)
     .maybeSingle();
@@ -44,23 +44,24 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Mã đã hết hạn' });
   }
 
-  const maxUses = data.max_uses;
-  const usedCount = Number(data.used_count || 0);
-  if (maxUses !== null && maxUses !== undefined && usedCount >= Number(maxUses)) {
+  const usesLimit = data.uses_limit;
+  const usesCount = Number(data.uses_count || 0);
+  if (usesLimit !== null && usesLimit !== undefined && usesCount >= Number(usesLimit)) {
     return res.status(400).json({ error: 'Mã đã hết lượt sử dụng' });
   }
 
-  const minOrderAmount = data.min_order_amount === null || data.min_order_amount === undefined
-    ? null
-    : Number(data.min_order_amount);
-  if (minOrderAmount !== null && totalAmount < minOrderAmount) {
-    return res.status(400).json({ error: `Đơn tối thiểu ${formatVND(minOrderAmount)}` });
+  const minOrder = data.min_order === null || data.min_order === undefined ? null : Number(data.min_order);
+  if (minOrder !== null && minOrder > 0 && totalAmount < minOrder) {
+    return res.status(400).json({ error: `Đơn tối thiểu ${formatVND(minOrder)}` });
   }
 
   const discountValue = Number(data.discount_value || 0);
+  const maxDiscount = data.max_discount ? Number(data.max_discount) : null;
+
   let discountAmount = 0;
   if (data.discount_type === 'percent') {
     discountAmount = Math.round((totalAmount * discountValue) / 100 / 10000) * 10000;
+    if (maxDiscount !== null) discountAmount = Math.min(discountAmount, maxDiscount);
   } else {
     discountAmount = discountValue;
   }
@@ -70,6 +71,7 @@ export default async function handler(req, res) {
     code: data.code,
     discount_type: data.discount_type,
     discount_value: discountValue,
+    max_discount: maxDiscount,
     discount_amount: discountAmount,
   });
 }
