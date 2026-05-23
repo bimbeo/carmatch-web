@@ -870,7 +870,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         <ul className="space-y-1 pt-0.5">
           {[
             '✓ Giá đã bao gồm bảo hiểm',
-            '✓ Không cọc trước khi xác nhận',
+            '✓ Đặt cọc 30% giữ xe, còn lại thanh toán khi nhận xe',
             '✓ Giao xe tận tòa nhà',
           ].map(t => (
             <li key={t} className="text-xs text-gray-400">{t}</li>

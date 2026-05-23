@@ -79,6 +79,8 @@ export default async function handler(req, res) {
   ].filter(Boolean).join('\n');
 
   const { error } = await supabase.from('website_leads').insert({
+    booking_ref: bookingRef,
+    deposit_amount: depositAmount,
     source: 'b2b',
     name: body.customer_name.trim(),
     phone: body.customer_phone.trim(),
