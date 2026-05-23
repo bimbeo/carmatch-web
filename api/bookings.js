@@ -35,30 +35,37 @@ export default async function handler(req, res) {
 
   const depositAmount = Math.max(200_000, Math.round(body.total_amount * 0.3 / 10_000) * 10_000);
   const bookingRef = generateRef();
+  const locationName = body.location_name || null;
+  const pickupText = `${body.pickup_date} ${body.pickup_hour}:00`;
+  const returnText = `${body.return_date} ${body.return_hour}:00`;
+  const noteLines = [
+    `[ĐẶT XE TỰ LÁI] ${bookingRef}`,
+    `Xe: ${body.car_name}`,
+    `Nhận: ${pickupText}`,
+    `Trả: ${returnText}`,
+    locationName ? `Địa điểm: ${locationName}` : '',
+    `Tổng dự kiến: ${Number(body.total_amount || 0).toLocaleString('vi-VN')}đ`,
+    `Cọc VietQR: ${depositAmount.toLocaleString('vi-VN')}đ`,
+    body.promo_code ? `Mã KM: ${body.promo_code} (-${Number(body.promo_discount || 0).toLocaleString('vi-VN')}đ)` : '',
+    body.customer_note ? `Ghi chú khách: ${body.customer_note}` : '',
+  ].filter(Boolean).join('\n');
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { error } = await supabase.from('web_bookings').insert({
-    booking_ref: bookingRef,
-    vehicle_id: body.vehicle_id || null,
-    car_name: body.car_name,
-    customer_name: body.customer_name.trim(),
-    customer_phone: body.customer_phone.trim(),
-    customer_note: body.customer_note || null,
-    pickup_date: body.pickup_date,
-    pickup_hour: body.pickup_hour,
-    return_date: body.return_date,
-    return_hour: body.return_hour,
-    delivery_mode: body.delivery_mode,
-    location_name: body.location_name || null,
-    base_amount: body.base_amount,
-    delivery_fee: body.delivery_fee || 0,
-    promo_code: body.promo_code || null,
-    promo_discount: body.promo_discount || 0,
-    total_amount: body.total_amount,
-    deposit_amount: depositAmount,
+  const { error } = await supabase.from('website_leads').insert({
+    source: 'b2b',
+    name: body.customer_name.trim(),
+    phone: body.customer_phone.trim(),
+    customer_type: 'business',
+    form_type: 'booking',
+    quantity: '1 xe',
+    duration: `${pickupText} → ${returnText}`,
+    car_model: body.car_name,
+    building: locationName,
+    note: noteLines,
+    status: 'new',
   });
 
   if (error) {
