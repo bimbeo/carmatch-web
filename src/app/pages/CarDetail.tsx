@@ -311,6 +311,16 @@ export default function CarDetail() {
                   label="Km miễn phí"
                   value={`${car.kmPerDay} km/ngày`}
                 />
+                <SpecChip
+                  icon={<Gauge className="w-4 h-4 text-brand-600" />}
+                  label="Phụ phí vượt km"
+                  value="3.000đ/km"
+                />
+                <SpecChip
+                  icon={<Clock className="w-4 h-4 text-brand-600" />}
+                  label="Trả xe trễ giờ"
+                  value="100.000đ/giờ"
+                />
               </div>
             </div>
 

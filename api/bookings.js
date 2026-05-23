@@ -99,6 +99,43 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Không thể tạo đơn đặt xe, vui lòng thử lại' });
   }
 
+  // Gửi email xác nhận nếu khách cung cấp email (fire-and-forget)
+  const customerEmail = body.customer_email || null;
+  if (customerEmail && process.env.RESEND_API_KEY) {
+    const subject = `[CarMatch] Xác nhận đặt xe ${bookingRef}`;
+    const htmlBody = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1e293b">
+        <h2 style="color:#0891b2">✅ Đặt xe thành công!</h2>
+        <p>Mã booking: <strong style="color:#2563eb">${bookingRef}</strong></p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0">
+          <tr><td style="padding:6px 0;color:#64748b">Xe</td><td style="padding:6px 0;font-weight:600">${body.car_name}</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Nhận xe</td><td style="padding:6px 0;font-weight:600">${body.pickup_date} ${body.pickup_hour}:00</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Trả xe</td><td style="padding:6px 0;font-weight:600">${body.return_date} ${body.return_hour}:00</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Tiền cọc</td><td style="padding:6px 0;font-weight:600;color:#0891b2">${depositAmount.toLocaleString('vi-VN')}đ</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Còn lại khi nhận xe</td><td style="padding:6px 0;font-weight:600;color:#dc2626">${(Number(body.total_amount) - depositAmount).toLocaleString('vi-VN')}đ</td></tr>
+        </table>
+        <p style="font-size:13px;color:#64748b">
+          CarMatch sẽ liên hệ xác nhận trong vòng 30 phút.<br>
+          Hotline: <strong>0971 593 290</strong>
+        </p>
+        <p style="font-size:12px;color:#94a3b8">Lưu mã booking để tra cứu: <strong>${bookingRef}</strong></p>
+      </div>
+    `;
+    fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'CarMatch <booking@carmatch.vn>',
+        to: [customerEmail],
+        subject,
+        html: htmlBody,
+      }),
+    }).catch(err => console.error('[bookings] Resend error:', err.message));
+  }
+
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({ bookingRef, depositAmount });
 }

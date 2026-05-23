@@ -64,7 +64,8 @@ export default function Footer() {
                 { href: '/gioi-thieu', label: 'Về CarMatch' },
                 { href: '/blog', label: 'Blog & Kinh nghiệm' },
                 { href: '/gioi-thieu#quy-trinh', label: 'Quy trình thuê xe' },
-                { href: '/gioi-thieu#dieu-kien', label: 'Điều kiện & Chính sách' },
+                { href: '/chinh-sach', label: 'Điều kiện & Chính sách' },
+                { href: '/faq', label: 'Câu hỏi thường gặp' },
               ].map((item) => (
                 <li key={item.href}>
                   <Link to={item.href} className="text-gray-400 text-sm hover:text-white transition-colors">
@@ -114,8 +115,8 @@ export default function Footer() {
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-gray-500 text-xs">© 2025 CarMatch. Bảo lưu mọi quyền.</p>
           <div className="flex items-center gap-6">
-            <Link to="/gioi-thieu" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Chính sách</Link>
-            <Link to="/gioi-thieu" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Điều khoản</Link>
+            <Link to="/chinh-sach" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Chính sách</Link>
+            <Link to="/chinh-sach" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Điều khoản</Link>
           </div>
         </div>
       </div>

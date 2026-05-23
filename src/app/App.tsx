@@ -9,6 +9,9 @@ const About = lazy(() => import('./pages/About'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
 const Partner = lazy(() => import('./pages/Partner'));
+const BookingConfirm = lazy(() => import('./pages/BookingConfirm'));
+const Policy = lazy(() => import('./pages/Policy'));
+const FAQ = lazy(() => import('./pages/FAQ'));
 
 export default function App() {
   return (
@@ -23,6 +26,9 @@ export default function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/hop-tac" element={<Partner />} />
+          <Route path="/dat-xe" element={<BookingConfirm />} />
+          <Route path="/chinh-sach" element={<Policy />} />
+          <Route path="/faq" element={<FAQ />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

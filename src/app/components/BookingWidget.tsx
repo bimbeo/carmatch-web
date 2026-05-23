@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router';
 import { MessageCircle, Phone, Info, ChevronDown, MapPin, Truck, CalendarDays, X, Tag } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
@@ -301,6 +302,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [customerNote, setCustomerNote] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
@@ -469,6 +471,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           car_name: carName,
           customer_name: customerName.trim(),
           customer_phone: phoneClean,
+          customer_email: customerEmail.trim() || null,
           customer_note: customerNote.trim() || null,
           pickup_date: pickupDate,
           pickup_hour: pickupHour,
@@ -1433,6 +1436,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Email nhận xác nhận <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
+                  </label>
+                  <input
+                    value={customerEmail}
+                    onChange={e => setCustomerEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    type="email"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Ghi chú (tuỳ chọn)
                   </label>
                   <textarea
@@ -1500,6 +1515,17 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-700">
                       <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
                       <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để CarMatch xác nhận tự động. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
+                      <span className="shrink-0 mt-0.5">ℹ️</span>
+                      <span>
+                        <strong>Chính sách hủy:</strong> Hủy trước 24h được hoàn 100% tiền cọc.
+                        Hủy trong 24h hoặc không đến nhận xe sẽ mất cọc.{' '}
+                        <a href="/chinh-sach" className="underline text-amber-600 hover:text-amber-800" target="_blank" rel="noopener noreferrer">
+                          Xem chi tiết →
+                        </a>
+                      </span>
                     </div>
                   </>
                 ) : (
@@ -1614,8 +1640,15 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   📋 Copy xác nhận
                 </button>
 
+                <Link
+                  to={`/dat-xe?ref=${bookingRef}`}
+                  className="flex items-center justify-center gap-2 w-full rounded-2xl border border-cyan-200 bg-cyan-50 py-2.5 text-sm font-semibold text-cyan-700 hover:bg-cyan-100 transition-colors"
+                >
+                  🔍 Xem & lưu trang xác nhận
+                </Link>
+
                 <button
-                  onClick={() => { setShowBookingModal(false); setBookingStep(1); setCustomerName(''); setCustomerPhone(''); setCustomerNote(''); }}
+                  onClick={() => { setShowBookingModal(false); setBookingStep(1); setCustomerName(''); setCustomerPhone(''); setCustomerEmail(''); setCustomerNote(''); }}
                   className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-cyan-400 py-3 text-sm font-bold text-white shadow hover:from-cyan-600 hover:to-cyan-500 transition-all"
                 >
                   Đóng
