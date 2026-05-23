@@ -827,6 +827,49 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </div>
         )}
 
+        {/* ── Promo code ── */}
+        {result.valid && (
+          <div>
+            <div className="flex gap-2">
+              <input
+                value={promoCode}
+                onChange={e => {
+                  setPromoCode(e.target.value.toUpperCase());
+                  setPromoError('');
+                  setPromoResult(null);
+                }}
+                onKeyDown={e => e.key === 'Enter' && void validatePromo()}
+                placeholder="Mã giảm giá (tuỳ chọn)"
+                type="text"
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                autoCapitalize="characters"
+              />
+              <button
+                type="button"
+                onClick={() => void validatePromo()}
+                disabled={promoLoading || Boolean(promoResult)}
+                className="px-3 py-2 rounded-xl bg-cyan-500 text-white text-sm font-semibold hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {promoLoading ? '...' : 'Áp dụng'}
+              </button>
+            </div>
+            {promoResult && (
+              <div className="mt-1.5 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 text-xs text-green-700 flex items-center justify-between gap-1.5">
+                <span>✅ Mã <strong>{promoResult.code}</strong> — giảm {fmtVND(promoResult.discount_amount)}</span>
+                <button
+                  type="button"
+                  onClick={clearPromo}
+                  className="font-bold text-green-700 hover:text-red-500"
+                  aria-label="Xóa mã giảm giá"
+                >×</button>
+              </div>
+            )}
+            {promoError && (
+              <p className="text-xs text-red-500 font-medium mt-1">{promoError}</p>
+            )}
+          </div>
+        )}
+
         {/* ── CTAs ── */}
         <button
           onClick={() => { setShowBookingModal(true); setBookingStep(1); setBookingError(''); }}
