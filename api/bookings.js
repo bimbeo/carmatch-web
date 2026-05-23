@@ -3,6 +3,44 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
+async function sendZNSAdmin({ bookingRef, carName, customerName, customerPhone, pickupText, returnText, totalAmount, depositAmount }) {
+  const accessToken = process.env.ZALO_OA_ACCESS_TOKEN;
+  const templateId = process.env.ZALO_ADMIN_TEMPLATE_ID;
+  const adminPhone = '0975563290';
+
+  if (!accessToken || !templateId) return;
+
+  try {
+    const znsRes = await fetch('https://business.openapi.zalo.me/message/template', {
+      method: 'POST',
+      headers: {
+        'access_token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone: adminPhone,
+        template_id: templateId,
+        template_data: {
+          booking_ref: bookingRef,
+          car_name: carName,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          pickup_time: pickupText,
+          return_time: returnText,
+          total_amount: `${Number(totalAmount).toLocaleString('vi-VN')}đ`,
+          deposit_amount: `${Number(depositAmount).toLocaleString('vi-VN')}đ`,
+        },
+        tracking_id: bookingRef,
+      }),
+    });
+    const json = await znsRes.json();
+    if (json.error !== 0) console.error('[bookings] ZNS error:', json.message);
+    else console.log('[bookings] ZNS sent:', bookingRef);
+  } catch (err) {
+    console.error('[bookings] ZNS exception:', err.message);
+  }
+}
+
 async function generateRef(supabase) {
   const d = new Date();
   const vn = new Date(d.getTime() + 7 * 60 * 60 * 1000);
@@ -135,6 +173,18 @@ export default async function handler(req, res) {
       }),
     }).catch(err => console.error('[bookings] Resend error:', err.message));
   }
+
+  // Fire-and-forget ZNS
+  sendZNSAdmin({
+    bookingRef,
+    carName: body.car_name,
+    customerName: body.customer_name,
+    customerPhone: body.customer_phone,
+    pickupText,
+    returnText,
+    totalAmount: body.total_amount,
+    depositAmount,
+  }).catch(() => {});
 
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({ bookingRef, depositAmount });
