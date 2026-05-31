@@ -2,7 +2,7 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#11163e" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -15,23 +15,23 @@
     <meta name="description" content="CarMatch - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 800K/ngày. Giao xe tận nơi. Đặt qua Zalo 0975 563 290." />
     <meta name="keywords" content="thuê xe tự lái hà nội, thuê xe điện hà nội, thuê xe vinfast, thuê xe 7 chỗ hà nội, thuê xe theo tháng hà nội, carmatch" />
     <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://carmatch.vn" />
+    <link rel="canonical" href="https://www.carmatch.vn" />
 
     <!-- Open Graph (Facebook, Zalo share) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="CarMatch" />
     <meta property="og:title" content="CarMatch — Thuê Xe Tự Lái Hà Nội | Giá Từ 800K/Ngày" />
     <meta property="og:description" content="20+ mẫu xe đa dạng từ 800K/ngày. Xe điện VinFast, xe 7 chỗ, xe cao cấp. Giao xe tận nơi. Đặt qua Zalo nhanh 5 phút." />
-    <meta property="og:url" content="https://carmatch.vn" />
+    <meta property="og:url" content="https://www.carmatch.vn" />
     <meta property="og:locale" content="vi_VN" />
-    <meta property="og:image" content="https://carmatch.vn/brand/carmatch-logo-stacked-navy.png" />
+    <meta property="og:image" content="https://www.carmatch.vn/brand/carmatch-logo-stacked-navy.png" />
     <meta property="og:image:alt" content="CarMatch logo" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="CarMatch — Thuê Xe Tự Lái Hà Nội" />
     <meta name="twitter:description" content="20+ mẫu xe từ 800K/ngày. Giao xe tận nơi. Đặt qua Zalo 0975 563 290." />
-    <meta name="twitter:image" content="https://carmatch.vn/brand/carmatch-logo-stacked-navy.png" />
+    <meta name="twitter:image" content="https://www.carmatch.vn/brand/carmatch-logo-stacked-navy.png" />
 
     <!-- Zalo domain verification -->
     <meta name="zalo-platform-site-verification" content="EF63BE7G9XixyfCIpl891WV_kLZhYMm1C3Cs" />
@@ -55,11 +55,11 @@
         "@type": "AutoRental",
         "name": "CarMatch — Thuê Xe Tự Lái Hà Nội",
         "description": "Dịch vụ thuê xe tự lái tại Hà Nội — giao xe tận sảnh chung cư. Giá từ 800.000đ/ngày. 20+ mẫu xe: VinFast VF5/VF6/VF8, Toyota Innova, Kia Carnival.",
-        "url": "https://carmatch.vn",
+        "url": "https://www.carmatch.vn",
         "telephone": "+84975563290",
         "email": "info@carmatch.vn",
-        "image": "https://carmatch.vn/brand/carmatch-logo-stacked-navy.png",
-        "logo": "https://carmatch.vn/brand/carmatch-logo-stacked-navy.png",
+        "image": "https://www.carmatch.vn/brand/carmatch-logo-stacked-navy.png",
+        "logo": "https://www.carmatch.vn/brand/carmatch-logo-stacked-navy.png",
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "Hà Nội",
@@ -163,6 +163,30 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function clearLegacyServiceWorker() {
+        if (!('serviceWorker' in navigator)) return;
+
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.getRegistrations()
+            .then(function (registrations) {
+              return Promise.all(registrations.map(function (registration) {
+                return registration.unregister();
+              }));
+            })
+            .catch(function () {});
+
+          if (!window.caches) return;
+          caches.keys()
+            .then(function (keys) {
+              return Promise.all(keys.map(function (key) {
+                return caches.delete(key);
+              }));
+            })
+            .catch(function () {});
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

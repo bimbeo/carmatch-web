@@ -270,6 +270,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [returnDate, setReturnDate] = useState(toDateStr(addDays(today, 2)));
   const [returnHour, setReturnHour] = useState(20);
   const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>('self');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('times-city');
   const [showModal, setShowModal] = useState(false);
 
@@ -495,6 +496,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     if (!customerName.trim()) { setBookingError('Vui lòng nhập họ tên'); return; }
     const phoneClean = customerPhone.trim().replace(/\s/g, '');
     if (!/^(0[3-9]\d{8})$/.test(phoneClean)) { setBookingError('Số điện thoại không hợp lệ'); return; }
+    if (deliveryMode === 'delivery' && !deliveryAddress.trim()) {
+      setBookingError('Vui lòng nhập địa chỉ giao xe');
+      return;
+    }
 
     setBookingLoading(true);
     setBookingError('');
@@ -515,7 +520,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           return_date: returnDate,
           return_hour: returnHour,
           delivery_mode: deliveryMode,
-          location_name: deliveryMode === 'self' ? loc?.name : 'Giao tận nơi',
+          delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() : null,
+          location_name: deliveryMode === 'self' ? loc?.name : deliveryAddress.trim() || 'Giao tận nơi',
           base_amount: rentalResult.valid ? rentalResult.total : 0,
           delivery_fee: deliveryFee,
           promo_code: promoResult?.code ?? null,
@@ -832,7 +838,15 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">+100k/chiều</span>
                 </div>
                 {deliveryMode === 'delivery' && (
-                  <p className="text-xs text-gray-400 mt-1">Áp dụng trong nội thành Hà Nội. Phí 2 chiều (giao + trả): {fmtVND(DELIVERY_FEE_PER_WAY * 2)}</p>
+                  <>
+                    <p className="text-xs text-gray-400 mt-1">Áp dụng trong nội thành Hà Nội. Phí 2 chiều (giao + trả): {fmtVND(DELIVERY_FEE_PER_WAY * 2)}</p>
+                    <input
+                      value={deliveryAddress}
+                      onChange={e => setDeliveryAddress(e.target.value)}
+                      placeholder="Địa chỉ nhận xe (số nhà, đường, quận...)"
+                      className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                    />
+                  </>
                 )}
               </div>
             </label>
@@ -1472,6 +1486,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     <span>⚠</span> {bookingError}
                   </p>
                 )}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs text-amber-700 flex items-start gap-2">
+                  <span className="shrink-0">ℹ️</span>
+                  <span>
+                    <strong>Chính sách hủy:</strong> Hủy trước 24h hoàn 100% cọc.
+                    Hủy trong 24h hoặc không đến nhận xe mất cọc.
+                  </span>
+                </div>
               </div>
             )}
 
@@ -1669,6 +1690,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     setCustomerPhone('');
                     setCustomerEmail('');
                     setCustomerNote('');
+                    setDeliveryAddress('');
                     setPromoCode('');
                     setPromoResult(null);
                     setPromoError('');

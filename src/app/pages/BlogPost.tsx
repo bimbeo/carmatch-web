@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { PortableText } from '@portabletext/react';
 import type { TypedObject } from '@portabletext/types';
@@ -99,13 +99,13 @@ export default function BlogPost() {
   useSEO({
     title: post?.seoTitle ?? post?.title ?? 'Blog | CarMatch',
     description: post?.seoDescription ?? post?.excerpt ?? 'Đọc bài viết mới nhất từ CarMatch về thuê xe tự lái Hà Nội.',
-    canonical: post ? `https://carmatch.vn/blog/${post.slug.current}` : undefined,
+    canonical: post ? `https://www.carmatch.vn/blog/${post.slug.current}` : undefined,
     ogImage: post?.mainImageUrl ?? undefined,
   });
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`/api/posts/${encodeURIComponent(slug)}`)
+    fetch(`/api/posts?slug=${encodeURIComponent(slug)}`)
       .then((res) => {
         if (res.status === 404) { setNotFound(true); setLoading(false); return null; }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -144,13 +144,13 @@ export default function BlogPost() {
       <main className="pt-24 pb-16 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back link */}
-          <Link
-            to="/blog"
+          <a
+            href="/blog"
             className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-600 transition-colors text-sm mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
             Quay lại Blog
-          </Link>
+          </a>
 
           {loading ? (
             <div className="space-y-6 animate-pulse">
@@ -166,9 +166,9 @@ export default function BlogPost() {
           ) : notFound || !post ? (
             <div className="text-center py-20">
               <p className="text-gray-500 text-xl mb-4">Không tìm thấy bài viết.</p>
-              <Link to="/blog" className="text-brand-600 hover:underline">
+              <a href="/blog" className="text-brand-600 hover:underline">
                 Xem tất cả bài viết
-              </Link>
+              </a>
             </div>
           ) : (
             <article className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
@@ -238,13 +238,13 @@ export default function BlogPost() {
 
               {/* Back link bottom */}
               <div className="mt-8 pt-8 border-t border-gray-100">
-                <Link
-                  to="/blog"
+                <a
+                  href="/blog"
                   className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-600 transition-colors text-sm"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Quay lại Blog
-                </Link>
+                </a>
               </div>
             </article>
           )}

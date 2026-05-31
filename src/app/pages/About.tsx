@@ -40,7 +40,7 @@ export default function About() {
   useSEO({
     title: 'Về CarMatch — Dịch Vụ Thuê Xe Tự Lái Hà Nội',
     description: 'CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, chuyên phục vụ cư dân chung cư cao cấp. Xe an toàn, bảo hiểm đầy đủ, giao xe tận sảnh tòa nhà.',
-    canonical: 'https://carmatch.vn/ve-chung-toi',
+    canonical: 'https://www.carmatch.vn/gioi-thieu',
   });
 
   return (

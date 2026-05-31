@@ -57,7 +57,7 @@ export default function FAQ() {
   useSEO({
     title: 'Câu hỏi thường gặp — CarMatch',
     description: 'Giải đáp câu hỏi thường gặp về đặt xe online, thanh toán, nhận xe, giấy tờ, bảo hiểm và phụ phí tại CarMatch.',
-    canonical: 'https://carmatch.vn/faq',
+    canonical: 'https://www.carmatch.vn/faq',
   });
 
   const [openKey, setOpenKey] = useState('0-0');

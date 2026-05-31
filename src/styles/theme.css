@@ -185,10 +185,21 @@
     line-height: 1.5;
   }
 
-  input {
+  input,
+  textarea,
+  select {
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+/* iOS Safari zooms focused form controls when their computed text is below 16px. */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 

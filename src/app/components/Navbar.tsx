@@ -6,10 +6,12 @@ const ZALO_LINK = 'https://zalo.me/0975563290';
 
 const navLinks = [
   { href: '/xe', label: 'Thuê xe tự lái' },
+  { href: '/di-dau', label: 'Đi đâu' },
+  { href: '/lap-ke-hoach-chuyen-di', label: 'Lập chuyến đi' },
   { href: '/thue-xe-thang', label: 'Thuê xe tháng' },
   { href: '/hop-tac', label: 'Hợp tác chủ xe' },
   { href: '/gioi-thieu', label: 'Giới thiệu' },
-  { href: '/blog', label: 'Blog' },
+  { href: '/blog', label: 'Blog', staticPage: true },
 ];
 
 export default function Navbar() {
@@ -38,19 +40,23 @@ export default function Navbar() {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`text-sm font-medium transition-colors ${
-                  location.pathname === link.href
-                    ? 'text-brand-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const className = `text-sm font-medium transition-colors ${
+                location.pathname === link.href
+                  ? 'text-brand-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`;
+
+              return link.staticPage ? (
+                <a key={link.href} href={link.href} className={className}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} to={link.href} className={className}>
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* CTA */}
@@ -80,20 +86,28 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100">
           <div className="px-4 py-3 space-y-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${
-                  location.pathname === link.href
-                    ? 'text-brand-600 bg-brand-50'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const className = `block px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${
+                location.pathname === link.href
+                  ? 'text-brand-600 bg-brand-50'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`;
+
+              return link.staticPage ? (
+                <a key={link.href} href={link.href} className={className}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={className}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
             <div className="pt-3 pb-1">
               <a
                 href={ZALO_LINK}

@@ -148,7 +148,7 @@ export default function BookingConfirm() {
               </div>
 
               <a
-                href="https://zalo.me/0975563290"
+                href={`https://zalo.me/0975563290?text=${encodeURIComponent(`Mã booking của tôi: ${data.booking_ref}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-[#0068FF] text-white rounded-xl py-3 text-sm font-semibold hover:bg-blue-700 transition-colors"

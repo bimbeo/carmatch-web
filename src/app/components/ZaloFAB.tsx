@@ -6,7 +6,7 @@ export default function ZaloFAB() {
       href={ZALO_LINK}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#0068FF] text-white px-4 py-3 rounded-full shadow-lg shadow-blue-500/25 hover:bg-blue-600 transition-all hover:scale-105 active:scale-95"
+      className="hidden sm:flex fixed bottom-6 right-6 z-50 items-center gap-2 bg-[#0068FF] text-white px-4 py-3 rounded-full shadow-lg shadow-blue-500/25 hover:bg-blue-600 transition-all hover:scale-105 active:scale-95"
       aria-label="Chat Zalo"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

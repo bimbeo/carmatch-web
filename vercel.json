@@ -1,7 +1,86 @@
 {
   "routes": [
+    {
+      "src": "/sitemap\\.(xml|rss)",
+      "has": [{ "type": "host", "value": "blog.carmatch.vn" }],
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/sitemap.xml" }
+    },
+    {
+      "src": "/(.*)",
+      "has": [{ "type": "host", "value": "blog.carmatch.vn" }],
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
+      "src": "/(.*)",
+      "has": [{ "type": "host", "value": "carmatch.vn" }],
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/$1" }
+    },
+    {
+      "src": "/blogs/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
+      "src": "/blog/hello-world/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
+      "src": "/(ve-chung-toi|about|gioi-thieu-carmatch)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/gioi-thieu" }
+    },
+    {
+      "src": "/(chinh-sach-bao-mat|dieu-khoan|privacy|terms)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/chinh-sach" }
+    },
+    {
+      "src": "/(booking-confirm|booking-confirmation|confirm-booking)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/dat-xe" }
+    },
+    {
+      "src": "/(cars|vehicles|fleet|danh-sach-xe|thue-xe)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/sitemap\\.rss",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/sitemap.xml" }
+    },
+    {
+      "src": "/sw\\.js",
+      "dest": "/sw.js",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0",
+        "Service-Worker-Allowed": "/",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "src": "/service-worker\\.js",
+      "dest": "/service-worker.js",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0",
+        "Service-Worker-Allowed": "/",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "src": "/registerSW\\.js",
+      "dest": "/registerSW.js",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/(.*)", "status": 404, "dest": "/404.html" }
   ]
 }

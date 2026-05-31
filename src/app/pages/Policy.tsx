@@ -60,7 +60,7 @@ export default function Policy() {
   useSEO({
     title: 'Chính sách thuê xe — CarMatch',
     description: 'Chính sách hủy, phụ phí, giấy tờ, bảo hiểm và quy trình giao nhận xe tại CarMatch.',
-    canonical: 'https://carmatch.vn/chinh-sach',
+    canonical: 'https://www.carmatch.vn/chinh-sach',
   });
 
   return (

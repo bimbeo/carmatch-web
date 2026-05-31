@@ -93,7 +93,7 @@ export default function Home() {
   useSEO({
     title: 'Thuê Xe Tự Lái Hà Nội — Giao Xe Tận Sảnh | CarMatch',
     description: 'Thuê xe tự lái Hà Nội từ 800K/ngày. Giao xe tận sảnh Vinhomes, Ecopark, The Manor. Xác nhận 30 phút, đặt qua Zalo. 20+ mẫu xe + xe điện VinFast.',
-    canonical: 'https://carmatch.vn/',
+    canonical: 'https://www.carmatch.vn/',
   });
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -177,11 +177,11 @@ export default function Home() {
                   Đặt xe qua Zalo
                 </a>
                 <Link
-                  to="/xe"
+                  to="/lap-ke-hoach-chuyen-di"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
                 >
-                  <Car className="w-5 h-5" />
-                  Xem tất cả xe
+                  <Zap className="w-5 h-5" />
+                  Lập chuyến đi
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -646,12 +646,12 @@ export default function Home() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Kinh nghiệm & Mẹo hay</h2>
                 <p className="text-gray-500">Hướng dẫn, lộ trình, kinh nghiệm thuê xe từ CarMatch</p>
               </div>
-              <Link
-                to="/blog"
+              <a
+                href="/blog"
                 className="hidden sm:flex items-center gap-1.5 text-brand-600 hover:text-brand-700 transition-colors font-semibold text-sm"
               >
                 Xem tất cả <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
             </div>
 
             {/* Editorial layout: left = 2 small stacked, right = 1 large hero */}
@@ -660,9 +660,9 @@ export default function Home() {
               {/* Left column: 2 small posts */}
               <div className="flex flex-col gap-5 h-full">
                 {posts.slice(1, 3).map((post, i) => (
-                  <Link
+                  <a
                     key={post._id}
-                    to={`/blog/${post.slug.current}`}
+                    href={`/blog/${post.slug.current}`}
                     className="group relative rounded-2xl overflow-hidden flex-1 min-h-[200px] bg-gray-200"
                   >
                     <img
@@ -687,14 +687,14 @@ export default function Home() {
                         <ArrowRight className="w-3.5 h-3.5 text-white/60 group-hover:text-brand-300 transition-colors" />
                       </div>
                     </div>
-                  </Link>
+                  </a>
                 ))}
               </div>
 
               {/* Right column: 1 large featured post */}
               {posts[0] && (
-                <Link
-                  to={`/blog/${posts[0].slug.current}`}
+                <a
+                  href={`/blog/${posts[0].slug.current}`}
                   className="group relative rounded-2xl overflow-hidden min-h-[420px] lg:h-full bg-gray-200"
                 >
                   <img
@@ -731,17 +731,17 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
-                </Link>
+                </a>
               )}
             </div>
 
             <div className="text-center mt-8">
-              <Link
-                to="/blog"
+              <a
+                href="/blog"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-full hover:border-gray-300 hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
               >
                 Xem tất cả bài viết <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
             </div>
           </div>
         </section>

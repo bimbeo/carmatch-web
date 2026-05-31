@@ -52,7 +52,7 @@ export default function B2B() {
   useSEO({
     title: 'Thuê Xe Theo Tháng Hà Nội — Cư Dân & Doanh Nghiệp | CarMatch',
     description: 'Gói thuê xe theo tháng tại Hà Nội: tiết kiệm 30–40% so với thuê ngày lẻ. Giao xe tận tòa nhà, hóa đơn VAT, linh hoạt 1–12 tháng. Báo giá miễn phí.',
-    canonical: 'https://carmatch.vn/thue-xe-thang',
+    canonical: 'https://www.carmatch.vn/thue-xe-thang',
   });
 
   const [form, setForm] = useState<FormData>({

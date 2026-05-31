@@ -57,7 +57,7 @@ export default function Fleet() {
   useSEO({
     title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | CarMatch',
     description: 'Duyệt 20+ mẫu xe tự lái cho thuê tại Hà Nội: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 800K/ngày. Giao xe tận sảnh tòa nhà.',
-    canonical: 'https://carmatch.vn/xe',
+    canonical: 'https://www.carmatch.vn/xe',
   });
 
   const { cars, loading, error } = useVehicles();

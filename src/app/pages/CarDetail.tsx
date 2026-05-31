@@ -180,7 +180,7 @@ export default function CarDetail() {
     description: car
       ? `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày. Giao xe tận sảnh tòa nhà, bảo hiểm đầy đủ.`
       : 'Xem chi tiết xe cho thuê tại CarMatch Hà Nội.',
-    canonical: car ? `https://carmatch.vn/xe/${car.slug}` : undefined,
+    canonical: car ? `https://www.carmatch.vn/xe/${car.slug}` : undefined,
     ogImage: car?.images?.[0] ?? undefined,
   });
 

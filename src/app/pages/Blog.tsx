@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
 import { Car } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -45,7 +44,7 @@ export default function Blog() {
   useSEO({
     title: 'Blog — Kinh Nghiệm Thuê Xe & Ô Tô Hà Nội | CarMatch',
     description: 'Bài viết hữu ích về thuê xe tự lái Hà Nội: kinh nghiệm, so sánh xe điện vs xăng, cung đường, giá thuê xe theo mùa và lưu ý khi thuê xe lần đầu.',
-    canonical: 'https://carmatch.vn/blog',
+    canonical: 'https://www.carmatch.vn/blog',
   });
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -103,9 +102,9 @@ export default function Blog() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
               {posts.map((post) => (
-                <Link
+                <a
                   key={post._id}
-                  to={`/blog/${post.slug.current}`}
+                  href={`/blog/${post.slug.current}`}
                   className="block bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all group"
                 >
                   <div className="aspect-[16/9] overflow-hidden bg-gray-100">
@@ -140,7 +139,7 @@ export default function Blog() {
                       {post.publishedAt && <span>{formatDate(post.publishedAt)}</span>}
                     </div>
                   </div>
-                </Link>
+                </a>
               ))}
             </div>
           )}

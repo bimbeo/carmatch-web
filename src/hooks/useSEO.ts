@@ -8,7 +8,7 @@ interface SEOProps {
   noIndex?: boolean;
 }
 
-const BASE_URL = 'https://carmatch.vn';
+const BASE_URL = 'https://www.carmatch.vn';
 const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
 
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
