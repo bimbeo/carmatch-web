@@ -136,6 +136,7 @@ export default function BlogPost() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const hasInlineBodyImages = Boolean(post?.bodyHtml && /<img\b/i.test(post.bodyHtml));
 
   useSEO({
     title: post?.seoTitle ?? post?.title ?? 'Blog | CarMatch',
@@ -245,7 +246,7 @@ export default function BlogPost() {
               )}
 
               {/* Main Image */}
-              {post.mainImageUrl && (
+              {post.mainImageUrl && !hasInlineBodyImages && (
                 <div className="mb-10">
                   <img
                     src={post.mainImageUrl}

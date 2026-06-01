@@ -1026,6 +1026,7 @@ function renderPost(post) {
   const description = postDescription(post);
   const canonical = postUrl(post);
   const image = postImage(post);
+  const hasInlineBodyImages = /<img\b/i.test(post.bodyHtml || '');
 
   return layout({
     title,
@@ -1038,7 +1039,7 @@ function renderPost(post) {
         <h1>${escapeHtml(post.title)}</h1>
         <p class="meta">${escapeHtml(postAuthor(post))}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
         ${post.excerpt ? `<p>${escapeHtml(post.excerpt)}</p>` : ''}
-        ${post.mainImageUrl ? `<img class="hero" src="${escapeHtml(post.mainImageUrl)}" alt="${escapeHtml(post.title)}" />` : ''}
+        ${post.mainImageUrl && !hasInlineBodyImages ? `<img class="hero" src="${escapeHtml(post.mainImageUrl)}" alt="${escapeHtml(post.title)}" />` : ''}
         ${post.bodyHtml ? post.bodyHtml : renderPortableText(post.body)}
         ${renderInternalLinks(post)}
         <div class="cta">
