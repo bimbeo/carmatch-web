@@ -253,10 +253,10 @@ function sharedStyles() {
       .nav-cta, .button.primary { background: #11163e; color: #fff; }
       .nav-cta, .button { border-radius: 999px; display: inline-flex; padding: 12px 20px; }
       .eyebrow, .meta { color: #64748b; font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-      h1, h2, h3 { color: #111827; overflow-wrap: anywhere; }
+      h1, h2, h3 { color: #111827; overflow-wrap: anywhere; word-break: break-word; }
       p, li { color: #374151; font-size: 18px; line-height: 1.78; }
       img { max-width: 100%; }
-      @media (max-width: 720px) { .nav { height: 64px; padding: 0 16px; } .navlinks, .nav-cta { display: none; } .brand img { height: 30px; } p, li { font-size: 16px; } }
+      @media (max-width: 720px) { .nav { height: 64px; padding: 0 16px; } .navlinks, .nav-cta { display: none; } .brand img { height: 30px; } h1 { font-size: 30px; line-height: 1.1; max-width: 100%; } p, li { font-size: 16px; } }
     </style>`;
 }
 
@@ -313,7 +313,7 @@ export function renderBlogIndex(posts = []) {
       .topic-panel { align-self: end; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; }
       .topic-panel p { color: #111827; font-size: 13px; font-weight: 900; letter-spacing: .08em; margin: 0 0 12px; text-transform: uppercase; }
       .topic-list { display: flex; flex-wrap: wrap; gap: 8px; }
-      .topic-list a { background: #eef2ff; border: 1px solid #dbe3ff; border-radius: 999px; font-size: 13px; padding: 8px 10px; }
+      .topic-list a { background: #eef2ff; border: 1px solid #dbe3ff; border-radius: 999px; font-size: 13px; padding: 8px 10px; white-space: nowrap; }
       .grid { display: grid; gap: 22px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; display: grid; grid-template-rows: auto 1fr; overflow: hidden; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
       .card:hover { border-color: #cbd5e1; box-shadow: 0 18px 38px rgba(15,23,42,.08); transform: translateY(-2px); }
@@ -324,7 +324,7 @@ export function renderBlogIndex(posts = []) {
       .card h2 { font-size: 22px; line-height: 1.25; margin: 0; }
       .card p { font-size: 15px; line-height: 1.65; margin: 0; }
       .card .meta { margin-top: auto; text-transform: none; letter-spacing: 0; }
-      @media (max-width: 820px) { main { padding: 38px 16px 64px; } .hero { display: block; } .topic-panel { margin-top: 24px; } .grid { grid-template-columns: 1fr; } .card h2 { font-size: 20px; } }
+      @media (max-width: 820px) { main { padding: 38px 16px 64px; } .hero { display: block; } .topic-panel { margin-top: 24px; } .topic-list a { font-size: 12px; } .grid { grid-template-columns: 1fr; } .card h2 { font-size: 20px; } }
     </style>
   </head>
   <body>
@@ -412,6 +412,7 @@ export function renderBlogPage(post) {
       .toc p { color: #111827; font-size: 13px; font-weight: 900; margin: 0 0 10px; text-transform: uppercase; }
       .toc ol { margin: 0; padding-left: 20px; }
       .toc li { font-size: 15px; line-height: 1.7; }
+      .toc a { overflow-wrap: anywhere; word-break: break-word; }
       .toc .level-3 { margin-left: 16px; }
       .related, .cta { border-radius: 16px; margin-top: 40px; padding: 24px; }
       .related { background: #fff7ed; border: 1px solid #fed7aa; }
@@ -419,7 +420,7 @@ export function renderBlogPage(post) {
       .cta h2 { margin-top: 0; }
       .cta-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
       .button.secondary { background: #fff; border: 1px solid #cbd5e1; color: #11163e; }
-      @media (max-width: 720px) { main { padding: 28px 0 64px; } article { border-radius: 0; border-left: 0; border-right: 0; padding-left: 24px; padding-right: 24px; } h1 { font-size: 33px; } img.hero, article img { max-height: 520px; } .toc { margin-left: -2px; margin-right: -2px; } }
+      @media (max-width: 720px) { main { padding: 28px 0 64px; } article { border-radius: 0; border-left: 0; border-right: 0; padding-left: 24px; padding-right: 24px; } img.hero, article img { max-height: 520px; } .toc { margin-left: -2px; margin-right: -2px; } }
     </style>
   </head>
   <body>
