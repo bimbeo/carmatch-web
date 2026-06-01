@@ -1,5 +1,5 @@
 import { fetchPostBySlug, fetchPosts } from './_blog-source.js';
-import { renderBlogPage } from './_blog-renderer.js';
+import { renderBlogIndex, renderBlogPage } from './_blog-renderer.js';
 
 function setFreshCmsHeaders(res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
@@ -31,6 +31,10 @@ export default async function handler(req, res) {
 
     const posts = await fetchPosts();
     setFreshCmsHeaders(res);
+    if (format === 'html') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(renderBlogIndex(posts));
+    }
     res.status(200).json(posts);
   } catch (error) {
     console.error('Blog fetch error:', error);
