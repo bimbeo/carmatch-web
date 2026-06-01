@@ -36,6 +36,54 @@ const postsQuery = `*[_type == "post" && defined(slug.current)] | order(publishe
   seoDescription
 }`;
 
+function categoryLabel(slug = '') {
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function mapSupabasePost(row) {
+  return {
+    _id: row.id,
+    title: row.title,
+    slug: { current: row.slug },
+    publishedAt: row.published_at || row.updated_at || row.created_at,
+    excerpt: row.excerpt || '',
+    mainImageUrl: row.main_image_url || null,
+    categories: row.category_slug ? [categoryLabel(row.category_slug)] : [],
+    author: row.author || 'CarMatch',
+    body: [],
+    bodyHtml: row.content_html || '',
+    seoTitle: row.seo_title || undefined,
+    seoDescription: row.seo_description || undefined,
+    canonicalUrl: row.canonical_url || undefined,
+  };
+}
+
+async function fetchBlogPosts() {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('id, slug, title, excerpt, main_image_url, author, category_slug, content_html, seo_title, seo_description, canonical_url, status, published_at, created_at, updated_at')
+      .eq('status', 'published')
+      .or(`published_at.is.null,published_at.lte.${new Date().toISOString()}`)
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .order('updated_at', { ascending: false });
+
+    if (!error && data?.length) {
+      return data.map(mapSupabasePost);
+    }
+
+    if (error) {
+      console.warn(`Skipped Supabase blog source: ${error.message}`);
+    }
+  }
+
+  return client.fetch(postsQuery);
+}
+
 const blogMeta = {
   title: 'Blog Kinh Nghiệm Thuê Xe Tự Lái | CarMatch Hà Nội',
   description:
@@ -906,7 +954,7 @@ function layout({ title, description, canonical, image, type = 'article', body, 
 }
 
 function postUrl(post) {
-  return `${siteUrl}/blog/${post.slug.current}`;
+  return post.canonicalUrl || `${siteUrl}/blog/${post.slug.current}`;
 }
 
 function postDescription(post) {
@@ -991,7 +1039,7 @@ function renderPost(post) {
         <p class="meta">${escapeHtml(postAuthor(post))}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
         ${post.excerpt ? `<p>${escapeHtml(post.excerpt)}</p>` : ''}
         ${post.mainImageUrl ? `<img class="hero" src="${escapeHtml(post.mainImageUrl)}" alt="${escapeHtml(post.title)}" />` : ''}
-        ${renderPortableText(post.body)}
+        ${post.bodyHtml ? post.bodyHtml : renderPortableText(post.body)}
         ${renderInternalLinks(post)}
         <div class="cta">
           <h2>Sẵn sàng đặt xe?</h2>
@@ -1055,7 +1103,7 @@ ${urls.map((url) => `  <url>
 }
 
 async function main() {
-  const [posts, vehicles] = await Promise.all([client.fetch(postsQuery), fetchVehicles()]);
+  const [posts, vehicles] = await Promise.all([fetchBlogPosts(), fetchVehicles()]);
 
   await writeStaticRouteShells(vehicles);
 

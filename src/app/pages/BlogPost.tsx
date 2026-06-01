@@ -18,8 +18,10 @@ interface Post {
   categories: string[];
   author: string;
   body: TypedObject[];
+  bodyHtml?: string;
   seoTitle?: string;
   seoDescription?: string;
+  canonicalUrl?: string;
 }
 
 function formatDate(dateStr: string) {
@@ -99,7 +101,7 @@ export default function BlogPost() {
   useSEO({
     title: post?.seoTitle ?? post?.title ?? 'Blog | CarMatch',
     description: post?.seoDescription ?? post?.excerpt ?? 'Đọc bài viết mới nhất từ CarMatch về thuê xe tự lái Hà Nội.',
-    canonical: post ? `https://www.carmatch.vn/blog/${post.slug.current}` : undefined,
+    canonical: post ? (post.canonicalUrl || `https://www.carmatch.vn/blog/${post.slug.current}`) : undefined,
     ogImage: post?.mainImageUrl ?? undefined,
   });
 
@@ -215,11 +217,16 @@ export default function BlogPost() {
               )}
 
               {/* Body */}
-              {post.body && post.body.length > 0 && (
+              {post.bodyHtml ? (
+                <div
+                  className="prose prose-slate max-w-none"
+                  dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+                />
+              ) : post.body && post.body.length > 0 ? (
                 <div className="prose max-w-none">
                   <PortableText value={post.body} components={portableTextComponents} />
                 </div>
-              )}
+              ) : null}
 
               {/* Zalo CTA */}
               <div className="mt-12 bg-brand-50 border border-brand-100 rounded-2xl p-8 text-center">
