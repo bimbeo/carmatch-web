@@ -60,6 +60,16 @@ function mapSupabasePost(row) {
     seoTitle: row.seo_title || undefined,
     seoDescription: row.seo_description || undefined,
     canonicalUrl: row.canonical_url || undefined,
+    ctaEnabled: row.cta_enabled ?? true,
+    ctaTitle: row.cta_title || undefined,
+    ctaDescription: row.cta_description || undefined,
+    ctaPrimaryLabel: row.cta_primary_label || undefined,
+    ctaPrimaryUrl: row.cta_primary_url || undefined,
+    ctaZaloLabel: row.cta_zalo_label || undefined,
+    ctaZaloUrl: row.cta_zalo_url || undefined,
+    relatedDestinationSlugs: row.related_destination_slugs || [],
+    relatedVehicleLinks: row.related_vehicle_links || [],
+    relatedPostSlugs: row.related_post_slugs || [],
   };
 }
 
@@ -67,7 +77,7 @@ async function fetchSupabasePosts() {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('blog_posts')
-    .select('id, slug, title, excerpt, main_image_url, author, category_slug, tags, content_html, seo_title, seo_description, canonical_url, status, published_at, created_at, updated_at')
+    .select('id, slug, title, excerpt, main_image_url, author, category_slug, tags, content_html, seo_title, seo_description, canonical_url, cta_enabled, cta_title, cta_description, cta_primary_label, cta_primary_url, cta_zalo_label, cta_zalo_url, related_destination_slugs, related_vehicle_links, related_post_slugs, status, published_at, created_at, updated_at')
     .eq('status', 'published')
     .or(`published_at.is.null,published_at.lte.${new Date().toISOString()}`)
     .order('published_at', { ascending: false, nullsFirst: false })
@@ -85,7 +95,7 @@ async function fetchSupabasePost(slug) {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('blog_posts')
-    .select('id, slug, title, excerpt, main_image_url, author, category_slug, tags, content_html, seo_title, seo_description, canonical_url, status, published_at, created_at, updated_at')
+    .select('id, slug, title, excerpt, main_image_url, author, category_slug, tags, content_html, seo_title, seo_description, canonical_url, cta_enabled, cta_title, cta_description, cta_primary_label, cta_primary_url, cta_zalo_label, cta_zalo_url, related_destination_slugs, related_vehicle_links, related_post_slugs, status, published_at, created_at, updated_at')
     .eq('slug', slug)
     .eq('status', 'published')
     .or(`published_at.is.null,published_at.lte.${new Date().toISOString()}`)
@@ -95,7 +105,25 @@ async function fetchSupabasePost(slug) {
     console.warn('Supabase blog post fetch skipped:', error.message);
     return null;
   }
-  return data ? mapSupabasePost(data) : null;
+  if (!data) return null;
+
+  const post = mapSupabasePost(data);
+  const destinationSlugs = post.relatedDestinationSlugs || [];
+  const relatedPostSlugs = post.relatedPostSlugs || [];
+  const [destinationRes, relatedPostRes] = await Promise.all([
+    destinationSlugs.length
+      ? supabase.from('travel_destinations').select('slug, name').in('slug', destinationSlugs)
+      : Promise.resolve({ data: [] }),
+    relatedPostSlugs.length
+      ? supabase.from('blog_posts').select('slug, title').in('slug', relatedPostSlugs).eq('status', 'published')
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  return {
+    ...post,
+    relatedDestinations: destinationRes.data || [],
+    relatedPosts: relatedPostRes.data || [],
+  };
 }
 
 export async function fetchPosts() {

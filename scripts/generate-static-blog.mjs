@@ -59,6 +59,16 @@ function mapSupabasePost(row) {
     seoTitle: row.seo_title || undefined,
     seoDescription: row.seo_description || undefined,
     canonicalUrl: row.canonical_url || undefined,
+    ctaEnabled: row.cta_enabled ?? true,
+    ctaTitle: row.cta_title || undefined,
+    ctaDescription: row.cta_description || undefined,
+    ctaPrimaryLabel: row.cta_primary_label || undefined,
+    ctaPrimaryUrl: row.cta_primary_url || undefined,
+    ctaZaloLabel: row.cta_zalo_label || undefined,
+    ctaZaloUrl: row.cta_zalo_url || undefined,
+    relatedDestinationSlugs: row.related_destination_slugs || [],
+    relatedVehicleLinks: row.related_vehicle_links || [],
+    relatedPostSlugs: row.related_post_slugs || [],
   };
 }
 
@@ -66,7 +76,7 @@ async function fetchBlogPosts() {
   if (supabase) {
     const { data, error } = await supabase
       .from('blog_posts')
-      .select('id, slug, title, excerpt, main_image_url, author, category_slug, content_html, seo_title, seo_description, canonical_url, status, published_at, created_at, updated_at')
+      .select('id, slug, title, excerpt, main_image_url, author, category_slug, content_html, seo_title, seo_description, canonical_url, cta_enabled, cta_title, cta_description, cta_primary_label, cta_primary_url, cta_zalo_label, cta_zalo_url, related_destination_slugs, related_vehicle_links, related_post_slugs, status, published_at, created_at, updated_at')
       .eq('status', 'published')
       .or(`published_at.is.null,published_at.lte.${new Date().toISOString()}`)
       .order('published_at', { ascending: false, nullsFirst: false })
@@ -82,6 +92,19 @@ async function fetchBlogPosts() {
   }
 
   return client.fetch(postsQuery);
+}
+
+async function fetchTravelDestinations() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('travel_destinations')
+    .select('slug, name')
+    .eq('status', 'published');
+  if (error) {
+    console.warn(`Skipped travel destination labels: ${error.message}`);
+    return [];
+  }
+  return data || [];
 }
 
 const blogMeta = {
@@ -924,8 +947,13 @@ function layout({ title, description, canonical, image, type = 'article', body, 
       .related h2 { font-size: 22px; margin: 0 0 10px; }
       .related ul { margin: 0; }
       .related li { font-size: 16px; line-height: 1.7; }
-      .cta { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 44px; padding: 24px; text-align: center; }
+      .cta { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 16px; margin-top: 44px; padding: 28px; text-align: center; }
+      .cta .eyebrow { color: #2563eb; margin: 0 0 10px; }
+      .cta h2 { font-size: 28px; margin: 0 0 8px; }
+      .cta p { font-size: 16px; margin: 0 0 16px; }
       .button { background: #11163e; border-radius: 999px; color: #fff; display: inline-flex; margin-top: 8px; padding: 13px 22px; }
+      .cta-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+      .button.secondary { background: #fff; border: 1px solid #cbd5e1; color: #11163e; }
       @media (max-width: 900px) { .nav { padding: 0 16px; } .navlinks a:nth-child(2), .navlinks a:nth-child(3), .navlinks a:nth-child(4) { display: none; } .nav-cta { display: none; } }
       @media (max-width: 640px) { main { padding: 48px 16px 64px; } p, li { font-size: 16px; } .article { margin-left: -16px; margin-right: -16px; border-radius: 0; } .brand img { height: 32px; } .navlinks { gap: 18px; } }
     </style>
@@ -949,6 +977,20 @@ function layout({ title, description, canonical, image, type = 'article', body, 
       </nav>
     </header>
     ${body}
+    <script>
+      document.addEventListener('click', function (event) {
+        var target = event.target;
+        var link = target && target.closest ? target.closest('[data-blog-action]') : null;
+        if (!link) return;
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: 'blog_conversion_click',
+          article_slug: link.getAttribute('data-article-slug') || '',
+          action: link.getAttribute('data-blog-action') || '',
+          target: link.getAttribute('data-blog-target') || link.getAttribute('href') || ''
+        });
+      });
+    </script>
   </body>
 </html>`;
 }
@@ -969,16 +1011,36 @@ function postAuthor(post) {
   return post.author || 'CarMatch';
 }
 
-function renderInternalLinks(post) {
-  const links = internalLinks[post.slug.current] || [
+function renderInternalLinks(post, contentIndex) {
+  const configuredLinks = [
+    ...(post.relatedDestinationSlugs || []).slice(0, 2).map((slug) => ({ href: `/di-dau/${slug}`, label: `Đi ${contentIndex.destinationNames.get(slug) || categoryLabel(slug)} bằng xe tự lái`, action: 'related_destination' })),
+    ...(post.relatedVehicleLinks || []).slice(0, 1).map((link) => ({ href: link.url, label: link.label, action: 'related_vehicle' })),
+    ...(post.relatedPostSlugs || []).slice(0, 1).map((slug) => ({ href: `/blog/${slug}`, label: contentIndex.postTitles.get(slug) || categoryLabel(slug), action: 'related_post' })),
+  ].filter((link) => link.href && link.label);
+  const links = (configuredLinks.length ? configuredLinks : internalLinks[post.slug.current] || [
     { href: '/xe', label: 'Xem xe tự lái CarMatch' },
     { href: '/blog', label: 'Đọc thêm kinh nghiệm thuê xe' },
-  ];
+  ]).slice(0, 4);
 
   return `<aside class="related" aria-label="Liên kết liên quan">
           <h2>Đọc tiếp</h2>
-          <ul>${links.map((link) => `<li><a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a></li>`).join('')}</ul>
+          <ul>${links.map((link) => `<li><a href="${escapeHtml(link.href)}" data-article-slug="${escapeHtml(post.slug.current)}" data-blog-action="${escapeHtml(link.action || 'related_fallback')}" data-blog-target="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a></li>`).join('')}</ul>
         </aside>`;
+}
+
+function renderPostCta(post) {
+  if (post.ctaEnabled === false) return '';
+  const primaryButton = post.ctaPrimaryUrl
+    ? `<a class="button" href="${escapeHtml(post.ctaPrimaryUrl)}" data-article-slug="${escapeHtml(post.slug.current)}" data-blog-action="cta_primary" data-blog-target="${escapeHtml(post.ctaPrimaryUrl)}">${escapeHtml(post.ctaPrimaryLabel || 'Đặt xe với CarMatch')}</a>`
+    : '';
+  const zaloUrl = post.ctaZaloUrl || 'https://zalo.me/0975563290';
+  const zaloButton = `<a class="button secondary" href="${escapeHtml(zaloUrl)}" data-article-slug="${escapeHtml(post.slug.current)}" data-blog-action="cta_zalo" data-blog-target="${escapeHtml(zaloUrl)}">${escapeHtml(post.ctaZaloLabel || 'Đặt xe qua Zalo')}</a>`;
+  return `<div class="cta">
+          <p class="eyebrow">CarMatch hỗ trợ nhanh</p>
+          <h2>${escapeHtml(post.ctaTitle || 'Sẵn sàng đặt xe?')}</h2>
+          <p>${escapeHtml(post.ctaDescription || 'Nhắn Zalo CarMatch để được tư vấn xe phù hợp và giao xe tận nơi.')}</p>
+          <div class="cta-actions">${primaryButton}${zaloButton}</div>
+        </div>`;
 }
 
 function renderBlogIndex(posts) {
@@ -1021,7 +1083,7 @@ function renderBlogIndex(posts) {
   });
 }
 
-function renderPost(post) {
+function renderPost(post, contentIndex) {
   const title = `${post.seoTitle || post.title} | CarMatch`;
   const description = postDescription(post);
   const canonical = postUrl(post);
@@ -1041,12 +1103,8 @@ function renderPost(post) {
         ${post.excerpt ? `<p>${escapeHtml(post.excerpt)}</p>` : ''}
         ${post.mainImageUrl && !hasInlineBodyImages ? `<img class="hero" src="${escapeHtml(post.mainImageUrl)}" alt="${escapeHtml(post.title)}" />` : ''}
         ${post.bodyHtml ? post.bodyHtml : renderPortableText(post.body)}
-        ${renderInternalLinks(post)}
-        <div class="cta">
-          <h2>Sẵn sàng đặt xe?</h2>
-          <p>Nhắn Zalo CarMatch để được tư vấn xe phù hợp và giao xe tận nơi.</p>
-          <a class="button" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
-        </div>
+        ${renderInternalLinks(post, contentIndex)}
+        ${renderPostCta(post)}
       </article>
     </main>`,
     structuredData: {
@@ -1104,7 +1162,11 @@ ${urls.map((url) => `  <url>
 }
 
 async function main() {
-  const [posts, vehicles] = await Promise.all([fetchBlogPosts(), fetchVehicles()]);
+  const [posts, vehicles, destinations] = await Promise.all([fetchBlogPosts(), fetchVehicles(), fetchTravelDestinations()]);
+  const contentIndex = {
+    destinationNames: new Map(destinations.map((destination) => [destination.slug, destination.name])),
+    postTitles: new Map(posts.map((post) => [post.slug.current, post.title])),
+  };
 
   await writeStaticRouteShells(vehicles);
 
@@ -1114,7 +1176,7 @@ async function main() {
   for (const post of posts) {
     const outputDir = path.join(distDir, 'blog', post.slug.current);
     await mkdir(outputDir, { recursive: true });
-    await writeFile(path.join(outputDir, 'index.html'), renderPost(post), 'utf8');
+    await writeFile(path.join(outputDir, 'index.html'), renderPost(post, contentIndex), 'utf8');
   }
 
   await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles), 'utf8');

@@ -22,6 +22,18 @@ interface Post {
   seoTitle?: string;
   seoDescription?: string;
   canonicalUrl?: string;
+  ctaEnabled?: boolean;
+  ctaTitle?: string;
+  ctaDescription?: string;
+  ctaPrimaryLabel?: string;
+  ctaPrimaryUrl?: string;
+  ctaZaloLabel?: string;
+  ctaZaloUrl?: string;
+  relatedDestinationSlugs?: string[];
+  relatedVehicleLinks?: Array<{ label: string; url: string }>;
+  relatedPostSlugs?: string[];
+  relatedDestinations?: Array<{ slug: string; name: string }>;
+  relatedPosts?: Array<{ slug: string; title: string }>;
 }
 
 function parseImageAttrs(tag: string) {
@@ -69,6 +81,25 @@ function formatDate(dateStr: string) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+  });
+}
+
+function labelFromSlug(slug: string) {
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function trackBlogClick(postSlug: string, action: string, target: string) {
+  const trackedWindow = window as Window & { dataLayer?: Array<Record<string, unknown>> };
+  trackedWindow.dataLayer = trackedWindow.dataLayer || [];
+  trackedWindow.dataLayer.push({
+    event: 'blog_conversion_click',
+    article_slug: postSlug,
+    action,
+    target,
   });
 }
 
@@ -137,6 +168,21 @@ export default function BlogPost() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const hasInlineBodyImages = Boolean(post?.bodyHtml && /<img\b/i.test(post.bodyHtml));
+  const relatedLinks = post ? [
+    ...(post.relatedDestinations?.length
+      ? post.relatedDestinations
+      : post.relatedDestinationSlugs?.map((relatedSlug) => ({ slug: relatedSlug, name: labelFromSlug(relatedSlug) })) || [])
+      .slice(0, 2)
+      .map((destination) => ({ key: `destination-${destination.slug}`, href: `/di-dau/${destination.slug}`, label: `Đi ${destination.name} bằng xe tự lái`, action: 'related_destination' })),
+    ...(post.relatedVehicleLinks || [])
+      .slice(0, 1)
+      .map((vehicle) => ({ key: `vehicle-${vehicle.url}`, href: vehicle.url, label: vehicle.label, action: 'related_vehicle' })),
+    ...(post.relatedPosts?.length
+      ? post.relatedPosts
+      : post.relatedPostSlugs?.map((relatedSlug) => ({ slug: relatedSlug, title: labelFromSlug(relatedSlug) })) || [])
+      .slice(0, 1)
+      .map((relatedPost) => ({ key: `post-${relatedPost.slug}`, href: `/blog/${relatedPost.slug}`, label: relatedPost.title, action: 'related_post' })),
+  ] : [];
 
   useSEO({
     title: post?.seoTitle ?? post?.title ?? 'Blog | CarMatch',
@@ -265,20 +311,45 @@ export default function BlogPost() {
                 </div>
               ) : null}
 
-              {/* Zalo CTA */}
-              <div className="mt-12 bg-brand-50 border border-brand-100 rounded-2xl p-8 text-center">
-                <h3 className="text-gray-900 font-bold text-xl mb-2">Sẵn sàng trải nghiệm?</h3>
-                <p className="text-gray-500 mb-6">Đặt xe ngay qua Zalo — xác nhận trong 30 phút</p>
-                <a
-                  href="https://zalo.me/0975563290"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Đặt xe qua Zalo
-                </a>
-              </div>
+              {relatedLinks.length > 0 && (
+                <aside className="mt-10 rounded-2xl border border-orange-200 bg-orange-50 p-6">
+                  <h2 className="text-xl font-bold text-gray-900">Đọc tiếp</h2>
+                  <ul className="mt-3 space-y-2 text-gray-700">
+                    {relatedLinks.map((link) => (
+                      <li key={link.key}>
+                        <a href={link.href} onClick={() => trackBlogClick(post.slug.current, link.action, link.href)} className="font-semibold text-brand-700 hover:underline">
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </aside>
+              )}
+
+              {post.ctaEnabled !== false && (
+                <div className="mt-12 bg-brand-50 border border-brand-100 rounded-2xl p-8 text-center">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600 mb-3">CarMatch hỗ trợ nhanh</p>
+                  <h3 className="text-gray-900 font-bold text-2xl mb-2">{post.ctaTitle || 'Sẵn sàng trải nghiệm?'}</h3>
+                  <p className="text-gray-500 mb-6">{post.ctaDescription || 'Đặt xe ngay qua Zalo — xác nhận trong 30 phút'}</p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {post.ctaPrimaryUrl && (
+                      <a href={post.ctaPrimaryUrl} onClick={() => trackBlogClick(post.slug.current, 'cta_primary', post.ctaPrimaryUrl || '')} className="inline-flex items-center gap-2 px-8 py-3.5 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-colors">
+                        {post.ctaPrimaryLabel || 'Đặt xe với CarMatch'}
+                      </a>
+                    )}
+                    <a
+                      href={post.ctaZaloUrl || 'https://zalo.me/0975563290'}
+                      onClick={() => trackBlogClick(post.slug.current, 'cta_zalo', post.ctaZaloUrl || 'https://zalo.me/0975563290')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-brand-700 border border-brand-200 rounded-full font-bold hover:bg-brand-100 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      {post.ctaZaloLabel || 'Đặt xe qua Zalo'}
+                    </a>
+                  </div>
+                </div>
+              )}
 
               {/* Back link bottom */}
               <div className="mt-8 pt-8 border-t border-gray-100">

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/generate-static-blog.mjs",
+    "build": "vite build && node --env-file-if-exists=.env.local scripts/generate-static-blog.mjs",
     "migrate:sanity-blog": "node scripts/migrate-sanity-blog-to-supabase.mjs",
     "preview": "vite preview"
   },
