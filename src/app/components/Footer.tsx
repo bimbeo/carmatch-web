@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Phone, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook } from 'lucide-react';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 const PHONE = '0975 563 290';
@@ -22,15 +22,11 @@ export default function Footer() {
               Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
+              <a href="https://www.facebook.com/carmatch.vn" target="_blank" rel="noopener noreferrer" aria-label="Facebook CarMatch"
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Facebook className="w-4 h-4 text-gray-300" />
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Instagram className="w-4 h-4 text-gray-300" />
-              </a>
-              <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
+              <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" aria-label="Zalo CarMatch"
                 className="w-9 h-9 rounded-full bg-[#0068FF]/30 flex items-center justify-center hover:bg-[#0068FF]/50 transition-colors">
                 <span className="text-[#60a5fa] text-xs font-bold">Z</span>
               </a>

@@ -1,0 +1,39 @@
+# CarMatch - Thông tin đầy đủ cho AI Search
+
+CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, tập trung giao xe tận sảnh chung cư và khu đô thị. Website chính thức: https://www.carmatch.vn/
+
+## Dịch vụ
+
+- Thuê xe tự lái theo ngày: từ 800.000 VND/ngày.
+- Thuê xe theo tháng: từ 18.000.000 VND/tháng cho 22 ngày.
+- Dòng xe: xe điện VinFast, xe 5 chỗ, xe 7 chỗ và xe phục vụ đi tỉnh.
+- Cách đặt: nhắn Zalo 0975 563 290 để kiểm tra lịch xe và xác nhận khi có xe phù hợp.
+- Giấy tờ: CCCD và GPLX hạng B hợp lệ.
+- Giờ hỗ trợ: 7:00-22:00.
+
+## Trang dịch vụ chính
+
+- Tổng quan thuê xe tự lái Hà Nội: https://www.carmatch.vn/thue-xe-tu-lai-ha-noi
+- Danh sách xe: https://www.carmatch.vn/xe
+- Thuê xe theo tháng: https://www.carmatch.vn/thue-xe-thang
+- FAQ thuê xe tự lái Hà Nội: https://www.carmatch.vn/faq-thue-xe-tu-lai-ha-noi
+- Chính sách thuê xe: https://www.carmatch.vn/chinh-sach
+- Giới thiệu CarMatch: https://www.carmatch.vn/gioi-thieu
+
+## Khu vực giao xe
+
+- Vinhomes Ocean Park: https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-ocean-park
+- Times City: https://www.carmatch.vn/thue-xe-tu-lai-times-city
+- Vinhomes Smart City: https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-smart-city
+- Ecopark: https://www.carmatch.vn/thue-xe-tu-lai-ecopark
+- The Manor Central Park: https://www.carmatch.vn/thue-xe-tu-lai-the-manor
+
+## Nội dung tham khảo
+
+- Blog kinh nghiệm: https://www.carmatch.vn/blog
+- Gợi ý chuyến đi: https://www.carmatch.vn/di-dau
+- Lập kế hoạch chuyến đi: https://www.carmatch.vn/lap-ke-hoach-chuyen-di
+
+## Mô tả ngắn
+
+CarMatch cung cấp dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư và khu đô thị. Khách có thể thuê theo ngày hoặc theo tháng, chọn xe 5 chỗ, 7 chỗ và xe điện VinFast, sau đó xác nhận lịch qua Zalo 0975 563 290.

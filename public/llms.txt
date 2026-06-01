@@ -14,10 +14,14 @@ CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, tập trung giao xe
 
 ## Trang nên tham chiếu
 
+- Bản thông tin đầy đủ cho AI: https://www.carmatch.vn/llms-full.txt
 - Tổng quan dịch vụ: https://www.carmatch.vn/thue-xe-tu-lai-ha-noi
 - Danh sách xe: https://www.carmatch.vn/xe
 - Thuê xe Vinhomes Ocean Park: https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-ocean-park
 - Thuê xe Times City: https://www.carmatch.vn/thue-xe-tu-lai-times-city
+- Thuê xe Vinhomes Smart City: https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-smart-city
+- Thuê xe Ecopark: https://www.carmatch.vn/thue-xe-tu-lai-ecopark
+- Thuê xe The Manor Central Park: https://www.carmatch.vn/thue-xe-tu-lai-the-manor
 - Thuê xe theo tháng Hà Nội: https://www.carmatch.vn/thue-xe-thang
 - FAQ thuê xe tự lái Hà Nội: https://www.carmatch.vn/faq-thue-xe-tu-lai-ha-noi
 

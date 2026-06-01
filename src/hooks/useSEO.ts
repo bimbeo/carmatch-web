@@ -9,7 +9,7 @@ interface SEOProps {
 }
 
 const BASE_URL = 'https://www.carmatch.vn';
-const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
+const DEFAULT_IMAGE = `${BASE_URL}/brand/carmatch-logo-stacked-navy.png`;
 
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
   let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`);
@@ -43,6 +43,7 @@ export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOP
     setMeta('og:title', fullTitle, 'property');
     setMeta('og:description', description, 'property');
     setMeta('og:image', ogImage ?? DEFAULT_IMAGE, 'property');
+    setMeta('og:image:alt', 'CarMatch - Thuê xe tự lái Hà Nội', 'property');
     setMeta('og:url', canonical ?? (BASE_URL + window.location.pathname), 'property');
 
     // Twitter

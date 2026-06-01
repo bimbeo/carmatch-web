@@ -6,6 +6,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 const distRoot = path.join(projectRoot, 'dist')
 const siteUrl = 'https://www.carmatch.vn'
+const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`
+const contentUpdated = '2026-06-02'
 
 const baseFaq = [
   {
@@ -243,6 +245,31 @@ function faqSchema(slug, items) {
   }
 }
 
+function breadcrumbSchema(slug, label) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: siteUrl },
+      { '@type': 'ListItem', position: 2, name: label, item: `${siteUrl}/${slug}` },
+    ],
+  }
+}
+
+function webPageSchema({ slug, title, description }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': `${siteUrl}/${slug}#webpage`,
+    name: title,
+    description,
+    url: `${siteUrl}/${slug}`,
+    inLanguage: 'vi-VN',
+    isPartOf: { '@type': 'WebSite', '@id': `${siteUrl}/#website`, name: 'CarMatch', url: siteUrl },
+    primaryImageOfPage: { '@type': 'ImageObject', url: brandImage },
+  }
+}
+
 function shell({ title, description, slug, structuredData, body }) {
   const canonical = `${siteUrl}/${slug}`
   return `<!doctype html>
@@ -260,7 +287,12 @@ function shell({ title, description, slug, structuredData, body }) {
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
+    <meta property="og:image" content="${escapeHtml(brandImage)}" />
+    <meta property="og:image:alt" content="CarMatch - Thuê xe tự lái Hà Nội" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:image" content="${escapeHtml(brandImage)}" />
     <link rel="icon" type="image/png" href="/favicon-32x32.png" />
     <script type="application/ld+json">${jsonLd(structuredData)}</script>
     <style>
@@ -270,6 +302,8 @@ function shell({ title, description, slug, structuredData, body }) {
       .nav { align-items: center; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1120px; padding: 16px 20px; }
       .brand img { height: 32px; width: auto; }
       .nav-links { display: flex; gap: 18px; }
+      .breadcrumbs { color: #64748b; font-size: 14px; margin: 0 0 20px; }
+      .breadcrumbs a { font-size: 14px; }
       a { color: #0f766e; font-weight: 800; text-decoration: none; }
       main { margin: 0 auto; max-width: 1120px; padding: 48px 20px 72px; }
       .eyebrow { color: #0f766e; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
@@ -317,13 +351,14 @@ function shell({ title, description, slug, structuredData, body }) {
 function renderLanding(page) {
   const faq = [...baseFaq, ...page.faq.map(([question, answer]) => ({ question, answer }))]
   const body = `<main>
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Trang chủ</a> / ${escapeHtml(page.area)}</nav>
     <p class="eyebrow">CarMatch · ${escapeHtml(page.district)}</p>
     <h1>${escapeHtml(page.title.replace(' | CarMatch', ''))}</h1>
     <p class="lead">${escapeHtml(page.intro)}</p>
     <a class="cta" href="https://zalo.me/0975563290">Nhắn Zalo đặt xe</a>
 
     <section class="summary" aria-label="Tóm tắt cho AI Search">
-      <h2>Tóm tắt nhanh</h2>
+      <h2 id="tom-tat-nhanh">Tóm tắt nhanh</h2>
       <ul>
         <li>CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, tập trung giao xe tận sảnh cho cư dân chung cư/khu đô thị.</li>
         <li>Khu vực phục vụ gồm ${escapeHtml(page.areas.join(', '))}.</li>
@@ -333,7 +368,7 @@ function renderLanding(page) {
     </section>
 
     <section>
-      <h2>Vì sao nên thuê xe tự lái ${escapeHtml(page.area)} qua CarMatch?</h2>
+      <h2 id="vi-sao-thue-xe">Vì sao nên thuê xe tự lái ${escapeHtml(page.area)} qua CarMatch?</h2>
       <p>${escapeHtml(page.localContext)}</p>
       <div class="grid">
         ${page.bestFor.map((item) => `<div class="card">${escapeHtml(item)}</div>`).join('')}
@@ -341,7 +376,7 @@ function renderLanding(page) {
     </section>
 
     <section>
-      <h2>Các mẫu xe phù hợp khi thuê xe tự lái ${escapeHtml(page.area)}</h2>
+      <h2 id="mau-xe-phu-hop">Các mẫu xe phù hợp khi thuê xe tự lái ${escapeHtml(page.area)}</h2>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Dòng xe</th><th>Phù hợp với</th><th>Giá tham khảo</th></tr></thead>
@@ -353,7 +388,7 @@ function renderLanding(page) {
     </section>
 
     <section>
-      <h2>Bảng thông tin nhanh</h2>
+      <h2 id="bang-thong-tin">Bảng thông tin nhanh</h2>
       <div class="table-wrap">
         <table>
           <tbody>
@@ -368,7 +403,7 @@ function renderLanding(page) {
     </section>
 
     <section>
-      <h2>Quy trình đặt xe</h2>
+      <h2 id="quy-trinh-dat-xe">Quy trình đặt xe</h2>
       <div class="grid">
         <div class="card"><h3>01. Gửi nhu cầu</h3><p>Gửi khu vực nhận xe, ngày đi, ngày về, số người và loại xe mong muốn.</p></div>
         <div class="card"><h3>02. Kiểm tra lịch</h3><p>CarMatch kiểm tra xe trống, chi phí thuê, phí giao nhận và giấy tờ cần chuẩn bị.</p></div>
@@ -378,12 +413,12 @@ function renderLanding(page) {
     </section>
 
     <section>
-      <h2>Câu hỏi thường gặp</h2>
+      <h2 id="cau-hoi-thuong-gap">Câu hỏi thường gặp</h2>
       ${faq.map((item) => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}
     </section>
 
     <section>
-      <h2>Khu vực CarMatch đang phục vụ</h2>
+      <h2 id="khu-vuc-phuc-vu">Khu vực CarMatch đang phục vụ</h2>
       <ul class="related">
         ${relatedPages.filter(({ slug }) => slug !== page.slug).map(({ slug, label }) => `<li><a href="/${escapeHtml(slug)}">${escapeHtml(label)}</a></li>`).join('')}
       </ul>
@@ -394,13 +429,19 @@ function renderLanding(page) {
     title: page.title,
     description: page.description,
     slug: page.slug,
-    structuredData: [serviceSchema(page), faqSchema(page.slug, faq)],
+    structuredData: [
+      webPageSchema(page),
+      serviceSchema(page),
+      faqSchema(page.slug, faq),
+      breadcrumbSchema(page.slug, page.area),
+    ],
     body,
   })
 }
 
 function renderFaqPage() {
   const body = `<main>
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Trang chủ</a> / FAQ thuê xe tự lái Hà Nội</nav>
     <p class="eyebrow">CarMatch FAQ</p>
     <h1>FAQ thuê xe tự lái Hà Nội</h1>
     <p class="lead">Các câu hỏi thường gặp khi thuê xe tự lái Hà Nội qua CarMatch: giấy tờ, đặt cọc, giao xe tận sảnh và cách xác nhận lịch.</p>
@@ -408,7 +449,7 @@ function renderFaqPage() {
       ${faqPage.faq.map((item) => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}
     </section>
     <section>
-      <h2>Khu vực CarMatch đang phục vụ</h2>
+      <h2 id="khu-vuc-phuc-vu">Khu vực CarMatch đang phục vụ</h2>
       <ul class="related">
         ${relatedPages.filter(({ slug }) => slug !== faqPage.slug).map(({ slug, label }) => `<li><a href="/${escapeHtml(slug)}">${escapeHtml(label)}</a></li>`).join('')}
       </ul>
@@ -420,7 +461,11 @@ function renderFaqPage() {
     title: faqPage.title,
     description: faqPage.description,
     slug: faqPage.slug,
-    structuredData: faqSchema(faqPage.slug, faqPage.faq),
+    structuredData: [
+      webPageSchema(faqPage),
+      faqSchema(faqPage.slug, faqPage.faq),
+      breadcrumbSchema(faqPage.slug, 'FAQ thuê xe tự lái Hà Nội'),
+    ],
     body,
   })
 }
@@ -446,6 +491,7 @@ async function appendSitemapRoutes() {
       '</urlset>',
       `  <url>
     <loc>${loc}</loc>
+    <lastmod>${contentUpdated}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>${route.priority}</priority>
   </url>

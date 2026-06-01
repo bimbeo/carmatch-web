@@ -1,5 +1,5 @@
 const siteUrl = 'https://www.carmatch.vn';
-const brandImage = `${siteUrl}/og-image.jpg`;
+const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 
 function optimizeImageUrl(url = '', width = 1200) {
@@ -302,7 +302,11 @@ export function renderBlogIndex(posts = []) {
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${siteUrl}/blog" />
     <meta property="og:image" content="${escapeHtml(brandImage)}" />
+    <meta property="og:image:alt" content="CarMatch - Thuê xe tự lái Hà Nội" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:image" content="${escapeHtml(brandImage)}" />
     <script type="application/ld+json">${JSON.stringify(graph)}</script>
     ${sharedStyles()}
     <style>
@@ -387,6 +391,7 @@ export function renderBlogPage(post) {
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
     <meta property="og:image" content="${escapeHtml(post.mainImageUrl || brandImage)}" />
+    <meta property="og:image:alt" content="${escapeHtml(post.title)}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />

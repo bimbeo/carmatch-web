@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
 const siteUrl = 'https://www.carmatch.vn';
+const contentUpdated = '2026-06-02';
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 const brandIcon = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const hanoiDeliveryDetails = {
@@ -1165,11 +1166,13 @@ function renderSitemap(posts, vehicles) {
       loc: meta.canonical,
       priority: meta.priority,
       changefreq: meta.changefreq,
+      lastmod: contentUpdated,
     })),
     {
       loc: `${siteUrl}/blog`,
       priority: '0.8',
       changefreq: 'weekly',
+      lastmod: contentUpdated,
     },
     ...vehicles.map((vehicle) => ({
       loc: `${siteUrl}/xe/${vehicle.slug}`,
