@@ -29,6 +29,31 @@
       "headers": { "Location": "https://www.carmatch.vn/blog" }
     },
     {
+      "src": "/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi-tranh-lua-dao/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi" }
+    },
+    {
+      "src": "/guilde/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/di-dau" }
+    },
+    {
+      "src": "/policy/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/chinh-sach" }
+    },
+    {
+      "src": "/car-sharing/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/hop-tac" }
+    },
+    {
+      "src": "/car/([^/]+)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
       "src": "/(ve-chung-toi|about|gioi-thieu-carmatch)/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/gioi-thieu" }

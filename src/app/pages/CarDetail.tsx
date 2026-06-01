@@ -17,6 +17,40 @@ import { useSEO } from '@/hooks/useSEO';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
+const SITE_URL = 'https://www.carmatch.vn';
+const HANOI_DELIVERY_DETAILS = {
+  '@type': 'OfferShippingDetails',
+  shippingDestination: {
+    '@type': 'DefinedRegion',
+    addressCountry: 'VN',
+    addressRegion: 'Hà Nội',
+  },
+  shippingRate: {
+    '@type': 'MonetaryAmount',
+    value: 0,
+    currency: 'VND',
+  },
+  deliveryTime: {
+    '@type': 'ShippingDeliveryTime',
+    handlingTime: {
+      '@type': 'QuantitativeValue',
+      minValue: 0,
+      maxValue: 1,
+      unitCode: 'DAY',
+    },
+    transitTime: {
+      '@type': 'QuantitativeValue',
+      minValue: 0,
+      maxValue: 1,
+      unitCode: 'DAY',
+    },
+  },
+};
+const RENTAL_RETURN_POLICY = {
+  '@type': 'MerchantReturnPolicy',
+  applicableCountry: 'VN',
+  returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+};
 
 /* ─── Image Gallery ─── */
 function Gallery({ images, name }: { images: string[]; name: string }) {
@@ -183,6 +217,56 @@ export default function CarDetail() {
     canonical: car ? `https://www.carmatch.vn/xe/${car.slug}` : undefined,
     ogImage: car?.images?.[0] ?? undefined,
   });
+
+  useEffect(() => {
+    if (!car) return undefined;
+
+    const canonical = `${SITE_URL}/xe/${car.slug}`;
+    const jsonLd = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: `Thuê ${car.name}`,
+        description: `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày, giao xe tận nơi theo lịch hẹn.`,
+        image: car.images,
+        brand: car.brand ? { '@type': 'Brand', name: car.brand } : undefined,
+        category: 'Xe tự lái',
+        url: canonical,
+        offers: {
+          '@type': 'Offer',
+          url: canonical,
+          priceCurrency: 'VND',
+          price: car.price || undefined,
+          availability: car.available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+          seller: {
+            '@type': 'Organization',
+            name: 'CarMatch',
+            url: SITE_URL,
+            logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/carmatch-logo-stacked-navy.png` },
+          },
+          shippingDetails: HANOI_DELIVERY_DETAILS,
+          hasMerchantReturnPolicy: RENTAL_RETURN_POLICY,
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Thuê xe tự lái', item: `${SITE_URL}/xe` },
+          { '@type': 'ListItem', position: 3, name: car.name, item: canonical },
+        ],
+      },
+    ];
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.dataset.carStructuredData = 'true';
+    script.text = JSON.stringify(jsonLd);
+    document.head.appendChild(script);
+    return () => {
+      script.remove();
+    };
+  }, [car]);
 
   useEffect(() => {
     fetch('/api/promo-list')

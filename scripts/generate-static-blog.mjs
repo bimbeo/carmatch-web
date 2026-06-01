@@ -10,6 +10,39 @@ const distDir = path.join(rootDir, 'dist');
 const siteUrl = 'https://www.carmatch.vn';
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 const brandIcon = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
+const hanoiDeliveryDetails = {
+  '@type': 'OfferShippingDetails',
+  shippingDestination: {
+    '@type': 'DefinedRegion',
+    addressCountry: 'VN',
+    addressRegion: 'Hà Nội',
+  },
+  shippingRate: {
+    '@type': 'MonetaryAmount',
+    value: 0,
+    currency: 'VND',
+  },
+  deliveryTime: {
+    '@type': 'ShippingDeliveryTime',
+    handlingTime: {
+      '@type': 'QuantitativeValue',
+      minValue: 0,
+      maxValue: 1,
+      unitCode: 'DAY',
+    },
+    transitTime: {
+      '@type': 'QuantitativeValue',
+      minValue: 0,
+      maxValue: 1,
+      unitCode: 'DAY',
+    },
+  },
+};
+const rentalReturnPolicy = {
+  '@type': 'MerchantReturnPolicy',
+  applicableCountry: 'VN',
+  returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+};
 
 const client = createSanityClient({
   projectId: 'zwazjo4q',
@@ -615,6 +648,8 @@ function vehicleStructuredData(vehicle) {
         price: price || undefined,
         availability: 'https://schema.org/InStock',
         seller: publisherData(),
+        shippingDetails: hanoiDeliveryDetails,
+        hasMerchantReturnPolicy: rentalReturnPolicy,
       },
     },
     breadcrumbData([
