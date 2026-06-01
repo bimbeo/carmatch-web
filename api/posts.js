@@ -1,5 +1,12 @@
 import { fetchPostBySlug, fetchPosts } from './_blog-source.js';
 
+function setFreshCmsHeaders(res) {
+  res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+}
+
 export default async function handler(req, res) {
   try {
     const slug = typeof req.query.slug === 'string' ? req.query.slug : '';
@@ -11,14 +18,12 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Post not found' });
       }
 
-      res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      setFreshCmsHeaders(res);
       return res.status(200).json(post);
     }
 
     const posts = await fetchPosts();
-    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    setFreshCmsHeaders(res);
     res.status(200).json(posts);
   } catch (error) {
     console.error('Blog fetch error:', error);

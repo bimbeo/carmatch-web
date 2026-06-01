@@ -79,6 +79,22 @@
         "X-Content-Type-Options": "nosniff"
       }
     },
+    {
+      "src": "/blog/?",
+      "dest": "/index.html",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "src": "/blog/(.*)",
+      "dest": "/index.html",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "status": 404, "dest": "/404.html" }
