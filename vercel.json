@@ -81,7 +81,7 @@
     },
     {
       "src": "/blog/([^/]+)/?",
-      "dest": "/api/blog-page?slug=$1"
+      "dest": "/api/posts?slug=$1&format=html"
     },
     {
       "src": "/blog/?",

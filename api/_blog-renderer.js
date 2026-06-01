@@ -1,5 +1,3 @@
-import { fetchPostBySlug } from './_blog-source.js';
-
 const siteUrl = 'https://www.carmatch.vn';
 const brandImage = `${siteUrl}/og-image.jpg`;
 
@@ -205,7 +203,7 @@ function structuredData(post, faqItems) {
   return graph;
 }
 
-function renderHtml(post) {
+export function renderBlogPage(post) {
   const canonical = getPostUrl(post);
   const title = `${post.seoTitle || post.title} | CarMatch`;
   const description = getDescription(post);
@@ -309,22 +307,4 @@ function renderHtml(post) {
     </script>
   </body>
 </html>`;
-}
-
-export default async function handler(req, res) {
-  const slug = typeof req.query.slug === 'string' ? req.query.slug.replace(/^\/+|\/+$/g, '') : '';
-  if (!slug) return res.status(404).send('Not found');
-
-  try {
-    const post = await fetchPostBySlug(slug);
-    if (!post) return res.status(404).send('Không tìm thấy bài viết.');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
-    res.setHeader('CDN-Cache-Control', 'no-store');
-    res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
-    return res.status(200).send(renderHtml(post));
-  } catch (error) {
-    console.error('Blog page render error:', error);
-    return res.status(500).send('Không tải được bài viết.');
-  }
 }
