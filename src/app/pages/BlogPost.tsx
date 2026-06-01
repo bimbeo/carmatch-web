@@ -24,6 +24,45 @@ interface Post {
   canonicalUrl?: string;
 }
 
+function parseImageAttrs(tag: string) {
+  const src = tag.match(/\ssrc=(["'])(.*?)\1/i)?.[2] || '';
+  const alt = tag.match(/\salt=(["'])(.*?)\1/i)?.[2] || '';
+  return { src, alt };
+}
+
+function CmsHtml({ html }: { html: string }) {
+  const chunks = html.split(/(<img\b[^>]*>)/gi).filter(Boolean);
+  return (
+    <div className="max-w-none">
+      {chunks.map((chunk, index) => {
+        if (/^<img\b/i.test(chunk)) {
+          const { src, alt } = parseImageAttrs(chunk);
+          if (!src) return null;
+          return (
+            <figure key={`image-${src}-${index}`} className="my-8">
+              <img
+                src={src}
+                alt={alt}
+                className="w-full rounded-xl object-cover shadow-sm"
+                loading="lazy"
+              />
+              {alt ? <figcaption className="mt-2 text-center text-sm text-gray-500">{alt}</figcaption> : null}
+            </figure>
+          );
+        }
+
+        return (
+          <div
+            key={`html-${index}`}
+            className="prose prose-slate max-w-none"
+            dangerouslySetInnerHTML={{ __html: chunk }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function formatDate(dateStr: string) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -218,10 +257,7 @@ export default function BlogPost() {
 
               {/* Body */}
               {post.bodyHtml ? (
-                <div
-                  className="prose prose-slate max-w-none"
-                  dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
-                />
+                <CmsHtml html={post.bodyHtml} />
               ) : post.body && post.body.length > 0 ? (
                 <div className="prose max-w-none">
                   <PortableText value={post.body} components={portableTextComponents} />
