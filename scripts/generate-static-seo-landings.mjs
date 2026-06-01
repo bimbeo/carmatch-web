@@ -187,6 +187,10 @@ const faqPage = {
 }
 
 const seoLandingPages = pages.filter(({ slug }) => slug !== 'thue-xe-thang')
+const relatedPages = [
+  ...seoLandingPages.map(({ slug, area }) => ({ slug, label: `Thuê xe tự lái ${area}` })),
+  { slug: faqPage.slug, label: 'FAQ thuê xe tự lái Hà Nội' },
+]
 
 function escapeHtml(value) {
   return String(value)
@@ -285,6 +289,7 @@ function shell({ title, description, slug, structuredData, body }) {
       tr:last-child td { border-bottom: 0; }
       details { background: #fffdf8; border: 1px solid #e3dacd; border-radius: 10px; margin: 12px 0; padding: 18px 20px; }
       summary { color: #111827; cursor: pointer; font-size: 18px; font-weight: 800; }
+      .related { display: flex; flex-wrap: wrap; gap: 10px 18px; list-style: none; padding: 0; }
       .cta { background: #0f766e; border-radius: 999px; color: white; display: inline-flex; margin-top: 18px; padding: 13px 20px; }
       @media (max-width: 680px) {
         .nav-links a:first-child { display: none; }
@@ -376,6 +381,13 @@ function renderLanding(page) {
       <h2>Câu hỏi thường gặp</h2>
       ${faq.map((item) => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}
     </section>
+
+    <section>
+      <h2>Khu vực CarMatch đang phục vụ</h2>
+      <ul class="related">
+        ${relatedPages.filter(({ slug }) => slug !== page.slug).map(({ slug, label }) => `<li><a href="/${escapeHtml(slug)}">${escapeHtml(label)}</a></li>`).join('')}
+      </ul>
+    </section>
   </main>`
 
   return shell({
@@ -394,6 +406,12 @@ function renderFaqPage() {
     <p class="lead">Các câu hỏi thường gặp khi thuê xe tự lái Hà Nội qua CarMatch: giấy tờ, đặt cọc, giao xe tận sảnh và cách xác nhận lịch.</p>
     <section>
       ${faqPage.faq.map((item) => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}
+    </section>
+    <section>
+      <h2>Khu vực CarMatch đang phục vụ</h2>
+      <ul class="related">
+        ${relatedPages.filter(({ slug }) => slug !== faqPage.slug).map(({ slug, label }) => `<li><a href="/${escapeHtml(slug)}">${escapeHtml(label)}</a></li>`).join('')}
+      </ul>
     </section>
     <a class="cta" href="https://zalo.me/0975563290">Nhắn Zalo CarMatch</a>
   </main>`

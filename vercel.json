@@ -34,6 +34,11 @@
       "headers": { "Location": "https://www.carmatch.vn/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi" }
     },
     {
+      "src": "/blog/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/thue-xe-tu-lai-ha-noi" }
+    },
+    {
       "src": "/guilde/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/di-dau" }
@@ -52,6 +57,16 @@
       "src": "/car/([^/]+)/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/xe/vinfast-vf3-2024-30m-02770/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf3-2024" }
+    },
+    {
+      "src": "/xe/vinfast-vf7s-2025/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf7s-2025-30l91487" }
     },
     {
       "src": "/(ve-chung-toi|about|gioi-thieu-carmatch)/?",

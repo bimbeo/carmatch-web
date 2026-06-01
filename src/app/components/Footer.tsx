@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="mb-4 inline-flex items-center" aria-label="CarMatch">
@@ -66,6 +66,27 @@ export default function Footer() {
                 { href: '/gioi-thieu#quy-trinh', label: 'Quy trình thuê xe' },
                 { href: '/chinh-sach', label: 'Điều kiện & Chính sách' },
                 { href: '/faq', label: 'Câu hỏi thường gặp' },
+              ].map((item) => (
+                <li key={item.href}>
+                  <Link to={item.href} className="text-gray-400 text-sm hover:text-white transition-colors">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Khu vực */}
+          <div>
+            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Khu vực giao xe</h3>
+            <ul className="space-y-2.5">
+              {[
+                { href: '/thue-xe-tu-lai-ha-noi', label: 'Hà Nội' },
+                { href: '/thue-xe-tu-lai-vinhomes-ocean-park', label: 'Vinhomes Ocean Park' },
+                { href: '/thue-xe-tu-lai-times-city', label: 'Times City' },
+                { href: '/thue-xe-tu-lai-vinhomes-smart-city', label: 'Vinhomes Smart City' },
+                { href: '/thue-xe-tu-lai-ecopark', label: 'Ecopark' },
+                { href: '/thue-xe-tu-lai-the-manor', label: 'The Manor Central Park' },
               ].map((item) => (
                 <li key={item.href}>
                   <Link to={item.href} className="text-gray-400 text-sm hover:text-white transition-colors">
