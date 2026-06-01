@@ -105,6 +105,10 @@
       }
     },
     {
+      "src": "/(thue-xe-tu-lai-ha-noi|thue-xe-tu-lai-vinhomes-ocean-park|thue-xe-tu-lai-times-city|thue-xe-tu-lai-vinhomes-smart-city|thue-xe-tu-lai-ecopark|thue-xe-tu-lai-the-manor|faq-thue-xe-tu-lai-ha-noi)/?",
+      "dest": "/$1/index.html"
+    },
+    {
       "src": "/blog/([^/]+)/?",
       "dest": "/api/posts?slug=$1&format=html"
     },

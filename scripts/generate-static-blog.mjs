@@ -1217,7 +1217,28 @@ async function main() {
   await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles), 'utf8');
   await writeFile(
     path.join(distDir, 'robots.txt'),
-    ['User-agent: *', 'Allow: /', 'Allow: /blog', `Sitemap: ${siteUrl}/sitemap.xml`, ''].join('\n'),
+    [
+      'User-agent: *',
+      'Allow: /',
+      '',
+      'User-agent: GPTBot',
+      'Allow: /',
+      '',
+      'User-agent: ChatGPT-User',
+      'Allow: /',
+      '',
+      'User-agent: PerplexityBot',
+      'Allow: /',
+      '',
+      'User-agent: ClaudeBot',
+      'Allow: /',
+      '',
+      'User-agent: Google-Extended',
+      'Allow: /',
+      '',
+      `Sitemap: ${siteUrl}/sitemap.xml`,
+      '',
+    ].join('\n'),
     'utf8',
   );
 
