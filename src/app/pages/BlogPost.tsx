@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { PortableText } from '@portabletext/react';
@@ -39,16 +39,69 @@ interface Post {
 function parseImageAttrs(tag: string) {
   const src = tag.match(/\ssrc=(["'])(.*?)\1/i)?.[2] || '';
   const alt = tag.match(/\salt=(["'])(.*?)\1/i)?.[2] || '';
-  return { src, alt };
+  const caption = tag.match(/\sdata-caption=(["'])(.*?)\1/i)?.[2] || '';
+  return { src, alt, caption };
+}
+
+function stripHtml(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function extractHeadings(html: string) {
+  const headings: Array<{ level: number; text: string; id: string }> = [];
+  html.replace(/<h([23])[^>]*>([\s\S]*?)<\/h\1>/gi, (_match, level, content) => {
+    const text = stripHtml(content);
+    if (!text) return '';
+    const baseId = slugify(text);
+    const count = headings.filter((item) => item.id === baseId || item.id.startsWith(`${baseId}-`)).length;
+    headings.push({ level: Number(level), text, id: count ? `${baseId}-${count + 1}` : baseId });
+    return '';
+  });
+  return headings;
+}
+
+function addHeadingIds(html: string, headings: Array<{ id: string }>) {
+  let index = 0;
+  return html.replace(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi, (match, level, attrs, content) => {
+    const heading = headings[index++];
+    if (!heading) return match;
+    const cleanAttrs = String(attrs || '').replace(/\sid=(["']).*?\1/i, '');
+    return `<h${level}${cleanAttrs} id="${heading.id}">${content}</h${level}>`;
+  });
+}
+
+function extractFaqItems(html: string) {
+  const faqStart = html.search(/<h2[^>]*>[\s\S]*?(câu hỏi thường gặp|faq)[\s\S]*?<\/h2>/i);
+  if (faqStart < 0) return [];
+  return [...html.slice(faqStart).matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/gi)]
+    .slice(0, 8)
+    .map((match) => ({ question: stripHtml(match[1]), answer: stripHtml(match[2]) }))
+    .filter((item) => item.question && item.answer);
 }
 
 function CmsHtml({ html }: { html: string }) {
   const chunks = html.split(/(<img\b[^>]*>)/gi).filter(Boolean);
   return (
-    <div className="max-w-none">
+    <div className="cms-blog-body max-w-none">
       {chunks.map((chunk, index) => {
         if (/^<img\b/i.test(chunk)) {
-          const { src, alt } = parseImageAttrs(chunk);
+          const { src, alt, caption } = parseImageAttrs(chunk);
           if (!src) return null;
           return (
             <figure key={`image-${src}-${index}`} className="my-8">
@@ -58,7 +111,7 @@ function CmsHtml({ html }: { html: string }) {
                 className="w-full rounded-xl object-cover shadow-sm"
                 loading="lazy"
               />
-              {alt ? <figcaption className="mt-2 text-center text-sm text-gray-500">{alt}</figcaption> : null}
+              {caption || alt ? <figcaption className="mt-2 text-center text-sm text-gray-500">{caption || alt}</figcaption> : null}
             </figure>
           );
         }
@@ -101,6 +154,24 @@ function trackBlogClick(postSlug: string, action: string, target: string) {
     action,
     target,
   });
+}
+
+function BlogToc({ headings }: { headings: Array<{ level: number; text: string; id: string }> }) {
+  if (headings.length < 2) return null;
+  return (
+    <nav className="mb-8 rounded-2xl border border-slate-200 bg-slate-50 p-5" aria-label="Mục lục bài viết">
+      <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Mục lục</p>
+      <ol className="space-y-2">
+        {headings.map((heading) => (
+          <li key={heading.id} className={heading.level === 3 ? 'ml-4' : ''}>
+            <a href={`#${heading.id}`} className="text-sm font-semibold text-brand-700 hover:underline">
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
 }
 
 const portableTextComponents = {
@@ -167,6 +238,9 @@ export default function BlogPost() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const headings = useMemo(() => extractHeadings(post?.bodyHtml || ''), [post?.bodyHtml]);
+  const htmlWithHeadingIds = useMemo(() => addHeadingIds(post?.bodyHtml || '', headings), [headings, post?.bodyHtml]);
+  const faqItems = useMemo(() => extractFaqItems(htmlWithHeadingIds), [htmlWithHeadingIds]);
   const hasInlineBodyImages = Boolean(post?.bodyHtml && /<img\b/i.test(post.bodyHtml));
   const relatedLinks = post ? [
     ...(post.relatedDestinations?.length
@@ -223,6 +297,57 @@ export default function BlogPost() {
       document.title = 'CarMatch — Thuê Xe Tự Lái Hà Nội | Giá Từ 800K/Ngày';
     };
   }, [post]);
+
+  useEffect(() => {
+    if (!post) return undefined;
+    const canonical = post.canonicalUrl || `https://www.carmatch.vn/blog/${post.slug.current}`;
+    const jsonLd = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.title,
+        description: post.seoDescription || post.excerpt,
+        url: canonical,
+        mainEntityOfPage: canonical,
+        image: [post.mainImageUrl || 'https://www.carmatch.vn/og-image.jpg'],
+        datePublished: post.publishedAt,
+        dateModified: post.publishedAt,
+        author: { '@type': 'Person', name: post.author || 'CarMatch' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'CarMatch',
+          logo: { '@type': 'ImageObject', url: 'https://www.carmatch.vn/brand/carmatch-lockup-navy.png' },
+        },
+        inLanguage: 'vi-VN',
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: 'https://www.carmatch.vn' },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://www.carmatch.vn/blog' },
+          { '@type': 'ListItem', position: 3, name: post.title, item: canonical },
+        ],
+      },
+      ...(faqItems.length ? [{
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqItems.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: { '@type': 'Answer', text: item.answer },
+        })),
+      }] : []),
+    ];
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.dataset.blogStructuredData = 'true';
+    script.text = JSON.stringify(jsonLd);
+    document.head.appendChild(script);
+    return () => {
+      script.remove();
+    };
+  }, [faqItems, post]);
 
   return (
     <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
@@ -303,8 +428,9 @@ export default function BlogPost() {
               )}
 
               {/* Body */}
+              <BlogToc headings={headings} />
               {post.bodyHtml ? (
-                <CmsHtml html={post.bodyHtml} />
+                <CmsHtml html={htmlWithHeadingIds} />
               ) : post.body && post.body.length > 0 ? (
                 <div className="prose max-w-none">
                   <PortableText value={post.body} components={portableTextComponents} />
