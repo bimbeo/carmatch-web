@@ -229,22 +229,6 @@ function serviceSchema(page) {
   }
 }
 
-function faqSchema(slug, items) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    '@id': `${siteUrl}/${slug}#faq`,
-    mainEntity: items.map((item) => ({
-      '@type': 'Question',
-      name: item.question ?? item[0],
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answer ?? item[1],
-      },
-    })),
-  }
-}
-
 function breadcrumbSchema(slug, label) {
   return {
     '@context': 'https://schema.org',
@@ -432,7 +416,6 @@ function renderLanding(page) {
     structuredData: [
       webPageSchema(page),
       serviceSchema(page),
-      faqSchema(page.slug, faq),
       breadcrumbSchema(page.slug, page.area),
     ],
     body,
@@ -463,7 +446,6 @@ function renderFaqPage() {
     slug: faqPage.slug,
     structuredData: [
       webPageSchema(faqPage),
-      faqSchema(faqPage.slug, faqPage.faq),
       breadcrumbSchema(faqPage.slug, 'FAQ thuê xe tự lái Hà Nội'),
     ],
     body,

@@ -61,6 +61,7 @@ const postsQuery = `*[_type == "post" && defined(slug.current)] | order(publishe
   title,
   slug,
   publishedAt,
+  "modifiedAt": _updatedAt,
   excerpt,
   "mainImageUrl": mainImage.asset->url,
   "categories": categories[]->title,
@@ -84,6 +85,7 @@ function mapSupabasePost(row) {
     title: row.title,
     slug: { current: row.slug },
     publishedAt: row.published_at || row.updated_at || row.created_at,
+    modifiedAt: row.updated_at || row.published_at || row.created_at,
     excerpt: row.excerpt || '',
     mainImageUrl: row.main_image_url || null,
     categories: row.category_slug ? [categoryLabel(row.category_slug)] : [],
@@ -501,6 +503,10 @@ function escapeHtml(value = '') {
     .replaceAll("'", '&#39;');
 }
 
+function escapeXml(value = '') {
+  return escapeHtml(value);
+}
+
 function slugify(text, fallback = '') {
   const base = String(text || '')
     .toLowerCase()
@@ -529,6 +535,11 @@ function makeDuplicateVehicleSlug(vehicle) {
 function getVehicleImage(vehicle) {
   const refs = vehicle.external_refs && typeof vehicle.external_refs === 'object' ? vehicle.external_refs : {};
   return refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || brandIcon;
+}
+
+function getVehicleSitemapImages(vehicle) {
+  const image = getVehicleImage(vehicle);
+  return image === brandIcon ? [] : [image];
 }
 
 function getVehicleName(vehicle) {
@@ -585,44 +596,6 @@ function webPageData(meta, extra = {}) {
     },
     publisher: publisherData(),
     ...extra.fields,
-  };
-}
-
-function faqPageData(meta) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    name: meta.title,
-    description: meta.description,
-    url: meta.canonical,
-    inLanguage: 'vi-VN',
-    publisher: publisherData(),
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'Cần giấy tờ gì để thuê xe tự lái tại CarMatch?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Khách thuê cần CCCD, giấy phép lái xe còn hạn và đặt cọc theo quy định từng dòng xe.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'CarMatch có giao xe tận nơi không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Có. CarMatch hỗ trợ giao xe tận sảnh chung cư, tòa nhà và khu đô thị tại Hà Nội theo lịch hẹn.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Giá thuê xe tự lái tại CarMatch tính thế nào?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Giá thuê phụ thuộc mẫu xe, thời gian thuê và nhu cầu giao nhận. Khách có thể xem danh sách xe hoặc liên hệ Zalo để được báo giá nhanh.',
-        },
-      },
-    ],
   };
 }
 
@@ -689,7 +662,7 @@ function routeStructuredData(meta, vehicles) {
   if (meta.path === '/') return undefined;
   if (meta.path === '/xe') return fleetStructuredData(meta, vehicles);
   if (meta.path === '/faq') return [
-    faqPageData(meta),
+    webPageData(meta),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'FAQ', path: '/faq' },
@@ -731,7 +704,7 @@ async function fetchVehicles() {
   const { data, error } = await supabase
     .from('vehicles')
     .select(
-      'id,display_name,plate_number,color,model_year,daily_base_price,status,published,external_refs,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
+      'id,display_name,plate_number,color,model_year,daily_base_price,status,published,updated_at,external_refs,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
     )
     .eq('status', 'available')
     .eq('published', true)
@@ -1047,6 +1020,13 @@ function postAuthor(post) {
   return post.author || 'CarMatch';
 }
 
+function postAuthorData(post) {
+  const author = postAuthor(post);
+  return author === 'CarMatch'
+    ? { '@type': 'Organization', name: author, url: siteUrl }
+    : { '@type': 'Person', name: author };
+}
+
 function renderInternalLinks(post, contentIndex) {
   const configuredLinks = [
     ...(post.relatedDestinationSlugs || []).slice(0, 2).map((slug) => ({ href: `/di-dau/${slug}`, label: `Đi ${contentIndex.destinationNames.get(slug) || categoryLabel(slug)} bằng xe tự lái`, action: 'related_destination' })),
@@ -1111,8 +1091,8 @@ function renderBlogIndex(posts) {
         url: postUrl(post),
         image: [postImage(post)],
         datePublished: post.publishedAt,
-        dateModified: post.publishedAt,
-        author: { '@type': 'Person', name: postAuthor(post) },
+        dateModified: post.modifiedAt || post.publishedAt,
+        author: postAuthorData(post),
         publisher: publisherData(),
       })),
     },
@@ -1135,7 +1115,7 @@ function renderPost(post, contentIndex) {
       <article class="article">
         ${(post.categories || []).length ? `<p class="eyebrow">${escapeHtml(post.categories.join(' / '))}</p>` : ''}
         <h1>${escapeHtml(post.title)}</h1>
-        <p class="meta">${escapeHtml(postAuthor(post))}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
+        <p class="meta">${escapeHtml(postAuthor(post))}${post.publishedAt ? ` · Đăng ${escapeHtml(formatDate(post.publishedAt))}` : ''}${post.modifiedAt && post.modifiedAt !== post.publishedAt ? ` · Cập nhật ${escapeHtml(formatDate(post.modifiedAt))}` : ''}</p>
         ${post.excerpt ? `<p>${escapeHtml(post.excerpt)}</p>` : ''}
         ${post.mainImageUrl && !hasInlineBodyImages ? `<img class="hero" src="${escapeHtml(post.mainImageUrl)}" alt="${escapeHtml(post.title)}" />` : ''}
         ${post.bodyHtml ? post.bodyHtml : renderPortableText(post.body)}
@@ -1152,8 +1132,8 @@ function renderPost(post, contentIndex) {
       mainEntityOfPage: canonical,
       image: [image],
       datePublished: post.publishedAt,
-      dateModified: post.publishedAt,
-      author: { '@type': 'Person', name: postAuthor(post) },
+      dateModified: post.modifiedAt || post.publishedAt,
+      author: postAuthorData(post),
       publisher: publisherData(),
       inLanguage: 'vi-VN',
     },
@@ -1178,20 +1158,27 @@ function renderSitemap(posts, vehicles) {
       loc: `${siteUrl}/xe/${vehicle.slug}`,
       priority: '0.7',
       changefreq: 'daily',
+      lastmod: vehicle.updated_at?.slice(0, 10),
+      images: getVehicleSitemapImages(vehicle),
     })),
     ...posts.map((post) => ({
       loc: postUrl(post),
       priority: '0.7',
       changefreq: 'monthly',
-      lastmod: post.publishedAt?.slice(0, 10),
+      lastmod: (post.modifiedAt || post.publishedAt)?.slice(0, 10),
+      images: [postImage(post)],
     })),
   ];
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${urls.map((url) => `  <url>
-    <loc>${url.loc}</loc>${url.lastmod ? `
-    <lastmod>${url.lastmod}</lastmod>` : ''}
+    <loc>${escapeXml(url.loc)}</loc>${url.lastmod ? `
+    <lastmod>${url.lastmod}</lastmod>` : ''}${(url.images || []).map((image) => `
+    <image:image>
+      <image:loc>${escapeXml(image)}</image:loc>
+    </image:image>`).join('')}
     <changefreq>${url.changefreq}</changefreq>
     <priority>${url.priority}</priority>
   </url>`).join('\n')}

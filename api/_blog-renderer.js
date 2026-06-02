@@ -90,20 +90,6 @@ function addHeadingIds(html = '', headings = []) {
   });
 }
 
-function extractFaqItems(html = '') {
-  const items = [];
-  const faqStart = String(html).search(/<h2[^>]*>[\s\S]*?(câu hỏi thường gặp|faq)[\s\S]*?<\/h2>/i);
-  if (faqStart < 0) return items;
-  const section = String(html).slice(faqStart);
-  const matches = [...section.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/gi)];
-  for (const match of matches.slice(0, 8)) {
-    const question = stripHtml(match[1]);
-    const answer = stripHtml(match[2]);
-    if (question && answer) items.push({ question, answer });
-  }
-  return items;
-}
-
 function renderToc(headings) {
   if (headings.length < 2) return '';
   return `<nav class="toc" aria-label="Mục lục bài viết">
@@ -182,7 +168,14 @@ function renderPortableText(blocks = []) {
   return html.join('\n');
 }
 
-function structuredData(post, faqItems) {
+function authorData(post) {
+  const author = post.author || 'CarMatch';
+  return author === 'CarMatch'
+    ? { '@type': 'Organization', name: author, url: siteUrl }
+    : { '@type': 'Person', name: author };
+}
+
+function structuredData(post) {
   const canonical = getPostUrl(post);
   const graph = [
     {
@@ -194,8 +187,8 @@ function structuredData(post, faqItems) {
       mainEntityOfPage: canonical,
       image: [post.mainImageUrl || brandImage],
       datePublished: post.publishedAt,
-      dateModified: post.publishedAt,
-      author: { '@type': 'Person', name: post.author || 'CarMatch' },
+      dateModified: post.modifiedAt || post.publishedAt,
+      author: authorData(post),
       publisher: {
         '@type': 'Organization',
         name: 'CarMatch',
@@ -213,17 +206,6 @@ function structuredData(post, faqItems) {
       ],
     },
   ];
-  if (faqItems.length) {
-    graph.push({
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: faqItems.map((item) => ({
-        '@type': 'Question',
-        name: item.question,
-        acceptedAnswer: { '@type': 'Answer', text: item.answer },
-      })),
-    });
-  }
   return graph;
 }
 
@@ -282,8 +264,8 @@ export function renderBlogIndex(posts = []) {
       url: post.url,
       image: [post.mainImageUrl || brandImage],
       datePublished: post.publishedAt,
-      dateModified: post.publishedAt,
-      author: { '@type': 'Person', name: post.author || 'CarMatch' },
+      dateModified: post.modifiedAt || post.publishedAt,
+      author: authorData(post),
       publisher: { '@type': 'Organization', name: 'CarMatch', logo: { '@type': 'ImageObject', url: brandLogo } },
     })),
   };
@@ -374,7 +356,6 @@ export function renderBlogPage(post) {
   const rawBodyHtml = optimizeBodyImages(post.bodyHtml || renderPortableText(post.body));
   const headings = extractHeadings(rawBodyHtml);
   const bodyHtml = addHeadingIds(rawBodyHtml, headings);
-  const faqItems = extractFaqItems(bodyHtml);
   const hasInlineImages = /<img\b/i.test(bodyHtml);
 
   return `<!doctype html>
@@ -396,7 +377,7 @@ export function renderBlogPage(post) {
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(post.mainImageUrl || brandImage)}" />
-    <script type="application/ld+json">${JSON.stringify(structuredData(post, faqItems))}</script>
+    <script type="application/ld+json">${JSON.stringify(structuredData(post))}</script>
     ${sharedStyles()}
     <style>
       main { margin: 0 auto; max-width: 1040px; padding: 64px 20px 80px; }
@@ -434,7 +415,7 @@ export function renderBlogPage(post) {
       <article>
         ${(post.categories || []).length ? `<p class="eyebrow">${escapeHtml(post.categories.join(' / '))}</p>` : ''}
         <h1>${escapeHtml(post.title)}</h1>
-        <p class="meta">${escapeHtml(post.author || 'CarMatch')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
+        <p class="meta">${escapeHtml(post.author || 'CarMatch')}${post.publishedAt ? ` · Đăng ${escapeHtml(formatDate(post.publishedAt))}` : ''}${post.modifiedAt && post.modifiedAt !== post.publishedAt ? ` · Cập nhật ${escapeHtml(formatDate(post.modifiedAt))}` : ''}</p>
         ${post.excerpt ? `<p class="excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
         ${renderToc(headings)}
         ${post.mainImageUrl && !hasInlineImages ? `<img class="hero" src="${escapeHtml(image)}" alt="${escapeHtml(post.title)}" />` : ''}

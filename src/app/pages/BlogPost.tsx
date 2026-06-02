@@ -13,6 +13,7 @@ interface Post {
   title: string;
   slug: { current: string };
   publishedAt: string;
+  modifiedAt?: string;
   excerpt: string;
   mainImageUrl: string | null;
   categories: string[];
@@ -84,15 +85,6 @@ function addHeadingIds(html: string, headings: Array<{ id: string }>) {
     const cleanAttrs = String(attrs || '').replace(/\sid=(["']).*?\1/i, '');
     return `<h${level}${cleanAttrs} id="${heading.id}">${content}</h${level}>`;
   });
-}
-
-function extractFaqItems(html: string) {
-  const faqStart = html.search(/<h2[^>]*>[\s\S]*?(câu hỏi thường gặp|faq)[\s\S]*?<\/h2>/i);
-  if (faqStart < 0) return [];
-  return [...html.slice(faqStart).matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/gi)]
-    .slice(0, 8)
-    .map((match) => ({ question: stripHtml(match[1]), answer: stripHtml(match[2]) }))
-    .filter((item) => item.question && item.answer);
 }
 
 function CmsHtml({ html }: { html: string }) {
@@ -240,7 +232,6 @@ export default function BlogPost() {
   const [notFound, setNotFound] = useState(false);
   const headings = useMemo(() => extractHeadings(post?.bodyHtml || ''), [post?.bodyHtml]);
   const htmlWithHeadingIds = useMemo(() => addHeadingIds(post?.bodyHtml || '', headings), [headings, post?.bodyHtml]);
-  const faqItems = useMemo(() => extractFaqItems(htmlWithHeadingIds), [htmlWithHeadingIds]);
   const hasInlineBodyImages = Boolean(post?.bodyHtml && /<img\b/i.test(post.bodyHtml));
   const relatedLinks = post ? [
     ...(post.relatedDestinations?.length
@@ -309,10 +300,12 @@ export default function BlogPost() {
         description: post.seoDescription || post.excerpt,
         url: canonical,
         mainEntityOfPage: canonical,
-        image: [post.mainImageUrl || 'https://www.carmatch.vn/og-image.jpg'],
+        image: [post.mainImageUrl || 'https://www.carmatch.vn/brand/carmatch-logo-stacked-navy.png'],
         datePublished: post.publishedAt,
-        dateModified: post.publishedAt,
-        author: { '@type': 'Person', name: post.author || 'CarMatch' },
+        dateModified: post.modifiedAt || post.publishedAt,
+        author: post.author && post.author !== 'CarMatch'
+          ? { '@type': 'Person', name: post.author }
+          : { '@type': 'Organization', name: 'CarMatch', url: 'https://www.carmatch.vn' },
         publisher: {
           '@type': 'Organization',
           name: 'CarMatch',
@@ -329,15 +322,6 @@ export default function BlogPost() {
           { '@type': 'ListItem', position: 3, name: post.title, item: canonical },
         ],
       },
-      ...(faqItems.length ? [{
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: faqItems.map((item) => ({
-          '@type': 'Question',
-          name: item.question,
-          acceptedAnswer: { '@type': 'Answer', text: item.answer },
-        })),
-      }] : []),
     ];
     const script = document.createElement('script');
     script.type = 'application/ld+json';
@@ -347,7 +331,7 @@ export default function BlogPost() {
     return () => {
       script.remove();
     };
-  }, [faqItems, post]);
+  }, [post]);
 
   return (
     <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
@@ -407,6 +391,7 @@ export default function BlogPost() {
                 {post.author && <span className="text-gray-600">{post.author}</span>}
                 {post.author && post.publishedAt && <span>·</span>}
                 {post.publishedAt && <span>{formatDate(post.publishedAt)}</span>}
+                {post.modifiedAt && post.modifiedAt !== post.publishedAt && <span>· Cập nhật {formatDate(post.modifiedAt)}</span>}
               </div>
 
               {/* Excerpt */}
