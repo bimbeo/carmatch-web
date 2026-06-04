@@ -105,10 +105,6 @@
       "headers": { "Location": "https://www.carmatch.vn/sitemap.xml" }
     },
     {
-      "src": "/sitemap\\.xml",
-      "dest": "/api/sitemap"
-    },
-    {
       "src": "/sw\\.js",
       "dest": "/sw.js",
       "headers": {
