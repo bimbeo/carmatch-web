@@ -1,10 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { inject } from '@vercel/analytics'
 import './styles/index.css'
 import App from './app/App'
-
-inject()
 
 const chunkErrorPattern = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i
 const reloadKey = 'carmatch-chunk-reload-attempted'
