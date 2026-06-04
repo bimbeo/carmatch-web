@@ -209,6 +209,41 @@ function structuredData(post) {
   return graph;
 }
 
+function renderFooter() {
+  return `<footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/"><img src="/brand/carmatch-lockup-navy.png" alt="CarMatch" /></a>
+        <p>Thuê xe tự lái Hà Nội — giao xe tận sảnh chung cư, xác nhận trong 30 phút.</p>
+        <a class="footer-zalo" href="https://zalo.me/0975563290">Nhắn Zalo 0975 563 290</a>
+      </div>
+      <div class="footer-links">
+        <div>
+          <p>Dịch vụ</p>
+          <ul>
+            <li><a href="/thue-xe-tu-lai-ha-noi">Thuê xe tự lái Hà Nội</a></li>
+            <li><a href="/thue-xe-thang">Thuê xe theo tháng</a></li>
+            <li><a href="/xe">Xem danh sách xe</a></li>
+            <li><a href="/hop-tac">Hợp tác chủ xe</a></li>
+          </ul>
+        </div>
+        <div>
+          <p>Thông tin</p>
+          <ul>
+            <li><a href="/gioi-thieu">Về CarMatch</a></li>
+            <li><a href="/blog">Blog kinh nghiệm</a></li>
+            <li><a href="/faq-thue-xe-tu-lai-ha-noi">Câu hỏi thường gặp</a></li>
+            <li><a href="/chinh-sach">Chính sách</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© ${new Date().getFullYear()} CarMatch. Dịch vụ thuê xe tự lái uy tín tại Hà Nội.</p>
+    </div>
+  </footer>`;
+}
+
 function renderTopbar() {
   return `<header class="topbar">
       <nav class="nav" aria-label="Điều hướng chính">
@@ -239,6 +274,22 @@ function sharedStyles() {
       p, li { color: #374151; font-size: 18px; line-height: 1.78; }
       img { max-width: 100%; }
       @media (max-width: 720px) { .nav { height: 64px; padding: 0 16px; } .navlinks, .nav-cta { display: none; } .brand img { height: 30px; } h1 { font-size: 30px; line-height: 1.1; max-width: 100%; } p, li { font-size: 16px; } }
+      /* Footer */
+      .site-footer { background: #11163e; color: #e2e8f0; margin-top: 80px; padding: 48px 24px 24px; }
+      .footer-inner { display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between; margin: 0 auto; max-width: 1180px; }
+      .footer-brand { max-width: 320px; }
+      .footer-brand img { filter: brightness(0) invert(1); height: 30px; margin-bottom: 14px; width: auto; }
+      .footer-brand p { color: #94a3b8; font-size: 14px; font-weight: 400; line-height: 1.65; margin: 0 0 16px; }
+      .footer-zalo { background: #0068ff; border-radius: 999px; color: #fff; display: inline-block; font-size: 14px; font-weight: 700; padding: 10px 18px; }
+      .footer-links { display: flex; flex-wrap: wrap; gap: 40px; }
+      .footer-links > div > p { color: #64748b; font-size: 12px; font-weight: 900; letter-spacing: .1em; margin: 0 0 12px; text-transform: uppercase; }
+      .footer-links ul { list-style: none; margin: 0; padding: 0; }
+      .footer-links li { margin-bottom: 8px; }
+      .footer-links a { color: #cbd5e1; font-size: 14px; font-weight: 500; }
+      .footer-links a:hover { color: #fff; }
+      .footer-bottom { border-top: 1px solid #1e2a4a; margin: 40px auto 0; max-width: 1180px; padding-top: 20px; }
+      .footer-bottom p { color: #475569; font-size: 13px; margin: 0; }
+      @media (max-width: 640px) { .site-footer { padding: 40px 20px 20px; } .footer-inner { flex-direction: column; gap: 32px; } .footer-links { gap: 24px; } }
     </style>`;
 }
 
@@ -380,11 +431,13 @@ export function renderBlogPage(post) {
     <script type="application/ld+json">${JSON.stringify(structuredData(post))}</script>
     ${sharedStyles()}
     <style>
-      main { margin: 0 auto; max-width: 1040px; padding: 64px 20px 80px; }
-      article { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: clamp(24px, 5vw, 56px); }
-      h1 { font-size: clamp(34px, 6vw, 62px); line-height: 1.04; margin: 12px 0 18px; }
-      h2 { font-size: clamp(26px, 4vw, 36px); line-height: 1.18; margin: 46px 0 14px; scroll-margin-top: 96px; }
-      h3 { font-size: 23px; line-height: 1.25; margin: 32px 0 10px; scroll-margin-top: 96px; }
+      /* Fix 1: narrow article max-width for comfortable reading (~700px text column) */
+      main { margin: 0 auto; max-width: 760px; padding: 64px 20px 80px; }
+      article { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: clamp(24px, 5vw, 48px); }
+      h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1.06; margin: 12px 0 18px; }
+      /* Fix 4: smaller H2 — was clamp(26px, 4vw, 36px), now proportional to body */
+      h2 { font-size: clamp(20px, 2.8vw, 26px); line-height: 1.22; margin: 44px 0 12px; scroll-margin-top: 96px; }
+      h3 { font-size: 19px; line-height: 1.3; margin: 28px 0 8px; scroll-margin-top: 96px; }
       .excerpt { border-left: 4px solid #11163e; background: #eef0f8; border-radius: 0 8px 8px 0; padding: 16px 18px; }
       img.hero, article img { border-radius: 10px; display: block; margin: 30px 0; max-height: 720px; object-fit: cover; width: 100%; }
       figure { margin: 34px 0; }
@@ -400,13 +453,17 @@ export function renderBlogPage(post) {
       .toc li { font-size: 15px; line-height: 1.7; }
       .toc a { overflow-wrap: anywhere; word-break: break-word; }
       .toc .level-3 { margin-left: 16px; }
+      /* Fix 2: tighter bullet spacing — was ~16px gap between each li */
+      article ul, article ol { padding-left: 22px; margin: 16px 0; }
+      article li { margin-bottom: 5px; }
+      article li + li { margin-top: 0; }
       .related, .cta { border-radius: 16px; margin-top: 40px; padding: 24px; }
       .related { background: #fff7ed; border: 1px solid #fed7aa; }
       .cta { background: #eef0f8; border: 1px solid #d4d8ef; text-align: center; }
-      .cta h2 { margin-top: 0; }
+      .cta h2 { margin-top: 0; font-size: 22px; }
       .cta-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
       .button.secondary { background: #fff; border: 1px solid #cbd5e1; color: #11163e; }
-      @media (max-width: 720px) { main { padding: 28px 0 64px; } article { border-radius: 0; border-left: 0; border-right: 0; padding-left: 24px; padding-right: 24px; } img.hero, article img { max-height: 520px; } .toc { margin-left: -2px; margin-right: -2px; } }
+      @media (max-width: 720px) { main { padding: 28px 0 64px; } article { border-radius: 0; border-left: 0; border-right: 0; padding-left: 20px; padding-right: 20px; } img.hero, article img { max-height: 520px; } .toc { margin-left: -2px; margin-right: -2px; } }
     </style>
   </head>
   <body>
@@ -424,6 +481,7 @@ export function renderBlogPage(post) {
         ${renderCta(post)}
       </article>
     </main>
+    ${renderFooter()}
     <script>
       document.addEventListener('click', function (event) {
         var link = event.target && event.target.closest ? event.target.closest('[data-blog-action]') : null;
