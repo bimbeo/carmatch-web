@@ -14,11 +14,13 @@ function optimizeImageUrl(url = '', width = 1200) {
 }
 
 function optimizeBodyImages(html = '') {
-  return String(html).replace(/(<img\b)([^>]*\ssrc=(["']))([^"']+)(\3[^>]*>)/gi, (_match, tag, attrs, quote, src, suffix) => {
+  return String(html).replace(/(<img\b[^>]*\ssrc=(["']))([^"']+)(\2[^>]*>)/gi, (_match, prefix, quote, src, suffix) => {
     const optimizedSrc = optimizeImageUrl(src, 1400);
-    const hasLazy = /loading\s*=/i.test(attrs);
-    const lazyAttr = hasLazy ? '' : ' loading="lazy" decoding="async"';
-    return `${tag}${attrs.replace(src, optimizedSrc)}${lazyAttr}${suffix}`;
+    const hasLazy = /loading\s*=/i.test(_match);
+    if (hasLazy) return `${prefix}${optimizedSrc}${suffix}`;
+    // Insert loading attrs before the closing > or />
+    const lazySuffix = suffix.replace(/(\s*\/?>)$/, ' loading="lazy" decoding="async"$1');
+    return `${prefix}${optimizedSrc}${lazySuffix}`;
   });
 }
 
