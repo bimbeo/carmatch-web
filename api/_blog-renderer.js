@@ -1,5 +1,5 @@
 const siteUrl = 'https://www.carmatch.vn';
-const brandImage = `${siteUrl}/og-image.jpg`;
+const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 
 function optimizeImageUrl(url = '', width = 1200) {
@@ -14,8 +14,11 @@ function optimizeImageUrl(url = '', width = 1200) {
 }
 
 function optimizeBodyImages(html = '') {
-  return String(html).replace(/(<img\b[^>]*\ssrc=(["']))([^"']+)(\2[^>]*>)/gi, (_match, prefix, quote, src, suffix) => {
-    return `${prefix}${optimizeImageUrl(src, 1400)}${suffix}`;
+  return String(html).replace(/(<img\b)([^>]*\ssrc=(["']))([^"']+)(\3[^>]*>)/gi, (_match, tag, attrs, quote, src, suffix) => {
+    const optimizedSrc = optimizeImageUrl(src, 1400);
+    const hasLazy = /loading\s*=/i.test(attrs);
+    const lazyAttr = hasLazy ? '' : ' loading="lazy" decoding="async"';
+    return `${tag}${attrs.replace(src, optimizedSrc)}${lazyAttr}${suffix}`;
   });
 }
 
@@ -101,11 +104,21 @@ function extractFaqItems(html = '') {
   const faqStart = String(html).search(/<h2[^>]*>[\s\S]*?(câu hỏi thường gặp|faq)[\s\S]*?<\/h2>/i);
   if (faqStart < 0) return items;
   const section = String(html).slice(faqStart);
-  const matches = [...section.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/gi)];
-  for (const match of matches.slice(0, 8)) {
+  // Pattern 1: <h3>Q</h3><p>A</p>
+  const h3Matches = [...section.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/gi)];
+  for (const match of h3Matches.slice(0, 8)) {
     const question = stripHtml(match[1]);
     const answer = stripHtml(match[2]);
     if (question && answer) items.push({ question, answer });
+  }
+  // Pattern 2: <p><strong>Q</strong><br>A</p>  (common in rich-text editors)
+  if (!items.length) {
+    const pMatches = [...section.matchAll(/<p[^>]*><strong[^>]*>([\s\S]*?)<\/strong><br\s*\/?>([\s\S]*?)<\/p>/gi)];
+    for (const match of pMatches.slice(0, 8)) {
+      const question = stripHtml(match[1]);
+      const answer = stripHtml(match[2]);
+      if (question && answer) items.push({ question, answer });
+    }
   }
   return items;
 }
@@ -329,7 +342,7 @@ function renderFooter() {
           <li><a href="/blog">Blog &amp; Kinh nghiệm</a></li>
           <li><a href="/gioi-thieu#quy-trinh">Quy trình thuê xe</a></li>
           <li><a href="/chinh-sach">Điều kiện &amp; Chính sách</a></li>
-          <li><a href="/faq-thue-xe-tu-lai-ha-noi">Câu hỏi thường gặp</a></li>
+          <li><a href="/faq">Câu hỏi thường gặp</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -493,7 +506,7 @@ export function renderBlogPage(post) {
       h2 { font-size: clamp(26px, 4vw, 36px); line-height: 1.18; margin: 46px 0 14px; scroll-margin-top: 96px; }
       h3 { font-size: 23px; line-height: 1.25; margin: 32px 0 10px; scroll-margin-top: 96px; }
       .excerpt { border-left: 4px solid #11163e; background: #eef0f8; border-radius: 0 8px 8px 0; padding: 16px 18px; }
-      img.hero, article img { border-radius: 10px; display: block; margin: 30px 0; max-height: 720px; object-fit: cover; width: 100%; }
+      img.hero, article img { aspect-ratio: 16/9; border-radius: 10px; display: block; margin: 30px 0; max-height: 720px; object-fit: cover; width: 100%; }
       figure { margin: 34px 0; }
       figcaption, img[data-caption] + figcaption { color: #64748b; font-size: 14px; text-align: center; }
       table { border-collapse: collapse; display: block; margin: 28px 0; overflow-x: auto; width: 100%; }
@@ -525,7 +538,7 @@ export function renderBlogPage(post) {
         <p class="meta">${escapeHtml(post.author || 'Car Match')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
         ${post.excerpt ? `<p class="excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
         ${renderToc(headings)}
-        ${post.mainImageUrl && !hasInlineImages ? `<img class="hero" src="${escapeHtml(image)}" alt="${escapeHtml(post.title)}" />` : ''}
+        ${post.mainImageUrl && !hasInlineImages ? `<img class="hero" src="${escapeHtml(image)}" alt="${escapeHtml(post.title)}" loading="eager" fetchpriority="high" />` : ''}
         ${normalizeBrandText(bodyHtml)}
         ${renderRelated(post)}
         ${renderCta(post)}

@@ -1,6 +1,11 @@
 {
   "routes": [
     {
+      "src": "/faq-thue-xe-tu-lai-ha-noi",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/faq" }
+    },
+    {
       "src": "/sitemap\\.(xml|rss)",
       "has": [{ "type": "host", "value": "blog.carmatch.vn" }],
       "status": 301,
