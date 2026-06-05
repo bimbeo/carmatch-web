@@ -20,7 +20,7 @@ function optimizeBodyImages(html = '') {
 }
 
 function escapeHtml(value = '') {
-  return String(value)
+  return normalizeBrandText(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -28,8 +28,14 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#039;');
 }
 
-function stripHtml(value = '') {
+function normalizeBrandText(value = '') {
   return String(value)
+    .replace(/\bCarMatch\b/g, 'Car Match')
+    .replace(/\bCARMATCH\b/g, 'CAR MATCH');
+}
+
+function stripHtml(value = '') {
+  return normalizeBrandText(value)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
@@ -64,7 +70,7 @@ function getPostUrl(post) {
 }
 
 function getDescription(post) {
-  return post.seoDescription || post.excerpt || stripHtml(post.bodyHtml).slice(0, 155) || 'Kinh nghiệm thuê xe tự lái Hà Nội từ CarMatch.';
+  return post.seoDescription || post.excerpt || stripHtml(post.bodyHtml).slice(0, 155) || 'Kinh nghiệm thuê xe tự lái Hà Nội từ Car Match.';
 }
 
 function extractHeadings(html = '') {
@@ -127,12 +133,12 @@ function renderRelated(post) {
 
 function renderCta(post) {
   if (post.ctaEnabled === false) return '';
-  const primary = post.ctaPrimaryUrl ? `<a class="button primary" href="${escapeHtml(post.ctaPrimaryUrl)}" data-blog-action="cta_primary" data-blog-target="${escapeHtml(post.ctaPrimaryUrl)}">${escapeHtml(post.ctaPrimaryLabel || 'Đặt xe với CarMatch')}</a>` : '';
+  const primary = post.ctaPrimaryUrl ? `<a class="button primary" href="${escapeHtml(post.ctaPrimaryUrl)}" data-blog-action="cta_primary" data-blog-target="${escapeHtml(post.ctaPrimaryUrl)}">${escapeHtml(post.ctaPrimaryLabel || 'Đặt xe với Car Match')}</a>` : '';
   const zaloUrl = post.ctaZaloUrl || 'https://zalo.me/0975563290';
   return `<section class="cta">
-    <p class="eyebrow">CarMatch hỗ trợ nhanh</p>
+    <p class="eyebrow">Car Match hỗ trợ nhanh</p>
     <h2>${escapeHtml(post.ctaTitle || 'Cần xe phù hợp cho chuyến đi?')}</h2>
-    <p>${escapeHtml(post.ctaDescription || 'Nhắn CarMatch để được tư vấn xe, lịch trống và chi phí phù hợp.')}</p>
+    <p>${escapeHtml(post.ctaDescription || 'Nhắn Car Match để được tư vấn xe, lịch trống và chi phí phù hợp.')}</p>
     <div class="cta-actions">${primary}<a class="button secondary" href="${escapeHtml(zaloUrl)}" data-blog-action="cta_zalo" data-blog-target="${escapeHtml(zaloUrl)}">${escapeHtml(post.ctaZaloLabel || 'Nhắn Zalo')}</a></div>
   </section>`;
 }
@@ -195,10 +201,10 @@ function structuredData(post, faqItems) {
       image: [post.mainImageUrl || brandImage],
       datePublished: post.publishedAt,
       dateModified: post.publishedAt,
-      author: { '@type': 'Person', name: post.author || 'CarMatch' },
+      author: { '@type': 'Person', name: post.author || 'Car Match' },
       publisher: {
         '@type': 'Organization',
-        name: 'CarMatch',
+        name: 'Car Match',
         logo: { '@type': 'ImageObject', url: `${siteUrl}/brand/carmatch-lockup-navy.png` },
       },
       inLanguage: 'vi-VN',
@@ -230,8 +236,8 @@ function structuredData(post, faqItems) {
 function renderTopbar() {
   return `<header class="topbar">
       <nav class="nav" aria-label="Điều hướng chính">
-        <a class="brand" href="/" aria-label="CarMatch"><img src="/brand/carmatch-lockup-navy.png" alt="CarMatch" /></a>
-        <div class="navlinks"><a href="/xe">Thuê xe tự lái</a><a href="/thue-xe-thang">Thuê xe tháng</a><a href="/hop-tac">Hợp tác chủ xe</a><a href="/gioi-thieu">Giới thiệu</a><a href="/blog">Blog</a></div>
+        <a class="brand" href="/" aria-label="Car Match"><img src="/brand/carmatch-lockup-navy.png" alt="Car Match" /></a>
+        <div class="navlinks"><a href="/xe">Thuê xe tự lái</a><a href="/di-dau">Đi đâu</a><a href="/lap-ke-hoach-chuyen-di">Lập chuyến đi</a><a href="/thue-xe-thang">Thuê xe tháng</a><a href="/hop-tac">Hợp tác chủ xe</a><a href="/gioi-thieu">Giới thiệu</a><a href="/blog">Blog</a></div>
         <a class="nav-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
       </nav>
     </header>`;
@@ -257,11 +263,69 @@ function sharedStyles() {
       p, li { color: #374151; font-size: 18px; line-height: 1.78; }
       img { max-width: 100%; }
       @media (max-width: 720px) { .nav { height: 64px; padding: 0 16px; } .navlinks, .nav-cta { display: none; } .brand img { height: 30px; } h1 { font-size: 30px; line-height: 1.1; max-width: 100%; } p, li { font-size: 16px; } }
+      /* Footer */
+      .site-footer { background: #111827; color: #e2e8f0; margin-top: 80px; padding: 48px 24px 24px; }
+      .footer-inner { display: grid; gap: 40px; grid-template-columns: 1fr repeat(3, auto); margin: 0 auto; max-width: 1180px; }
+      .footer-brand img { filter: brightness(0) invert(1); height: 32px; margin-bottom: 14px; width: auto; }
+      .footer-brand p { color: #9ca3af; font-size: 14px; font-weight: 400; line-height: 1.65; margin: 0 0 16px; }
+      .footer-zalo { background: #0068ff; border-radius: 999px; color: #fff; display: inline-block; font-size: 14px; font-weight: 700; padding: 10px 18px; }
+      .footer-col > p { color: #6b7280; font-size: 12px; font-weight: 900; letter-spacing: .1em; margin: 0 0 12px; text-transform: uppercase; }
+      .footer-col ul { list-style: none; margin: 0; padding: 0; }
+      .footer-col li { margin-bottom: 8px; }
+      .footer-col a { color: #d1d5db; font-size: 14px; font-weight: 500; }
+      .footer-col a:hover { color: #fff; }
+      .footer-bottom { border-top: 1px solid #1f2937; margin: 40px auto 0; max-width: 1180px; padding-top: 20px; }
+      .footer-bottom p { color: #6b7280; font-size: 13px; margin: 0; }
+      @media (max-width: 820px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 540px) { .site-footer { padding: 40px 20px 20px; } .footer-inner { grid-template-columns: 1fr; gap: 28px; } }
     </style>`;
 }
 
+function renderFooter() {
+  return `<footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/"><img src="/brand/carmatch-lockup-navy.png" alt="Car Match" /></a>
+        <p>Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.</p>
+        <a class="footer-zalo" href="https://zalo.me/0975563290">Nhắn Zalo 0975 563 290</a>
+      </div>
+      <div class="footer-col">
+        <p>Dịch vụ</p>
+        <ul>
+          <li><a href="/xe">Thuê xe tự lái</a></li>
+          <li><a href="/thue-xe-thang">Thuê xe theo tháng</a></li>
+          <li><a href="/xe?category=electric">Xe điện VinFast</a></li>
+          <li><a href="/xe?seats=7">Xe 7 chỗ</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p>Thông tin</p>
+        <ul>
+          <li><a href="/gioi-thieu">Về Car Match</a></li>
+          <li><a href="/blog">Blog &amp; Kinh nghiệm</a></li>
+          <li><a href="/gioi-thieu#quy-trinh">Quy trình thuê xe</a></li>
+          <li><a href="/chinh-sach">Điều kiện &amp; Chính sách</a></li>
+          <li><a href="/faq-thue-xe-tu-lai-ha-noi">Câu hỏi thường gặp</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p>Liên hệ</p>
+        <ul>
+          <li><a href="tel:0975563290">📞 0975 563 290</a></li>
+          <li><a href="https://zalo.me/0975563290">Zalo: 0975 563 290</a></li>
+          <li><a href="mailto:info@carmatch.vn">info@carmatch.vn</a></li>
+          <li>Hà Nội, Việt Nam</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© ${new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
+    </div>
+  </footer>`;
+}
+
 export function renderBlogIndex(posts = []) {
-  const title = 'Blog Kinh Nghiệm Thuê Xe Tự Lái | CarMatch Hà Nội';
+  const title = 'Blog Kinh Nghiệm Thuê Xe Tự Lái | Car Match Hà Nội';
   const description = 'Kinh nghiệm thuê xe tự lái Hà Nội: giấy tờ cần chuẩn bị, đặt cọc, bảo hiểm, chọn xe phù hợp và dịch vụ giao xe tận sảnh chung cư.';
   const postItems = posts.map((post, index) => ({
     ...post,
@@ -283,8 +347,8 @@ export function renderBlogIndex(posts = []) {
       image: [post.mainImageUrl || brandImage],
       datePublished: post.publishedAt,
       dateModified: post.publishedAt,
-      author: { '@type': 'Person', name: post.author || 'CarMatch' },
-      publisher: { '@type': 'Organization', name: 'CarMatch', logo: { '@type': 'ImageObject', url: brandLogo } },
+      author: { '@type': 'Person', name: post.author || 'Car Match' },
+      publisher: { '@type': 'Organization', name: 'Car Match', logo: { '@type': 'ImageObject', url: brandLogo } },
     })),
   };
 
@@ -303,7 +367,7 @@ export function renderBlogIndex(posts = []) {
     <meta property="og:url" content="${siteUrl}/blog" />
     <meta property="og:image" content="${escapeHtml(brandImage)}" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json">${JSON.stringify(graph)}</script>
+    <script type="application/ld+json">${normalizeBrandText(JSON.stringify(graph))}</script>
     ${sharedStyles()}
     <style>
       main { margin: 0 auto; max-width: 1180px; padding: 56px 24px 84px; }
@@ -332,7 +396,7 @@ export function renderBlogIndex(posts = []) {
     <main>
       <section class="hero">
         <div>
-          <p class="eyebrow">Blog CarMatch</p>
+          <p class="eyebrow">Blog Car Match</p>
           <h1>Kinh nghiệm thuê xe tự lái Hà Nội</h1>
           <p>${escapeHtml(description)}</p>
         </div>
@@ -353,18 +417,19 @@ export function renderBlogIndex(posts = []) {
             ${(post.categories || []).length ? `<span class="pill">${escapeHtml(post.categories[0])}</span>` : ''}
             <h2>${escapeHtml(post.title)}</h2>
             <p>${escapeHtml(getDescription(post))}</p>
-            <p class="meta">${escapeHtml(post.author || 'CarMatch')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''} · ${post.minutes} phút đọc</p>
+            <p class="meta">${escapeHtml(post.author || 'Car Match')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''} · ${post.minutes} phút đọc</p>
           </div>
         </a>`).join('')}
       </section>
     </main>
+    ${renderFooter()}
   </body>
 </html>`;
 }
 
 export function renderBlogPage(post) {
   const canonical = getPostUrl(post);
-  const title = `${post.seoTitle || post.title} | CarMatch`;
+  const title = `${post.seoTitle || post.title} | Car Match`;
   const description = getDescription(post);
   const image = optimizeImageUrl(post.mainImageUrl || brandImage, 1400);
   const rawBodyHtml = optimizeBodyImages(post.bodyHtml || renderPortableText(post.body));
@@ -391,7 +456,7 @@ export function renderBlogPage(post) {
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(post.mainImageUrl || brandImage)}" />
-    <script type="application/ld+json">${JSON.stringify(structuredData(post, faqItems))}</script>
+    <script type="application/ld+json">${normalizeBrandText(JSON.stringify(structuredData(post, faqItems)))}</script>
     ${sharedStyles()}
     <style>
       main { margin: 0 auto; max-width: 1040px; padding: 64px 20px 80px; }
@@ -429,11 +494,11 @@ export function renderBlogPage(post) {
       <article>
         ${(post.categories || []).length ? `<p class="eyebrow">${escapeHtml(post.categories.join(' / '))}</p>` : ''}
         <h1>${escapeHtml(post.title)}</h1>
-        <p class="meta">${escapeHtml(post.author || 'CarMatch')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
+        <p class="meta">${escapeHtml(post.author || 'Car Match')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
         ${post.excerpt ? `<p class="excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
         ${renderToc(headings)}
         ${post.mainImageUrl && !hasInlineImages ? `<img class="hero" src="${escapeHtml(image)}" alt="${escapeHtml(post.title)}" />` : ''}
-        ${bodyHtml}
+        ${normalizeBrandText(bodyHtml)}
         ${renderRelated(post)}
         ${renderCta(post)}
       </article>
@@ -446,6 +511,7 @@ export function renderBlogPage(post) {
         window.dataLayer.push({ event: 'blog_conversion_click', article_slug: ${JSON.stringify(post.slug.current)}, action: link.getAttribute('data-blog-action') || '', target: link.getAttribute('data-blog-target') || link.getAttribute('href') || '' });
       });
     </script>
+    ${renderFooter()}
   </body>
 </html>`;
 }
