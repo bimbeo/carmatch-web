@@ -11,10 +11,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link to="/" className="mb-4 inline-flex items-center" aria-label="CarMatch">
+            <Link to="/" className="mb-4 inline-flex items-center" aria-label="Car Match">
               <img
                 src="/brand/carmatch-lockup-white.png"
-                alt="CarMatch"
+                alt="Car Match"
                 className="h-10 w-auto object-contain"
               />
             </Link>
@@ -61,7 +61,7 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Thông tin</h3>
             <ul className="space-y-2.5">
               {[
-                { href: '/gioi-thieu', label: 'Về CarMatch' },
+                { href: '/gioi-thieu', label: 'Về Car Match' },
                 { href: '/blog', label: 'Blog & Kinh nghiệm' },
                 { href: '/gioi-thieu#quy-trinh', label: 'Quy trình thuê xe' },
                 { href: '/chinh-sach', label: 'Điều kiện & Chính sách' },
@@ -113,7 +113,7 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-xs">© 2025 CarMatch. Bảo lưu mọi quyền.</p>
+          <p className="text-gray-500 text-xs">© {new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
           <div className="flex items-center gap-6">
             <Link to="/chinh-sach" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Chính sách</Link>
             <Link to="/chinh-sach" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Điều khoản</Link>
