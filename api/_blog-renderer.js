@@ -266,8 +266,12 @@ function sharedStyles() {
       /* Footer */
       .site-footer { background: #111827; color: #e2e8f0; margin-top: 80px; padding: 48px 24px 24px; }
       .footer-inner { display: grid; gap: 40px; grid-template-columns: 1fr repeat(3, auto); margin: 0 auto; max-width: 1180px; }
-      .footer-brand img { filter: brightness(0) invert(1); height: 32px; margin-bottom: 14px; width: auto; }
+      .footer-brand img { height: 40px; margin-bottom: 14px; object-fit: contain; width: auto; }
       .footer-brand p { color: #9ca3af; font-size: 14px; font-weight: 400; line-height: 1.65; margin: 0 0 16px; }
+      .contact-item { align-items: flex-start; color: #d1d5db; display: flex; gap: 12px; font-size: 14px; font-weight: 500; }
+      .contact-item svg { flex-shrink: 0; margin-top: 2px; opacity: .7; }
+      .contact-item:hover { color: #fff; }
+      .zalo-z { color: #93c5fd; flex-shrink: 0; font-size: 12px; font-weight: 900; line-height: 1; margin-top: 2px; width: 16px; }
       .footer-socials { display: flex; gap: 12px; margin-top: 4px; }
       .social-icon { align-items: center; background: rgba(255,255,255,.1); border-radius: 50%; color: #d1d5db; display: flex; height: 36px; justify-content: center; transition: background .15s; width: 36px; }
       .social-icon:hover { background: rgba(255,255,255,.2); color: #fff; }
@@ -278,18 +282,24 @@ function sharedStyles() {
       .footer-col li { margin-bottom: 8px; }
       .footer-col a { color: #d1d5db; font-size: 14px; font-weight: 500; }
       .footer-col a:hover { color: #fff; }
-      .footer-bottom { border-top: 1px solid #1f2937; margin: 40px auto 0; max-width: 1180px; padding-top: 20px; }
+      .footer-bottom { align-items: center; border-top: 1px solid #1f2937; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; margin: 40px auto 0; max-width: 1180px; padding-top: 20px; }
       .footer-bottom p { color: #6b7280; font-size: 13px; margin: 0; }
+      .footer-bottom-links { display: flex; gap: 24px; }
+      .footer-bottom-links a { color: #6b7280; font-size: 13px; font-weight: 500; }
+      .footer-bottom-links a:hover { color: #9ca3af; }
       @media (max-width: 820px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
       @media (max-width: 540px) { .site-footer { padding: 40px 20px 20px; } .footer-inner { grid-template-columns: 1fr; gap: 28px; } }
     </style>`;
 }
 
 function renderFooter() {
+  const svgPhone = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+  const svgMail = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`;
+  const svgPin = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
   return `<footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <a href="/"><img src="/brand/carmatch-lockup-navy.png" alt="Car Match" /></a>
+        <a href="/"><img src="/brand/carmatch-lockup-white.png" alt="Car Match" /></a>
         <p>Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.</p>
         <div class="footer-socials">
           <a class="social-icon" href="https://facebook.com/carmatch.vn" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
@@ -325,15 +335,19 @@ function renderFooter() {
       <div class="footer-col">
         <p>Liên hệ</p>
         <ul>
-          <li><a href="tel:0975563290">📞 0975 563 290</a></li>
-          <li><a href="https://zalo.me/0975563290">Zalo: 0975 563 290</a></li>
-          <li><a href="mailto:info@carmatch.vn">info@carmatch.vn</a></li>
-          <li>Hà Nội, Việt Nam</li>
+          <li><a class="contact-item" href="tel:0975563290">${svgPhone}<span>0975 563 290</span></a></li>
+          <li><a class="contact-item" href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer"><span class="zalo-z">Z</span><span>Zalo: 0975 563 290</span></a></li>
+          <li><a class="contact-item" href="mailto:info@carmatch.vn">${svgMail}<span>info@carmatch.vn</span></a></li>
+          <li><span class="contact-item">${svgPin}<span>Hà Nội, Việt Nam</span></span></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
       <p>© ${new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
+      <div class="footer-bottom-links">
+        <a href="/chinh-sach">Chính sách</a>
+        <a href="/chinh-sach">Điều khoản</a>
+      </div>
     </div>
   </footer>`;
 }
