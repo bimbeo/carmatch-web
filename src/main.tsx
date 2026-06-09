@@ -42,4 +42,38 @@ async function bootApp() {
   )
 }
 
-void bootApp()
+function scheduleHomeBoot() {
+  let booted = false
+  let timer: number | undefined
+  const events = ['pointerdown', 'keydown', 'touchstart', 'wheel'] as const
+
+  function cleanup() {
+    if (timer) window.clearTimeout(timer)
+    events.forEach((eventName) => window.removeEventListener(eventName, boot))
+  }
+
+  function boot() {
+    if (booted) return
+    booted = true
+    cleanup()
+    void bootApp()
+  }
+
+  events.forEach((eventName) => {
+    window.addEventListener(eventName, boot, { once: true, passive: true })
+  })
+
+  window.addEventListener(
+    'load',
+    () => {
+      timer = window.setTimeout(boot, 6500)
+    },
+    { once: true },
+  )
+}
+
+if (window.location.pathname === '/' || window.location.pathname === '') {
+  scheduleHomeBoot()
+} else {
+  void bootApp()
+}
