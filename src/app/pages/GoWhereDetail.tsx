@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
-import { ArrowRight, Car, CircleDollarSign, Clock, MapPin, MessageCircle, ParkingCircle, Route, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CalendarDays, Car, CheckCircle2, CircleDollarSign, Clock, Heart, MapPin, MessageCircle, ParkingCircle, Route, Share2, ShieldCheck } from 'lucide-react';
 import { useSEO } from '@/hooks/useSEO';
 import { submitLead } from '@/hooks/useLeads';
 import { useTravelContent } from '@/hooks/useTravelContent';
+import { destinationHeroClass, destinationImageStyle } from '@/lib/travelMedia';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import TravelAssistant from '../components/TravelAssistant';
 import ZaloFAB from '../components/ZaloFAB';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
@@ -24,6 +26,79 @@ function trackGoWhereDetail(event: string, payload: Record<string, unknown> = {}
   });
 }
 
+function getSavedDestinations() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem('carmatch_saved_destinations');
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function isEmbeddableMapUrl(value?: string) {
+  if (!value) return false;
+  const url = extractGoogleMapsUrl(value);
+  return /google\.com\/maps\/embed|output=embed/i.test(url || '');
+}
+
+function extractGoogleMapsUrl(value?: string) {
+  if (!value) return '';
+  const trimmed = value.trim();
+  const srcMatch = trimmed.match(/src=["']([^"']+)["']/i);
+  const rawUrl = srcMatch?.[1] || trimmed;
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = rawUrl;
+    return textarea.value;
+  } catch {
+    return rawUrl;
+  }
+}
+
+function RouteMapPreview({
+  destinationName,
+  mapUrl,
+  roundTripKm,
+}: {
+  destinationName: string;
+  mapUrl?: string;
+  roundTripKm: number;
+}) {
+  const cleanMapUrl = extractGoogleMapsUrl(mapUrl);
+  return (
+    <div className="relative h-72 p-5">
+      <div className="absolute inset-x-6 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/20" />
+      <div className="relative flex h-full flex-col items-center justify-center gap-3 sm:flex-row sm:justify-between">
+        <div className="rounded-2xl bg-white p-4 text-slate-950 shadow-lg">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Xuất phát</p>
+          <p className="mt-1 font-black">Hà Nội</p>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="rounded-full bg-brand-500 px-4 py-2 text-center text-sm font-black">
+            {roundTripKm} km hai chiều
+          </div>
+          {cleanMapUrl ? (
+            <a
+              href={cleanMapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-brand-50"
+            >
+              Mở Google Maps
+            </a>
+          ) : null}
+        </div>
+        <div className="rounded-2xl bg-white p-4 text-slate-950 shadow-lg">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Điểm đến</p>
+          <p className="mt-1 font-black">{destinationName}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GoWhereDetail() {
   const { slug } = useParams();
   const { destinations, loading } = useTravelContent();
@@ -34,6 +109,8 @@ export default function GoWhereDetail() {
   const [travelDate, setTravelDate] = useState('');
   const [needType, setNeedType] = useState('Tự lái');
   const [note, setNote] = useState('');
+  const [shareState, setShareState] = useState('');
+  const [savedSlugs, setSavedSlugs] = useState<string[]>(getSavedDestinations);
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
 
   const roundTripKm = destination ? destination.distanceKm * 2 : 0;
@@ -41,8 +118,8 @@ export default function GoWhereDetail() {
   const mobilityEstimate = destination ? energyEstimate + destination.tollEstimate : 0;
 
   useSEO({
-    title: `Đi ${seoName} Bằng Xe Tự Lái`,
-    description: `Gợi ý lịch trình đi ${seoName} từ Hà Nội: đường đi, chỗ đỗ, ăn chơi, chi phí di chuyển và loại xe CarMatch phù hợp.`,
+    title: destination?.seoTitle || `Đi ${seoName} Bằng Xe Tự Lái`,
+    description: destination?.seoDescription || `Gợi ý lịch trình đi ${seoName} từ Hà Nội: đường đi, chỗ đỗ, ăn chơi, chi phí di chuyển và loại xe Car Match phù hợp.`,
     canonical: `https://www.carmatch.vn/di-dau/${destination?.slug || ''}`,
   });
 
@@ -62,6 +139,38 @@ export default function GoWhereDetail() {
   const zaloMessage = encodeURIComponent(
     `[DI DAU]\nĐiểm đến: ${destination.name}\nNhu cầu: ${needType}\nNgày đi: ${travelDate || 'Chưa chọn'}\nTên: ${name || ''}\nSĐT: ${phone || ''}\nGhi chú: ${note || ''}`
   );
+  const isSaved = savedSlugs.includes(destination.slug);
+  const prepChecklist = destination.checklist?.length ? destination.checklist : [
+    `Chọn xe: ${destination.recommendedVehicle || 'xe phù hợp theo số người và hành lý'}`,
+    `Dự phòng chi phí di chuyển khoảng ${money(mobilityEstimate)} chưa gồm tiền thuê xe`,
+    destination.drivingNote || 'Kiểm tra đường đi, tốc độ và điểm dừng nghỉ trước khi xuất phát',
+    destination.parkingNote || 'Hỏi trước bãi đỗ tại điểm đến hoặc nơi lưu trú',
+    'Chụp ảnh xe, giấy tờ và thống nhất giờ trả xe trước chuyến đi',
+  ];
+
+  const handleSaveDestination = () => {
+    const nextSaved = isSaved ? savedSlugs.filter((item) => item !== destination.slug) : [...savedSlugs, destination.slug];
+    setSavedSlugs(nextSaved);
+    window.localStorage.setItem('carmatch_saved_destinations', JSON.stringify(nextSaved));
+    trackGoWhereDetail('go_where_detail_save_click', { destination: destination.slug, saved: !isSaved });
+  };
+
+  const handleShareDestination = async () => {
+    const shareUrl = window.location.href;
+    const shareTitle = `Đi ${destination.name} bằng xe tự lái cùng Car Match`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, text: destination.summary, url: shareUrl });
+        setShareState('Đã mở chia sẻ tuyến.');
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareState('Đã copy link tuyến.');
+      }
+      trackGoWhereDetail('go_where_detail_share_click', { destination: destination.slug });
+    } catch {
+      setShareState('Chưa chia sẻ được, bạn có thể copy link trên trình duyệt.');
+    }
+  };
 
   const handleLeadSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -89,7 +198,7 @@ export default function GoWhereDetail() {
       form_type: 'di_dau_detail',
       quantity: needType,
       duration: travelDate || destination.duration,
-      car_model: destination.recommendedVehicle || 'Xe CarMatch phù hợp',
+      car_model: destination.recommendedVehicle || 'Xe Car Match phù hợp',
       building: destination.name,
       note: leadNote,
     });
@@ -111,23 +220,53 @@ export default function GoWhereDetail() {
 
       <main className="pt-24">
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
-          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-            <div>
-              <Link to="/di-dau" className="text-sm font-bold text-brand-700 hover:text-brand-800">
+          <div className="mb-8 grid overflow-hidden rounded-[2.25rem] bg-white shadow-sm ring-1 ring-slate-100 lg:grid-cols-[1.02fr_0.98fr]">
+            <div className="p-6 sm:p-8 lg:p-10">
+              <Link to="/di-dau" className="text-sm font-black text-brand-700 hover:text-brand-800">
                 ← Quay lại Đi đâu
               </Link>
-              <p className="mt-6 inline-flex rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
+              <p className="mt-8 inline-flex rounded-full bg-brand-50 px-4 py-2 text-sm font-black text-brand-700">
                 {destination.region || 'Miền Bắc'} · {destination.duration}
               </p>
-              <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">
+              <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
                 Đi {destination.name} bằng xe tự lái: lịch trình, chi phí, xe phù hợp
               </h1>
-              <p className="mt-5 text-lg leading-8 text-slate-600">{destination.summary}</p>
+              <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">{destination.summary}</p>
+
+              <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-black text-slate-900">
+                  {destination.route.split('→').map((point, index, arr) => (
+                    <span key={`${point}-${index}`} className="inline-flex items-center gap-2">
+                      <span className="rounded-full bg-white px-3 py-2 shadow-sm">{point.trim()}</span>
+                      {index < arr.length - 1 ? <ArrowRight className="h-4 w-4 text-brand-600" /> : null}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <Route className="mb-2 h-5 w-5 text-brand-600" />
+                  <p className="font-black">{roundTripKm} km</p>
+                  <p className="text-slate-500">hai chiều</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <CircleDollarSign className="mb-2 h-5 w-5 text-brand-600" />
+                  <p className="font-black">{money(mobilityEstimate)}</p>
+                  <p className="text-slate-500">di chuyển</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <CalendarDays className="mb-2 h-5 w-5 text-brand-600" />
+                  <p className="font-black">{destination.duration}</p>
+                  <p className="text-slate-500">nên đi</p>
+                </div>
+              </div>
+
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to={`/lap-ke-hoach-chuyen-di/${destination.slug}#trip-form`}
-                  onClick={() => trackGoWhereDetail('go_where_detail_cta_click', { destination: destination.slug, cta: 'trip_finder_top' })}
-                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-6 py-3 font-bold text-white shadow-sm transition hover:bg-brand-700"
+                  to={`/lap-ke-hoach-chuyen-di/${destination.slug}?diem-den=${destination.slug}#trip-form`}
+                  onClick={() => trackGoWhereDetail('go_where_detail_cta_click', { destination: destination.slug, cta: 'trip_finder_hero' })}
+                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-6 py-3 font-black text-white shadow-sm transition hover:bg-brand-700"
                 >
                   Tính chuyến đi này <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -135,11 +274,69 @@ export default function GoWhereDetail() {
                   href={ZALO_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => trackGoWhereDetail('go_where_detail_cta_click', { destination: destination.slug, cta: 'zalo_top' })}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 font-bold text-slate-900 transition hover:border-brand-200 hover:text-brand-700"
+                  onClick={() => trackGoWhereDetail('go_where_detail_cta_click', { destination: destination.slug, cta: 'zalo_hero' })}
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 font-black text-slate-900 transition hover:border-brand-200 hover:text-brand-700"
                 >
                   Hỏi xe qua Zalo
                 </a>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveDestination}
+                  className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-black transition ${
+                    isSaved ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-100' : 'bg-slate-50 text-slate-700 ring-1 ring-slate-100 hover:text-brand-700'
+                  }`}
+                >
+                  <Heart className={`mr-2 h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+                  {isSaved ? 'Đã lưu tuyến' : 'Lưu tuyến'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShareDestination}
+                  className="inline-flex items-center justify-center rounded-full bg-slate-50 px-4 py-2 text-sm font-black text-slate-700 ring-1 ring-slate-100 transition hover:text-brand-700"
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Chia sẻ
+                </button>
+                {shareState ? <span className="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">{shareState}</span> : null}
+              </div>
+            </div>
+
+            <div
+              className={`min-h-[500px] bg-gradient-to-br bg-cover bg-center ${destinationHeroClass(destination)}`}
+              style={destinationImageStyle(destination)}
+            >
+              <div className="flex h-full items-end bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent p-6 text-white sm:p-8 lg:p-10">
+                <div className="w-full rounded-[1.5rem] bg-white/12 p-5 backdrop-blur ring-1 ring-white/20">
+                  <p className="text-sm font-bold text-white/75">Checklist trước khi đi</p>
+                  <div className="mt-4 grid gap-3">
+                    {[
+                      ['Xe', destination.recommendedVehicle || 'Xe Car Match phù hợp'],
+                      ['Đường đi', destination.drivingNote || 'Kiểm tra tuyến trước khi xuất phát'],
+                      ['Đỗ xe', destination.parkingNote || 'Hỏi trước điểm gửi xe'],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-2xl bg-white/14 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-white/60">{label}</p>
+                        <p className="mt-1 text-sm font-bold leading-6">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+            <div>
+              <h2 className="text-3xl font-black">Tuyến này hợp với ai?</h2>
+              <p className="mt-4 text-lg leading-8 text-slate-600">{destination.ideal}</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {(destination.tags || []).map((tag) => (
+                  <span key={tag} className="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600 ring-1 ring-slate-100">
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -195,6 +392,26 @@ export default function GoWhereDetail() {
           </div>
         </section>
 
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-10">
+          <div className="grid gap-5 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-100 lg:grid-cols-[0.85fr_1.15fr] lg:p-8">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.2em] text-brand-600">Chuẩn bị trước chuyến</p>
+              <h2 className="mt-2 text-3xl font-black">Checklist để không bỏ sót việc quan trọng</h2>
+              <p className="mt-3 text-slate-600">
+                Phần này lấy từ dữ liệu tuyến, xe gợi ý và lưu ý vận hành của Car Match. Chi phí và lịch xe vẫn cần xác nhận lại theo ngày đi thực tế.
+              </p>
+            </div>
+            <div className="grid gap-3">
+              {prepChecklist.map((item) => (
+                <div key={item} className="flex gap-3 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 pb-12">
           <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black">Lịch trình gợi ý</h2>
@@ -220,7 +437,9 @@ export default function GoWhereDetail() {
               <h2 className="text-2xl font-black">Ăn gì, chơi gì, dừng ở đâu?</h2>
               <div className="mt-5 grid gap-3">
                 {(destination.nearbyPlaces || []).map((place) => (
-                  <div key={place.name} className="rounded-2xl bg-slate-50 p-4">
+                  <div key={place.name} className="overflow-hidden rounded-2xl bg-slate-50">
+                    {place.imageUrl ? <img src={place.imageUrl} alt={place.name} className="h-36 w-full object-cover" loading="lazy" /> : null}
+                    <div className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-bold text-brand-700">{place.type}</p>
@@ -229,9 +448,40 @@ export default function GoWhereDetail() {
                       {place.price ? <span className="text-sm font-bold text-slate-500">{place.price}</span> : null}
                     </div>
                     <p className="mt-2 text-slate-600">{place.note}</p>
+                    <div className="mt-3 grid gap-2 text-xs font-bold text-slate-500 sm:grid-cols-2">
+                      {place.openingHours ? <span>Giờ mở cửa: {place.openingHours}</span> : null}
+                      {place.familyFit ? <span>Gia đình: {place.familyFit}</span> : null}
+                      {place.parkingNote ? <span className="sm:col-span-2">Đỗ xe: {place.parkingNote}</span> : null}
+                    </div>
+                    {place.sourceUrl ? (
+                      <a href={place.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex text-sm font-black text-brand-700">
+                        Xem thêm
+                      </a>
+                    ) : null}
+                    </div>
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-black">Bản đồ tuyến đi</h2>
+              <div className="mt-5 overflow-hidden rounded-3xl bg-slate-950 text-white">
+                {destination.mapUrl && isEmbeddableMapUrl(destination.mapUrl) ? (
+                  <iframe
+                    title={`Bản đồ ${destination.name}`}
+                    src={extractGoogleMapsUrl(destination.mapUrl)}
+                    className="h-72 w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <RouteMapPreview destinationName={destination.name} mapUrl={destination.mapUrl} roundTripKm={roundTripKm} />
+                )}
+              </div>
+              <p className="mt-3 text-sm font-semibold text-slate-500">
+                Link Google Maps thường sẽ mở ở tab mới. Nếu muốn nhúng bản đồ trực tiếp, dùng link Embed từ Google Maps.
+              </p>
             </div>
 
             <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
@@ -263,16 +513,20 @@ export default function GoWhereDetail() {
           </div>
         </section>
 
+        <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+          <TravelAssistant pageType="destination" destinationSlug={destination.slug} destinationName={destination.name} />
+        </section>
+
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16">
           <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="rounded-[2rem] bg-slate-950 p-6 text-white lg:p-8">
               <div>
                 <CircleDollarSign className="h-8 w-8 text-brand-200" />
                 <h2 className="mt-4 text-3xl font-black">Muốn biết xe nào còn trống cho tuyến này?</h2>
-                <p className="mt-3 text-slate-300">Mở Trip Finder để chọn ngày đi, số người, phong cách chuyến đi và gửi yêu cầu về CarMatch.</p>
+                <p className="mt-3 text-slate-300">Mở Trip Finder để chọn ngày đi, số người, phong cách chuyến đi và gửi yêu cầu về Car Match.</p>
               </div>
               <Link
-                to={`/lap-ke-hoach-chuyen-di/${destination.slug}#trip-form`}
+                to={`/lap-ke-hoach-chuyen-di/${destination.slug}?diem-den=${destination.slug}#trip-form`}
                 onClick={() => trackGoWhereDetail('go_where_detail_cta_click', { destination: destination.slug, cta: 'trip_finder_bottom' })}
                 className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 font-bold text-slate-950 transition hover:bg-brand-50"
               >
@@ -287,7 +541,7 @@ export default function GoWhereDetail() {
                 </span>
                 <div>
                   <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-600">Tư vấn chuyến này</p>
-                  <h2 className="text-2xl font-black">Để lại Zalo, CarMatch báo xe phù hợp</h2>
+                  <h2 className="text-2xl font-black">Để lại Zalo, Car Match báo xe phù hợp</h2>
                 </div>
               </div>
 
@@ -356,7 +610,7 @@ export default function GoWhereDetail() {
 
               {submitState === 'done' ? (
                 <p className="mt-3 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-                  Đã ghi nhận yêu cầu. CarMatch sẽ phản hồi qua Zalo/SĐT.
+                  Đã ghi nhận yêu cầu. Car Match sẽ phản hồi qua Zalo/SĐT.
                 </p>
               ) : null}
               {submitState === 'error' ? (

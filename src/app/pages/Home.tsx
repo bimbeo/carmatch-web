@@ -4,6 +4,7 @@ import { ArrowRight, Star, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapP
 import { useVehicles } from '@/hooks/useVehicles';
 import { usePromotions } from '@/hooks/usePromotions';
 import { useSEO } from '@/hooks/useSEO';
+import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
@@ -60,7 +61,7 @@ const howItWorks = [
   {
     step: '02',
     title: 'Chuyển khoản cọc 30%',
-    desc: 'Quét QR VietQR để chuyển cọc. Mã đặt xe tự động tạo, CarMatch xác nhận ngay trong ngày.',
+    desc: 'Quét QR VietQR để chuyển cọc. Mã đặt xe tự động tạo, Car Match xác nhận ngay trong ngày.',
   },
   {
     step: '03',
@@ -91,8 +92,8 @@ function blogImage(post: Post, index: number): string {
 
 export default function Home() {
   useSEO({
-    title: 'Thuê Xe Tự Lái Hà Nội — Giao Xe Tận Sảnh | CarMatch',
-    description: 'Thuê xe tự lái Hà Nội từ 800K/ngày. Giao xe tận sảnh Vinhomes, Ecopark, The Manor. Xác nhận 30 phút, đặt qua Zalo. 20+ mẫu xe + xe điện VinFast.',
+    title: 'Thuê Xe Tự Lái Hà Nội — Giao Xe Tận Sảnh | Car Match',
+    description: 'Thuê xe tự lái Hà Nội từ 600K/ngày. Giao xe tận sảnh Vinhomes, Ecopark, The Manor. Xác nhận 30 phút, đặt qua Zalo. 20+ mẫu xe + xe điện VinFast.',
     canonical: 'https://www.carmatch.vn/',
   });
 
@@ -131,6 +132,7 @@ export default function Home() {
     <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
+      <main>
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="relative pt-16 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50">
@@ -212,19 +214,19 @@ export default function Home() {
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex"
                 >
                   <div className="w-28 shrink-0 bg-gray-100">
-                    <img src={car.images[0]} alt={car.name} className="w-full h-full object-cover" />
+                    <img src={optimizedImageUrl(car.images[0], 320)} alt={car.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   </div>
                   <div className="flex-1 p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="font-semibold text-sm text-gray-900 leading-tight">{car.name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{car.seats} chỗ · {car.fuel}</div>
+                        <div className="text-xs text-gray-600 mt-0.5">{car.seats} chỗ · {car.fuel}</div>
                       </div>
                       <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">Sẵn sàng</span>
                     </div>
                     <div className="mt-2 flex items-baseline gap-1">
                       <span className="font-bold text-brand-600">{Math.round(car.price / 1000)}k</span>
-                      <span className="text-xs text-gray-400">/ngày</span>
+                      <span className="text-xs text-gray-600">/ngày</span>
                     </div>
                   </div>
                 </Link>
@@ -237,7 +239,7 @@ export default function Home() {
                 <div className="flex -space-x-2">
                   {cars.filter(c => c.price > 0).slice(2, 6).map((car, i) => (
                     <div key={car.id} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-gray-100" style={{ zIndex: 4 - i }}>
-                      <img src={car.images[0]} alt="" className="w-full h-full object-cover" />
+                      <img src={optimizedImageUrl(car.images[0], 96)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     </div>
                   ))}
                 </div>
@@ -272,10 +274,10 @@ export default function Home() {
           <div className="text-center mb-12">
             <p className="text-brand-200 font-semibold text-sm uppercase tracking-wide mb-2">Khu vực phục vụ</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Sống tại chung cư?<br />CarMatch có mặt ngay tại tòa nhà bạn
+              Sống tại chung cư?<br />Car Match có mặt ngay tại tòa nhà bạn
             </h2>
             <p className="text-brand-100 max-w-2xl mx-auto text-lg">
-              Không cần chỗ đỗ xe. Không lo bảo dưỡng. CarMatch giao xe tận sảnh — bạn chỉ cần cầm chìa khóa và lên đường.
+              Không cần chỗ đỗ xe. Không lo bảo dưỡng. Car Match giao xe tận sảnh — bạn chỉ cần cầm chìa khóa và lên đường.
             </p>
           </div>
 
@@ -299,7 +301,7 @@ export default function Home() {
           {/* 3 resident value props */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
             {[
-              { icon: MapPin, title: 'Giao xe tận sảnh', desc: 'CarMatch giao xe đến tòa nhà bạn — không cần ra ngoài đón xe.' },
+              { icon: MapPin, title: 'Giao xe tận sảnh', desc: 'Car Match giao xe đến tòa nhà bạn — không cần ra ngoài đón xe.' },
               { icon: Car, title: 'Xe theo ngày hoặc tháng', desc: 'Dùng dịp cuối tuần, hoặc đăng ký cố định hàng tháng tiết kiệm hơn 30%.' },
               { icon: Shield, title: 'Không lo sở hữu xe', desc: 'Không phí bảo dưỡng, không lo chỗ đỗ, không mất giá theo năm.' },
             ].map((item) => (
@@ -315,7 +317,7 @@ export default function Home() {
 
           {/* CTA */}
           <div className="text-center">
-            <p className="text-brand-200 text-sm mb-4">Cư dân tòa nhà bạn đã có CarMatch chưa?</p>
+            <p className="text-brand-200 text-sm mb-4">Cư dân tòa nhà bạn đã có Car Match chưa?</p>
             <a
               href={ZALO_LINK}
               target="_blank"
@@ -334,7 +336,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Đội xe CarMatch</p>
+              <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Đội xe Car Match</p>
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Chọn xe phù hợp với bạn</h2>
               <p className="text-gray-500">Xe điện, xe xăng, xe 7 chỗ — đa dạng cho mọi nhu cầu</p>
             </div>
@@ -377,9 +379,14 @@ export default function Home() {
                 {promotions.map((_, i) => (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => setPromoIndex(i)}
-                    className={`rounded-full transition-all ${i === promoIndex ? 'w-6 h-2 bg-brand-600' : 'w-2 h-2 bg-gray-200 hover:bg-gray-300'}`}
-                  />
+                    aria-label={`Hiển thị khuyến mãi ${i + 1}`}
+                    aria-pressed={i === promoIndex}
+                    className="w-11 h-11 flex items-center justify-center rounded-full"
+                  >
+                    <span className={`block rounded-full transition-all ${i === promoIndex ? 'w-6 h-2 bg-brand-600' : 'w-2 h-2 bg-gray-300'}`} />
+                  </button>
                 ))}
               </div>
             </div>
@@ -391,9 +398,13 @@ export default function Home() {
                 const cardContent = (
                   <div className="relative rounded-2xl overflow-hidden group cursor-pointer aspect-[16/9]">
                     <img
-                      src={promo.image_url}
+                      src={optimizedImageUrl(promo.image_url, 480, 58)}
+                      srcSet={optimizedImageSrcSet(promo.image_url, [480, 720], 58)}
+                      sizes="(min-width: 768px) 33vw, 100vw"
                       alt={promo.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     {promo.badge_text && (
@@ -429,7 +440,15 @@ export default function Home() {
                 const isExternal = promo.link_url?.startsWith('http');
                 const cardContent = (
                   <div className="relative rounded-2xl overflow-hidden aspect-[16/9]">
-                    <img src={promo.image_url} alt={promo.title} className="w-full h-full object-cover" />
+                    <img
+                      src={optimizedImageUrl(promo.image_url, 480, 58)}
+                      srcSet={optimizedImageSrcSet(promo.image_url, [480, 720], 58)}
+                      sizes="100vw"
+                      alt={promo.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     {promo.badge_text && (
                       <span className="absolute top-3 left-3 px-2.5 py-1 bg-brand-600 text-white text-xs font-bold rounded-full">
@@ -453,10 +472,10 @@ export default function Home() {
                     ) : cardContent}
                     {promotions.length > 1 && (
                       <>
-                        <button onClick={promoPrev} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <button type="button" onClick={promoPrev} aria-label="Khuyến mãi trước" className="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
                           <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <button onClick={promoNext} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <button type="button" onClick={promoNext} aria-label="Khuyến mãi tiếp theo" className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </>
@@ -469,16 +488,16 @@ export default function Home() {
         </section>
       )}
 
-      {/* ── WHY CARMATCH ──────────────────────────────────────── */}
+      {/* ── WHY CAR MATCH ──────────────────────────────────────── */}
       <section className="py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Tại sao chọn CarMatch?</p>
+            <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Tại sao chọn Car Match?</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Dịch vụ đáng tin cậy từ ngày đầu
             </h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              Hàng trăm khách hàng Hà Nội đã tin tưởng CarMatch cho mỗi chuyến đi
+              Hàng trăm khách hàng Hà Nội đã tin tưởng Car Match cho mỗi chuyến đi
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -518,7 +537,7 @@ export default function Home() {
                 </p>
                 <ul className="space-y-2 text-sm text-brand-100 mb-8">
                   {[
-                    'Từ 18.000.000đ/xe/tháng',
+                    'Từ 10.000.000đ/xe/tháng',
                     'Giao xe tận tòa nhà hoặc văn phòng',
                     'Hóa đơn VAT — doanh nghiệp thanh toán dễ',
                     'Giảm thêm khi thuê ≥3 xe hoặc ≥3 tháng',
@@ -595,7 +614,7 @@ export default function Home() {
                 <Star key={i} className="w-5 h-5 fill-current" />
               ))}
               <span className="text-gray-900 font-bold ml-2">4.8</span>
-              <span className="text-gray-400 ml-1">/ 5.0</span>
+              <span className="text-gray-600 ml-1">/ 5.0</span>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -603,7 +622,7 @@ export default function Home() {
               {
                 name: 'Anh Minh',
                 role: 'Cư dân Vinhomes Ocean Park',
-                text: 'Sống ở Ocean Park không có xe riêng nhưng có CarMatch là ổn. Nhắn Zalo tối hôm trước, sáng hôm sau xe đã đỗ dưới sảnh. Dùng được 6 tháng rồi, rất tiện.',
+                text: 'Sống ở Ocean Park không có xe riêng nhưng có Car Match là ổn. Nhắn Zalo tối hôm trước, sáng hôm sau xe đã đỗ dưới sảnh. Dùng được 6 tháng rồi, rất tiện.',
                 rating: 5,
               },
               {
@@ -628,7 +647,7 @@ export default function Home() {
                 <p className="text-gray-600 text-sm leading-relaxed mb-5">"{review.text}"</p>
                 <div>
                   <div className="text-gray-900 font-semibold text-sm">{review.name}</div>
-                  <div className="text-gray-400 text-xs">{review.role}</div>
+                  <div className="text-gray-600 text-xs">{review.role}</div>
                 </div>
               </div>
             ))}
@@ -644,7 +663,7 @@ export default function Home() {
               <div>
                 <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Blog</p>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Kinh nghiệm & Mẹo hay</h2>
-                <p className="text-gray-500">Hướng dẫn, lộ trình, kinh nghiệm thuê xe từ CarMatch</p>
+                <p className="text-gray-500">Hướng dẫn, lộ trình, kinh nghiệm thuê xe từ Car Match</p>
               </div>
               <a
                 href="/blog"
@@ -666,9 +685,11 @@ export default function Home() {
                     className="group relative rounded-2xl overflow-hidden flex-1 min-h-[200px] bg-gray-200"
                   >
                     <img
-                      src={blogImage(post, i + 1)}
+                      src={optimizedImageUrl(blogImage(post, i + 1), 800)}
                       alt={post.title}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
                     <div className="relative p-5 h-full flex flex-col justify-end">
@@ -698,9 +719,11 @@ export default function Home() {
                   className="group relative rounded-2xl overflow-hidden min-h-[420px] lg:h-full bg-gray-200"
                 >
                   <img
-                    src={blogImage(posts[0], 0)}
+                    src={optimizedImageUrl(blogImage(posts[0], 0), 1200)}
                     alt={posts[0].title}
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   {/* Featured badge */}
@@ -762,12 +785,12 @@ export default function Home() {
                 <span className="text-brand-400">Hãy để xe sinh lời</span>
               </h2>
               <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-                Gửi xe vào đội CarMatch — chúng tôi lo toàn bộ từ vận hành, bảo dưỡng, bảo hiểm đến tìm khách. Bạn chỉ cần nhận doanh thu hàng tháng.
+                Gửi xe vào đội Car Match — chúng tôi lo toàn bộ từ vận hành, bảo dưỡng, bảo hiểm đến tìm khách. Bạn chỉ cần nhận doanh thu hàng tháng.
               </p>
               <ul className="space-y-3 mb-10">
                 {[
                   'Thu nhập thụ động từ 10–25 triệu/xe/tháng',
-                  'CarMatch chịu trách nhiệm toàn bộ vận hành',
+                  'Car Match chịu trách nhiệm toàn bộ vận hành',
                   'Xe được bảo hiểm & bảo dưỡng định kỳ',
                   'Báo cáo doanh thu minh bạch theo tháng',
                   'Rút xe lại bất cứ lúc nào — không ràng buộc dài hạn',
@@ -802,7 +825,7 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-4">
               {[
                 { value: '10–25M', label: 'Thu nhập/xe/tháng', icon: '💰' },
-                { value: '100%', label: 'CarMatch lo vận hành', icon: '🔧' },
+                { value: '100%', label: 'Car Match lo vận hành', icon: '🔧' },
                 { value: '48h', label: 'Onboard xe vào đội', icon: '⚡' },
                 { value: '0đ', label: 'Chi phí tham gia ban đầu', icon: '🎁' },
               ].map((stat) => (
@@ -825,9 +848,9 @@ export default function Home() {
               <Zap className="w-4 h-4" />
               Sắp ra mắt
             </span>
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Dịch vụ sắp có tại CarMatch</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">Dịch vụ sắp có tại Car Match</h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              CarMatch đang mở rộng thành nền tảng xe toàn diện cho cư dân đô thị Hà Nội.
+              Car Match đang mở rộng thành nền tảng xe toàn diện cho cư dân đô thị Hà Nội.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -867,7 +890,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <p className="text-center text-gray-400 text-sm mt-8">
+          <p className="text-center text-gray-600 text-sm mt-8">
             Muốn được thông báo sớm?{' '}
             <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline font-medium">
               Nhắn Zalo để đăng ký trước
@@ -883,7 +906,7 @@ export default function Home() {
             Cư dân của bạn đặt xe chưa?
           </h2>
           <p className="text-gray-600 text-xl mb-10">
-            Đặt xe online hoặc nhắn Zalo — CarMatch xác nhận trong 30 phút
+            Đặt xe online hoặc nhắn Zalo — Car Match xác nhận trong 30 phút
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
@@ -902,12 +925,13 @@ export default function Home() {
               Xem fleet xe
             </Link>
           </div>
-          <p className="text-gray-400 text-sm mt-6">
+          <p className="text-gray-600 text-sm mt-6">
             Zalo: <span className="text-gray-600">0975 563 290</span> · Phản hồi 7h–22h
           </p>
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

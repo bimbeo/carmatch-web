@@ -14,7 +14,7 @@ const residentBenefits = [
   { icon: TrendingDown, title: 'Rẻ hơn mua xe', desc: 'Không mất tiền mua, không lo khấu hao, không tốn phí đỗ xe hàng tháng.' },
   { icon: HomeIcon, title: 'Giao tận sảnh tòa nhà', desc: 'Xe đến tận cổng khu đô thị, không cần ra ngoài tìm phương tiện.' },
   { icon: Car, title: 'Đổi xe khi cần', desc: 'Kỳ tiếp theo muốn 5 chỗ hay 7 chỗ, điện hay xăng — tùy bạn.' },
-  { icon: Headphones, title: 'Hỗ trợ 7h–22h', desc: 'Đội ngũ CarMatch luôn sẵn sàng xử lý sự cố trong suốt thời gian thuê.' },
+  { icon: Headphones, title: 'Hỗ trợ 7h–22h', desc: 'Đội ngũ Car Match luôn sẵn sàng xử lý sự cố trong suốt thời gian thuê.' },
 ];
 
 const businessBenefits = [
@@ -25,7 +25,7 @@ const businessBenefits = [
 ];
 
 const pricingTiers = [
-  { label: 'Xe 5 chỗ', examples: 'VF5, VF6, Hyundai Creta', price: 'Từ 18.000.000đ', unit: '/xe/tháng', note: 'Không bao gồm nhiên liệu', highlight: false },
+  { label: 'Xe 5 chỗ', examples: 'VF5, VF6, Hyundai Creta', price: 'Từ 10.000.000đ', unit: '/xe/tháng', note: 'Không bao gồm nhiên liệu', highlight: false },
   { label: 'Xe 7 chỗ', examples: 'Toyota Innova, Carnival', price: 'Từ 20.000.000đ', unit: '/xe/tháng', note: 'Không bao gồm nhiên liệu', highlight: true },
   { label: 'Xe cao cấp', examples: 'Kia Carnival, VinFast VF8', price: 'Liên hệ', unit: 'báo giá', note: 'Giá theo số lượng và thời gian', highlight: false },
 ];
@@ -50,8 +50,8 @@ interface FormData {
 
 export default function B2B() {
   useSEO({
-    title: 'Thuê Xe Theo Tháng Hà Nội — Cư Dân & Doanh Nghiệp | CarMatch',
-    description: 'Gói thuê xe theo tháng tại Hà Nội: tiết kiệm 30–40% so với thuê ngày lẻ. Giao xe tận tòa nhà, hóa đơn VAT, linh hoạt 1–12 tháng. Báo giá miễn phí.',
+    title: 'Cho thuê xe theo tháng Hà Nội - từ 10tr/tháng | Car Match',
+    description: 'Cho thuê xe theo tháng tại Hà Nội từ 10tr/tháng. Xe tự lái cho cá nhân, gia đình, doanh nghiệp nhỏ; giao xe tận nơi, hợp đồng rõ ràng.',
     canonical: 'https://www.carmatch.vn/thue-xe-thang',
   });
 
@@ -154,7 +154,7 @@ export default function B2B() {
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Lợi ích khi thuê xe tháng CarMatch</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Lợi ích khi thuê xe tháng Car Match</h2>
             {/* Tab switcher */}
             <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
               <button
@@ -249,17 +249,17 @@ export default function B2B() {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Nhận báo giá miễn phí</h2>
-            <p className="text-gray-500">Điền thông tin — đội ngũ CarMatch sẽ liên hệ trong 30 phút.</p>
+            <p className="text-gray-500">Điền thông tin — đội ngũ Car Match sẽ liên hệ trong 30 phút.</p>
           </div>
 
           {submitted ? (
             <div className="bg-brand-50 border border-brand-200 rounded-2xl p-10 text-center">
               <CheckCircle2 className="w-16 h-16 text-brand-500 mx-auto mb-4" />
               <h3 className="text-gray-900 font-bold text-xl mb-3">Yêu cầu đã được gửi!</h3>
-              <p className="text-gray-600 mb-6">Zalo CarMatch đã được mở. Chúng tôi sẽ phản hồi sớm nhất.</p>
+              <p className="text-gray-600 mb-6">Zalo Car Match đã được mở. Chúng tôi sẽ phản hồi sớm nhất.</p>
               <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-full font-semibold hover:bg-brand-700 transition-colors">
-                Mở Zalo CarMatch
+                Mở Zalo Car Match
                 <ArrowRight className="w-4 h-4" />
               </a>
             </div>

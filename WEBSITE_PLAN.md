@@ -3,7 +3,7 @@
 
 **Ngày lập:** 2026-05-13  
 **Người phụ trách:** Hưng Nam (CEO CarMatch)  
-**Stack:** Vite + React + TypeScript + Tailwind CSS v4 + Sanity CMS + Vercel
+**Stack:** Vite + React + TypeScript + Tailwind CSS v4 + Supabase CMS + Vercel
 
 ---
 
@@ -168,7 +168,7 @@ Luồng 3: SEO (organic search)
 **Structure:** 
 - Grid bài viết với thumbnail, tóm tắt, ngày đăng
 - Categories: Kinh nghiệm thuê xe | Địa điểm du lịch HN | Xe điện | B2B
-- Sanity CMS powered (đã setup)
+- Supabase CMS powered
 
 ### Page 7: `/blog/:slug` — Bài viết Blog
 - Full article với PortableText
@@ -278,7 +278,7 @@ Tier 3 (informational, SEO blog):
 - Vite + React + TypeScript + Tailwind CSS v4
 - shadcn/ui components (đã cài đủ)
 - React Router v7
-- Sanity CMS (blog)
+- Supabase CMS (blog)
 - Vercel hosting
 - `vercel.json` rewrites
 
@@ -466,7 +466,7 @@ CTA: "Tìm hiểu gói thuê tháng →" → /thue-xe-thang
 ① Nhắn tin Zalo → ② Xác nhận + ký hợp đồng → ③ Nhận xe & lên đường
 ```
 
-**Blog preview (3 bài mới từ Sanity):**
+**Blog preview (3 bài mới từ Supabase):**
 - Từ API hiện có
 
 ---
@@ -545,7 +545,7 @@ Khi implement theo plan này:
 6. **Component reuse** — CarCard dùng ở cả Home và Fleet
 7. **B2B form** — dùng Formspree, action URL sẽ điền sau khi tạo account
 8. **TypeScript strict** — giữ types đúng, không dùng `any`
-9. **Sanity blog** — giữ nguyên, đã hoạt động tốt
+9. **Supabase blog** — nguồn nội dung duy nhất
 10. **Dark theme** — giữ nguyên `#0a0a0a` background, `#4ade80` accent
 
 ---

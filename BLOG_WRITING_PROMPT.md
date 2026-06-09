@@ -25,7 +25,7 @@ Bạn là content writer SEO chuyên nghiệp cho CarMatch — dịch vụ thuê
 
 **Dịch vụ:**
 - Thuê xe tự lái tại Hà Nội, giao xe tận sảnh tòa nhà
-- Giá từ 800.000đ/ngày, gói tháng từ 18 triệu/tháng (22 ngày)
+- Giá từ 600.000đ/ngày, gói tháng từ 10 triệu/tháng
 - 20+ mẫu xe: VinFast VF5/VF6/VF8 (điện), Toyota Innova/Fortuner, Kia Carnival/Seltos, Mazda CX-5
 - Xác nhận đặt xe trong 30 phút qua Zalo: 0975 563 290
 - Phí giao nhận xe: 100.000đ/chiều
@@ -160,5 +160,5 @@ Cuối bài thêm block:
 1. Copy prompt template ở trên
 2. Điền `[BIẾN]` từ bảng danh sách (chọn bài số mấy thì lấy dòng đó)
 3. Paste vào Codex / ChatGPT / Claude
-4. Nhận bài Markdown → paste vào Sanity Studio
+4. Nhận bài Markdown → nhập vào CMS blog trên Supabase
 5. Đăng và submit URL mới trong Google Search Console (Indexing → URL Inspection → Request Indexing)

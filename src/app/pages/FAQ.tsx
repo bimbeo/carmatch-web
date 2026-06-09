@@ -10,7 +10,7 @@ const faqGroups = [
     items: [
       {
         q: 'Quy trình đặt xe online như thế nào?',
-        a: 'Chọn xe → Chọn ngày giờ → Điền thông tin → Chuyển khoản cọc 30% qua QR → Nhận mã booking. CarMatch sẽ liên hệ xác nhận trong 30 phút.',
+        a: 'Chọn xe → Chọn ngày giờ → Điền thông tin → Chuyển khoản cọc 30% qua QR → Nhận mã booking. Car Match sẽ liên hệ xác nhận trong 30 phút.',
       },
       {
         q: 'Tôi có thể hủy và hoàn cọc không?',
@@ -18,11 +18,11 @@ const faqGroups = [
       },
       {
         q: 'Có thể đặt xe vào buổi tối không?',
-        a: 'Có. CarMatch giao xe theo ca từ sau 20:00 đến trước 23:00. Đặt xe buổi tối hoàn toàn bình thường.',
+        a: 'Có. Car Match giao xe theo ca từ sau 20:00 đến trước 23:00. Đặt xe buổi tối hoàn toàn bình thường.',
       },
       {
         q: 'Có mã giảm giá không?',
-        a: 'Có. Nhập mã khuyến mãi trong bước đặt xe để áp dụng giảm giá. Theo dõi fanpage CarMatch để nhận mã mới nhất.',
+        a: 'Có. Nhập mã khuyến mãi trong bước đặt xe để áp dụng giảm giá. Theo dõi fanpage Car Match để nhận mã mới nhất.',
       },
     ],
   },
@@ -43,11 +43,11 @@ const faqGroups = [
       },
       {
         q: 'Tôi có thể đi ra ngoài tỉnh không?',
-        a: 'Cần thông báo trước với CarMatch. Một số tuyến phổ biến (Hà Nội - Ninh Bình, Hà Nội - Hạ Long) được chấp thuận. Phí bổ sung theo thỏa thuận.',
+        a: 'Cần thông báo trước với Car Match. Một số tuyến phổ biến (Hà Nội - Ninh Bình, Hà Nội - Hạ Long) được chấp thuận. Phí bổ sung theo thỏa thuận.',
       },
       {
         q: 'Xe bị hỏng giữa đường thì làm sao?',
-        a: 'Gọi ngay hotline 0971 593 290. CarMatch hỗ trợ 24/7 xử lý sự cố, bao gồm cứu hộ và xe thay thế nếu cần.',
+        a: 'Gọi ngay hotline 0971 593 290. Car Match hỗ trợ 24/7 xử lý sự cố, bao gồm cứu hộ và xe thay thế nếu cần.',
       },
     ],
   },
@@ -55,8 +55,8 @@ const faqGroups = [
 
 export default function FAQ() {
   useSEO({
-    title: 'Câu hỏi thường gặp — CarMatch',
-    description: 'Giải đáp câu hỏi thường gặp về đặt xe online, thanh toán, nhận xe, giấy tờ, bảo hiểm và phụ phí tại CarMatch.',
+    title: 'Câu hỏi thường gặp — Car Match',
+    description: 'Giải đáp câu hỏi thường gặp về đặt xe online, thanh toán, nhận xe, giấy tờ, bảo hiểm và phụ phí tại Car Match.',
     canonical: 'https://www.carmatch.vn/faq',
   });
 
@@ -71,7 +71,7 @@ export default function FAQ() {
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-cyan-600">FAQ</p>
             <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Câu hỏi thường gặp</h1>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-              Thông tin cần biết trước khi đặt xe, nhận xe và sử dụng xe CarMatch.
+              Thông tin cần biết trước khi đặt xe, nhận xe và sử dụng xe Car Match.
             </p>
           </div>
 

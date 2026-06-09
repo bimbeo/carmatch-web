@@ -1,41 +1,15 @@
-import { createClient as createSanityClient } from '@sanity/client';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-
-const sanityClient = createSanityClient({
-  projectId: 'zwazjo4q',
-  dataset: 'production',
-  useCdn: true,
-  apiVersion: '2024-01-01',
-});
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const supabase = supabaseUrl && supabaseKey ? createSupabaseClient(supabaseUrl, supabaseKey) : null;
 
-const postsQuery = `*[_type == "post"] | order(publishedAt desc) {
-  _id,
-  title,
-  slug,
-  publishedAt,
-  excerpt,
-  "mainImageUrl": mainImage.asset->url,
-  "categories": categories[]->title,
-  author
-}`;
-
-const postBySlugQuery = `*[_type == "post" && slug.current == $slug][0] {
-  _id,
-  title,
-  slug,
-  publishedAt,
-  excerpt,
-  "mainImageUrl": mainImage.asset->url,
-  "categories": categories[]->title,
-  author,
-  body,
-  seoTitle,
-  seoDescription
-}`;
+function requireSupabase() {
+  if (!supabase) {
+    throw new Error('Supabase blog source is not configured.');
+  }
+  return supabase;
+}
 
 function categoryLabel(slug = '') {
   return slug
@@ -54,7 +28,7 @@ function mapSupabasePost(row) {
     excerpt: row.excerpt || '',
     mainImageUrl: row.main_image_url || null,
     categories: row.category_slug ? [categoryLabel(row.category_slug)] : [],
-    author: row.author || 'CarMatch',
+    author: row.author || 'Car Match',
     body: [],
     bodyHtml: row.content_html || '',
     seoTitle: row.seo_title || undefined,
@@ -74,8 +48,8 @@ function mapSupabasePost(row) {
 }
 
 async function fetchSupabasePosts() {
-  if (!supabase) return null;
-  const { data, error } = await supabase
+  const client = requireSupabase();
+  const { data, error } = await client
     .from('blog_posts')
     .select('id, slug, title, excerpt, main_image_url, author, category_slug, tags, content_html, seo_title, seo_description, canonical_url, cta_enabled, cta_title, cta_description, cta_primary_label, cta_primary_url, cta_zalo_label, cta_zalo_url, related_destination_slugs, related_vehicle_links, related_post_slugs, status, published_at, created_at, updated_at')
     .eq('status', 'published')
@@ -84,16 +58,14 @@ async function fetchSupabasePosts() {
     .order('updated_at', { ascending: false });
 
   if (error) {
-    console.warn('Supabase blog fetch skipped:', error.message);
-    return null;
+    throw new Error(`Supabase blog fetch failed: ${error.message}`);
   }
-  if (!data?.length) return null;
-  return data.map(mapSupabasePost);
+  return (data || []).map(mapSupabasePost);
 }
 
 async function fetchSupabasePost(slug) {
-  if (!supabase) return null;
-  const { data, error } = await supabase
+  const client = requireSupabase();
+  const { data, error } = await client
     .from('blog_posts')
     .select('id, slug, title, excerpt, main_image_url, author, category_slug, tags, content_html, seo_title, seo_description, canonical_url, cta_enabled, cta_title, cta_description, cta_primary_label, cta_primary_url, cta_zalo_label, cta_zalo_url, related_destination_slugs, related_vehicle_links, related_post_slugs, status, published_at, created_at, updated_at')
     .eq('slug', slug)
@@ -102,8 +74,7 @@ async function fetchSupabasePost(slug) {
     .maybeSingle();
 
   if (error) {
-    console.warn('Supabase blog post fetch skipped:', error.message);
-    return null;
+    throw new Error(`Supabase blog post fetch failed: ${error.message}`);
   }
   if (!data) return null;
 
@@ -112,10 +83,10 @@ async function fetchSupabasePost(slug) {
   const relatedPostSlugs = post.relatedPostSlugs || [];
   const [destinationRes, relatedPostRes] = await Promise.all([
     destinationSlugs.length
-      ? supabase.from('travel_destinations').select('slug, name').in('slug', destinationSlugs)
+      ? client.from('travel_destinations').select('slug, name').in('slug', destinationSlugs)
       : Promise.resolve({ data: [] }),
     relatedPostSlugs.length
-      ? supabase.from('blog_posts').select('slug, title').in('slug', relatedPostSlugs).eq('status', 'published')
+      ? client.from('blog_posts').select('slug, title').in('slug', relatedPostSlugs).eq('status', 'published')
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -127,13 +98,9 @@ async function fetchSupabasePost(slug) {
 }
 
 export async function fetchPosts() {
-  const supabasePosts = await fetchSupabasePosts();
-  if (supabasePosts) return supabasePosts;
-  return sanityClient.fetch(postsQuery);
+  return fetchSupabasePosts();
 }
 
 export async function fetchPostBySlug(slug) {
-  const supabasePost = await fetchSupabasePost(slug);
-  if (supabasePost) return supabasePost;
-  return sanityClient.fetch(postBySlugQuery, { slug });
+  return fetchSupabasePost(slug);
 }

@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node --env-file-if-exists=.env.local scripts/generate-static-blog.mjs",
-    "migrate:sanity-blog": "node scripts/migrate-sanity-blog-to-supabase.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -42,7 +41,6 @@
     "@radix-ui/react-toggle": "1.1.2",
     "@radix-ui/react-toggle-group": "1.1.2",
     "@radix-ui/react-tooltip": "1.1.8",
-    "@sanity/client": "^7.21.0",
     "@supabase/supabase-js": "^2.105.4",
     "canvas-confetti": "1.9.4",
     "class-variance-authority": "0.7.1",

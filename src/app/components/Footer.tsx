@@ -15,6 +15,10 @@ export default function Footer() {
               <img
                 src="/brand/carmatch-lockup-white.png"
                 alt="Car Match"
+                width="288"
+                height="66"
+                loading="lazy"
+                decoding="async"
                 className="h-10 w-auto object-contain"
               />
             </Link>
@@ -22,15 +26,15 @@ export default function Footer() {
               Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook"
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Facebook className="w-4 h-4 text-gray-300" />
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Instagram className="w-4 h-4 text-gray-300" />
               </a>
-              <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
+              <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" aria-label="Zalo"
                 className="w-9 h-9 rounded-full bg-[#0068FF]/30 flex items-center justify-center hover:bg-[#0068FF]/50 transition-colors">
                 <span className="text-[#60a5fa] text-xs font-bold">Z</span>
               </a>
@@ -113,10 +117,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-xs">© {new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
+          <p className="text-gray-400 text-xs">© {new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
           <div className="flex items-center gap-6">
-            <Link to="/chinh-sach" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Chính sách</Link>
-            <Link to="/chinh-sach" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Điều khoản</Link>
+            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Chính sách</Link>
+            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Điều khoản</Link>
           </div>
         </div>
       </div>

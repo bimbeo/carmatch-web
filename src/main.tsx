@@ -6,12 +6,24 @@ import App from './app/App'
 const chunkErrorPattern = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i
 const reloadKey = 'carmatch-chunk-reload-attempted'
 
+async function clearStaleAppCache() {
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(registrations.map((registration) => registration.unregister()))
+  }
+
+  if ('caches' in window) {
+    const keys = await caches.keys()
+    await Promise.all(keys.map((key) => caches.delete(key)))
+  }
+}
+
 function reloadOnceForChunkError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
   if (!chunkErrorPattern.test(message) || sessionStorage.getItem(reloadKey)) return
 
   sessionStorage.setItem(reloadKey, '1')
-  window.location.reload()
+  void clearStaleAppCache().finally(() => window.location.reload())
 }
 
 window.addEventListener('unhandledrejection', (event) => {

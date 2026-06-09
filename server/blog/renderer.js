@@ -7,9 +7,6 @@ function optimizeImageUrl(url = '', width = 1200) {
   if (url.includes('res.cloudinary.com') && url.includes('/image/upload/')) {
     return url.replace('/image/upload/', `/image/upload/f_auto,q_auto,c_limit,w_${width}/`);
   }
-  if (url.includes('cdn.sanity.io/images/') && !url.includes('?')) {
-    return `${url}?w=${width}&fit=max&auto=format`;
-  }
   return url;
 }
 

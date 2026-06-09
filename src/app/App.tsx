@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useLayoutEffect, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router';
+import Home from './pages/Home';
 
-const Home = lazy(() => import('./pages/Home'));
 const Fleet = lazy(() => import('./pages/Fleet'));
 const CarDetail = lazy(() => import('./pages/CarDetail'));
 const GoWhere = lazy(() => import('./pages/GoWhere'));
@@ -18,9 +18,33 @@ const Policy = lazy(() => import('./pages/Policy'));
 const FAQ = lazy(() => import('./pages/FAQ'));
 const Admin = lazy(() => import('./pages/Admin'));
 
+const chunkReloadKey = 'carmatch-chunk-reload-attempted';
+
 function isRecoverableChunkError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i.test(message);
+}
+
+async function clearStaleAppCache({ resetReloadAttempt = false } = {}) {
+  if (resetReloadAttempt) sessionStorage.removeItem(chunkReloadKey);
+
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+  }
+
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
+}
+
+function reloadFresh() {
+  void clearStaleAppCache({ resetReloadAttempt: true }).finally(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('_cm_refresh', Date.now().toString());
+    window.location.replace(url.toString());
+  });
 }
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -33,11 +57,10 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
   componentDidCatch(error: Error) {
     if (!isRecoverableChunkError(error)) return;
 
-    const reloadKey = 'carmatch-chunk-reload-attempted';
-    if (sessionStorage.getItem(reloadKey)) return;
+    if (sessionStorage.getItem(chunkReloadKey)) return;
 
-    sessionStorage.setItem(reloadKey, '1');
-    window.location.reload();
+    sessionStorage.setItem(chunkReloadKey, '1');
+    void clearStaleAppCache().finally(() => window.location.reload());
   }
 
   render() {
@@ -49,7 +72,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
           <p className="text-gray-700 font-medium mb-4">Trang vừa được cập nhật. Tải lại để tiếp tục.</p>
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={reloadFresh}
             className="px-5 py-2.5 rounded-full bg-brand-600 text-white font-semibold"
           >
             Tải lại trang

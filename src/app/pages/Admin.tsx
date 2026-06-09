@@ -96,8 +96,8 @@ function SkeletonRows() {
 
 export default function Admin() {
   useSEO({
-    title: 'Admin Dashboard — CarMatch',
-    description: 'CarMatch admin booking dashboard.',
+    title: 'Admin Dashboard — Car Match',
+    description: 'Car Match admin booking dashboard.',
     noIndex: true,
   });
 

@@ -58,8 +58,8 @@ const sections = [
 
 export default function Policy() {
   useSEO({
-    title: 'Chính sách thuê xe — CarMatch',
-    description: 'Chính sách hủy, phụ phí, giấy tờ, bảo hiểm và quy trình giao nhận xe tại CarMatch.',
+    title: 'Chính sách thuê xe — Car Match',
+    description: 'Chính sách hủy, phụ phí, giấy tờ, bảo hiểm và quy trình giao nhận xe tại Car Match.',
     canonical: 'https://www.carmatch.vn/chinh-sach',
   });
 
@@ -69,7 +69,7 @@ export default function Policy() {
       <main className="min-h-screen bg-slate-50 pt-24 pb-16">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-cyan-600">CarMatch</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-cyan-600">Car Match</p>
             <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Chính sách thuê xe</h1>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
               Các điều kiện áp dụng cho đặt cọc, hủy chuyến, phụ phí phát sinh, giấy tờ và quy trình giao nhận xe.

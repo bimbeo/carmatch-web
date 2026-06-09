@@ -42,7 +42,7 @@ function formatDate(dateStr: string) {
 
 export default function Blog() {
   useSEO({
-    title: 'Blog — Kinh Nghiệm Thuê Xe & Ô Tô Hà Nội | CarMatch',
+    title: 'Blog — Kinh Nghiệm Thuê Xe & Ô Tô Hà Nội | Car Match',
     description: 'Bài viết hữu ích về thuê xe tự lái Hà Nội: kinh nghiệm, so sánh xe điện vs xăng, cung đường, giá thuê xe theo mùa và lưu ý khi thuê xe lần đầu.',
     canonical: 'https://www.carmatch.vn/blog',
   });
@@ -80,7 +80,7 @@ export default function Blog() {
             Kinh nghiệm & Tin tức
           </h1>
           <p className="text-gray-500 max-w-xl">
-            Hướng dẫn thuê xe, mẹo lái xe và kinh nghiệm du lịch từ CarMatch
+            Hướng dẫn thuê xe, mẹo lái xe và kinh nghiệm du lịch từ Car Match
           </p>
         </div>
       </div>

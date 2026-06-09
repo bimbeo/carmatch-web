@@ -17,7 +17,7 @@ const commitments = [
   { icon: Shield, title: 'Xe an toàn, bảo hiểm đầy đủ', desc: 'Tất cả xe được kiểm tra định kỳ. Bảo hiểm thân xe và tai nạn đầy đủ.' },
   { icon: Clock, title: 'Phản hồi trong 30 phút', desc: 'Đội ngũ trực Zalo từ 7h–22h. Xử lý sự cố nhanh trong ngày.' },
   { icon: Smile, title: 'Trải nghiệm không phiền não', desc: 'Quy trình thuê đơn giản 3 bước. Không phí ẩn. Hoàn cọc ngay khi trả xe.' },
-  { icon: Wrench, title: 'Hỗ trợ kỹ thuật 24/7', desc: 'Nếu có sự cố trong chuyến, đội kỹ thuật CarMatch sẵn sàng hỗ trợ.' },
+  { icon: Wrench, title: 'Hỗ trợ kỹ thuật 24/7', desc: 'Nếu có sự cố trong chuyến, đội kỹ thuật Car Match sẵn sàng hỗ trợ.' },
 ];
 
 const processSteps = [
@@ -38,8 +38,8 @@ const conditions = [
 
 export default function About() {
   useSEO({
-    title: 'Về CarMatch — Dịch Vụ Thuê Xe Tự Lái Hà Nội',
-    description: 'CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, chuyên phục vụ cư dân chung cư cao cấp. Xe an toàn, bảo hiểm đầy đủ, giao xe tận sảnh tòa nhà.',
+    title: 'Về Car Match — Dịch Vụ Thuê Xe Tự Lái Hà Nội',
+    description: 'Car Match là dịch vụ thuê xe tự lái tại Hà Nội, chuyên phục vụ cư dân chung cư cao cấp. Xe an toàn, bảo hiểm đầy đủ, giao xe tận sảnh tòa nhà.',
     canonical: 'https://www.carmatch.vn/gioi-thieu',
   });
 
@@ -52,10 +52,10 @@ export default function About() {
       <section className="pt-32 pb-16 px-4 bg-gradient-to-br from-brand-50 via-white to-brand-50">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Về <span className="text-brand-600">CarMatch</span>
+            Về <span className="text-brand-600">Car Match</span>
           </h1>
           <p className="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto">
-            CarMatch ra đời từ niềm tin đơn giản: thuê xe tự lái phải dễ dàng, minh bạch và đáng tin cậy.
+            Car Match ra đời từ niềm tin đơn giản: thuê xe tự lái phải dễ dàng, minh bạch và đáng tin cậy.
           </p>
         </div>
       </section>
@@ -79,9 +79,9 @@ export default function About() {
         <div className="max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Câu chuyện của chúng tôi</h2>
           <div className="space-y-4 text-gray-600 leading-relaxed">
-            <p>CarMatch được thành lập tại Hà Nội với mong muốn mang lại trải nghiệm thuê xe tự lái đơn giản, minh bạch và đáng tin cậy.</p>
+            <p>Car Match được thành lập tại Hà Nội với mong muốn mang lại trải nghiệm thuê xe tự lái đơn giản, minh bạch và đáng tin cậy.</p>
             <p>Chúng tôi hoạt động theo mô hình đối tác — kết nối người sở hữu xe chất lượng với khách hàng có nhu cầu, tạo ra giá trị cho cả hai phía trong khi đảm bảo tiêu chuẩn dịch vụ cao nhất.</p>
-            <p>Sau 2 năm hoạt động, CarMatch tự hào đã phục vụ hàng trăm khách hàng cá nhân lẫn doanh nghiệp, với đội xe ngày càng đa dạng từ xe điện VinFast đến các dòng xe 7 chỗ cao cấp.</p>
+            <p>Sau 2 năm hoạt động, Car Match tự hào đã phục vụ hàng trăm khách hàng cá nhân lẫn doanh nghiệp, với đội xe ngày càng đa dạng từ xe điện VinFast đến các dòng xe 7 chỗ cao cấp.</p>
           </div>
         </div>
       </section>
@@ -89,7 +89,7 @@ export default function About() {
       {/* Commitments */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-12">Cam kết của CarMatch</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-12">Cam kết của Car Match</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {commitments.map((item) => (
               <div key={item.title} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-all">

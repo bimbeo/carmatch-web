@@ -10,6 +10,11 @@ interface SEOProps {
 
 const BASE_URL = 'https://www.carmatch.vn';
 const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
+const BRAND_NAME_PATTERN = /\bcar\s*match\b/i;
+
+export function withBrandName(title: string) {
+  return BRAND_NAME_PATTERN.test(title) ? title : `${title} | Car Match`;
+}
 
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
   let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`);
@@ -33,7 +38,7 @@ function setLink(rel: string, href: string) {
 
 export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOProps) {
   useEffect(() => {
-    const fullTitle = title.includes('CarMatch') ? title : `${title} | CarMatch`;
+    const fullTitle = withBrandName(title);
     document.title = fullTitle;
 
     setMeta('description', description);
@@ -55,8 +60,8 @@ export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOP
 
     // Reset on unmount
     return () => {
-      document.title = 'CarMatch — Thuê Xe Tự Lái Hà Nội | Giá Từ 800K/Ngày';
-      setMeta('description', 'CarMatch - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 800K/ngày. Giao xe tận nơi.');
+      document.title = 'Car Match — Thuê Xe Tự Lái Hà Nội | Từ 600K/Ngày';
+      setMeta('description', 'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận nơi.');
     };
   }, [title, description, canonical, ogImage, noIndex]);
 }

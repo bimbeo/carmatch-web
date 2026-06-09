@@ -1,5 +1,5 @@
-import { fetchPostBySlug, fetchPosts } from './_blog-source.js';
-import { renderBlogIndex, renderBlogPage } from './_blog-renderer.js';
+import { fetchPostBySlug, fetchPosts } from '../server/blog/source.js';
+import { renderBlogIndex, renderBlogPage } from '../server/blog/renderer.js';
 
 function setFreshCmsHeaders(res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');

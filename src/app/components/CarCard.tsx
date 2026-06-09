@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { Users, Zap, Fuel, CalendarDays } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
+import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 const fuelBadge: Record<Car['fuel'], { class: string; icon: React.ReactNode }> = {
   'Điện': {
@@ -30,14 +31,16 @@ export default function CarCard({ car, compact = false }: CarCardProps) {
       {/* Image */}
       <Link
         to={`/xe/${car.slug}`}
-        aria-label={`Xem chi tiết ${car.name}`}
         className="relative block overflow-hidden aspect-video bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
       >
         <img
-          src={car.images[0]}
+          src={optimizedImageUrl(car.images[0], 480, 58)}
+          srcSet={optimizedImageSrcSet(car.images[0], [480, 720], 58)}
+          sizes="(min-width: 1280px) 411px, (min-width: 768px) 33vw, 100vw"
           alt={car.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
+          decoding="async"
         />
         <div className="absolute top-3 left-3 pointer-events-none">
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm ${badge.class}`}>
@@ -79,7 +82,7 @@ export default function CarCard({ car, compact = false }: CarCardProps) {
           {car.price > 0 ? (
             <>
               <span className="text-brand-600 font-bold text-lg">{formatPrice(car.price)}</span>
-              <span className="text-gray-400 text-xs">/ngày</span>
+              <span className="text-gray-600 text-xs">/ngày</span>
             </>
           ) : (
             <span className="text-brand-600 font-semibold text-base">Liên hệ báo giá</span>

@@ -35,8 +35,8 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function BookingConfirm() {
   useSEO({
-    title: 'Tra cứu đặt xe — CarMatch',
-    description: 'Tra cứu thông tin đặt xe CarMatch bằng mã booking.',
+    title: 'Tra cứu đặt xe — Car Match',
+    description: 'Tra cứu thông tin đặt xe Car Match bằng mã booking.',
     noIndex: true,
   });
   const [params] = useSearchParams();
@@ -153,7 +153,7 @@ export default function BookingConfirm() {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-[#0068FF] text-white rounded-xl py-3 text-sm font-semibold hover:bg-blue-700 transition-colors"
               >
-                💬 Liên hệ CarMatch qua Zalo
+                💬 Liên hệ Car Match qua Zalo
               </a>
             </div>
           )}

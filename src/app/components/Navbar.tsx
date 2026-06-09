@@ -30,10 +30,13 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center" aria-label="CarMatch">
+          <Link to="/" className="flex items-center" aria-label="Car Match">
             <img
               src="/brand/carmatch-lockup-navy.png"
-              alt="CarMatch"
+              alt="Car Match"
+              width="288"
+              height="66"
+              fetchPriority="high"
               className="h-9 w-auto object-contain"
             />
           </Link>
@@ -73,9 +76,12 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Menu"
+            aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -84,7 +90,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100">
+        <div id="mobile-navigation" className="md:hidden bg-white border-t border-gray-100">
           <div className="px-4 py-3 space-y-1">
             {navLinks.map((link) => {
               const className = `block px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${

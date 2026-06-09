@@ -31,11 +31,11 @@ export function findTripDestination(destination: string): TripDestination {
           items: ['Nhận xe tại Hà Nội', `Di chuyển tới ${destination}`, 'Dự phòng thời gian nghỉ giữa chặng', 'Trả xe theo lịch đã đặt'],
         },
       ],
-      notes: ['Đây là ước tính mặc định cho điểm đến chưa có cấu hình riêng.', 'CarMatch sẽ kiểm tra lại tuyến, phí đường và xe phù hợp khi liên hệ tư vấn.'],
+      notes: ['Đây là ước tính mặc định cho điểm đến chưa có cấu hình riêng.', 'Car Match sẽ kiểm tra lại tuyến, phí đường và xe phù hợp khi liên hệ tư vấn.'],
       faq: [
         {
           question: 'Chi phí này đã chính xác hoàn toàn chưa?',
-          answer: 'Chưa. Đây là ước tính ban đầu để khách hình dung ngân sách. CarMatch sẽ xác nhận lại theo xe, ngày thuê và tuyến thực tế.',
+          answer: 'Chưa. Đây là ước tính ban đầu để khách hình dung ngân sách. Car Match sẽ xác nhận lại theo xe, ngày thuê và tuyến thực tế.',
         },
       ],
       tollEstimate: 180000,

@@ -55,8 +55,8 @@ function Chip({
 
 export default function Fleet() {
   useSEO({
-    title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | CarMatch',
-    description: 'Duyệt 20+ mẫu xe tự lái cho thuê tại Hà Nội: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 800K/ngày. Giao xe tận sảnh tòa nhà.',
+    title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
+    description: 'Duyệt 20+ mẫu xe tự lái cho thuê tại Hà Nội: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận sảnh tòa nhà.',
     canonical: 'https://www.carmatch.vn/xe',
   });
 
@@ -152,7 +152,7 @@ export default function Fleet() {
       {/* ── Header ── */}
       <div className="bg-white border-b border-gray-100 pt-24 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Đội xe CarMatch</p>
+          <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Đội xe Car Match</p>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
             Thuê Xe Tự Lái Hà Nội
           </h1>

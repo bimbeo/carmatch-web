@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import {
   ArrowRight,
   CalendarDays,
@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Route,
   Send,
+  Share2,
   Sparkles,
   Users,
   Wallet,
@@ -31,6 +32,7 @@ import {
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import TravelAssistant from '../components/TravelAssistant';
 import ZaloFAB from '../components/ZaloFAB';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
@@ -82,7 +84,7 @@ function scoreCar(car: CarModel, travelers: number, style: string, priority: str
 }
 
 function carRecommendationReasons(car: CarModel | undefined, travelers: number, styleLabel: string, priorityLabel: string) {
-  if (!car) return ['CarMatch sẽ kiểm tra xe phù hợp theo lịch thực tế.'];
+  if (!car) return ['Car Match sẽ kiểm tra xe phù hợp theo lịch thực tế.'];
 
   return [
     `${car.seats} chỗ phù hợp nhóm ${travelers} người`,
@@ -92,8 +94,23 @@ function carRecommendationReasons(car: CarModel | undefined, travelers: number, 
   ];
 }
 
+function findDestinationFromText(text: string) {
+  const normalized = text.toLowerCase();
+  return tripDestinations.find((item) => normalized.includes(item.name.toLowerCase()));
+}
+
+function parseTravelersFromText(text: string) {
+  const normalized = text.toLowerCase();
+  const peopleMatch = normalized.match(/(\d+)\s*(người|nguoi|khách|khach|bé|be)/);
+  if (peopleMatch) return Math.min(7, Math.max(1, Number(peopleMatch[1])));
+  if (normalized.includes('gia đình') || normalized.includes('nhà mình')) return 4;
+  if (normalized.includes('cặp đôi')) return 2;
+  return null;
+}
+
 export default function TripFinder() {
   const { slug } = useParams();
+  const location = useLocation();
   const destinationFromSlug = useMemo(
     () => tripDestinations.find((item) => item.slug === slug)?.name || 'Hạ Long',
     [slug]
@@ -101,10 +118,10 @@ export default function TripFinder() {
 
   useSEO({
     title: slug
-      ? `Thuê Xe Tự Lái Đi ${destinationFromSlug} — Lịch Trình & Chi Phí | CarMatch`
-      : 'Lập Kế Hoạch Thuê Xe Tự Lái Theo Chuyến | CarMatch',
+      ? `Thuê Xe Tự Lái Đi ${destinationFromSlug} — Lịch Trình & Chi Phí | Car Match`
+      : 'Lập Kế Hoạch Thuê Xe Tự Lái Theo Chuyến | Car Match',
     description:
-      `Lập kế hoạch thuê xe tự lái đi ${destinationFromSlug}: gợi ý xe phù hợp, chi phí dự kiến, lịch trình tham khảo và gửi yêu cầu qua Zalo CarMatch.`,
+      `Lập kế hoạch thuê xe tự lái đi ${destinationFromSlug}: gợi ý xe phù hợp, chi phí dự kiến, lịch trình tham khảo và gửi yêu cầu qua Zalo Car Match.`,
     canonical: `https://www.carmatch.vn/lap-ke-hoach-chuyen-di${slug ? `/${slug}` : ''}`,
   });
 
@@ -132,6 +149,8 @@ export default function TripFinder() {
   const [pickupArea, setPickupArea] = useState('Vinhomes Ocean Park / nội thành Hà Nội');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [quickPrompt, setQuickPrompt] = useState('');
+  const [quickPromptResult, setQuickPromptResult] = useState('');
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
   const [unavailableModels, setUnavailableModels] = useState<string[]>([]);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
@@ -139,6 +158,43 @@ export default function TripFinder() {
   useEffect(() => {
     setDestination(destinationFromSlug);
   }, [destinationFromSlug]);
+
+  useEffect(() => {
+    const search = new URLSearchParams(location.search);
+    const destinationSlug = search.get('diem-den');
+    const travelerCount = Number(search.get('so-nguoi'));
+    const tripLength = search.get('thoi-gian');
+    const tripStyle = search.get('phong-cach');
+    const tripPriority = search.get('uu-tien');
+    const matchedDestination = destinationSlug
+      ? tripDestinations.find((item) => item.slug === destinationSlug)
+      : null;
+
+    if (matchedDestination) {
+      setDestination(matchedDestination.name);
+    }
+    if (Number.isFinite(travelerCount) && travelerCount >= 1) {
+      setTravelers(Math.min(7, Math.max(1, travelerCount)));
+    }
+    if (tripStyle && tripStyles.some((item) => item.value === tripStyle)) {
+      setStyle(tripStyle);
+    }
+    if (tripPriority && tripPriorities.some((item) => item.value === tripPriority)) {
+      setPriority(tripPriority);
+    }
+    if (tripLength === 'day') {
+      setReturnDate(pickupDate);
+      setLodging('none');
+    }
+    if (tripLength === 'weekend') {
+      setReturnDate(addTripDays(pickupDate, 1));
+      setLodging('homestay');
+    }
+    if (tripLength === 'long') {
+      setReturnDate(addTripDays(pickupDate, 2));
+      setLodging('hotel');
+    }
+  }, [location.search]);
 
   const rentalDays = calculateRentalDays(pickupDate, returnDate);
   const tripPlan = findTripDestination(destination);
@@ -200,6 +256,27 @@ export default function TripFinder() {
     `[TRIP FINDER]\nĐiểm đến: ${tripPlan.name}\nNhận xe: ${pickupArea}\nNgày đi: ${pickupDate}\nNgày về: ${returnDate}\nSố người: ${travelers}\nPhong cách: ${selectedStyleLabel}\nƯu tiên: ${selectedPriorityLabel}\nXe gợi ý: ${primaryCar?.name || suggestedVehicleType}\nChi phí dự kiến: ${formatPrice(totalEstimate)}\nTên: ${name || ''}\nSĐT: ${phone || ''}`
   );
 
+  const handleSharePlan = async () => {
+    const matchedDestination = tripDestinations.find((item) => item.name === tripPlan.name) || tripPlan;
+    const search = new URLSearchParams();
+    search.set('diem-den', matchedDestination.slug);
+    search.set('so-nguoi', String(travelers));
+    search.set('phong-cach', style);
+    search.set('uu-tien', priority);
+    const shareUrl = `${window.location.origin}/lap-ke-hoach-chuyen-di/${matchedDestination.slug}?${search.toString()}#trip-form`;
+    const shareTitle = `Kế hoạch đi ${tripPlan.name} cùng Car Match`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, text: `Gợi ý xe và chi phí đi ${tripPlan.name}`, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setQuickPromptResult('Đã copy link kế hoạch chuyến đi.');
+      }
+    } catch {
+      setQuickPromptResult('Chưa chia sẻ được, bạn có thể copy link trên trình duyệt.');
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim() || !phone.trim()) return;
@@ -251,6 +328,68 @@ export default function TripFinder() {
     }
   };
 
+  const applyQuickPrompt = () => {
+    const normalized = quickPrompt.trim().toLowerCase();
+    if (!normalized) return;
+
+    const matchedDestination = findDestinationFromText(normalized);
+    const parsedTravelers = parseTravelersFromText(normalized);
+    const updates: string[] = [];
+
+    if (matchedDestination) {
+      setDestination(matchedDestination.name);
+      updates.push(`điểm đến ${matchedDestination.name}`);
+    }
+    if (parsedTravelers) {
+      setTravelers(parsedTravelers);
+      updates.push(`${parsedTravelers} người`);
+    }
+    if (normalized.includes('trẻ') || normalized.includes('tre') || normalized.includes('gia đình') || normalized.includes('nhà mình')) {
+      setStyle('family');
+      setPriority(parsedTravelers && parsedTravelers >= 5 ? 'comfort' : 'balanced');
+      updates.push('phong cách gia đình');
+    }
+    if (normalized.includes('tiết kiệm') || normalized.includes('re') || normalized.includes('rẻ')) {
+      setPriority('saving');
+      updates.push('ưu tiên tiết kiệm');
+    }
+    if (normalized.includes('rộng') || normalized.includes('thoải mái') || normalized.includes('7 chỗ') || normalized.includes('đông')) {
+      setPriority('comfort');
+      updates.push('ưu tiên xe rộng');
+    }
+    if (normalized.includes('xe điện') || normalized.includes('sạc')) {
+      setPriority('electric');
+      updates.push('ưu tiên xe điện');
+    }
+    if (normalized.includes('công tác')) {
+      setStyle('business');
+      updates.push('kiểu chuyến công tác');
+    }
+    if (normalized.includes('sân bay') || normalized.includes('nội bài')) {
+      setStyle('airport');
+      setDestination('Sân bay Nội Bài');
+      updates.push('tuyến sân bay');
+    }
+    if (normalized.includes('trong ngày')) {
+      setReturnDate(pickupDate);
+      setLodging('none');
+      updates.push('chuyến trong ngày');
+    }
+    if (normalized.includes('2 ngày') || normalized.includes('qua đêm') || normalized.includes('1 đêm')) {
+      setReturnDate(addTripDays(pickupDate, 1));
+      updates.push('2 ngày 1 đêm');
+    }
+    if (normalized.includes('3 ngày') || normalized.includes('2 đêm')) {
+      setReturnDate(addTripDays(pickupDate, 2));
+      updates.push('3 ngày 2 đêm');
+    }
+
+    const resultText = updates.length
+      ? `Đã tự điền: ${Array.from(new Set(updates)).join(', ')}. Bạn kiểm tra lại ngày đi/ngày về trước khi gửi lead.`
+      : 'Chưa nhận ra đủ thông tin. Bạn thử ghi rõ điểm đến, số người, thời gian và ưu tiên xe.';
+    setQuickPromptResult(resultText);
+  };
+
   useEffect(() => {
     if (recommendedCars.length === 0) {
       setSelectedCarId(null);
@@ -266,44 +405,48 @@ export default function TripFinder() {
       <Navbar />
       <ZaloFAB />
 
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-brand-900 pt-28 pb-16 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.16),transparent_30%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 items-center">
+      <section className="bg-[#f5f7fb] pt-28 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-100 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-cyan-100 ring-1 ring-white/15 mb-6">
+              <div className="p-6 sm:p-8 lg:p-10">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-black text-brand-700">
                 <Sparkles className="h-4 w-4" />
-                Trip Finder · AI gợi ý xe theo chuyến đi
+                Trip Finder · Tính nhanh chuyến đi
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                Đi đâu từ Hà Nội?
-                <span className="block text-cyan-200">CarMatch gợi ý xe phù hợp.</span>
+              <h1 className="mb-6 text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+                Lập kế hoạch thuê xe tự lái theo chuyến.
               </h1>
-              <p className="text-slate-200 text-lg sm:text-xl leading-relaxed max-w-2xl mb-8">
-                Nhập điểm đến, ngày đi và số người. Hệ thống sẽ gợi ý loại xe, lịch trình, chi phí dự kiến và xe CarMatch phù hợp để đặt nhanh.
+              <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
+                Chọn điểm đến, ngày đi, số người và ngân sách. Car Match sẽ gợi ý xe, chi phí dự kiến, lịch trình tham khảo và cách gửi yêu cầu qua Zalo.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <a href="#trip-form" className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-400 px-7 py-3.5 font-bold text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-300 transition-colors">
+                <a href="#trip-form" className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-7 py-3.5 font-black text-white shadow-sm transition-colors hover:bg-brand-700">
                   Tính chuyến đi ngay
                   <ArrowRight className="h-5 w-5" />
                 </a>
-                <Link to="/xe" className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 px-7 py-3.5 font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition-colors">
+                <Link to="/di-dau" className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 py-3.5 font-black text-slate-900 transition-colors hover:border-brand-200 hover:text-brand-700">
+                  Xem điểm đến
+                  <MapPin className="h-5 w-5" />
+                </Link>
+                <Link to="/xe" className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 py-3.5 font-black text-slate-900 transition-colors hover:border-brand-200 hover:text-brand-700">
                   Xem đội xe
                   <Car className="h-5 w-5" />
                 </Link>
               </div>
-              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-200">
+              <div className="mt-8 grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-3">
                 {['Gợi ý xe theo số người', 'Ước tính chi phí chuyến đi', 'Gửi yêu cầu qua Zalo'].map((item) => (
                   <div key={item} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-cyan-300" />
+                    <CheckCircle2 className="h-4 w-4 text-brand-600" />
                     {item}
                   </div>
                 ))}
               </div>
+              </div>
             </div>
 
-            <div className="rounded-3xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur">
-              <div className="rounded-2xl bg-white p-5 text-gray-900 shadow-2xl">
+            <div className="bg-slate-950 p-5 text-white sm:p-6 lg:p-8">
+              <div className="h-full rounded-[1.5rem] bg-white p-5 text-gray-900 shadow-2xl">
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-brand-600">Gợi ý nhanh</p>
@@ -336,6 +479,17 @@ export default function TripFinder() {
                     <p className="text-gray-500">xăng/sạc + phí đường</p>
                   </div>
                 </div>
+                <div className="mt-5 rounded-2xl bg-slate-950 p-4 text-white">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Luồng thao tác</p>
+                  <div className="mt-4 grid gap-3 text-sm font-bold">
+                    {['Chọn tuyến và ngày', 'Xem xe và tổng chi phí', 'Để lại Zalo để giữ xe'].map((item, index) => (
+                      <div key={item} className="flex items-center gap-3 rounded-2xl bg-white/10 p-3">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-950 text-xs">{index + 1}</span>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -351,7 +505,30 @@ export default function TripFinder() {
               <p className="text-gray-500 mt-1">Chọn nhanh điểm đến phổ biến hoặc nhập điểm đến riêng.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-5">
+            <div className="mb-5 rounded-3xl bg-slate-950 p-4 text-white">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-brand-200" />
+                <p className="text-sm font-black">Nhập nhanh nhu cầu</p>
+              </div>
+              <textarea
+                value={quickPrompt}
+                onChange={(event) => setQuickPrompt(event.target.value)}
+                className="mt-3 min-h-24 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none"
+                placeholder="VD: Gia đình 6 người có trẻ em muốn đi Hạ Long 2 ngày 1 đêm, ưu tiên xe rộng..."
+              />
+              <button
+                type="button"
+                onClick={applyQuickPrompt}
+                className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-brand-500 px-4 py-3 text-sm font-black text-white hover:bg-brand-600"
+              >
+                Tự điền kế hoạch từ mô tả
+              </button>
+              {quickPromptResult ? (
+                <p className="mt-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-slate-100">{quickPromptResult}</p>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2 mb-5 sm:grid-cols-2">
               {tripDestinations.map((item) => (
                 <button
                   key={item.name}
@@ -390,7 +567,7 @@ export default function TripFinder() {
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-sm font-semibold text-gray-700">Ngày đi</span>
                   <input
@@ -412,7 +589,7 @@ export default function TripFinder() {
                 </label>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-sm font-semibold text-gray-700">Số người</span>
                   <select
@@ -441,7 +618,7 @@ export default function TripFinder() {
 
               <div>
                 <span className="text-sm font-semibold text-gray-700">Ưu tiên chọn xe</span>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   {tripPriorities.map((item) => (
                     <button
                       key={item.value}
@@ -460,7 +637,7 @@ export default function TripFinder() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-sm font-semibold text-gray-700">Lưu trú</span>
                   <select
@@ -496,8 +673,18 @@ export default function TripFinder() {
                   <p className="text-brand-600 font-bold text-sm uppercase tracking-wide">Bước 2</p>
                   <h2 className="text-2xl font-bold text-gray-900">Kế hoạch gợi ý</h2>
                 </div>
-                <div className="hidden sm:flex rounded-full bg-brand-50 px-4 py-2 text-sm font-bold text-brand-700">
-                  {formatCurrencyShort(totalEstimate)} dự kiến
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSharePlan}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-brand-200 hover:text-brand-700"
+                    aria-label="Chia sẻ kế hoạch"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                  <div className="hidden rounded-full bg-brand-50 px-4 py-2 text-sm font-bold text-brand-700 sm:flex">
+                    {formatCurrencyShort(totalEstimate)} dự kiến
+                  </div>
                 </div>
               </div>
 
@@ -585,7 +772,7 @@ export default function TripFinder() {
 
                     {primaryCarUnavailable && (
                       <div className="mt-4 rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">
-                        Xe này có thể đang bận theo lịch website. CarMatch sẽ kiểm tra lại trước khi xác nhận.
+                        Xe này có thể đang bận theo lịch website. Car Match sẽ kiểm tra lại trước khi xác nhận.
                       </div>
                     )}
 
@@ -615,7 +802,7 @@ export default function TripFinder() {
                 <h2 className="text-2xl font-bold text-gray-900">Xe phù hợp cho chuyến này</h2>
                 <p className="text-gray-500 mt-1">
                   {carsLoading && cars.length === 0
-                    ? `Đang dùng danh sách xe mẫu để gợi ý theo ${travelers} người, ${selectedStyleLabel.toLowerCase()}, tuyến ${tripPlan.name}.`
+                    ? `Đang tải danh sách xe phù hợp cho ${travelers} người, ${selectedStyleLabel.toLowerCase()}, tuyến ${tripPlan.name}.`
                     : `Gợi ý theo ${travelers} người, ${selectedStyleLabel.toLowerCase()}, tuyến ${tripPlan.name}.`}
                 </p>
               </div>
@@ -673,7 +860,7 @@ export default function TripFinder() {
                 </div>
               ) : (
                 <div className="rounded-2xl bg-gray-50 p-5 text-gray-600">
-                  Chưa tìm được xe phù hợp từ dữ liệu hiện tại. Bạn gửi yêu cầu, CarMatch sẽ check xe trống và báo lại nhanh.
+                  Chưa tìm được xe phù hợp từ dữ liệu hiện tại. Bạn gửi yêu cầu, Car Match sẽ check xe trống và báo lại nhanh.
                 </div>
               )}
             </div>
@@ -682,7 +869,7 @@ export default function TripFinder() {
               <div className="mb-5">
                 <p className="text-brand-600 font-bold text-sm uppercase tracking-wide">Bước 4</p>
                 <h2 className="text-2xl font-bold text-gray-900">Timeline ngày đầu</h2>
-                <p className="text-gray-500 mt-1">Lấy cảm hứng từ travel planner: có giờ, hoạt động và ngân sách từng mục.</p>
+                <p className="text-gray-500 mt-1">Gợi ý giờ xuất phát, điểm dừng và ngân sách từng mục để bạn dễ hình dung chuyến đi.</p>
               </div>
               <div className="space-y-3 mb-6">
                 {timelineItems.map((item) => (
@@ -698,7 +885,7 @@ export default function TripFinder() {
               </div>
               <div className="mb-5 border-t border-gray-100 pt-5">
                 <h3 className="font-bold text-gray-900">Lịch trình tham khảo theo tuyến</h3>
-                <p className="text-sm text-gray-500 mt-1">Phần này có thể chỉnh trong dữ liệu tuyến, phù hợp để làm content SEO sau này.</p>
+                <p className="text-sm text-gray-500 mt-1">Lịch trình có thể thay đổi theo thời tiết, giờ nhận xe và nhu cầu dừng nghỉ của gia đình.</p>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 {tripPlan.schedule.map((block) => (
@@ -720,17 +907,23 @@ export default function TripFinder() {
         </div>
       </section>
 
+      <section className="px-4 pb-14 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <TravelAssistant pageType="trip_finder" destinationSlug={tripPlan.slug} destinationName={tripPlan.name} />
+        </div>
+      </section>
+
       <section id="lead-form" className="scroll-mt-24 py-14 px-4 bg-white">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[0.95fr_1.05fr] gap-6">
           <div className="rounded-3xl bg-brand-50 p-6">
-            <p className="text-brand-700 font-bold text-sm uppercase tracking-wide mb-2">Dữ liệu có thể tùy chỉnh</p>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Các số liệu hiện là cấu hình mẫu</h2>
+            <p className="text-brand-700 font-bold text-sm uppercase tracking-wide mb-2">Cách Car Match ước tính</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Chi phí chỉ là dự kiến trước khi kiểm tra xe thật</h2>
             <p className="text-gray-600 leading-relaxed mb-4">
-              Khoảng cách, phí đường, điểm dừng, lịch trình và FAQ đang lấy từ file cấu hình nội bộ. Khi vận hành thật, CarMatch có thể sửa lại theo kinh nghiệm tuyến đường, dữ liệu VETC và phản hồi khách hàng.
+              Khoảng cách, phí đường, điểm dừng và lịch trình được dùng để bạn có khung ngân sách ban đầu. Car Match sẽ kiểm tra lại xe trống, giá thuê, phí giao nhận và điều kiện chuyến đi trước khi xác nhận.
             </p>
-            <div className="rounded-2xl bg-white p-4 text-sm text-gray-600">
-              File cấu hình: <span className="font-semibold text-gray-900">src/data/tripDestinations.ts</span>
-            </div>
+            <a href="https://zalo.me/0975563290" className="inline-flex rounded-2xl bg-brand-600 px-4 py-3 text-sm font-bold text-white hover:bg-brand-700">
+              Nhắn Zalo để kiểm tra xe trống
+            </a>
           </div>
 
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -752,9 +945,9 @@ export default function TripFinder() {
           <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-center">
             <div>
               <p className="text-cyan-300 font-bold text-sm uppercase tracking-wide mb-2">Giữ xe nhanh</p>
-              <h2 className="text-3xl font-bold mb-3">Muốn CarMatch check xe trống cho chuyến này?</h2>
+              <h2 className="text-3xl font-bold mb-3">Muốn Car Match check xe trống cho chuyến này?</h2>
               <p className="text-slate-300 leading-relaxed">
-                Để lại số điện thoại, CarMatch sẽ kiểm tra lịch xe và báo phương án phù hợp qua Zalo/điện thoại.
+                Để lại số điện thoại, Car Match sẽ kiểm tra lịch xe và báo phương án phù hợp qua Zalo/điện thoại.
               </p>
             </div>
 
@@ -794,7 +987,7 @@ export default function TripFinder() {
               </a>
               {submitState === 'done' && (
                 <p className="rounded-2xl bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-200">
-                  Đã lưu yêu cầu. CarMatch sẽ liên hệ lại để chốt xe phù hợp.
+                  Đã lưu yêu cầu. Car Match sẽ liên hệ lại để chốt xe phù hợp.
                 </p>
               )}
               {submitState === 'error' && (

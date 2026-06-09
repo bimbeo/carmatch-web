@@ -3,12 +3,19 @@ export interface TripDestination {
   name: string;
   region?: string;
   summary?: string;
+  imageUrl?: string;
+  seoTitle?: string;
+  seoDescription?: string;
   tags?: string[];
   distanceKm: number;
   duration: string;
   ideal: string;
   route: string;
   stops: string[];
+  latitude?: number;
+  longitude?: number;
+  mapUrl?: string;
+  checklist?: string[];
   drivingNote?: string;
   parkingNote?: string;
   recommendedVehicle?: string;
@@ -17,6 +24,13 @@ export interface TripDestination {
     type: string;
     note: string;
     price?: string;
+    openingHours?: string;
+    familyFit?: string;
+    parkingNote?: string;
+    imageUrl?: string;
+    sourceUrl?: string;
+    latitude?: number;
+    longitude?: number;
   }>;
   schedule: Array<{
     title: string;
@@ -37,12 +51,22 @@ export const tripDestinations: TripDestination[] = [
     name: 'Hạ Long',
     region: 'Quảng Ninh',
     summary: 'Tuyến nghỉ biển cuối tuần phổ biến nhất từ Hà Nội, hợp với gia đình cần xe rộng, cốp lớn và lịch trình 2 ngày 1 đêm.',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/H%E1%BA%A1_Long_Bay_15.jpg?width=1600',
     tags: ['2 ngày 1 đêm', 'Gia đình', 'Xe 7 chỗ', 'Cao tốc'],
     distanceKm: 160,
     duration: '2 ngày 1 đêm',
     ideal: 'Gia đình 4-6 người, nhóm bạn cuối tuần',
     route: 'Hà Nội → cao tốc Hải Phòng - Hạ Long → Bãi Cháy/Tuần Châu',
     stops: ['Trạm dừng Hải Dương', 'Bãi Cháy', 'Tuần Châu'],
+    latitude: 20.9101,
+    longitude: 107.1839,
+    mapUrl: 'https://www.google.com/maps?q=H%E1%BA%A1%20Long%20Bay%2C%20Qu%E1%BA%A3ng%20Ninh&output=embed',
+    checklist: [
+      'Kiểm tra tài khoản VETC và số dư trước khi lên cao tốc',
+      'Xác nhận khách sạn có bãi đỗ xe qua đêm ở Bãi Cháy/Tuần Châu',
+      'Chuẩn bị ghế trẻ em hoặc xe 7 chỗ nếu đi gia đình 5-6 người',
+      'Dự phòng giờ về Hà Nội vì cao tốc cuối tuần dễ đông',
+    ],
     drivingNote: 'Đường cao tốc dễ đi, nên kiểm tra tài khoản VETC và giữ tốc độ ổn định vì tuyến dài.',
     parkingNote: 'Khu Bãi Cháy, Tuần Châu có nhiều bãi gửi xe theo giờ/ngày; cuối tuần nên hỏi trước khách sạn.',
     recommendedVehicle: 'Xe 7 chỗ hoặc SUV/crossover nếu đi 5-6 người, có trẻ em hoặc nhiều hành lý.',
@@ -69,7 +93,7 @@ export const tripDestinations: TripDestination[] = [
       },
       {
         question: 'Xe điện có phù hợp đi Hạ Long không?',
-        answer: 'Có thể phù hợp nếu lịch trình không quá gấp và có kế hoạch sạc rõ ràng. CarMatch sẽ tư vấn theo xe thực tế còn trống.',
+        answer: 'Có thể phù hợp nếu lịch trình không quá gấp và có kế hoạch sạc rõ ràng. Car Match sẽ tư vấn theo xe thực tế còn trống.',
       },
     ],
     tollEstimate: 450000,
@@ -79,12 +103,22 @@ export const tripDestinations: TripDestination[] = [
     name: 'Ninh Bình',
     region: 'Ninh Bình',
     summary: 'Tuyến ngắn, dễ đi trong ngày hoặc 2 ngày 1 đêm, phù hợp khách muốn thuê xe tự lái để chủ động giờ thuyền, ăn uống và check-in.',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ninh_Binh-Tam_Coc_09.jpg?width=1600',
     tags: ['Trong ngày', '2 ngày 1 đêm', 'Gia đình', 'Dễ lái'],
     distanceKm: 95,
     duration: '1-2 ngày',
     ideal: 'Gia đình nhỏ, cặp đôi, khách thích đi trong ngày',
     route: 'Hà Nội → Phủ Lý → Tràng An/Tam Cốc',
     stops: ['Phủ Lý', 'Tràng An', 'Tam Cốc'],
+    latitude: 20.2506,
+    longitude: 105.9745,
+    mapUrl: 'https://www.google.com/maps?q=Tr%C3%A0ng%20An%2C%20Ninh%20B%C3%ACnh&output=embed',
+    checklist: [
+      'Chọn một trong hai điểm chính Tràng An hoặc Tam Cốc để lịch không quá dày',
+      'Đặt giờ đi thuyền sớm nếu đi cuối tuần hoặc ngày lễ',
+      'Mang mũ, nước và giày dễ đi bộ nếu ghé Hang Múa',
+      'Hỏi trước bãi đỗ tại nhà hàng/khu du lịch để tránh vòng xe nhiều',
+    ],
     drivingNote: 'Tuyến ngắn, nhiều đoạn quốc lộ/cao tốc dễ đi, phù hợp cả khách mới quen tự lái đường tỉnh.',
     parkingNote: 'Các khu du lịch lớn như Tràng An, Tam Cốc, Hang Múa đều có bãi xe riêng.',
     recommendedVehicle: 'Xe 5 chỗ tiết kiệm cho 2-4 người; xe 7 chỗ nếu đi gia đình đông hoặc có nhiều đồ.',
@@ -121,12 +155,22 @@ export const tripDestinations: TripDestination[] = [
     name: 'Tam Đảo',
     region: 'Vĩnh Phúc',
     summary: 'Chuyến nghỉ ngắn cuối tuần gần Hà Nội, nhiều cafe và homestay, nhưng cần lưu ý đường đèo dốc khi chọn xe và người lái.',
+    imageUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ba_dinh_nui_Tam_Dao.jpg?width=1600',
     tags: ['2 ngày 1 đêm', 'Gần Hà Nội', 'Đường đèo', 'Nhóm bạn'],
     distanceKm: 80,
     duration: '2 ngày 1 đêm',
     ideal: 'Nhóm bạn, cặp đôi, chuyến nghỉ ngắn cuối tuần',
     route: 'Hà Nội → Vĩnh Phúc → Tam Đảo',
     stops: ['Vĩnh Yên', 'Quán Gió', 'Nhà thờ đá'],
+    latitude: 21.4569,
+    longitude: 105.6459,
+    mapUrl: 'https://www.google.com/maps?q=Tam%20%C4%90%E1%BA%A3o%2C%20V%C4%A9nh%20Ph%C3%BAc&output=embed',
+    checklist: [
+      'Ưu tiên xe gầm cao hoặc xe số tự động nếu khách chưa quen đường dốc',
+      'Nhắc khách đi ban ngày ở đoạn lên thị trấn Tam Đảo',
+      'Xác nhận homestay/khách sạn có chỗ đỗ riêng',
+      'Kiểm tra phanh, lốp và nhiên liệu trước khi leo dốc',
+    ],
     drivingNote: 'Đoạn cuối lên thị trấn có cua dốc, nên đi ban ngày và ưu tiên tài xế đã quen đường đèo.',
     parkingNote: 'Khu trung tâm cuối tuần đông, nên chọn homestay/khách sạn có chỗ đỗ riêng.',
     recommendedVehicle: 'Xe gầm cao, xe số tự động dễ kiểm soát; tránh chở quá tải nếu chưa quen đường dốc.',
@@ -149,7 +193,7 @@ export const tripDestinations: TripDestination[] = [
     faq: [
       {
         question: 'Người mới lái có nên tự lái lên Tam Đảo không?',
-        answer: 'Nếu chưa quen đường đèo, nên cân nhắc người lái có kinh nghiệm hoặc trao đổi với CarMatch để chọn xe dễ lái.',
+        answer: 'Nếu chưa quen đường đèo, nên cân nhắc người lái có kinh nghiệm hoặc trao đổi với Car Match để chọn xe dễ lái.',
       },
     ],
     tollEstimate: 80000,
@@ -221,7 +265,7 @@ export const tripDestinations: TripDestination[] = [
         items: ['Nhận xe trước giờ bay/giờ đón ít nhất 2-3 tiếng', 'Dự phòng thời gian vào nhà ga', 'Trả xe sau khi hoàn tất chuyến đi'],
       },
     ],
-    notes: ['Phù hợp chuyến công tác ngắn hoặc gia đình cần chủ động giờ bay.', 'Nếu chỉ đi một chiều, nên hỏi CarMatch để được tư vấn phương án tiết kiệm hơn.'],
+    notes: ['Phù hợp chuyến công tác ngắn hoặc gia đình cần chủ động giờ bay.', 'Nếu chỉ đi một chiều, nên hỏi Car Match để được tư vấn phương án tiết kiệm hơn.'],
     faq: [
       {
         question: 'Chỉ đi sân bay có nên thuê xe tự lái không?',

@@ -79,7 +79,7 @@
 }
 
 @theme inline {
-  /* CarMatch brand palette — base: #11163e (navy) */
+  /* Car Match brand palette — base: #11163e (navy) */
   --color-brand-50:  #eef0f8;
   --color-brand-100: #d4d8ef;
   --color-brand-200: #aab0df;
@@ -203,7 +203,7 @@
   }
 }
 
-/* ─── react-day-picker CarMatch theme ─────────────────────────────────────── */
+/* ─── react-day-picker Car Match theme ─────────────────────────────────────── */
 .carmatch-cal .rdp {
   --rdp-cell-size: 38px;
   --rdp-accent-color: #11163e;

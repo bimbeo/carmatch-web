@@ -259,8 +259,8 @@ export default function BlogPost() {
   ] : [];
 
   useSEO({
-    title: post?.seoTitle ?? post?.title ?? 'Blog | CarMatch',
-    description: post?.seoDescription ?? post?.excerpt ?? 'Đọc bài viết mới nhất từ CarMatch về thuê xe tự lái Hà Nội.',
+    title: post?.seoTitle ?? post?.title ?? 'Blog | Car Match',
+    description: post?.seoDescription ?? post?.excerpt ?? 'Đọc bài viết mới nhất từ Car Match về thuê xe tự lái Hà Nội.',
     canonical: post ? (post.canonicalUrl || `https://www.carmatch.vn/blog/${post.slug.current}`) : undefined,
     ogImage: post?.mainImageUrl ?? undefined,
   });
@@ -289,16 +289,6 @@ export default function BlogPost() {
   }, [slug]);
 
   useEffect(() => {
-    if (post) {
-      document.title = `${post.seoTitle || post.title} | CarMatch`;
-    }
-
-    return () => {
-      document.title = 'CarMatch — Thuê Xe Tự Lái Hà Nội | Giá Từ 800K/Ngày';
-    };
-  }, [post]);
-
-  useEffect(() => {
     if (!post) return undefined;
     const canonical = post.canonicalUrl || `https://www.carmatch.vn/blog/${post.slug.current}`;
     const jsonLd = [
@@ -312,10 +302,10 @@ export default function BlogPost() {
         image: [post.mainImageUrl || 'https://www.carmatch.vn/og-image.jpg'],
         datePublished: post.publishedAt,
         dateModified: post.publishedAt,
-        author: { '@type': 'Person', name: post.author || 'CarMatch' },
+        author: { '@type': 'Person', name: post.author || 'Car Match' },
         publisher: {
           '@type': 'Organization',
-          name: 'CarMatch',
+          name: 'Car Match',
           logo: { '@type': 'ImageObject', url: 'https://www.carmatch.vn/brand/carmatch-lockup-navy.png' },
         },
         inLanguage: 'vi-VN',
@@ -454,13 +444,13 @@ export default function BlogPost() {
 
               {post.ctaEnabled !== false && (
                 <div className="mt-12 bg-brand-50 border border-brand-100 rounded-2xl p-8 text-center">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600 mb-3">CarMatch hỗ trợ nhanh</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600 mb-3">Car Match hỗ trợ nhanh</p>
                   <h3 className="text-gray-900 font-bold text-2xl mb-2">{post.ctaTitle || 'Sẵn sàng trải nghiệm?'}</h3>
                   <p className="text-gray-500 mb-6">{post.ctaDescription || 'Đặt xe ngay qua Zalo — xác nhận trong 30 phút'}</p>
                   <div className="flex flex-wrap justify-center gap-3">
                     {post.ctaPrimaryUrl && (
                       <a href={post.ctaPrimaryUrl} onClick={() => trackBlogClick(post.slug.current, 'cta_primary', post.ctaPrimaryUrl || '')} className="inline-flex items-center gap-2 px-8 py-3.5 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-colors">
-                        {post.ctaPrimaryLabel || 'Đặt xe với CarMatch'}
+                        {post.ctaPrimaryLabel || 'Đặt xe với Car Match'}
                       </a>
                     )}
                     <a

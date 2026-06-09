@@ -241,7 +241,7 @@ export default async function handler(req, res) {
   // Gửi email xác nhận nếu khách cung cấp email (fire-and-forget)
   const customerEmail = body.customer_email || null;
   if (customerEmail && process.env.RESEND_API_KEY) {
-    const subject = `[CarMatch] Xác nhận đặt xe ${bookingRef}`;
+    const subject = `[Car Match] Xác nhận đặt xe ${bookingRef}`;
     const htmlBody = `
       <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1e293b">
         <h2 style="color:#0891b2">✅ Đặt xe thành công!</h2>
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
           <tr><td style="padding:6px 0;color:#64748b">Còn lại khi nhận xe</td><td style="padding:6px 0;font-weight:600;color:#dc2626">${(Number(body.total_amount) - depositAmount).toLocaleString('vi-VN')}đ</td></tr>
         </table>
         <p style="font-size:13px;color:#64748b">
-          CarMatch sẽ liên hệ xác nhận trong vòng 30 phút.<br>
+          Car Match sẽ liên hệ xác nhận trong vòng 30 phút.<br>
           Hotline: <strong>0971 593 290</strong>
         </p>
         <p style="font-size:12px;color:#94a3b8">Lưu mã booking để tra cứu: <strong>${bookingRef}</strong></p>
@@ -267,7 +267,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'CarMatch <booking@carmatch.vn>',
+        from: 'Car Match <booking@carmatch.vn>',
         to: [customerEmail],
         subject,
         html: htmlBody,

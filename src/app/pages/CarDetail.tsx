@@ -209,11 +209,11 @@ export default function CarDetail() {
 
   useSEO({
     title: car
-      ? `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | CarMatch`
-      : 'Thuê Xe Tự Lái Hà Nội | CarMatch',
+      ? `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | Car Match`
+      : 'Thuê Xe Tự Lái Hà Nội | Car Match',
     description: car
       ? `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày. Giao xe tận sảnh tòa nhà, bảo hiểm đầy đủ.`
-      : 'Xem chi tiết xe cho thuê tại CarMatch Hà Nội.',
+      : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.',
     canonical: car ? `https://www.carmatch.vn/xe/${car.slug}` : undefined,
     ogImage: car?.images?.[0] ?? undefined,
   });
@@ -240,7 +240,7 @@ export default function CarDetail() {
           availability: car.available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
           seller: {
             '@type': 'Organization',
-            name: 'CarMatch',
+            name: 'Car Match',
             url: SITE_URL,
             logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/carmatch-logo-stacked-navy.png` },
           },
@@ -303,7 +303,7 @@ export default function CarDetail() {
     );
   }
 
-  const zaloMessage = encodeURIComponent(`Xin chào CarMatch! Tôi muốn thuê xe ${car.name}. Cho tôi hỏi về lịch trống và giá thuê ạ.`);
+  const zaloMessage = encodeURIComponent(`Xin chào Car Match! Tôi muốn thuê xe ${car.name}. Cho tôi hỏi về lịch trống và giá thuê ạ.`);
   const zaloHref = `${ZALO_LINK}?text=${zaloMessage}`;
 
   return (
@@ -540,10 +540,10 @@ export default function CarDetail() {
                 <h3 className="text-sm font-bold text-gray-900 mb-4">Quy trình đặt xe</h3>
                 <ol className="space-y-3">
                   {[
-                    { step: '1', text: 'Nhắn Zalo hoặc gọi điện cho CarMatch' },
+                    { step: '1', text: 'Nhắn Zalo hoặc gọi điện cho Car Match' },
                     { step: '2', text: 'Xác nhận lịch xe & thanh toán đặt cọc' },
                     { step: '3', text: 'Giao xe tận nơi theo giờ đã hẹn' },
-                    { step: '4', text: 'Trả xe — CarMatch kiểm tra & hoàn cọc' },
+                    { step: '4', text: 'Trả xe — Car Match kiểm tra & hoàn cọc' },
                   ].map((item) => (
                     <li key={item.step} className="flex items-start gap-3 text-sm text-gray-600">
                       <span className="w-6 h-6 rounded-full bg-brand-50 text-brand-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">

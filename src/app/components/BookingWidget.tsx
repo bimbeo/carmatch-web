@@ -728,7 +728,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                       {r.type === 'rental' ? ' (đang cho thuê)' : r.type === 'maintenance' ? ' (bảo dưỡng)' : ' (bận)'}
                     </div>
                   ))}
-                  <div className="mt-1 text-red-600">Liên hệ CarMatch để xác nhận lịch trống ạ.</div>
+                  <div className="mt-1 text-red-600">Liên hệ Car Match để xác nhận lịch trống ạ.</div>
                 </div>
               </div>
             )}
@@ -752,8 +752,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <div>
                     {boundaryConflicts.some(r => r.to === pickupDate)
                       ? <><strong>Giờ nhận từ 21:00 trở đi</strong> để đảm bảo xe đã kiểm tra và bàn giao.</>
-                      : <><strong>Trả xe trước 20:00</strong> để CarMatch kịp chuẩn bị cho ca tiếp theo.</>
-                    }{' '}CarMatch sẽ xác nhận lại lịch với bạn.
+                      : <><strong>Trả xe trước 20:00</strong> để Car Match kịp chuẩn bị cho ca tiếp theo.</>
+                    }{' '}Car Match sẽ xác nhận lại lịch với bạn.
                   </div>
                 </div>
               </div>
@@ -1549,7 +1549,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-700">
                       <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-                      <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để CarMatch xác nhận tự động. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
+                      <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để Car Match xác nhận tự động. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
                     </div>
 
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
@@ -1565,7 +1565,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   </>
                 ) : (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-                    CarMatch chưa bật QR chuyển khoản online. Đơn của bạn đã được gửi tới CSKH, team sẽ liên hệ để xác nhận lịch xe và hướng dẫn đặt cọc bằng tài khoản chính thức.
+                    Car Match chưa bật QR chuyển khoản online. Đơn của bạn đã được gửi tới CSKH, team sẽ liên hệ để xác nhận lịch xe và hướng dẫn đặt cọc bằng tài khoản chính thức.
                   </div>
                 )}
               </div>
