@@ -36,14 +36,6 @@
     <!-- Zalo domain verification -->
     <meta name="zalo-platform-site-verification" content="EF63BE7G9XixyfCIpl891WV_kLZhYMm1C3Cs" />
 
-    <!-- Preconnect to third-party origins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Fonts: non-blocking with font-display=swap -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" />
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
-
     <!-- Structured Data: AutoRental + Organization -->
     <script type="application/ld+json">
     [
@@ -158,14 +150,14 @@
     ]
     </script>
 
-    <!-- Google Analytics 4: queue events immediately, load the library after first paint -->
+    <!-- Google Analytics 4: queue events immediately, load the library after user intent -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-7RGKVMJS7Q');
 
-      (function loadAnalyticsAfterFirstPaint() {
+      (function loadAnalyticsAfterUserIntent() {
         var loaded = false;
         function load() {
           if (loaded) return;
@@ -183,9 +175,6 @@
         events.forEach(function (eventName) {
           window.addEventListener(eventName, load, { once: true, passive: true });
         });
-        window.addEventListener('load', function () {
-          window.setTimeout(load, 4000);
-        }, { once: true });
       })();
     </script>
   </head>
@@ -195,23 +184,28 @@
       (function clearLegacyServiceWorker() {
         if (!('serviceWorker' in navigator)) return;
 
+        var schedule = window.requestIdleCallback || function (cb) { return window.setTimeout(cb, 2500); };
         window.addEventListener('load', function () {
-          navigator.serviceWorker.getRegistrations()
+          schedule(function () {
+            navigator.serviceWorker.getRegistrations()
             .then(function (registrations) {
+              if (!registrations.length && !navigator.serviceWorker.controller) return [];
               return Promise.all(registrations.map(function (registration) {
                 return registration.unregister();
               }));
             })
             .catch(function () {});
 
-          if (!window.caches) return;
-          caches.keys()
-            .then(function (keys) {
-              return Promise.all(keys.map(function (key) {
-                return caches.delete(key);
-              }));
-            })
-            .catch(function () {});
+            if (!window.caches) return;
+            caches.keys()
+              .then(function (keys) {
+                if (!keys.length) return [];
+                return Promise.all(keys.map(function (key) {
+                  return caches.delete(key);
+                }));
+              })
+              .catch(function () {});
+          });
         });
       })();
     </script>

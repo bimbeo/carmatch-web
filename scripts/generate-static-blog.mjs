@@ -805,6 +805,69 @@ function replaceOrInsertHead(html, pattern, replacement) {
   return html.replace('</head>', `    ${replacement}\n  </head>`);
 }
 
+function makeStylesheetsNonBlocking(html) {
+  return html.replace(
+    /<link rel="stylesheet" crossorigin href="([^"]+)">/g,
+    `<link rel="preload" as="style" crossorigin href="$1" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" crossorigin href="$1"></noscript>`,
+  );
+}
+
+function rootCriticalCss() {
+  return `<style data-critical-home>
+      #root:has(.cm-static-home) { min-height: 100vh; }
+      .cm-static-home { background: #fff; color: #111827; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+      .cm-static-nav { align-items: center; background: rgba(255,255,255,.96); border-bottom: 1px solid #eef2f7; display: flex; height: 72px; justify-content: space-between; padding: 0 24px; }
+      .cm-static-logo { color: #11163e; font-size: 13px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+      .cm-static-menu { align-items: center; display: flex; gap: 22px; }
+      .cm-static-menu a { color: #475569; font-size: 14px; font-weight: 800; text-decoration: none; }
+      .cm-static-cta { background: #11163e; border-radius: 999px; color: #fff !important; padding: 12px 18px; }
+      .cm-static-hero { background: linear-gradient(135deg,#f8fafc 0%,#fff 52%,#eefdfb 100%); padding: 62px 24px 68px; }
+      .cm-static-inner { margin: 0 auto; max-width: 1120px; }
+      .cm-static-pill { background: #eef2ff; border-radius: 999px; color: #475569; display: inline-flex; font-size: 12px; font-weight: 900; margin-bottom: 22px; padding: 8px 12px; }
+      .cm-static-title { color: #0f172a; font-size: clamp(42px, 7vw, 68px); font-weight: 900; letter-spacing: 0; line-height: 1.02; margin: 0 0 22px; max-width: 760px; }
+      .cm-static-lead { color: #475569; font-size: 18px; font-weight: 700; line-height: 1.65; margin: 0 0 24px; max-width: 660px; }
+      .cm-static-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+      .cm-static-btn { align-items: center; border-radius: 999px; display: inline-flex; font-size: 15px; font-weight: 900; justify-content: center; min-height: 46px; padding: 0 22px; text-decoration: none; }
+      .cm-static-btn.primary { background: #11163e; color: #fff; }
+      .cm-static-btn.secondary { background: #fff; border: 1px solid #e5e7eb; color: #111827; }
+      .cm-static-trust { color: #64748b; display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; font-weight: 800; margin-top: 24px; }
+      @media (max-width: 700px) {
+        .cm-static-nav { height: 64px; padding: 0 18px; }
+        .cm-static-menu a:not(.cm-static-cta) { display: none; }
+        .cm-static-hero { padding: 44px 18px 56px; }
+        .cm-static-title { font-size: 38px; }
+        .cm-static-actions { flex-direction: column; }
+      }
+    </style>`;
+}
+
+function rootStaticShell() {
+  return `<div id="root"><div class="cm-static-home" aria-label="Car Match homepage loading shell">
+      <header class="cm-static-nav">
+        <div class="cm-static-logo">Car Match</div>
+        <nav class="cm-static-menu" aria-label="Điều hướng chính">
+          <a href="/xe">Thuê xe tự lái</a>
+          <a href="/di-dau">Đi đâu</a>
+          <a href="/thue-xe-thang">Thuê xe tháng</a>
+          <a class="cm-static-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+        </nav>
+      </header>
+      <main class="cm-static-hero">
+        <div class="cm-static-inner">
+          <div class="cm-static-pill">Dịch vụ xe cho cư dân đô thị Hà Nội</div>
+          <h1 class="cm-static-title">Không cần sở hữu xe vẫn luôn có xe dùng</h1>
+          <p class="cm-static-lead">Thuê xe ngày hoặc theo tháng, giao tận sảnh tòa nhà. Vinhomes, Ecopark, The Manor, Linh Đàm, xe điện VinFast, đặt qua Zalo 5 phút.</p>
+          <div class="cm-static-actions">
+            <a class="cm-static-btn primary" href="/xe">Đặt xe ngay</a>
+            <a class="cm-static-btn secondary" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+            <a class="cm-static-btn secondary" href="/lap-ke-hoach-chuyen-di">Lập chuyến đi</a>
+          </div>
+          <div class="cm-static-trust"><span>Giao xe tận tòa nhà</span><span>Bảo hiểm đầy đủ</span><span>Hoàn cọc ngay khi trả xe</span></div>
+        </div>
+      </main>
+    </div></div>`;
+}
+
 function renderSpaShell(baseHtml, meta) {
   let html = baseHtml;
   const title = escapeHtml(meta.title);
@@ -829,6 +892,15 @@ function renderSpaShell(baseHtml, meta) {
       /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
       `<script type="application/ld+json">${JSON.stringify(meta.structuredData)}</script>`,
     );
+  }
+
+  if (meta.path === '/') {
+    html = makeStylesheetsNonBlocking(html);
+    html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
+    html = html.replace(/<div id="root"><\/div>/, rootStaticShell());
+  } else {
+    html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
+    html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/, '<div id="root"></div>\n    <script');
   }
 
   return html;
@@ -1299,9 +1371,6 @@ function renderHanoiLanding() {
     <meta name="twitter:image" content="${escapeHtml(heroImage)}" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="preload" as="image" href="/brand/carmatch-lockup-navy.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script type="application/ld+json">${normalizeBrandText(JSON.stringify(structuredData))}</script>
     <style>
       :root { color-scheme: light; font-family: "Be Vietnam Pro", Inter, Arial, sans-serif; background: #f8fafc; color: #0f172a; }

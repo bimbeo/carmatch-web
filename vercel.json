@@ -1,6 +1,26 @@
 {
   "routes": [
     {
+      "src": "/assets/(.*)",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    {
+      "src": "/brand/(.*)",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    {
+      "src": "/(favicon.ico|favicon.svg|favicon-16x16.png|favicon-32x32.png|apple-touch-icon.png|android-chrome-192x192.png|android-chrome-512x512.png)",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    {
+      "src": "/site.webmanifest",
+      "headers": { "Cache-Control": "public, max-age=86400" },
+      "continue": true
+    },
+    {
       "src": "/faq-thue-xe-tu-lai-ha-noi",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/faq" }
@@ -16,12 +36,6 @@
       "has": [{ "type": "host", "value": "blog.carmatch.vn" }],
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/blog" }
-    },
-    {
-      "src": "/(.*)",
-      "has": [{ "type": "host", "value": "carmatch.vn" }],
-      "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/$1" }
     },
     {
       "src": "/blogs/?",
