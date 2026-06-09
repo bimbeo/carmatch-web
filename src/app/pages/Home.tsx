@@ -126,6 +126,7 @@ export default function Home() {
     setPromoIndex((i) => (i - 1 + promotions.length) % promotions.length);
   };
 
+  const readyCars = cars.filter((car) => car.price > 0);
   const allCarsPreview = cars.slice(0, 6);
 
   return (
@@ -199,7 +200,7 @@ export default function Home() {
             </div>
 
             {/* ── Right: live fleet preview ── */}
-            <div className="hidden lg:flex flex-col gap-3 w-[400px]">
+            <div className="hidden lg:flex flex-col gap-3 w-[400px] min-h-[312px]">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Xe sẵn sàng hôm nay</span>
                 <Link to="/xe" className="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
@@ -207,11 +208,27 @@ export default function Home() {
                 </Link>
               </div>
 
-              {cars.filter(c => c.price > 0).slice(0, 2).map(car => (
+              {readyCars.length === 0 ? (
+                <>
+                  {[0, 1].map((item) => (
+                    <div
+                      key={item}
+                      className="h-[96px] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex"
+                    >
+                      <div className="w-28 shrink-0 bg-gray-100" />
+                      <div className="flex-1 p-3.5">
+                        <div className="h-4 w-36 bg-gray-100 rounded-full" />
+                        <div className="h-3 w-20 bg-gray-100 rounded-full mt-2" />
+                        <div className="h-4 w-16 bg-brand-50 rounded-full mt-4" />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : readyCars.slice(0, 2).map(car => (
                 <Link
                   key={car.id}
                   to={`/xe/${car.slug}`}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex"
+                  className="h-[96px] bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex"
                 >
                   <div className="w-28 shrink-0 bg-gray-100">
                     <img src={optimizedImageUrl(car.images[0], 320)} alt={car.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -234,17 +251,17 @@ export default function Home() {
 
               <Link
                 to="/xe"
-                className="bg-brand-50 border border-brand-100 rounded-2xl p-3.5 flex items-center justify-between hover:bg-brand-100/60 transition-colors"
+                className="h-[60px] bg-brand-50 border border-brand-100 rounded-2xl p-3.5 flex items-center justify-between hover:bg-brand-100/60 transition-colors"
               >
                 <div className="flex -space-x-2">
-                  {cars.filter(c => c.price > 0).slice(2, 6).map((car, i) => (
+                  {readyCars.slice(2, 6).map((car, i) => (
                     <div key={car.id} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-gray-100" style={{ zIndex: 4 - i }}>
                       <img src={optimizedImageUrl(car.images[0], 96)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     </div>
                   ))}
                 </div>
                 <span className="text-sm font-semibold text-brand-700">
-                  +{Math.max(0, cars.filter(c => c.price > 0).length - 2)} xe khác
+                  +{Math.max(0, readyCars.length - 2)} xe khác
                 </span>
                 <ArrowRight className="w-4 h-4 text-brand-600" />
               </Link>

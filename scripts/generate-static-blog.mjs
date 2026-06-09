@@ -816,27 +816,54 @@ function rootCriticalCss() {
   return `<style data-critical-home>
       #root:has(.cm-static-home) { min-height: 100vh; }
       .cm-static-home { background: #fff; color: #111827; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
-      .cm-static-nav { align-items: center; background: rgba(255,255,255,.96); border-bottom: 1px solid #eef2f7; display: flex; height: 72px; justify-content: space-between; padding: 0 24px; }
+      .cm-static-nav { align-items: center; background: rgba(255,255,255,.95); border-bottom: 1px solid #f3f4f6; display: flex; height: 64px; justify-content: center; left: 0; padding: 0 24px; position: fixed; right: 0; top: 0; z-index: 50; }
+      .cm-static-nav-inner { align-items: center; display: flex; justify-content: space-between; max-width: 1280px; width: 100%; }
       .cm-static-logo { color: #11163e; font-size: 13px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
-      .cm-static-menu { align-items: center; display: flex; gap: 22px; }
-      .cm-static-menu a { color: #475569; font-size: 14px; font-weight: 800; text-decoration: none; }
-      .cm-static-cta { background: #11163e; border-radius: 999px; color: #fff !important; padding: 12px 18px; }
-      .cm-static-hero { background: linear-gradient(135deg,#f8fafc 0%,#fff 52%,#eefdfb 100%); padding: 62px 24px 68px; }
-      .cm-static-inner { margin: 0 auto; max-width: 1120px; }
-      .cm-static-pill { background: #eef2ff; border-radius: 999px; color: #475569; display: inline-flex; font-size: 12px; font-weight: 900; margin-bottom: 22px; padding: 8px 12px; }
-      .cm-static-title { color: #0f172a; font-size: clamp(42px, 7vw, 68px); font-weight: 900; letter-spacing: 0; line-height: 1.02; margin: 0 0 22px; max-width: 760px; }
-      .cm-static-lead { color: #475569; font-size: 18px; font-weight: 700; line-height: 1.65; margin: 0 0 24px; max-width: 660px; }
-      .cm-static-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-      .cm-static-btn { align-items: center; border-radius: 999px; display: inline-flex; font-size: 15px; font-weight: 900; justify-content: center; min-height: 46px; padding: 0 22px; text-decoration: none; }
-      .cm-static-btn.primary { background: #11163e; color: #fff; }
-      .cm-static-btn.secondary { background: #fff; border: 1px solid #e5e7eb; color: #111827; }
-      .cm-static-trust { color: #64748b; display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; font-weight: 800; margin-top: 24px; }
-      @media (max-width: 700px) {
-        .cm-static-nav { height: 64px; padding: 0 18px; }
+      .cm-static-menu { align-items: center; display: flex; gap: 32px; }
+      .cm-static-menu a { color: #4b5563; font-size: 14px; font-weight: 600; text-decoration: none; }
+      .cm-static-cta { background: #11163e; border-radius: 999px; color: #fff !important; padding: 10px 20px; }
+      .cm-static-hero { background: linear-gradient(135deg,#f8fafc 0%,#fff 52%,#eefdfb 100%); overflow: hidden; padding: 128px 24px 112px; position: relative; }
+      .cm-static-inner { align-items: center; display: grid; gap: 56px; grid-template-columns: 3fr 2fr; margin: 0 auto; max-width: 1280px; }
+      .cm-static-copy { min-width: 0; }
+      .cm-static-pill { background: #eef2ff; border-radius: 999px; color: #475569; display: inline-flex; font-size: 14px; font-weight: 700; margin-bottom: 32px; padding: 6px 16px; }
+      .cm-static-title { color: #111827; font-size: 60px; font-weight: 800; letter-spacing: 0; line-height: 1.08; margin: 0 0 24px; max-width: 760px; }
+      .cm-static-title span { color: #0f766e; }
+      .cm-static-lead { color: #4b5563; font-size: 20px; line-height: 1.62; margin: 0 0 12px; max-width: 660px; }
+      .cm-static-sublead { color: #6b7280; font-size: 14px; margin: 0 0 40px; }
+      .cm-static-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+      .cm-static-btn { align-items: center; border-radius: 999px; display: inline-flex; font-size: 16px; font-weight: 800; justify-content: center; min-height: 52px; padding: 0 28px; text-decoration: none; }
+      .cm-static-btn.primary { background: #0f766e; color: #fff; }
+      .cm-static-btn.secondary { background: #fff; border: 1px solid #e5e7eb; color: #1f2937; }
+      .cm-static-trust { color: #6b7280; display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; margin-top: 32px; }
+      .cm-static-fleet { display: flex; flex-direction: column; gap: 12px; min-height: 312px; width: 400px; }
+      .cm-static-fleet-head { align-items: center; display: flex; justify-content: space-between; margin-bottom: 4px; }
+      .cm-static-fleet-head span { color: #9ca3af; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      .cm-static-fleet-card { background: #fff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.04); display: flex; height: 96px; overflow: hidden; }
+      .cm-static-fleet-img { background: #f3f4f6; flex: 0 0 112px; }
+      .cm-static-fleet-body { flex: 1; padding: 14px; }
+      .cm-static-line { background: #f3f4f6; border-radius: 999px; height: 14px; }
+      .cm-static-line.sm { height: 12px; margin-top: 9px; width: 88px; }
+      .cm-static-line.price { background: #ecfdf5; height: 16px; margin-top: 16px; width: 70px; }
+      .cm-static-more { align-items: center; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 16px; color: #0f766e; display: flex; font-size: 14px; font-weight: 800; height: 60px; justify-content: space-between; padding: 14px; }
+      .cm-static-stats { background: #fff; border-bottom: 1px solid #f3f4f6; border-top: 1px solid #f3f4f6; padding: 48px 24px; }
+      .cm-static-stats-grid { display: grid; gap: 32px; grid-template-columns: repeat(4,minmax(0,1fr)); margin: 0 auto; max-width: 1024px; text-align: center; }
+      .cm-static-stat strong { color: #0f766e; display: block; font-size: 36px; line-height: 1; margin-bottom: 8px; }
+      .cm-static-stat span { color: #6b7280; font-size: 14px; }
+      @media (max-width: 1023px) {
         .cm-static-menu a:not(.cm-static-cta) { display: none; }
-        .cm-static-hero { padding: 44px 18px 56px; }
-        .cm-static-title { font-size: 38px; }
+        .cm-static-hero { padding: 108px 18px 80px; }
+        .cm-static-inner { display: block; }
+        .cm-static-fleet { display: none; }
+        .cm-static-title { font-size: 48px; max-width: 760px; }
+        .cm-static-stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      }
+      @media (max-width: 700px) {
+        .cm-static-nav { padding: 0 18px; }
+        .cm-static-hero { padding: 108px 18px 56px; }
+        .cm-static-title { font-size: 36px; }
+        .cm-static-lead { font-size: 16px; }
         .cm-static-actions { flex-direction: column; }
+        .cm-static-btn { min-height: 46px; }
       }
     </style>`;
 }
@@ -844,27 +871,50 @@ function rootCriticalCss() {
 function rootStaticShell() {
   return `<div id="root"><div class="cm-static-home" aria-label="Car Match homepage loading shell">
       <header class="cm-static-nav">
-        <div class="cm-static-logo">Car Match</div>
-        <nav class="cm-static-menu" aria-label="Điều hướng chính">
-          <a href="/xe">Thuê xe tự lái</a>
-          <a href="/di-dau">Đi đâu</a>
-          <a href="/thue-xe-thang">Thuê xe tháng</a>
-          <a class="cm-static-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
-        </nav>
+        <div class="cm-static-nav-inner">
+          <div class="cm-static-logo">Car Match</div>
+          <nav class="cm-static-menu" aria-label="Điều hướng chính">
+            <a href="/xe">Thuê xe tự lái</a>
+            <a href="/di-dau">Đi đâu</a>
+            <a href="/lap-ke-hoach-chuyen-di">Lập chuyến đi</a>
+            <a href="/thue-xe-thang">Thuê xe tháng</a>
+            <a href="/hop-tac">Hợp tác chủ xe</a>
+            <a href="/gioi-thieu">Giới thiệu</a>
+            <a href="/blog">Blog</a>
+            <a class="cm-static-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+          </nav>
+        </div>
       </header>
       <main class="cm-static-hero">
         <div class="cm-static-inner">
+          <div class="cm-static-copy">
           <div class="cm-static-pill">Dịch vụ xe cho cư dân đô thị Hà Nội</div>
-          <h1 class="cm-static-title">Không cần sở hữu xe vẫn luôn có xe dùng</h1>
-          <p class="cm-static-lead">Thuê xe ngày hoặc theo tháng, giao tận sảnh tòa nhà. Vinhomes, Ecopark, The Manor, Linh Đàm, xe điện VinFast, đặt qua Zalo 5 phút.</p>
+          <h1 class="cm-static-title">Không cần sở hữu xe<br><span>vẫn luôn có xe dùng</span></h1>
+          <p class="cm-static-lead">Thuê xe ngày hoặc theo tháng — <strong>giao tận sảnh tòa nhà</strong></p>
+          <p class="cm-static-sublead">Vinhomes · Ecopark · The Manor · Linh Đàm · Xe điện VinFast · Đặt qua Zalo 5 phút</p>
           <div class="cm-static-actions">
             <a class="cm-static-btn primary" href="/xe">Đặt xe ngay</a>
             <a class="cm-static-btn secondary" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
             <a class="cm-static-btn secondary" href="/lap-ke-hoach-chuyen-di">Lập chuyến đi</a>
           </div>
           <div class="cm-static-trust"><span>Giao xe tận tòa nhà</span><span>Bảo hiểm đầy đủ</span><span>Hoàn cọc ngay khi trả xe</span></div>
+          </div>
+          <div class="cm-static-fleet" aria-hidden="true">
+            <div class="cm-static-fleet-head"><span>Xe sẵn sàng hôm nay</span><span>Xem tất cả</span></div>
+            <div class="cm-static-fleet-card"><div class="cm-static-fleet-img"></div><div class="cm-static-fleet-body"><div class="cm-static-line" style="width:150px"></div><div class="cm-static-line sm"></div><div class="cm-static-line price"></div></div></div>
+            <div class="cm-static-fleet-card"><div class="cm-static-fleet-img"></div><div class="cm-static-fleet-body"><div class="cm-static-line" style="width:140px"></div><div class="cm-static-line sm"></div><div class="cm-static-line price"></div></div></div>
+            <div class="cm-static-more"><span>+18 xe khác</span><span>→</span></div>
+          </div>
         </div>
       </main>
+      <section class="cm-static-stats" aria-hidden="true">
+        <div class="cm-static-stats-grid">
+          <div class="cm-static-stat"><strong>20+</strong><span>Mẫu xe</span></div>
+          <div class="cm-static-stat"><strong>500+</strong><span>Chuyến thành công</span></div>
+          <div class="cm-static-stat"><strong>7</strong><span>Khu đô thị phục vụ</span></div>
+          <div class="cm-static-stat"><strong>4.8★</strong><span>Đánh giá khách hàng</span></div>
+        </div>
+      </section>
     </div></div>`;
 }
 
