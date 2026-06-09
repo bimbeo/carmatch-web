@@ -805,10 +805,10 @@ function replaceOrInsertHead(html, pattern, replacement) {
   return html.replace('</head>', `    ${replacement}\n  </head>`);
 }
 
-function makeStylesheetsNonBlocking(html) {
+function moveStylesheetsBeforeModuleScripts(html) {
   return html.replace(
-    /<link rel="stylesheet" crossorigin href="([^"]+)">/g,
-    `<link rel="preload" as="style" crossorigin href="$1" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" crossorigin href="$1"></noscript>`,
+    /(\s*<script type="module" crossorigin src="[^"]+"><\/script>)\s*(<link rel="stylesheet" crossorigin href="[^"]+">)/g,
+    '\n    $2$1',
   );
 }
 
@@ -945,7 +945,7 @@ function renderSpaShell(baseHtml, meta) {
   }
 
   if (meta.path === '/') {
-    html = makeStylesheetsNonBlocking(html);
+    html = moveStylesheetsBeforeModuleScripts(html);
     html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
     html = html.replace(/<div id="root"><\/div>/, rootStaticShell());
   } else {
