@@ -1299,69 +1299,89 @@ function renderHanoiLanding() {
     <meta name="twitter:image" content="${escapeHtml(heroImage)}" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="preload" as="image" href="/brand/carmatch-lockup-navy.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script type="application/ld+json">${normalizeBrandText(JSON.stringify(structuredData))}</script>
     <style>
-      :root { color-scheme: light; font-family: "Be Vietnam Pro", Inter, Arial, sans-serif; background: #f5f1e8; color: #0f172a; }
+      :root { color-scheme: light; font-family: "Be Vietnam Pro", Inter, Arial, sans-serif; background: #f8fafc; color: #0f172a; }
       * { box-sizing: border-box; }
-      body { margin: 0; background: #f5f1e8; color: #0f172a; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: #f8fafc; color: #0f172a; }
       a { color: inherit; text-decoration: none; }
-      .nav { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid #ded5c6; background: rgba(255,250,241,.96); backdrop-filter: blur(12px); }
+      .nav { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid #e5e7eb; background: rgba(255,255,255,.94); backdrop-filter: blur(12px); }
       .nav-inner { align-items: center; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1180px; padding: 16px 20px; }
       .brand img { display: block; height: 34px; width: auto; }
-      .nav-links { align-items: center; display: flex; gap: 24px; font-size: 14px; font-weight: 900; color: #334155; }
-      .nav-cta, .btn-primary { align-items: center; background: #0f766e; border-radius: 8px; color: white; display: inline-flex; font-weight: 900; justify-content: center; padding: 14px 20px; }
-      .btn-secondary { align-items: center; background: #fffaf1; border: 1px solid #d9cfbe; border-radius: 8px; display: inline-flex; font-weight: 900; justify-content: center; padding: 13px 20px; }
+      .nav-links { align-items: center; display: flex; gap: 24px; font-size: 14px; font-weight: 800; color: #475569; }
+      .nav-links a:hover { color: #0f766e; }
+      .nav-cta, .btn-primary { align-items: center; background: #0f766e; border-radius: 999px; color: white; display: inline-flex; font-weight: 900; justify-content: center; padding: 14px 22px; box-shadow: 0 14px 30px rgba(15,118,110,.18); }
+      .btn-secondary { align-items: center; background: white; border: 1px solid #dbe4ef; border-radius: 999px; display: inline-flex; font-weight: 900; justify-content: center; padding: 13px 20px; }
       main { display: flex; flex-direction: column; }
       section { width: 100%; }
       .container { margin: 0 auto; max-width: 1180px; padding-left: 20px; padding-right: 20px; }
-      .hero { display: grid; gap: 34px; grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr); padding-bottom: 56px; padding-top: 56px; }
-      .eyebrow { color: #0f766e; font-size: 12px; font-weight: 900; letter-spacing: .18em; margin: 0; text-transform: uppercase; }
-      h1 { font-size: clamp(38px, 6vw, 72px); letter-spacing: 0; line-height: .98; margin: 18px 0; }
-      h2 { font-size: clamp(30px, 4vw, 48px); letter-spacing: 0; line-height: 1.08; margin: 10px 0 0; }
-      h3 { font-size: 20px; margin: 14px 0 8px; }
-      p { color: #475569; font-size: 16px; font-weight: 650; line-height: 1.75; }
+      .hero-wrap { background: linear-gradient(135deg, #f8fafc 0%, #fff7ed 48%, #ecfeff 100%); border-bottom: 1px solid #e5e7eb; }
+      .hero { display: grid; gap: 36px; grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); padding-bottom: 54px; padding-top: 58px; align-items: center; }
+      .eyebrow { color: #0f766e; font-size: 12px; font-weight: 900; letter-spacing: .16em; margin: 0; text-transform: uppercase; }
+      h1 { font-size: clamp(42px, 5.8vw, 76px); letter-spacing: 0; line-height: 1.02; margin: 18px 0; }
+      h2 { font-size: clamp(28px, 3.6vw, 44px); letter-spacing: 0; line-height: 1.12; margin: 10px 0 0; }
+      h3 { font-size: 20px; margin: 0 0 8px; }
+      p { color: #475569; font-size: 16px; font-weight: 600; line-height: 1.72; }
       .lead { font-size: 18px; line-height: 1.75; max-width: 660px; }
       .stats { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 30px; }
-      .stat, .card, .vehicle, .area, details { background: #fffaf1; border: 1px solid #ded5c6; border-radius: 8px; }
-      .stat { padding: 18px; }
-      .stat strong { display: block; font-size: 26px; }
+      .stat, .card, .vehicle, .area, details, .quote-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; }
+      .stat { padding: 18px; box-shadow: 0 12px 34px rgba(15,23,42,.05); }
+      .stat strong { display: block; font-size: 26px; color: #020617; }
       .stat span { color: #64748b; display: block; font-size: 12px; font-weight: 800; margin-top: 4px; text-transform: uppercase; }
-      .hero-panel { background: #fffaf1; border: 1px solid #d9cfbe; border-radius: 8px; box-shadow: 0 24px 80px rgba(15,23,42,.12); padding: 18px; }
-      .hero-media { background: #020617; border-radius: 8px; color: white; display: grid; grid-template-columns: 1.05fr .95fr; min-height: 270px; overflow: hidden; }
-      .hero-media-copy { padding: 26px; }
+      .hero-panel { background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 24px 80px rgba(15,23,42,.12); padding: 18px; }
+      .hero-media { background: #020617; border-radius: 8px; color: white; display: grid; grid-template-columns: .95fr 1.05fr; min-height: 300px; overflow: hidden; }
+      .hero-media-copy { padding: 28px; display: flex; flex-direction: column; justify-content: center; }
       .hero-media-copy p { color: rgba(255,255,255,.72); }
-      .hero-media img { height: 100%; min-height: 270px; object-fit: cover; width: 100%; }
+      .hero-media img { height: 100%; min-height: 300px; object-fit: cover; width: 100%; }
       .info-list { display: grid; gap: 12px; margin-top: 18px; }
-      .info-item { align-items: center; background: white; border: 1px solid #e5ded2; border-radius: 8px; display: flex; gap: 12px; padding: 14px 16px; }
-      .info-item b { display: block; font-size: 13px; text-transform: uppercase; }
-      .info-item span { color: #475569; font-size: 14px; font-weight: 800; }
+      .info-item { align-items: center; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; display: flex; gap: 12px; padding: 14px 16px; }
+      .info-item b { display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; }
+      .info-item span { color: #0f172a; font-size: 15px; font-weight: 900; }
       .actions { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-top: 18px; }
-      .band { background: white; border-bottom: 1px solid #ded5c6; border-top: 1px solid #ded5c6; }
+      .band { background: white; border-bottom: 1px solid #e5e7eb; border-top: 1px solid #e5e7eb; }
       .proof { display: grid; gap: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: 34px; padding-top: 34px; }
-      .card, .area { padding: 22px; }
-      .section-pad { padding-bottom: 64px; padding-top: 64px; }
+      .card, .area, .quote-card { padding: 22px; box-shadow: 0 12px 30px rgba(15,23,42,.04); }
+      .card h3:before, .area h3:before { background: #0f766e; border-radius: 999px; content: ""; display: block; height: 3px; margin-bottom: 14px; width: 34px; }
+      .section-pad { padding-bottom: 72px; padding-top: 72px; }
       .section-head { align-items: end; display: flex; gap: 24px; justify-content: space-between; margin-bottom: 30px; }
       .muted { color: #64748b; max-width: 680px; }
       .vehicle-grid { display: grid; gap: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .vehicle { overflow: hidden; }
-      .vehicle-top { background: #020617; color: white; min-height: 160px; padding: 22px; position: relative; }
+      .vehicle-top { background: linear-gradient(135deg, #020617, #134e4a); color: white; min-height: 154px; padding: 22px; position: relative; }
       .vehicle-top span { color: #5eead4; font-size: 12px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-      .vehicle-top h3 { font-size: 24px; margin-top: 42px; }
+      .vehicle-top h3 { font-size: 24px; margin-top: 40px; }
       .vehicle-body { padding: 20px; }
-      .price-table { background: white; border: 1px solid #ded5c6; border-radius: 8px; overflow-x: auto; }
+      .price-panel { background: #0f172a; border-radius: 8px; color: white; overflow: hidden; box-shadow: 0 24px 70px rgba(15,23,42,.18); }
+      .price-panel-head { background: linear-gradient(135deg, #0f766e, #020617); padding: 24px; }
+      .price-panel-head p { color: rgba(255,255,255,.74); margin-bottom: 0; }
+      .price-table { background: white; overflow-x: auto; }
       table { border-collapse: collapse; min-width: 680px; width: 100%; }
-      th { background: #020617; color: white; padding: 18px; text-align: left; }
-      td { border-top: 1px solid #e3dacd; color: #475569; font-weight: 750; padding: 18px; }
+      th { background: #f8fafc; color: #64748b; font-size: 12px; letter-spacing: .08em; padding: 16px 18px; text-align: left; text-transform: uppercase; }
+      td { border-top: 1px solid #e5e7eb; color: #475569; font-weight: 700; padding: 18px; vertical-align: top; }
       td:first-child, td:nth-child(2) { color: #0f172a; font-weight: 900; }
+      .price-note { background: #f8fafc; color: #64748b; font-size: 13px; font-weight: 700; padding: 16px 20px; }
       .two-col { display: grid; gap: 36px; grid-template-columns: .9fr 1.1fr; }
       .area-grid, .process-grid { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .scenario-grid { display: grid; gap: 18px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .dark-cta { background: #020617; border-radius: 8px; color: white; padding: 28px; }
+      .dark-cta { background: #020617; border-radius: 8px; color: white; padding: 30px; align-self: start; }
       .dark-cta p { color: rgba(255,255,255,.72); }
+      .steps { display: grid; gap: 14px; }
+      .step { align-items: start; display: grid; gap: 14px; grid-template-columns: 44px 1fr; }
+      .step-num { align-items: center; background: #ccfbf1; border-radius: 999px; color: #0f766e; display: inline-flex; font-weight: 900; height: 44px; justify-content: center; width: 44px; }
+      .mini-grid { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 22px; }
+      .mini { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+      .mini strong { display: block; font-size: 22px; }
+      .quote-card { background: #fff7ed; border-color: #fed7aa; }
       .link-pills { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
-      .link-pills a { background: white; border: 1px solid #ded5c6; border-radius: 999px; color: #334155; font-size: 14px; font-weight: 900; padding: 10px 16px; }
-      details { padding: 20px; }
+      .link-pills a { background: white; border: 1px solid #dbe4ef; border-radius: 999px; color: #334155; font-size: 14px; font-weight: 900; padding: 10px 16px; }
+      details { padding: 20px; margin-top: 12px; }
       summary { cursor: pointer; font-size: 18px; font-weight: 900; }
+      .final-cta { background: linear-gradient(135deg, #0f766e, #020617); color: white; }
+      .final-cta h2, .final-cta p { color: white; }
       footer { background: #020617; color: white; padding: 34px 20px; text-align: center; }
       footer p { color: rgba(255,255,255,.68); margin: 8px auto 0; }
       @media (max-width: 980px) {
@@ -1371,7 +1391,8 @@ function renderHanoiLanding() {
       }
       @media (max-width: 640px) {
         .hero { padding-top: 34px; }
-        .stats, .proof, .vehicle-grid, .area-grid, .process-grid, .scenario-grid, .actions { grid-template-columns: 1fr; }
+        h1 { font-size: 40px; }
+        .stats, .proof, .vehicle-grid, .area-grid, .process-grid, .scenario-grid, .actions, .mini-grid { grid-template-columns: 1fr; }
         .hero-media { grid-template-columns: 1fr; }
         .section-head { align-items: start; flex-direction: column; }
       }
@@ -1391,7 +1412,8 @@ function renderHanoiLanding() {
       </div>
     </header>
     <main>
-      <section class="container hero">
+      <section class="hero-wrap">
+      <div class="container hero">
         <div>
           <p class="eyebrow">Car Match · giao xe tận sảnh Hà Nội</p>
           <h1>Thuê xe tự lái Hà Nội cho cư dân chung cư và gia đình trẻ</h1>
@@ -1401,13 +1423,17 @@ function renderHanoiLanding() {
             <div class="stat"><strong>Từ 600K/ngày</strong><span>tùy xe và thời điểm</span></div>
             <div class="stat"><strong>7:00-22:00</strong><span>hỗ trợ giao nhận</span></div>
           </div>
+          <div class="actions" style="max-width:520px">
+            <a class="btn-primary" href="https://zalo.me/0975563290">Nhắn Zalo kiểm tra xe</a>
+            <a class="btn-secondary" href="#bang-gia">Xem bảng giá</a>
+          </div>
         </div>
         <aside class="hero-panel">
           <div class="hero-media">
             <div class="hero-media-copy">
               <p class="eyebrow" style="color:#5eead4">Kiểm tra xe trống</p>
               <h2 style="color:white;font-size:30px">Gửi nhu cầu, Car Match tư vấn xe phù hợp</h2>
-              <p>Form mẫu này có thể nối CRM sau. Hiện CTA gửi về Zalo để đội vận hành xác nhận lịch thật.</p>
+              <p>Nói rõ ngày đi, khu vực nhận xe và số người. Đội vận hành kiểm tra lịch xe thật trước khi báo giá.</p>
             </div>
             <img src="${escapeHtml(heroImage)}" alt="Thuê xe tự lái Hà Nội cho cư dân chung cư và gia đình trẻ" />
           </div>
@@ -1421,6 +1447,7 @@ function renderHanoiLanding() {
             <a class="btn-secondary" href="/xe">Xem danh sách xe</a>
           </div>
         </aside>
+      </div>
       </section>
       <section class="band">
         <div class="container proof">
@@ -1432,7 +1459,7 @@ function renderHanoiLanding() {
       </section>
       <section id="xe-phu-hop" class="container section-pad">
         <div class="section-head">
-          <div><p class="eyebrow">Marketplace proof</p><h2>Nhóm xe Car Match thường tư vấn tại Hà Nội</h2><p class="muted">Tên xe và mức giá dưới đây là gợi ý theo nhóm nhu cầu. Lịch xe thay đổi theo thời điểm, Car Match sẽ xác nhận xe cụ thể qua Zalo.</p></div>
+          <div><p class="eyebrow">Chọn xe theo nhu cầu</p><h2>Nhóm xe Car Match thường tư vấn tại Hà Nội</h2><p class="muted">Mỗi chuyến đi cần một loại xe khác nhau. Car Match ưu tiên hỏi rõ số người, hành lý, cung đường và điểm nhận xe trước khi chốt mẫu.</p></div>
           <a class="btn-secondary" href="/xe">Xem 20+ mẫu xe</a>
         </div>
         <div class="vehicle-grid">
@@ -1444,13 +1471,13 @@ function renderHanoiLanding() {
       </section>
       <section id="bang-gia" class="band">
         <div class="container section-pad two-col">
-          <div><p class="eyebrow">Bảng giá tham khảo</p><h2>Giá thuê xe tự lái Hà Nội nên minh bạch theo nhóm xe</h2><p>Không chốt giá mơ hồ trên landing page. Car Match nên báo theo nhóm xe, ngày thuê, khu vực giao nhận và lịch trống thực tế để giảm hiểu nhầm khi tư vấn.</p></div>
-          <div class="price-table"><table><thead><tr><th>Nhóm xe</th><th>Giá tham khảo</th><th>Phù hợp</th></tr></thead><tbody>
+          <div><p class="eyebrow">Bảng giá tham khảo</p><h2>Giá thuê xe tự lái Hà Nội từ 600K/ngày</h2><p>Giá cuối cùng phụ thuộc mẫu xe, thời điểm thuê, số ngày sử dụng và khu vực giao nhận. Khi nhắn Zalo, anh/chị sẽ được báo rõ xe còn trống, phí giao nhận và giấy tờ cần chuẩn bị.</p><div class="mini-grid"><div class="mini"><strong>600K+</strong><span>xe đô thị/ngày</span></div><div class="mini"><strong>100K</strong><span>phí giao nhận/chiều</span></div><div class="mini"><strong>30 phút</strong><span>phản hồi khi có xe</span></div></div></div>
+          <div class="price-panel"><div class="price-panel-head"><h3>Bảng giá theo nhóm xe</h3><p>Mức tham khảo để dự tính ngân sách trước khi đặt xe.</p></div><div class="price-table"><table><thead><tr><th>Nhóm xe</th><th>Giá tham khảo</th><th>Phù hợp</th></tr></thead><tbody>
             <tr><td>Xe điện/xe 5 chỗ đô thị</td><td>Từ 600.000đ/ngày</td><td>Đi phố, đi làm, gia đình trẻ, nhận xe tại chung cư</td></tr>
             <tr><td>SUV/Crossover</td><td>Tùy dòng xe</td><td>Gia đình 3-5 người, đi tỉnh cuối tuần</td></tr>
             <tr><td>Xe 7 chỗ</td><td>Báo theo lịch</td><td>Gia đình đông người, nhiều hành lý</td></tr>
             <tr><td>Gói thuê theo tháng</td><td>Từ 10.000.000đ/tháng</td><td>Gia đình/doanh nghiệp dùng xe định kỳ</td></tr>
-          </tbody></table></div>
+          </tbody></table></div><div class="price-note">Báo giá chính xác sau khi kiểm tra lịch xe thật. Giá có thể thay đổi theo cuối tuần, lễ Tết và thời gian thuê.</div></div>
         </div>
       </section>
       <section id="khu-vuc" class="container section-pad two-col">
@@ -1464,7 +1491,7 @@ function renderHanoiLanding() {
       </section>
       <section class="band">
         <div class="container section-pad">
-          <p class="eyebrow">Tình huống thuê xe thực tế</p><h2>Nội dung chứng minh Car Match hiểu vận hành thật</h2>
+          <p class="eyebrow">Tình huống thuê xe thực tế</p><h2>Khi nào nên thuê xe tự lái thay vì mua xe?</h2>
           <div class="scenario-grid">
             <article class="card"><h3>Gia đình ở chung cư cần xe cuối tuần</h3><p>Phù hợp khi không dùng xe hằng ngày nhưng muốn có xe riêng cho lịch về quê, picnic hoặc đưa gia đình đi nhiều điểm trong ngày.</p></article>
             <article class="card"><h3>Khách cần xe đi tỉnh hoặc Nội Bài</h3><p>Đội tư vấn hỏi số người, hành lý, cung đường và thời gian trả xe để gợi ý nhóm xe phù hợp.</p></article>
@@ -1473,18 +1500,24 @@ function renderHanoiLanding() {
         </div>
       </section>
       <section class="container section-pad two-col">
-        <div><p class="eyebrow">Quy trình đặt xe</p><h2>Từ nhu cầu đến nhận xe trong 4 bước rõ ràng</h2><div class="process-grid">
-          <article class="card"><h3>01 · Gửi nhu cầu</h3><p>Khu vực nhận xe, ngày đi/ngày về, số người, loại xe mong muốn.</p></article>
-          <article class="card"><h3>02 · Kiểm tra xe</h3><p>Car Match kiểm tra xe trống, giá thuê, phí giao nhận và giấy tờ.</p></article>
-          <article class="card"><h3>03 · Xác nhận</h3><p>Thống nhất lịch, đặt cọc qua chuyển khoản và điểm giao nhận.</p></article>
-          <article class="card"><h3>04 · Nhận xe</h3><p>Kiểm tra xe, ký hợp đồng, bàn giao chìa khóa và bắt đầu chuyến đi.</p></article>
+        <div><p class="eyebrow">Quy trình đặt xe</p><h2>Từ nhu cầu đến nhận xe trong 4 bước rõ ràng</h2><div class="steps">
+          <div class="step"><span class="step-num">01</span><div><h3>Gửi nhu cầu</h3><p>Khu vực nhận xe, ngày đi/ngày về, số người, loại xe mong muốn.</p></div></div>
+          <div class="step"><span class="step-num">02</span><div><h3>Kiểm tra xe</h3><p>Car Match kiểm tra xe trống, giá thuê, phí giao nhận và giấy tờ.</p></div></div>
+          <div class="step"><span class="step-num">03</span><div><h3>Xác nhận</h3><p>Thống nhất lịch, đặt cọc qua chuyển khoản và điểm giao nhận.</p></div></div>
+          <div class="step"><span class="step-num">04</span><div><h3>Nhận xe</h3><p>Kiểm tra xe, ký hợp đồng, bàn giao chìa khóa và bắt đầu chuyến đi.</p></div></div>
         </div></div>
         <aside class="dark-cta"><h2 style="color:white">Cần kiểm tra lịch xe hôm nay?</h2><p>Nhắn Zalo 0975 563 290. Khi có xe phù hợp, Car Match phản hồi lịch, giá và điều kiện thuê trong khoảng 30 phút.</p><a class="btn-primary" href="https://zalo.me/0975563290">Nhắn Zalo Car Match</a></aside>
       </section>
       <section class="band">
         <div class="container section-pad two-col">
-          <div><h2>Trust pages cần đi cùng landing page</h2><p>Khách thuê xe quan tâm giấy tờ, đặt cọc, thanh toán, khiếu nại và quy trình hơn là lời quảng cáo.</p><div class="link-pills"><a href="/faq">Giấy tờ thuê xe</a><a href="/chinh-sach">Chính sách thuê xe</a><a href="/xe">Danh sách xe</a></div></div>
-          <div><h2>Bài hỗ trợ để đẩy lực SEO</h2><p>Landing page này nên được blog và page khu vực link về bằng anchor tự nhiên, không tạo nhiều trang mỏng chỉ thay tên địa điểm.</p><div class="link-pills"><a href="/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi">Kinh nghiệm thuê xe tự lái Hà Nội</a><a href="/di-dau">Gợi ý đi đâu bằng xe tự lái</a></div></div>
+          <div class="quote-card"><h2>Trước khi nhận xe cần chuẩn bị gì?</h2><p>CCCD, GPLX hạng B còn hiệu lực và khoản đặt cọc theo mẫu xe. Car Match xác nhận điều kiện thuê trước khi giao xe để tránh phát sinh tại sảnh.</p><div class="link-pills"><a href="/faq">Xem FAQ thuê xe</a><a href="/chinh-sach">Chính sách thuê xe</a><a href="/xe">Danh sách xe</a></div></div>
+          <div><h2>Gợi ý thêm cho chuyến đi</h2><p>Nếu chưa chắc nên chọn xe nào, anh/chị có thể xem các lịch trình đi gần Hà Nội hoặc đọc kinh nghiệm thuê xe tự lái trước khi đặt.</p><div class="link-pills"><a href="/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi">Kinh nghiệm thuê xe tự lái Hà Nội</a><a href="/di-dau">Gợi ý đi đâu bằng xe tự lái</a></div></div>
+        </div>
+      </section>
+      <section class="final-cta">
+        <div class="container section-pad two-col">
+          <div><p class="eyebrow" style="color:#99f6e4">Đặt xe qua Zalo</p><h2>Muốn biết xe nào còn trống cho lịch của anh/chị?</h2><p>Gửi ngày thuê, khu vực nhận xe và số người đi. Car Match kiểm tra lịch xe thật rồi báo mẫu xe, giá thuê và giấy tờ cần chuẩn bị.</p></div>
+          <div class="actions" style="align-self:center"><a class="btn-primary" href="https://zalo.me/0975563290">Nhắn Zalo 0975 563 290</a><a class="btn-secondary" href="/xe">Xem danh sách xe</a></div>
         </div>
       </section>
       <section id="faq" class="container section-pad">
