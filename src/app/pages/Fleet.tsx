@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { useLocation } from 'react-router';
+import { MessageCircle, Phone, SlidersHorizontal, X } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import CarCard from '../components/CarCard';
 import DateRangeFilter from '../components/DateRangeFilter';
@@ -7,6 +8,10 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import { useSEO } from '@/hooks/useSEO';
+import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+
+const ZALO_LINK = 'https://zalo.me/0975563290';
+const PHONE_LINK = 'tel:0975563290';
 
 type FuelFilter  = 'all' | 'Điện' | 'Xăng' | 'Dầu';
 type SeatsFilter = 'all' | '4' | '5' | '7' | '8+';
@@ -54,10 +59,14 @@ function Chip({
 }
 
 export default function Fleet() {
+  const { search } = useLocation();
+  const hasQueryParams = search.length > 0;
+
   useSEO({
     title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
     description: 'Duyệt 20+ mẫu xe tự lái cho thuê tại Hà Nội: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận sảnh tòa nhà.',
     canonical: 'https://www.carmatch.vn/xe',
+    noIndex: hasQueryParams,
   });
 
   const { cars, loading, error } = useVehicles();
@@ -167,6 +176,42 @@ export default function Fleet() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <DateRangeFilter onFilter={setUnavailableModels} onActiveChange={setDateFilterActive} />
 
+        <div className="mb-6 grid gap-3 rounded-2xl border border-brand-100 bg-white p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-sm font-bold text-gray-900">Chưa chắc nên thuê xe nào?</p>
+            <p className="mt-1 text-sm leading-relaxed text-gray-500">
+              Gửi khu vực nhận xe, ngày đi và số người. Car Match sẽ lọc xe phù hợp rồi báo giá nhanh qua Zalo.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <a
+              href={ZALO_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackZaloClick('fleet_advice_banner')}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-brand-700"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Tư vấn Zalo
+            </a>
+            <a
+              href={PHONE_LINK}
+              onClick={() => trackPhoneClick('fleet_advice_banner')}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-50"
+            >
+              <Phone className="h-4 w-4" />
+              Gọi ngay
+            </a>
+            <a
+              href="/thue-xe-thang"
+              onClick={() => trackCtaClick('fleet_monthly_banner', { target_path: '/thue-xe-thang' })}
+              className="col-span-2 inline-flex items-center justify-center rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-bold text-brand-700 transition-colors hover:bg-brand-100 sm:col-span-1"
+            >
+              Thuê theo tháng
+            </a>
+          </div>
+        </div>
+
         {dateFilterActive && !loading && (
           <div className="mb-5 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700">
             Đang lọc: {filtered.length} xe available cho ngày bạn chọn
@@ -250,6 +295,7 @@ export default function Fleet() {
           <div className="text-center py-24">
             <p className="text-gray-500 mb-4">{error}</p>
             <a href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer"
+              onClick={() => trackZaloClick('fleet_error_state')}
               className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
               Liên hệ qua Zalo
             </a>
@@ -257,7 +303,7 @@ export default function Fleet() {
         ) : filtered.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-16">
             {filtered.map((car) => (
-              <CarCard key={car.id} car={car} />
+              <CarCard key={car.id} car={car} source="fleet_list" />
             ))}
           </div>
         ) : (
@@ -280,6 +326,7 @@ export default function Fleet() {
                 href="https://zalo.me/0975563290"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackZaloClick('fleet_empty_state')}
                 className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors"
               >
                 Tư vấn qua Zalo

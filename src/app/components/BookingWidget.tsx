@@ -5,6 +5,7 @@ import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, C
 import { DayPicker } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
+import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -503,6 +504,16 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
     setBookingLoading(true);
     setBookingError('');
+    trackBookingSubmit('attempt', {
+      vehicle_id: vehicleId || null,
+      vehicle_name: carName,
+      rental_days: rentalDays,
+      total_amount: finalTotal,
+      delivery_mode: deliveryMode,
+      pickup_date: pickupDate,
+      return_date: returnDate,
+      promo_code: promoResult?.code ?? null,
+    });
     try {
       const loc = LOCATIONS.find(l => l.id === selectedLocation);
       const res = await fetch('/api/bookings', {
@@ -534,8 +545,26 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       setBookingRef(data.bookingRef);
       setDepositAmount(data.depositAmount);
       setBookingStep(BANK_QR_ENABLED ? 2 : 3);
+      trackBookingSubmit('success', {
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+        booking_ref: data.bookingRef,
+        rental_days: rentalDays,
+        total_amount: result.valid ? result.total : 0,
+        deposit_amount: data.depositAmount,
+        delivery_mode: deliveryMode,
+        promo_code: promoResult?.code ?? null,
+      });
     } catch (e: unknown) {
-      setBookingError((e as Error)?.message || 'Lỗi kết nối, thử lại sau');
+      const message = (e as Error)?.message || 'Lỗi kết nối, thử lại sau';
+      setBookingError(message);
+      trackBookingSubmit('error', {
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+        rental_days: rentalDays,
+        total_amount: finalTotal,
+        error_message: message,
+      });
     } finally {
       setBookingLoading(false);
     }
@@ -567,6 +596,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     try {
       await navigator.clipboard.writeText(buildMessage());
     } catch { /* blocked */ }
+    trackZaloClick('booking_widget_confirm_zalo', {
+      vehicle_id: vehicleId || null,
+      vehicle_name: carName,
+      rental_days: rentalDays,
+      total_amount: finalTotal,
+    });
     window.open(ZALO_LINK, '_blank');
     setShowModal(false);
   };
@@ -935,7 +970,17 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
         {/* ── CTAs ── */}
         <button
-          onClick={() => { setShowBookingModal(true); setBookingStep(1); setBookingError(''); }}
+          onClick={() => {
+            trackCtaClick('booking_widget_open_form', {
+              vehicle_id: vehicleId || null,
+              vehicle_name: carName,
+              rental_days: rentalDays,
+              total_amount: finalTotal,
+            });
+            setShowBookingModal(true);
+            setBookingStep(1);
+            setBookingError('');
+          }}
           disabled={!result.valid}
           className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -948,6 +993,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             href={ZALO_LINK}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackZaloClick('booking_widget_contact', {
+              vehicle_id: vehicleId || null,
+              vehicle_name: carName,
+              rental_days: rentalDays,
+              total_amount: finalTotal,
+            })}
             className="py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-sm"
           >
             <MessageCircle className="w-4 h-4 text-gray-400" />
@@ -955,6 +1006,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </a>
           <a
             href={`tel:${ZALO_NUMBER}`}
+            onClick={() => trackPhoneClick('booking_widget_contact', {
+              vehicle_id: vehicleId || null,
+              vehicle_name: carName,
+            })}
             className="py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-sm"
           >
             <Phone className="w-4 h-4 text-gray-400" />

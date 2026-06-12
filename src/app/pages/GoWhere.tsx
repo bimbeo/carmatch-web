@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useSEO } from '@/hooks/useSEO';
 import { useTravelContent } from '@/hooks/useTravelContent';
+import { trackEvent } from '@/lib/analytics';
 import type { TripDestination } from '@/data/tripDestinations';
 import { destinationHeroClass, destinationImageStyle } from '@/lib/travelMedia';
 import Navbar from '../components/Navbar';
@@ -58,10 +59,7 @@ const vibeOptions = [
 ];
 
 function trackGoWhere(event: string, payload: Record<string, unknown> = {}) {
-  const trackedWindow = window as Window & { dataLayer?: Array<Record<string, unknown>> };
-  trackedWindow.dataLayer = trackedWindow.dataLayer || [];
-  trackedWindow.dataLayer.push({
-    event,
+  trackEvent(event, {
     page_group: 'go_where',
     ...payload,
   });

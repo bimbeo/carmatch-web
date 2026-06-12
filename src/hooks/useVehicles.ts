@@ -63,6 +63,8 @@ function makeDuplicateSlug(car: Car): string {
 
 interface SupabaseVehicle {
   id: string;
+  slug?: string | null;
+  slugAliases?: string[] | null;
   display_name: string | null;
   plate_number: string | null;
   color: string | null;
@@ -80,6 +82,16 @@ interface SupabaseVehicle {
     fuel_type: string | null;
     transmission: string | null;
   } | null;
+}
+
+declare global {
+  interface Window {
+    __CM_INITIAL_VEHICLES__?: SupabaseVehicle[];
+  }
+
+  // Used by the build-time React prerenderer.
+  // eslint-disable-next-line no-var
+  var __CM_INITIAL_VEHICLES__: SupabaseVehicle[] | undefined;
 }
 
 interface VehicleMediaFile {
@@ -174,11 +186,19 @@ function mapToCar(v: SupabaseVehicle): Car {
   const fuel = mapFuelType(vm?.fuel_type || '');
   const modelSlug = makeModelSlug(make, model, variant, v.id);
   const displaySlug = makeDisplaySlug(v, make, model, variant);
-  const slugAliases = Array.from(new Set([modelSlug].filter((slug) => slug && slug !== displaySlug)));
+  const serverSlug = typeof v.slug === 'string' && v.slug.trim() ? v.slug : '';
+  const primarySlug = serverSlug || displaySlug;
+  const slugAliases = Array.from(
+    new Set([
+      ...(Array.isArray(v.slugAliases) ? v.slugAliases : []),
+      modelSlug,
+      displaySlug,
+    ].filter((slug) => slug && slug !== primarySlug)),
+  );
 
   return {
     id: v.id,
-    slug: displaySlug,
+    slug: primarySlug,
     slugAliases,
     plateNumber: v.plate_number || undefined,
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
@@ -205,8 +225,16 @@ export interface UseVehiclesResult {
 }
 
 export function useVehicles(): UseVehiclesResult {
-  const [cars, setCars] = useState<Car[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialVehiclePayload =
+    typeof window !== 'undefined'
+      ? window.__CM_INITIAL_VEHICLES__
+      : globalThis.__CM_INITIAL_VEHICLES__;
+  const initialVehicles =
+    Array.isArray(initialVehiclePayload)
+      ? uniquifyCarSlugs(initialVehiclePayload.map(mapToCar))
+      : [];
+  const [cars, setCars] = useState<Car[]>(initialVehicles);
+  const [loading, setLoading] = useState(initialVehicles.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

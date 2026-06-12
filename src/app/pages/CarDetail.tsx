@@ -14,6 +14,7 @@ import CarCard from '../components/CarCard';
 import BookingWidget from '../components/BookingWidget';
 import CarReviews from '../components/CarReviews';
 import { useSEO } from '@/hooks/useSEO';
+import { trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -203,6 +204,7 @@ export default function CarDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { cars, loading } = useVehicles();
   const car = findVehicleBySlug(cars, slug);
+  const canonicalSlug = car && slug && (car.slug === slug || car.slugAliases?.includes(slug)) ? slug : car?.slug;
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
   const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
@@ -214,14 +216,15 @@ export default function CarDetail() {
     description: car
       ? `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày. Giao xe tận sảnh tòa nhà, bảo hiểm đầy đủ.`
       : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.',
-    canonical: car ? `https://www.carmatch.vn/xe/${car.slug}` : undefined,
+    canonical: canonicalSlug ? `https://www.carmatch.vn/xe/${canonicalSlug}` : 'https://www.carmatch.vn/xe',
     ogImage: car?.images?.[0] ?? undefined,
+    noIndex: !loading && !car,
   });
 
   useEffect(() => {
     if (!car) return undefined;
 
-    const canonical = `${SITE_URL}/xe/${car.slug}`;
+    const canonical = `${SITE_URL}/xe/${canonicalSlug || car.slug}`;
     const jsonLd = [
       {
         '@context': 'https://schema.org',
@@ -266,7 +269,7 @@ export default function CarDetail() {
     return () => {
       script.remove();
     };
-  }, [car]);
+  }, [car, canonicalSlug]);
 
   useEffect(() => {
     fetch('/api/promo-list')
@@ -570,7 +573,7 @@ export default function CarDetail() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {displayRelated.map((c) => (
-                <CarCard key={c.slug} car={c} compact />
+                <CarCard key={c.slug} car={c} compact source="car_detail_related" />
               ))}
             </div>
           </div>
@@ -592,6 +595,11 @@ export default function CarDetail() {
         </div>
         <a
           href={`tel:${ZALO_NUMBER}`}
+          onClick={() => trackPhoneClick('car_detail_mobile_sticky', {
+            vehicle_id: car.id,
+            vehicle_slug: car.slug,
+            vehicle_name: car.name,
+          })}
           className="px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors"
         >
           <Phone className="w-4 h-4" />
@@ -600,6 +608,11 @@ export default function CarDetail() {
           href={zaloHref}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackZaloClick('car_detail_mobile_sticky', {
+            vehicle_id: car.id,
+            vehicle_slug: car.slug,
+            vehicle_name: car.name,
+          })}
           className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors shadow-sm"
         >
           <MessageCircle className="w-4 h-4" />

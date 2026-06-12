@@ -4,6 +4,7 @@ import { ArrowRight, Star, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapP
 import { useVehicles } from '@/hooks/useVehicles';
 import { usePromotions } from '@/hooks/usePromotions';
 import { useSEO } from '@/hooks/useSEO';
+import { trackCtaClick, trackVehicleClick, trackZaloClick } from '@/lib/analytics';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -130,42 +131,44 @@ export default function Home() {
   const allCarsPreview = cars.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen overflow-x-hidden bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
       <main>
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="relative pt-16 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[600px] max-w-full h-[600px] bg-brand-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="grid lg:grid-cols-[3fr_2fr] gap-10 lg:gap-14 items-center">
 
             {/* ── Left: copy ── */}
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-8">
+            <div className="min-w-0">
+              <div className="inline-flex max-w-full items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-8">
                 <HomeIcon className="w-3.5 h-3.5" />
-                Dịch vụ xe cho cư dân đô thị Hà Nội
+                <span className="truncate">Dịch vụ xe cho cư dân đô thị Hà Nội</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Không cần sở hữu xe<br />
+              <h1 className="cm-mobile-safe-width sm:max-w-none text-[1.875rem] min-[430px]:text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+                Không cần sở hữu xe
+                <br />
                 <span className="text-brand-600">vẫn luôn có xe dùng</span>
               </h1>
 
-              <p className="text-gray-600 text-lg sm:text-xl mb-3 leading-relaxed">
+              <p className="cm-mobile-safe-width sm:max-w-none text-gray-600 text-lg sm:text-xl mb-3 leading-relaxed">
                 Thuê xe ngày hoặc theo tháng —{' '}
                 <span className="text-gray-900 font-semibold">giao tận sảnh tòa nhà</span>
               </p>
-              <p className="text-gray-500 text-sm mb-10">
+              <p className="cm-mobile-safe-width sm:max-w-none text-gray-500 text-sm mb-10 leading-relaxed">
                 Vinhomes · Ecopark · The Manor · Linh Đàm · Xe điện VinFast · Đặt qua Zalo 5 phút
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="cm-mobile-safe-width sm:max-w-none flex flex-col sm:flex-row gap-3">
                 <Link
                   to="/xe"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold text-base rounded-full hover:bg-brand-700 active:scale-[0.98] transition-all shadow-md shadow-brand-200"
+                  onClick={() => trackCtaClick('home_hero_book_now', { target_path: '/xe' })}
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold text-base rounded-full hover:bg-brand-700 active:scale-[0.98] transition-all shadow-md shadow-brand-200"
                 >
                   <Car className="w-5 h-5" />
                   Đặt xe ngay
@@ -174,14 +177,16 @@ export default function Home() {
                   href={ZALO_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
+                  onClick={() => trackZaloClick('home_hero')}
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
                 >
                   <MessageCircle className="w-5 h-5" />
                   Đặt xe qua Zalo
                 </a>
                 <Link
                   to="/lap-ke-hoach-chuyen-di"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
+                  onClick={() => trackCtaClick('home_hero_trip_planner', { target_path: '/lap-ke-hoach-chuyen-di' })}
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
                 >
                   <Zap className="w-5 h-5" />
                   Lập chuyến đi
@@ -228,6 +233,13 @@ export default function Home() {
                 <Link
                   key={car.id}
                   to={`/xe/${car.slug}`}
+                  onClick={() => trackVehicleClick('home_ready_card_click', {
+                    source: 'home_hero_ready_cars',
+                    vehicle_id: car.id,
+                    vehicle_slug: car.slug,
+                    vehicle_name: car.name,
+                    vehicle_price: car.price,
+                  })}
                   className="h-[96px] bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex"
                 >
                   <div className="w-28 shrink-0 bg-gray-100">
@@ -251,6 +263,7 @@ export default function Home() {
 
               <Link
                 to="/xe"
+                onClick={() => trackCtaClick('home_ready_more_cars', { target_path: '/xe' })}
                 className="h-[60px] bg-brand-50 border border-brand-100 rounded-2xl p-3.5 flex items-center justify-between hover:bg-brand-100/60 transition-colors"
               >
                 <div className="flex -space-x-2">
@@ -339,6 +352,7 @@ export default function Home() {
               href={ZALO_LINK}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackZaloClick('home_residential_section')}
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-700 font-bold rounded-full hover:bg-brand-50 transition-colors shadow-lg"
             >
               <MessageCircle className="w-5 h-5" />
@@ -359,6 +373,7 @@ export default function Home() {
             </div>
             <Link
               to="/xe"
+              onClick={() => trackCtaClick('home_fleet_header_all', { target_path: '/xe' })}
               className="hidden sm:flex items-center gap-1.5 text-brand-600 hover:text-brand-700 transition-colors font-semibold text-sm"
             >
               Xem tất cả <ArrowRight className="w-4 h-4" />
@@ -367,13 +382,14 @@ export default function Home() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
             {allCarsPreview.map((car) => (
-              <CarCard key={car.id} car={car} />
+              <CarCard key={car.id} car={car} source="home_fleet_preview" />
             ))}
           </div>
 
           <div className="text-center">
             <Link
               to="/xe"
+              onClick={() => trackCtaClick('home_fleet_all', { target_path: '/xe', vehicle_count: cars.length })}
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-full hover:border-gray-300 hover:bg-gray-50 transition-colors font-medium shadow-sm"
             >
               Xem tất cả {cars.length} mẫu xe
@@ -569,6 +585,7 @@ export default function Home() {
               <div className="flex flex-col gap-3 shrink-0">
                 <Link
                   to="/thue-xe-thang"
+                  onClick={() => trackCtaClick('home_monthly_package', { target_path: '/thue-xe-thang' })}
                   className="px-8 py-4 bg-white text-brand-700 font-bold rounded-full hover:bg-brand-50 transition-colors text-center whitespace-nowrap shadow-sm"
                 >
                   Xem gói thuê tháng
@@ -577,6 +594,7 @@ export default function Home() {
                   href={ZALO_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackZaloClick('home_monthly_advice')}
                   className="px-8 py-4 border-2 border-white/40 text-white font-semibold rounded-full hover:bg-white/10 transition-colors text-center whitespace-nowrap"
                 >
                   Tư vấn ngay
@@ -611,6 +629,7 @@ export default function Home() {
               href={ZALO_LINK}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackZaloClick('home_how_it_works')}
               className="inline-flex items-center gap-2 px-8 py-4 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200 text-lg"
             >
               <MessageCircle className="w-5 h-5" />
@@ -909,7 +928,7 @@ export default function Home() {
           </div>
           <p className="text-center text-gray-600 text-sm mt-8">
             Muốn được thông báo sớm?{' '}
-            <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline font-medium">
+            <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('home_early_access')} className="text-brand-600 hover:underline font-medium">
               Nhắn Zalo để đăng ký trước
             </a>
           </p>
@@ -930,6 +949,7 @@ export default function Home() {
               href={ZALO_LINK}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackZaloClick('home_final_cta')}
               className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-brand-600 text-white font-bold text-xl rounded-full hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
             >
               <MessageCircle className="w-6 h-6" />
@@ -937,6 +957,7 @@ export default function Home() {
             </a>
             <Link
               to="/xe"
+              onClick={() => trackCtaClick('home_final_fleet', { target_path: '/xe' })}
               className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-white text-gray-800 font-semibold text-xl rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
             >
               Xem fleet xe

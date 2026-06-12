@@ -2,6 +2,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createServer as createViteServer } from 'vite';
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
 
 let generatedTripDestinations = fallbackTripDestinations;
@@ -13,6 +14,11 @@ const distDir = path.join(rootDir, 'dist');
 const siteUrl = 'https://www.carmatch.vn';
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 const brandIcon = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
+const vehiclePlaceholderImage =
+  'https://images.unsplash.com/photo-1493238792000-8113da705763?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
+let prerenderedHomeRoot = '';
+let prerenderedFleetRoot = '';
+let prerenderedMonthlyRoot = '';
 const hanoiDeliveryDetails = {
   '@type': 'OfferShippingDetails',
   shippingDestination: {
@@ -440,9 +446,9 @@ const routeMeta = [
   },
   {
     path: '/thue-xe-thang',
-    title: 'Cho thuê xe theo tháng Hà Nội - từ 10tr/tháng | Car Match',
+    title: 'Thuê xe tự lái theo tháng Hà Nội từ 10tr | Car Match',
     description:
-      'Cho thuê xe theo tháng tại Hà Nội từ 10tr/tháng. Xe tự lái cho cá nhân, gia đình, doanh nghiệp nhỏ; giao xe tận nơi, hợp đồng rõ ràng.',
+      'Thuê xe tự lái theo tháng tại Hà Nội từ 10-20tr/tháng. Giao xe tận tòa nhà, hợp đồng rõ ràng, tư vấn báo giá trong 30 phút.',
     canonical: `${siteUrl}/thue-xe-thang`,
     priority: '0.8',
     changefreq: 'monthly',
@@ -560,9 +566,23 @@ function makeDuplicateVehicleSlug(vehicle) {
   return `${baseSlug}-${suffix}`;
 }
 
+function makeLegacyColorVehicleSlug(vehicle) {
+  const baseSlug = makeVehicleSlug(vehicle);
+  const colorPart = slugify(vehicle.color || '');
+  return colorPart ? `${baseSlug}-${colorPart}` : '';
+}
+
 function getVehicleImage(vehicle) {
   const refs = vehicle.external_refs && typeof vehicle.external_refs === 'object' ? vehicle.external_refs : {};
-  return refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || brandIcon;
+  const mediaFiles = Array.isArray(refs.mediaFiles) ? refs.mediaFiles : [];
+  const mediaImage = mediaFiles.find((file) => (
+    file &&
+    typeof file === 'object' &&
+    file.fileUrl &&
+    file.category === 'vehicle_photos' &&
+    (!file.mimeType || String(file.mimeType).startsWith('image/'))
+  ));
+  return refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || mediaImage?.fileUrl || vehiclePlaceholderImage;
 }
 
 function getVehicleName(vehicle) {
@@ -589,6 +609,50 @@ function publisherData() {
       '@type': 'ImageObject',
       url: brandIcon,
     },
+  };
+}
+
+function localBusinessData() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'AutoRental',
+    '@id': `${siteUrl}/#localbusiness`,
+    name: 'Car Match — The Manor Central Park',
+    alternateName: 'Car Match',
+    description: 'Dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư và khu đô thị.',
+    url: siteUrl,
+    telephone: '+84975563290',
+    email: 'info@carmatch.vn',
+    image: brandIcon,
+    logo: brandIcon,
+    hasMap: 'https://www.google.com/maps/search/?api=1&query=Car%20Match%20The%20Manor%20Central%20Park%2038%20Sunrise%20H%20Ha%20Noi',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '38 Sunrise H, The Manor Central Park, Định Công',
+      addressLocality: 'Hà Nội',
+      postalCode: '10000',
+      addressCountry: 'VN',
+    },
+    openingHoursSpecification: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: '00:00',
+      closes: '23:59',
+    },
+    priceRange: '600.000đ – 25.000.000đ',
+    currenciesAccepted: 'VND',
+    paymentAccepted: 'Chuyển khoản, Tiền mặt',
+    areaServed: [
+      { '@type': 'Place', name: 'Vinhomes Ocean Park, Gia Lâm, Hà Nội' },
+      { '@type': 'Place', name: 'Vinhomes Smart City, Nam Từ Liêm, Hà Nội' },
+      { '@type': 'Place', name: 'Vinhomes Times City, Hai Bà Trưng, Hà Nội' },
+      { '@type': 'Place', name: 'Ecopark, Văn Giang, Hưng Yên' },
+      { '@type': 'Place', name: 'The Manor Central Park, Định Công, Hà Nội' },
+    ],
+    sameAs: [
+      'https://zalo.me/0975563290',
+      'https://www.facebook.com/carmatchvn',
+    ],
   };
 }
 
@@ -660,6 +724,75 @@ function faqPageData(meta) {
   };
 }
 
+function monthlyRentalStructuredData(meta) {
+  const faqs = [
+    {
+      question: 'Thuê xe tự lái theo tháng tại Hà Nội giá bao nhiêu?',
+      answer: 'Giá thuê xe tự lái theo tháng tại Hà Nội thường bắt đầu từ khoảng 10-12 triệu/tháng với xe nhỏ hoặc xe điện đô thị. Nhóm sedan, crossover 5 chỗ thường khoảng 14-18 triệu/tháng, còn xe 7 chỗ hoặc MPV thường từ 20 triệu/tháng tùy mẫu xe, thời gian thuê và giới hạn km.',
+    },
+    {
+      question: 'Thuê xe tháng có giới hạn km không?',
+      answer: 'Có. Gói thuê xe tháng thường có giới hạn km theo hợp đồng, phổ biến khoảng 2.500-3.000 km/tháng với nhiều nhóm xe. Nếu nhu cầu đi lại cao hơn, Car Match sẽ tư vấn gói phù hợp hơn trước khi chốt hợp đồng.',
+    },
+    {
+      question: 'Car Match có giao xe tận tòa nhà khi thuê theo tháng không?',
+      answer: 'Có. Car Match hỗ trợ giao xe tận tòa nhà, khu đô thị hoặc điểm hẹn phù hợp tại Hà Nội sau khi xác nhận lịch xe, thời gian nhận xe và điều kiện giao nhận.',
+    },
+    {
+      question: 'Cần chuẩn bị gì để thuê xe tự lái theo tháng?',
+      answer: 'Khách thuê thường cần CCCD gắn chip, giấy phép lái xe hạng B còn hiệu lực, thông tin điểm giao nhận tại Hà Nội và khoản đặt cọc theo mẫu xe. Với khách doanh nghiệp có thể cần thêm thông tin công ty để làm hợp đồng hoặc xuất hóa đơn.',
+    },
+    {
+      question: 'Thuê 1 tháng có được không hay phải thuê dài hạn?',
+      answer: 'Có thể thuê 1 tháng nếu có xe phù hợp và lịch xe trống. Khi thuê 3 tháng, 6 tháng hoặc thuê nhiều xe cùng lúc, đơn giá thường dễ tối ưu hơn so với thuê ngắn.',
+    },
+  ];
+
+  return [
+    webPageData(meta, {
+      type: 'Service',
+      fields: {
+        serviceType: 'Thuê xe tự lái theo tháng',
+        provider: publisherData(),
+        areaServed: {
+          '@type': 'City',
+          name: 'Hà Nội',
+          addressCountry: 'VN',
+        },
+        offers: {
+          '@type': 'AggregateOffer',
+          priceCurrency: 'VND',
+          lowPrice: 10000000,
+          highPrice: 25000000,
+          offerCount: 3,
+          availability: 'https://schema.org/InStock',
+          url: meta.canonical,
+        },
+      },
+    }),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      name: 'FAQ thuê xe tự lái theo tháng tại Hà Nội',
+      url: meta.canonical,
+      inLanguage: 'vi-VN',
+      publisher: publisherData(),
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Thuê xe tự lái theo tháng', path: '/thue-xe-thang' },
+    ]),
+  ];
+}
+
 function vehicleStructuredData(vehicle) {
   const name = getVehicleName(vehicle);
   const model = vehicle.vehicle_models || {};
@@ -697,6 +830,7 @@ function vehicleStructuredData(vehicle) {
 
 function fleetStructuredData(meta, vehicles) {
   return [
+    localBusinessData(),
     webPageData(meta, {
       type: 'CollectionPage',
       fields: {
@@ -722,6 +856,7 @@ function fleetStructuredData(meta, vehicles) {
 function routeStructuredData(meta, vehicles) {
   if (meta.path === '/') return undefined;
   if (meta.path === '/xe') return fleetStructuredData(meta, vehicles);
+  if (meta.path === '/thue-xe-thang') return monthlyRentalStructuredData(meta);
   if (meta.path === '/faq') return [
     faqPageData(meta),
     breadcrumbData([
@@ -787,16 +922,32 @@ function uniqueVehicleSlugs(vehicles) {
   });
 
   const used = new Set();
+  const legacyColorUsed = new Map();
   return vehicles.map((vehicle) => {
     const baseSlug = makeVehicleSlug(vehicle);
+    const slugAliases = [];
     let slug = (counts.get(baseSlug) || 0) > 1 ? makeDuplicateVehicleSlug(vehicle) : baseSlug;
+    if (slug !== baseSlug) slugAliases.push(baseSlug);
     let index = 2;
     while (used.has(slug)) {
       slug = `${makeDuplicateVehicleSlug(vehicle)}-${index}`;
       index += 1;
     }
     used.add(slug);
-    return { ...vehicle, slug };
+
+    if ((counts.get(baseSlug) || 0) > 1) {
+      const legacyColorSlug = makeLegacyColorVehicleSlug(vehicle);
+      if (legacyColorSlug) {
+        const legacyIndex = (legacyColorUsed.get(legacyColorSlug) || 0) + 1;
+        legacyColorUsed.set(legacyColorSlug, legacyIndex);
+        const legacyAlias = legacyIndex === 1 ? legacyColorSlug : `${legacyColorSlug}-${legacyIndex}`;
+        if (legacyAlias !== slug && !slugAliases.includes(legacyAlias)) {
+          slugAliases.push(legacyAlias);
+        }
+      }
+    }
+
+    return { ...vehicle, slug, slugAliases };
   });
 }
 
@@ -812,67 +963,160 @@ function moveStylesheetsBeforeModuleScripts(html) {
   );
 }
 
-function rootCriticalCss() {
-  return `<style data-critical-home>
-      #root:has(.cm-static-home) { min-height: 100vh; }
-      .cm-static-home { background: #fff; color: #111827; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
-      .cm-static-nav { align-items: center; background: rgba(255,255,255,.95); border-bottom: 1px solid #f3f4f6; display: flex; height: 64px; justify-content: center; left: 0; padding: 0 24px; position: fixed; right: 0; top: 0; z-index: 50; }
-      .cm-static-nav-inner { align-items: center; display: flex; justify-content: space-between; max-width: 1280px; width: 100%; }
-      .cm-static-logo { color: #11163e; font-size: 13px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
-      .cm-static-menu { align-items: center; display: flex; gap: 32px; }
-      .cm-static-menu a { color: #4b5563; font-size: 14px; font-weight: 600; text-decoration: none; }
-      .cm-static-cta { background: #11163e; border-radius: 999px; color: #fff !important; padding: 10px 20px; }
-      .cm-static-hero { background: linear-gradient(135deg,#f8fafc 0%,#fff 52%,#eefdfb 100%); overflow: hidden; padding: 128px 24px 112px; position: relative; }
-      .cm-static-inner { align-items: center; display: grid; gap: 56px; grid-template-columns: 3fr 2fr; margin: 0 auto; max-width: 1280px; }
-      .cm-static-copy { min-width: 0; }
-      .cm-static-pill { background: #eef2ff; border-radius: 999px; color: #475569; display: inline-flex; font-size: 14px; font-weight: 700; margin-bottom: 32px; padding: 6px 16px; }
-      .cm-static-title { color: #111827; font-size: 60px; font-weight: 800; letter-spacing: 0; line-height: 1.08; margin: 0 0 24px; max-width: 760px; }
-      .cm-static-title span { color: #0f766e; }
-      .cm-static-lead { color: #4b5563; font-size: 20px; line-height: 1.62; margin: 0 0 12px; max-width: 660px; }
-      .cm-static-sublead { color: #6b7280; font-size: 14px; margin: 0 0 40px; }
-      .cm-static-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-      .cm-static-btn { align-items: center; border-radius: 999px; display: inline-flex; font-size: 16px; font-weight: 800; justify-content: center; min-height: 52px; padding: 0 28px; text-decoration: none; }
-      .cm-static-btn.primary { background: #0f766e; color: #fff; }
-      .cm-static-btn.secondary { background: #fff; border: 1px solid #e5e7eb; color: #1f2937; }
-      .cm-static-trust { color: #6b7280; display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; margin-top: 32px; }
-      .cm-static-fleet { display: flex; flex-direction: column; gap: 12px; min-height: 312px; width: 400px; }
-      .cm-static-fleet-head { align-items: center; display: flex; justify-content: space-between; margin-bottom: 4px; }
-      .cm-static-fleet-head span { color: #9ca3af; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-      .cm-static-fleet-card { background: #fff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.04); display: flex; height: 96px; overflow: hidden; }
-      .cm-static-fleet-img { background: #f3f4f6; flex: 0 0 112px; }
-      .cm-static-fleet-body { flex: 1; padding: 14px; }
-      .cm-static-line { background: #f3f4f6; border-radius: 999px; height: 14px; }
-      .cm-static-line.sm { height: 12px; margin-top: 9px; width: 88px; }
-      .cm-static-line.price { background: #ecfdf5; height: 16px; margin-top: 16px; width: 70px; }
-      .cm-static-more { align-items: center; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 16px; color: #0f766e; display: flex; font-size: 14px; font-weight: 800; height: 60px; justify-content: space-between; padding: 14px; }
-      .cm-static-stats { background: #fff; border-bottom: 1px solid #f3f4f6; border-top: 1px solid #f3f4f6; padding: 48px 24px; }
-      .cm-static-stats-grid { display: grid; gap: 32px; grid-template-columns: repeat(4,minmax(0,1fr)); margin: 0 auto; max-width: 1024px; text-align: center; }
-      .cm-static-stat strong { color: #0f766e; display: block; font-size: 36px; line-height: 1; margin-bottom: 8px; }
-      .cm-static-stat span { color: #6b7280; font-size: 14px; }
-      @media (max-width: 1023px) {
-        .cm-static-menu a:not(.cm-static-cta) { display: none; }
-        .cm-static-hero { padding: 108px 18px 80px; }
-        .cm-static-inner { display: block; }
-        .cm-static-fleet { display: none; }
-        .cm-static-title { font-size: 48px; max-width: 760px; }
-        .cm-static-stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-      }
-      @media (max-width: 700px) {
-        .cm-static-nav { padding: 0 18px; }
-        .cm-static-hero { padding: 108px 18px 56px; }
-        .cm-static-title { font-size: 36px; }
-        .cm-static-lead { font-size: 16px; }
-        .cm-static-actions { flex-direction: column; }
-        .cm-static-btn { min-height: 46px; }
-      }
-    </style>`;
+function serializeForInlineScript(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
-function rootStaticShell() {
+function pruneVehicleForClient(vehicle) {
+  const refs = vehicle.external_refs && typeof vehicle.external_refs === 'object' ? vehicle.external_refs : {};
+  const firstMediaImage = Array.isArray(refs.mediaFiles)
+    ? refs.mediaFiles
+        .filter((file) => {
+          if (!file || typeof file !== 'object') return false;
+          return (
+            file.category === 'vehicle_photos' &&
+            file.fileUrl &&
+            (!file.mimeType || String(file.mimeType).startsWith('image/'))
+          );
+        })
+        .map((file) => file.fileUrl)[0]
+    : null;
+  const coverImageUrl = refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || firstMediaImage;
+
+  return {
+    id: vehicle.id,
+    display_name: vehicle.display_name ?? null,
+    plate_number: vehicle.plate_number ?? null,
+    color: vehicle.color ?? null,
+    model_year: vehicle.model_year ?? null,
+    daily_base_price: vehicle.daily_base_price ?? null,
+    current_km: vehicle.current_km ?? null,
+    status: vehicle.status,
+    published: vehicle.published,
+    slug: vehicle.slug ?? null,
+    slugAliases: Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [],
+    external_refs: {
+      ...(coverImageUrl ? { coverImageUrl } : {}),
+    },
+    vehicle_models: vehicle.vehicle_models
+      ? {
+          make: vehicle.vehicle_models.make ?? null,
+          model: vehicle.vehicle_models.model ?? null,
+          variant: vehicle.vehicle_models.variant ?? null,
+          seats: vehicle.vehicle_models.seats ?? null,
+          fuel_type: vehicle.vehicle_models.fuel_type ?? null,
+          transmission: vehicle.vehicle_models.transmission ?? null,
+        }
+      : null,
+  };
+}
+
+async function renderReactHomeRoot(vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderHome } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderHome(initialVehicles);
+    const data = serializeForInlineScript(initialVehicles);
+    return `<div id="root" data-prerendered="home">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactMonthlyRoot(vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderMonthlyRental } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderMonthlyRental(initialVehicles);
+    const data = serializeForInlineScript(initialVehicles);
+    return `<div id="root" data-prerendered="monthly">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactFleetRoot(vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderFleet } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderFleet(initialVehicles);
+    const data = serializeForInlineScript(initialVehicles);
+    return `<div id="root" data-prerendered="fleet">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+function rootCriticalCss() {
+  return '<style data-critical-home>#root{min-height:100vh}</style>';
+}
+
+function formatStaticPrice(value) {
+  const price = Number(value || 0);
+  if (price >= 1000000) {
+    const millions = price / 1000000;
+    return Number.isInteger(millions) ? `${millions}M` : `${millions.toFixed(1)}M`;
+  }
+  if (price > 0) return `${Math.round(price / 1000)}k`;
+  return 'Liên hệ';
+}
+
+function staticVehicleMeta(vehicle) {
+  const model = vehicle.vehicle_models || {};
+  const seats = model.seats ? `${model.seats} chỗ` : '5 chỗ';
+  const fuel = model.fuel_type
+    ? String(model.fuel_type).replace(/^electric$/i, 'Điện').replace(/^gasoline$/i, 'Xăng').replace(/^diesel$/i, 'Dầu')
+    : 'Tự lái';
+  return `${seats} · ${fuel}`;
+}
+
+function renderStaticFleet(vehicles = []) {
+  const availableVehicles = vehicles.filter((vehicle) => Number(vehicle.daily_base_price || 0) > 0).slice(0, 2);
+  if (availableVehicles.length === 0) {
+    return `
+            <div class="cm-static-fleet-card"><div class="cm-static-fleet-img"></div><div class="cm-static-fleet-body"><div class="cm-static-line" style="width:150px"></div><div class="cm-static-line sm"></div><div class="cm-static-line price"></div></div></div>
+            <div class="cm-static-fleet-card"><div class="cm-static-fleet-img"></div><div class="cm-static-fleet-body"><div class="cm-static-line" style="width:140px"></div><div class="cm-static-line sm"></div><div class="cm-static-line price"></div></div></div>
+            <a class="cm-static-more" href="/xe"><span>+0 xe khác</span><span>→</span></a>`;
+  }
+
+  const cards = availableVehicles.map((vehicle) => `
+            <a class="cm-static-fleet-card" href="/xe/${escapeHtml(vehicle.slug)}">
+              <div class="cm-static-fleet-img"><img src="${escapeHtml(getVehicleImage(vehicle))}" alt="" loading="lazy" decoding="async" width="112" height="96"></div>
+              <div class="cm-static-fleet-body"><div class="cm-static-fleet-row"><div><p class="cm-static-fleet-title">${escapeHtml(getVehicleName(vehicle))}</p><div class="cm-static-fleet-meta">${escapeHtml(staticVehicleMeta(vehicle))}</div></div><span class="cm-static-status">Sẵn sàng</span></div><div class="cm-static-price">${escapeHtml(formatStaticPrice(vehicle.daily_base_price))} <span>/ngày</span></div></div>
+            </a>`).join('');
+
+  return `${cards}
+            <a class="cm-static-more" href="/xe"><span>+${Math.max(0, vehicles.length - availableVehicles.length)} xe khác</span><span>→</span></a>`;
+}
+
+function rootStaticShell(vehicles = []) {
   return `<div id="root"><div class="cm-static-home" aria-label="Car Match homepage loading shell">
       <header class="cm-static-nav">
         <div class="cm-static-nav-inner">
-          <div class="cm-static-logo">Car Match</div>
+          <a class="cm-static-logo" href="/" aria-label="Car Match">
+            <img src="/brand/carmatch-lockup-navy.png" alt="Car Match" width="288" height="66" fetchpriority="high">
+          </a>
           <nav class="cm-static-menu" aria-label="Điều hướng chính">
             <a href="/xe">Thuê xe tự lái</a>
             <a href="/di-dau">Đi đâu</a>
@@ -883,27 +1127,26 @@ function rootStaticShell() {
             <a href="/blog">Blog</a>
             <a class="cm-static-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
           </nav>
+          <a class="cm-static-mobile-menu" href="/xe" aria-label="Mở danh sách xe">≡</a>
         </div>
       </header>
       <main class="cm-static-hero">
         <div class="cm-static-inner">
           <div class="cm-static-copy">
-          <div class="cm-static-pill">Dịch vụ xe cho cư dân đô thị Hà Nội</div>
+          <div class="cm-static-pill">⌂ Dịch vụ xe cho cư dân đô thị Hà Nội</div>
           <h1 class="cm-static-title">Không cần sở hữu xe<br><span>vẫn luôn có xe dùng</span></h1>
           <p class="cm-static-lead">Thuê xe ngày hoặc theo tháng — <strong>giao tận sảnh tòa nhà</strong></p>
           <p class="cm-static-sublead">Vinhomes · Ecopark · The Manor · Linh Đàm · Xe điện VinFast · Đặt qua Zalo 5 phút</p>
           <div class="cm-static-actions">
-            <a class="cm-static-btn primary" href="/xe">Đặt xe ngay</a>
-            <a class="cm-static-btn secondary" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
-            <a class="cm-static-btn secondary" href="/lap-ke-hoach-chuyen-di">Lập chuyến đi</a>
+            <a class="cm-static-btn primary" href="/xe">▱ Đặt xe ngay</a>
+            <a class="cm-static-btn secondary" href="https://zalo.me/0975563290">○ Đặt xe qua Zalo</a>
+            <a class="cm-static-btn secondary" href="/lap-ke-hoach-chuyen-di">↯ Lập chuyến đi →</a>
           </div>
-          <div class="cm-static-trust"><span>Giao xe tận tòa nhà</span><span>Bảo hiểm đầy đủ</span><span>Hoàn cọc ngay khi trả xe</span></div>
+          <div class="cm-static-trust"><span class="cm-static-check">Giao xe tận tòa nhà</span><span class="cm-static-check">Bảo hiểm đầy đủ</span><span class="cm-static-check">Hoàn cọc ngay khi trả xe</span></div>
           </div>
           <div class="cm-static-fleet" aria-hidden="true">
-            <div class="cm-static-fleet-head"><span>Xe sẵn sàng hôm nay</span><span>Xem tất cả</span></div>
-            <div class="cm-static-fleet-card"><div class="cm-static-fleet-img"></div><div class="cm-static-fleet-body"><div class="cm-static-line" style="width:150px"></div><div class="cm-static-line sm"></div><div class="cm-static-line price"></div></div></div>
-            <div class="cm-static-fleet-card"><div class="cm-static-fleet-img"></div><div class="cm-static-fleet-body"><div class="cm-static-line" style="width:140px"></div><div class="cm-static-line sm"></div><div class="cm-static-line price"></div></div></div>
-            <div class="cm-static-more"><span>+18 xe khác</span><span>→</span></div>
+            <div class="cm-static-fleet-head"><span>Xe sẵn sàng hôm nay</span><a href="/xe">Xem tất cả →</a></div>
+${renderStaticFleet(vehicles)}
           </div>
         </div>
       </main>
@@ -918,13 +1161,45 @@ function rootStaticShell() {
     </div></div>`;
 }
 
-function renderSpaShell(baseHtml, meta) {
+function staticH1FromTitle(title = '') {
+  return normalizeBrandText(String(title)
+    .replace(/\s*[|—-]\s*Car Match.*$/i, '')
+    .replace(/\s*[|—-]\s*Từ .*$/i, '')
+    .trim());
+}
+
+function staticFallbackRoot(meta) {
+  const h1 = escapeHtml(meta.staticH1 || staticH1FromTitle(meta.title));
+  const lead = escapeHtml(meta.staticLead || meta.description || '');
+  const primaryHref = meta.staticPrimaryHref || (String(meta.path || '').startsWith('/xe/') ? 'https://zalo.me/0975563290' : '/xe');
+  const primaryLabel = escapeHtml(meta.staticPrimaryLabel || (String(meta.path || '').startsWith('/xe/') ? 'Hỏi xe qua Zalo' : 'Xem xe tự lái'));
+  const secondaryHref = meta.staticSecondaryHref || 'https://zalo.me/0975563290';
+  const secondaryLabel = escapeHtml(meta.staticSecondaryLabel || 'Nhắn Zalo tư vấn');
+
+  return `<div id="root" data-static-fallback="true">
+    <main class="cm-static-fallback">
+      <section class="cm-static-fallback-inner">
+        <p class="cm-static-fallback-eyebrow">Car Match · Thuê xe tự lái Hà Nội</p>
+        <h1>${h1}</h1>
+        <p>${lead}</p>
+        <div class="cm-static-fallback-actions">
+          <a class="cm-static-fallback-btn primary" href="${escapeHtml(primaryHref)}">${primaryLabel}</a>
+          <a class="cm-static-fallback-btn secondary" href="${escapeHtml(secondaryHref)}">${secondaryLabel}</a>
+        </div>
+      </section>
+    </main>
+  </div>`;
+}
+
+function renderSpaShell(baseHtml, meta, vehicles = []) {
   let html = baseHtml;
   const title = escapeHtml(meta.title);
   const description = escapeHtml(meta.description);
   const canonical = escapeHtml(meta.canonical);
   const image = escapeHtml(meta.image || brandIcon);
-  const robots = meta.noIndex ? 'noindex, nofollow' : 'index, follow';
+  const robots = meta.noIndex
+    ? 'noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+    : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`);
   html = replaceOrInsertHead(html, /<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${description}" />`);
@@ -947,7 +1222,33 @@ function renderSpaShell(baseHtml, meta) {
   if (meta.path === '/') {
     html = moveStylesheetsBeforeModuleScripts(html);
     html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
-    html = html.replace(/<div id="root"><\/div>/, rootStaticShell());
+    html = html.replace(/<div id="root"><\/div>/, prerenderedHomeRoot || rootStaticShell(vehicles));
+  } else if (meta.path === '/xe' && prerenderedFleetRoot) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
+    html = html.replace(/<div id="root"><\/div>/, prerenderedFleetRoot);
+  } else if (meta.path === '/thue-xe-thang' && prerenderedMonthlyRoot) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
+    html = html.replace(/<div id="root"><\/div>/, prerenderedMonthlyRoot);
+  } else if (meta.staticH1 || meta.staticLead) {
+    html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
+    html = html.replace(
+      '</head>',
+      `<style data-static-fallback>
+        .cm-static-fallback{background:#f8fafc;color:#0f172a;font-family:"Be Vietnam Pro",Inter,Arial,sans-serif;min-height:62vh;padding:84px 20px}
+        .cm-static-fallback-inner{margin:0 auto;max-width:920px}
+        .cm-static-fallback-eyebrow{color:#0f766e;font-size:12px;font-weight:950;letter-spacing:.14em;margin:0 0 14px;text-transform:uppercase}
+        .cm-static-fallback h1{font-size:clamp(36px,6vw,64px);letter-spacing:0;line-height:1.02;margin:0 0 18px}
+        .cm-static-fallback p{color:#475569;font-size:18px;font-weight:650;line-height:1.72;margin:0;max-width:760px}
+        .cm-static-fallback-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+        .cm-static-fallback-btn{align-items:center;border-radius:999px;display:inline-flex;font-weight:900;justify-content:center;padding:13px 18px;text-decoration:none}
+        .cm-static-fallback-btn.primary{background:#0f766e;color:white}
+        .cm-static-fallback-btn.secondary{background:white;border:1px solid #cbd5e1;color:#0f172a}
+      </style>
+  </head>`,
+    );
+    html = html.replace(/<div id="root"><\/div>/, staticFallbackRoot(meta));
   } else {
     html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
     html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/, '<div id="root"></div>\n    <script');
@@ -956,21 +1257,33 @@ function renderSpaShell(baseHtml, meta) {
   return html;
 }
 
-async function writeSpaShell(baseHtml, meta) {
+async function writeSpaShell(baseHtml, meta, vehicles = []) {
   const routePath = meta.path === '/' ? '' : meta.path.replace(/^\/+/, '');
   const outputDir = path.join(distDir, routePath);
   await mkdir(outputDir, { recursive: true });
-  await writeFile(path.join(outputDir, 'index.html'), renderSpaShell(baseHtml, meta), 'utf8');
+  await writeFile(path.join(outputDir, 'index.html'), renderSpaShell(baseHtml, meta, vehicles), 'utf8');
+}
+
+async function writeHtmlRoute(routePath, html) {
+  const cleanPath = routePath === '/' ? '' : routePath.replace(/^\/+/, '');
+  const outputDir = path.join(distDir, cleanPath);
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(path.join(outputDir, 'index.html'), html, 'utf8');
 }
 
 async function writeStaticRouteShells(vehicles) {
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
+  prerenderedHomeRoot = await renderReactHomeRoot(vehicles);
+  prerenderedFleetRoot = await renderReactFleetRoot(vehicles);
+  prerenderedMonthlyRoot = await renderReactMonthlyRoot(vehicles);
 
   for (const meta of routeMeta) {
     await writeSpaShell(baseHtml, {
       ...meta,
+      staticH1: staticH1FromTitle(meta.title),
+      staticLead: meta.description,
       structuredData: routeStructuredData(meta, vehicles),
-    });
+    }, vehicles);
   }
 
   for (const meta of noIndexRouteMeta) {
@@ -988,8 +1301,39 @@ async function writeStaticRouteShells(vehicles) {
       description: vehicleDescription(vehicle),
       canonical: `${siteUrl}/xe/${vehicle.slug}`,
       image: getVehicleImage(vehicle),
+      staticH1: `Thuê ${name} tự lái tại Hà Nội`,
+      staticLead: vehicleDescription(vehicle),
+      staticPrimaryHref: 'https://zalo.me/0975563290',
+      staticPrimaryLabel: 'Hỏi xe qua Zalo',
+      staticSecondaryHref: '/xe',
+      staticSecondaryLabel: 'Xem xe khác',
       structuredData: vehicleStructuredData(vehicle),
     });
+  }
+
+  const reservedVehicleSlugs = new Set(vehicles.map((vehicle) => vehicle.slug));
+  const writtenAliases = new Set();
+  for (const vehicle of vehicles) {
+    const aliases = Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [];
+    for (const alias of aliases) {
+      if (!alias || reservedVehicleSlugs.has(alias) || writtenAliases.has(alias)) continue;
+      writtenAliases.add(alias);
+      const name = getVehicleName(vehicle);
+      await writeSpaShell(baseHtml, {
+        path: `/xe/${alias}`,
+        title: `Thuê ${name} Tự Lái Hà Nội | Car Match`,
+        description: vehicleDescription(vehicle),
+        canonical: `${siteUrl}/xe/${alias}`,
+        image: getVehicleImage(vehicle),
+        staticH1: `Thuê ${name} tự lái tại Hà Nội`,
+        staticLead: vehicleDescription(vehicle),
+        staticPrimaryHref: 'https://zalo.me/0975563290',
+        staticPrimaryLabel: 'Hỏi xe qua Zalo',
+        staticSecondaryHref: '/xe',
+        staticSecondaryLabel: 'Xem xe khác',
+        structuredData: vehicleStructuredData({ ...vehicle, slug: alias }),
+      });
+    }
   }
 }
 
@@ -1930,7 +2274,7 @@ function renderGoWhereLanding() {
             <a href="/di-dau/ha-long">Đi Hạ Long bằng xe tự lái</a>
             <a href="/di-dau/ninh-binh">Đi Ninh Bình bằng xe tự lái</a>
             <a href="/di-dau/tam-dao">Đi Tam Đảo bằng xe tự lái</a>
-            <a href="/xe?seats=7">Thuê xe 7 chỗ</a>
+            <a href="/di-dau/chu-de/xe-7-cho-di-tinh">Thuê xe 7 chỗ</a>
           </div>
         </aside>
       </section>
@@ -2211,7 +2555,8 @@ function renderDestinationLanding(destination) {
           <p class="lead">${escapeHtml(destination.summary || description)}</p>
           <div class="actions">
             <a class="btn primary" href="/lap-ke-hoach-chuyen-di/${escapeHtml(destination.slug)}?diem-den=${escapeHtml(destination.slug)}#trip-form">Tính chi phí tuyến này</a>
-            <a class="btn secondary" href="https://zalo.me/0975563290">Hỏi xe qua Zalo</a>
+            <a class="btn secondary" href="https://zalo.me/0975563290">Nhắn Zalo đặt xe đi ${escapeHtml(destination.name)}</a>
+            <a class="btn secondary" href="/xe">Xem xe phù hợp</a>
           </div>
           <div class="metric-grid">
             <div class="metric"><strong>${roundTripKm} km</strong><span>ước tính hai chiều</span></div>
@@ -2304,7 +2649,7 @@ function renderDestinationLanding(destination) {
             <p>${escapeHtml(destination.recommendedVehicle || 'Nếu đi ít người, xe 5 chỗ thường đủ dùng. Nếu đi gia đình đông, có trẻ em hoặc nhiều hành lý, nên cân nhắc xe 7 chỗ.')}</p>
             <div class="pill-links">
               <a href="/xe">Xem danh sách xe tự lái</a>
-              <a href="/xe?seats=7">Thuê xe 7 chỗ</a>
+              <a href="/di-dau/chu-de/xe-7-cho-di-tinh">Thuê xe 7 chỗ</a>
               <a href="/lap-ke-hoach-chuyen-di/${escapeHtml(destination.slug)}?diem-den=${escapeHtml(destination.slug)}#trip-form">Lập kế hoạch tuyến này</a>
             </div>
           </div>
@@ -2485,7 +2830,7 @@ function renderCollectionLanding(collection) {
             <p>Không nên chọn xe chỉ theo giá. Với chuyến đi từ Hà Nội, cần tính số người, hành lý, cung đường, thời gian thuê và điểm nhận trả xe.</p>
             <div class="pill-links">
               <a href="/xe">Danh sách xe tự lái</a>
-              <a href="/xe?seats=7">Thuê xe 7 chỗ</a>
+              <a href="/di-dau/chu-de/xe-7-cho-di-tinh">Thuê xe 7 chỗ</a>
               <a href="/di-dau">Tất cả điểm đến</a>
             </div>
           </div>
@@ -2521,45 +2866,15 @@ async function main() {
   await mkdir(path.join(distDir, 'thue-xe-tu-lai-ha-noi'), { recursive: true });
   await writeFile(path.join(distDir, 'thue-xe-tu-lai-ha-noi', 'index.html'), renderHanoiLanding(), 'utf8');
 
-  const goWhereMeta = routeMeta.find((meta) => meta.path === '/di-dau');
-  if (goWhereMeta) {
-    await writeSpaShell(baseHtml, {
-      ...goWhereMeta,
-      structuredData: routeStructuredData(goWhereMeta, vehicles),
-    });
-  }
-
-  const tripPlannerMeta = routeMeta.find((meta) => meta.path === '/lap-ke-hoach-chuyen-di');
-  if (tripPlannerMeta) {
-    await writeSpaShell(baseHtml, {
-      ...tripPlannerMeta,
-      structuredData: routeStructuredData(tripPlannerMeta, vehicles),
-    });
-  }
+  await writeHtmlRoute('/di-dau', renderGoWhereLanding());
+  await writeHtmlRoute('/lap-ke-hoach-chuyen-di', renderTripPlannerLanding());
 
   for (const destination of travelDestinations) {
-    await writeSpaShell(baseHtml, {
-      path: `/di-dau/${destination.slug}`,
-      title: destinationTitle(destination),
-      description: destinationDescription(destination),
-      canonical: `${siteUrl}/di-dau/${destination.slug}`,
-      image: destination.imageUrl,
-      structuredData: destinationStructuredData(destination),
-    });
+    await writeHtmlRoute(`/di-dau/${destination.slug}`, renderDestinationLanding(destination));
   }
 
   for (const collection of fallbackTravelCollections) {
-    const collectionDestinations = collection.destinationSlugs
-      .map((slug) => travelDestinations.find((destination) => destination.slug === slug))
-      .filter(Boolean);
-    await writeSpaShell(baseHtml, {
-      path: `/di-dau/chu-de/${collection.slug}`,
-      title: collection.seoTitle || `${collection.title} | Car Match`,
-      description: collection.seoDescription || collection.description,
-      canonical: `${siteUrl}/di-dau/chu-de/${collection.slug}`,
-      image: collectionDestinations[0]?.imageUrl,
-      structuredData: collectionStructuredData(collection, collectionDestinations),
-    });
+    await writeHtmlRoute(`/di-dau/chu-de/${collection.slug}`, renderCollectionLanding(collection));
   }
 
   await mkdir(path.join(distDir, 'blog'), { recursive: true });

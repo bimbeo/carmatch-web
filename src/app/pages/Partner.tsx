@@ -9,6 +9,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import { useSEO } from '@/hooks/useSEO';
+import { trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -132,9 +133,15 @@ export default function Partner() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    trackLeadSubmit('attempt', {
+      lead_source: 'partner',
+      form_type: form.formType,
+      car_model: form.carModel,
+      building: form.building,
+    });
 
     // Lưu vào Supabase (không block UX nếu lỗi)
-    await submitLead({
+    const result = await submitLead({
       source: 'partner',
       name: form.name,
       phone: form.phone,
@@ -142,11 +149,22 @@ export default function Partner() {
       car_model: form.carModel,
       building: form.building,
     });
+    trackLeadSubmit(result.ok ? 'success' : 'error', {
+      lead_source: 'partner',
+      form_type: form.formType,
+      car_model: form.carModel,
+      building: form.building,
+      error_message: result.error,
+    });
 
     const typeLabel = form.formType === 'monthly' ? 'CHO THUÊ THÁNG' : 'ỦY THÁC NGÀY';
     const message = encodeURIComponent(
       `[HỢP TÁC CHỦ XE — ${typeLabel}]\nHọ tên: ${form.name}\nSĐT: ${form.phone}\nXe: ${form.carModel}\nTòa nhà/KV: ${form.building}`
     );
+    trackZaloClick('partner_form_submit', {
+      lead_source: 'partner',
+      form_type: form.formType,
+    });
     window.open(`${ZALO_LINK}?text=${message}`, '_blank');
     setTimeout(() => { setLoading(false); setSubmitted(true); }, 800);
   };
@@ -190,6 +208,7 @@ export default function Partner() {
               Đăng ký hợp tác ngay
             </a>
             <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
+              onClick={() => trackZaloClick('partner_hero')}
               className="px-8 py-4 bg-white text-gray-800 font-semibold rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm">
               Hỏi qua Zalo trước
             </a>
@@ -411,6 +430,7 @@ export default function Partner() {
               <h3 className="text-gray-900 font-bold text-xl mb-3">Đã nhận đăng ký!</h3>
               <p className="text-gray-600 mb-6">Zalo Car Match đã được mở. Đội ngũ sẽ liên hệ tư vấn sớm nhất.</p>
               <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
+                onClick={() => trackZaloClick('partner_submitted')}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-full font-semibold hover:bg-brand-700 transition-colors">
                 Mở Zalo Car Match
                 <ArrowRight className="w-4 h-4" />
@@ -478,7 +498,7 @@ export default function Partner() {
               </button>
               <p className="text-gray-400 text-xs text-center">
                 Hoặc nhắn trực tiếp:{' '}
-                <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
+                <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('partner_form_footer')} className="text-brand-600 hover:underline">
                   Zalo 0975 563 290
                 </a>
               </p>

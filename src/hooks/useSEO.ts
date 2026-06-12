@@ -39,16 +39,22 @@ function setLink(rel: string, href: string) {
 export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOProps) {
   useEffect(() => {
     const fullTitle = withBrandName(title);
+    const canonicalUrl = canonical ?? (BASE_URL + window.location.pathname);
     document.title = fullTitle;
 
     setMeta('description', description);
-    setMeta('robots', noIndex ? 'noindex, nofollow' : 'index, follow');
+    setMeta(
+      'robots',
+      noIndex
+        ? 'noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+        : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    );
 
     // Open Graph
     setMeta('og:title', fullTitle, 'property');
     setMeta('og:description', description, 'property');
     setMeta('og:image', ogImage ?? DEFAULT_IMAGE, 'property');
-    setMeta('og:url', canonical ?? (BASE_URL + window.location.pathname), 'property');
+    setMeta('og:url', canonicalUrl, 'property');
 
     // Twitter
     setMeta('twitter:title', fullTitle);
@@ -56,7 +62,7 @@ export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOP
     setMeta('twitter:image', ogImage ?? DEFAULT_IMAGE);
 
     // Canonical
-    if (canonical) setLink('canonical', canonical);
+    setLink('canonical', canonicalUrl);
 
     // Reset on unmount
     return () => {

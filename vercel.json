@@ -73,6 +73,31 @@
       "headers": { "Location": "https://www.carmatch.vn/xe" }
     },
     {
+      "src": "/xe",
+      "has": [{ "type": "query", "key": "category" }],
+      "dest": "/api/vehicles?cleanXe=1"
+    },
+    {
+      "src": "/xe",
+      "has": [{ "type": "query", "key": "seats" }],
+      "dest": "/api/vehicles?cleanXe=1"
+    },
+    {
+      "src": "/xe/vinfast-vf5-2025-30l-53361/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/xe/vinfast-vf7s-2025-30l-92109/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/blog/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
       "src": "/(ve-chung-toi|about|gioi-thieu-carmatch)/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/gioi-thieu" }
@@ -91,6 +116,11 @@
       "src": "/(cars|vehicles|fleet|danh-sach-xe|thue-xe)/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/thue-xe-tu-lai-ecopark/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/di-dau/ecopark" }
     },
     {
       "src": "/sitemap\\.rss",

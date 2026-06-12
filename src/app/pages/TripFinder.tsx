@@ -34,6 +34,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import TravelAssistant from '../components/TravelAssistant';
 import ZaloFAB from '../components/ZaloFAB';
+import { trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -281,6 +282,15 @@ export default function TripFinder() {
     event.preventDefault();
     if (!name.trim() || !phone.trim()) return;
     setSubmitState('submitting');
+    trackLeadSubmit('attempt', {
+      lead_source: 'trip_finder',
+      form_type: 'trip_finder',
+      destination: tripPlan.slug,
+      rental_days: rentalDays,
+      travelers,
+      vehicle_name: primaryCar?.name || suggestedVehicleType,
+      total_estimate: totalEstimate,
+    });
 
     const note = [
       '[TRIP FINDER]',
@@ -316,7 +326,21 @@ export default function TripFinder() {
     });
 
     setSubmitState(result.ok ? 'done' : 'error');
+    trackLeadSubmit(result.ok ? 'success' : 'error', {
+      lead_source: 'trip_finder',
+      form_type: 'trip_finder',
+      destination: tripPlan.slug,
+      rental_days: rentalDays,
+      travelers,
+      vehicle_name: primaryCar?.name || suggestedVehicleType,
+      total_estimate: totalEstimate,
+      error_message: result.error,
+    });
     if (result.ok) {
+      trackZaloClick('trip_finder_form_submit', {
+        lead_source: 'trip_finder',
+        destination: tripPlan.slug,
+      });
       window.open(`${ZALO_LINK}?text=${zaloMessage}`, '_blank');
     }
   };
@@ -921,7 +945,9 @@ export default function TripFinder() {
             <p className="text-gray-600 leading-relaxed mb-4">
               Khoảng cách, phí đường, điểm dừng và lịch trình được dùng để bạn có khung ngân sách ban đầu. Car Match sẽ kiểm tra lại xe trống, giá thuê, phí giao nhận và điều kiện chuyến đi trước khi xác nhận.
             </p>
-            <a href="https://zalo.me/0975563290" className="inline-flex rounded-2xl bg-brand-600 px-4 py-3 text-sm font-bold text-white hover:bg-brand-700">
+            <a href="https://zalo.me/0975563290" onClick={() => trackZaloClick('trip_finder_check_availability', {
+              destination: tripPlan.slug,
+            })} className="inline-flex rounded-2xl bg-brand-600 px-4 py-3 text-sm font-bold text-white hover:bg-brand-700">
               Nhắn Zalo để kiểm tra xe trống
             </a>
           </div>
@@ -980,6 +1006,11 @@ export default function TripFinder() {
                 href={`${ZALO_LINK}?text=${zaloMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackZaloClick('trip_finder_skip_form', {
+                  destination: tripPlan.slug,
+                  rental_days: rentalDays,
+                  travelers,
+                })}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-5 py-3.5 font-semibold text-white ring-1 ring-white/15 hover:bg-white/15 transition-colors"
               >
                 <MessageCircle className="h-5 w-5" />

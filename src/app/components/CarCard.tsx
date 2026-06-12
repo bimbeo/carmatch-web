@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { Users, Zap, Fuel, CalendarDays } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
+import { trackVehicleClick } from '@/lib/analytics';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 const fuelBadge: Record<Car['fuel'], { class: string; icon: React.ReactNode }> = {
@@ -21,16 +22,25 @@ const fuelBadge: Record<Car['fuel'], { class: string; icon: React.ReactNode }> =
 interface CarCardProps {
   car: Car;
   compact?: boolean;
+  source?: string;
 }
 
-export default function CarCard({ car, compact = false }: CarCardProps) {
+export default function CarCard({ car, compact = false, source = 'vehicle_card' }: CarCardProps) {
   const badge = fuelBadge[car.fuel];
+  const trackCar = (action: string) => trackVehicleClick(action, {
+    source,
+    vehicle_id: car.id,
+    vehicle_slug: car.slug,
+    vehicle_name: car.name,
+    vehicle_price: car.price,
+  });
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:border-gray-200 transition-all group">
       {/* Image */}
       <Link
         to={`/xe/${car.slug}`}
+        onClick={() => trackCar('image_click')}
         className="relative block overflow-hidden aspect-video bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
       >
         <img
@@ -93,12 +103,14 @@ export default function CarCard({ car, compact = false }: CarCardProps) {
         <div className="flex gap-2">
           <Link
             to={`/xe/${car.slug}`}
+            onClick={() => trackCar('detail_click')}
             className="flex-1 py-2.5 text-center text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all"
           >
             Chi tiết
           </Link>
           <Link
             to={`/xe/${car.slug}`}
+            onClick={() => trackCar('book_click')}
             className="flex-1 py-2.5 text-center text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors flex items-center justify-center gap-1.5"
           >
             <CalendarDays className="w-3.5 h-3.5" />

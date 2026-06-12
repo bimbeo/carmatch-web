@@ -1,7 +1,9 @@
 import { Link } from 'react-router';
 import { Phone, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
+import { trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
+const FACEBOOK_LINK = 'https://www.facebook.com/carmatchvn';
 const PHONE = '0975 563 290';
 
 export default function Footer() {
@@ -26,15 +28,17 @@ export default function Footer() {
               Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook"
+              <a href={FACEBOOK_LINK} target="_blank" rel="noopener noreferrer" aria-label="Facebook Car Match"
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Facebook className="w-4 h-4 text-gray-300" />
+                <span className="sr-only">Facebook Car Match</span>
               </a>
               <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Instagram className="w-4 h-4 text-gray-300" />
               </a>
               <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" aria-label="Zalo"
+                onClick={() => trackZaloClick('footer_social')}
                 className="w-9 h-9 rounded-full bg-[#0068FF]/30 flex items-center justify-center hover:bg-[#0068FF]/50 transition-colors">
                 <span className="text-[#60a5fa] text-xs font-bold">Z</span>
               </a>
@@ -48,8 +52,8 @@ export default function Footer() {
               {[
                 { href: '/xe', label: 'Thuê xe tự lái' },
                 { href: '/thue-xe-thang', label: 'Thuê xe theo tháng' },
-                { href: '/xe?category=electric', label: 'Xe điện VinFast' },
-                { href: '/xe?seats=7', label: 'Xe 7 chỗ' },
+                { href: '/di-dau/chu-de/di-xe-dien', label: 'Xe điện VinFast' },
+                { href: '/di-dau/chu-de/xe-7-cho-di-tinh', label: 'Xe 7 chỗ' },
               ].map((item) => (
                 <li key={item.href}>
                   <Link to={item.href} className="text-gray-400 text-sm hover:text-white transition-colors">
@@ -86,6 +90,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <a href={`tel:${PHONE.replace(/\s/g, '')}`}
+                  onClick={() => trackPhoneClick('footer_contact')}
                   className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors group">
                   <Phone className="w-4 h-4 mt-0.5 shrink-0 group-hover:text-brand-400 transition-colors" />
                   <span className="text-sm">{PHONE}</span>
@@ -93,6 +98,7 @@ export default function Footer() {
               </li>
               <li>
                 <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
+                  onClick={() => trackZaloClick('footer_contact')}
                   className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors group">
                   <span className="w-4 h-4 mt-0.5 shrink-0 text-[#60a5fa] font-bold text-xs leading-none">Z</span>
                   <span className="text-sm">Zalo: {PHONE}</span>

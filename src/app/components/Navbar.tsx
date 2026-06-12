@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { Menu, X } from 'lucide-react';
+import { trackZaloClick } from '@/lib/analytics';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -68,6 +69,7 @@ export default function Navbar() {
               href={ZALO_LINK}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackZaloClick('navbar_desktop')}
               className="px-5 py-2.5 bg-brand-600 text-white rounded-full font-semibold text-sm hover:bg-brand-700 transition-colors shadow-sm"
             >
               Đặt xe qua Zalo
@@ -119,6 +121,7 @@ export default function Navbar() {
                 href={ZALO_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackZaloClick('navbar_mobile')}
                 className="block w-full px-4 py-3 bg-brand-600 text-white rounded-full font-semibold text-sm text-center hover:bg-brand-700 transition-colors"
               >
                 Đặt xe qua Zalo

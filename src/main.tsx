@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import './styles/index.css'
 
 const chunkErrorPattern = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i
@@ -35,17 +35,25 @@ window.addEventListener('error', (event) => {
 
 async function bootApp() {
   const { default: App } = await import('./app/App')
-  createRoot(document.getElementById('root')!).render(
+  const root = document.getElementById('root')!
+  const app = (
     <StrictMode>
       <App />
-    </StrictMode>,
+    </StrictMode>
   )
+
+  if (root.dataset.prerendered) {
+    hydrateRoot(root, app)
+    return
+  }
+
+  createRoot(root).render(app)
 }
 
 function scheduleHomeBoot() {
   let booted = false
   let timer: number | undefined
-  const events = ['pointerdown', 'keydown', 'touchstart', 'wheel'] as const
+  const events = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'] as const
 
   function cleanup() {
     if (timer) window.clearTimeout(timer)
@@ -66,7 +74,7 @@ function scheduleHomeBoot() {
   window.addEventListener(
     'load',
     () => {
-      timer = window.setTimeout(boot, 6500)
+      timer = window.setTimeout(boot, 20000)
     },
     { once: true },
   )

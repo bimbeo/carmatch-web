@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import { useSEO } from '@/hooks/useSEO';
+import { trackEvent } from '@/lib/analytics';
 
 interface Post {
   _id: string;
@@ -146,10 +147,7 @@ function labelFromSlug(slug: string) {
 }
 
 function trackBlogClick(postSlug: string, action: string, target: string) {
-  const trackedWindow = window as Window & { dataLayer?: Array<Record<string, unknown>> };
-  trackedWindow.dataLayer = trackedWindow.dataLayer || [];
-  trackedWindow.dataLayer.push({
-    event: 'blog_conversion_click',
+  trackEvent('blog_conversion_click', {
     article_slug: postSlug,
     action,
     target,

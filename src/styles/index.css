@@ -2,6 +2,13 @@
 @import './tailwind.css';
 @import './theme.css';
 
+@media (max-width: 639px) {
+  .cm-mobile-safe-width {
+    width: 100%;
+    max-width: calc(100vw - 2rem);
+  }
+}
+
 .cms-blog-body table {
   display: block;
   width: 100%;

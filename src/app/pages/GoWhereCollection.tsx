@@ -2,6 +2,7 @@ import { Link, Navigate, useParams } from 'react-router';
 import { ArrowRight, Car, Clock, Compass, MapPin, Route, ShieldCheck, Wallet } from 'lucide-react';
 import { useSEO } from '@/hooks/useSEO';
 import { useTravelContent } from '@/hooks/useTravelContent';
+import { trackEvent } from '@/lib/analytics';
 import type { TripDestination } from '@/data/tripDestinations';
 import { destinationHeroClass, destinationImageStyle } from '@/lib/travelMedia';
 import Navbar from '../components/Navbar';
@@ -9,10 +10,7 @@ import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 
 function trackCollection(event: string, payload: Record<string, unknown> = {}) {
-  const trackedWindow = window as Window & { dataLayer?: Array<Record<string, unknown>> };
-  trackedWindow.dataLayer = trackedWindow.dataLayer || [];
-  trackedWindow.dataLayer.push({
-    event,
+  trackEvent(event, {
     page_group: 'go_where_collection',
     ...payload,
   });

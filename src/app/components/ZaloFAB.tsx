@@ -1,3 +1,5 @@
+import { trackZaloClick } from '@/lib/analytics';
+
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
 export default function ZaloFAB() {
@@ -6,6 +8,7 @@ export default function ZaloFAB() {
       href={ZALO_LINK}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => trackZaloClick('floating_fab')}
       className="hidden sm:flex fixed bottom-6 right-6 z-50 items-center gap-2 bg-[#0068FF] text-white px-4 py-3 rounded-full shadow-lg shadow-blue-500/25 hover:bg-blue-600 transition-all hover:scale-105 active:scale-95"
       aria-label="Chat Zalo"
     >

@@ -4,6 +4,7 @@ import { ArrowRight, CalendarDays, Car, CheckCircle2, CircleDollarSign, Clock, H
 import { useSEO } from '@/hooks/useSEO';
 import { submitLead } from '@/hooks/useLeads';
 import { useTravelContent } from '@/hooks/useTravelContent';
+import { trackEvent } from '@/lib/analytics';
 import { destinationHeroClass, destinationImageStyle } from '@/lib/travelMedia';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -17,10 +18,7 @@ function money(value: number) {
 }
 
 function trackGoWhereDetail(event: string, payload: Record<string, unknown> = {}) {
-  const trackedWindow = window as Window & { dataLayer?: Array<Record<string, unknown>> };
-  trackedWindow.dataLayer = trackedWindow.dataLayer || [];
-  trackedWindow.dataLayer.push({
-    event,
+  trackEvent(event, {
     page_group: 'go_where_detail',
     ...payload,
   });
