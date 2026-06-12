@@ -80,8 +80,17 @@ function scheduleHomeBoot() {
   )
 }
 
+function discardWrongHomePrerender() {
+  const root = document.getElementById('root')
+  if (root?.dataset.prerendered !== 'home') return
+
+  root.replaceChildren()
+  delete root.dataset.prerendered
+}
+
 if (window.location.pathname === '/' || window.location.pathname === '') {
   scheduleHomeBoot()
 } else {
+  discardWrongHomePrerender()
   void bootApp()
 }

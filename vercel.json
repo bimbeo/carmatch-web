@@ -154,6 +154,22 @@
       }
     },
     {
+      "src": "/di-dau/?",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/di-dau/(.*)",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/lap-ke-hoach-chuyen-di/?",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/lap-ke-hoach-chuyen-di/(.*)",
+      "dest": "/index.html"
+    },
+    {
       "src": "/blog/([^/]+)/?",
       "dest": "/api/posts?slug=$1&format=html"
     },
