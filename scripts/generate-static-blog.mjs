@@ -166,6 +166,33 @@ async function fetchTravelDestinations() {
   }));
 }
 
+function hasValue(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== undefined && value !== null && value !== '';
+}
+
+function mergeRecord(primary, fallback) {
+  if (!fallback) return primary;
+  const merged = { ...fallback, ...primary };
+
+  for (const [key, fallbackValue] of Object.entries(fallback)) {
+    const primaryValue = primary[key];
+    if (!hasValue(primaryValue) && hasValue(fallbackValue)) {
+      merged[key] = fallbackValue;
+    }
+  }
+
+  return merged;
+}
+
+function mergeBySlug(primary, fallback) {
+  const fallbackBySlug = new Map(fallback.map((item) => [item.slug, item]));
+  const seen = new Set(primary.map((item) => item.slug));
+  const mergedPrimary = primary.map((item) => mergeRecord(item, fallbackBySlug.get(item.slug)));
+  const missingFallback = fallback.filter((item) => !seen.has(item.slug));
+  return [...mergedPrimary, ...missingFallback];
+}
+
 const blogMeta = {
   title: 'Blog Kinh Nghiệm Thuê Xe Tự Lái | Car Match Hà Nội',
   description:
@@ -1667,6 +1694,16 @@ function renderSitemap(posts, vehicles) {
       priority: meta.priority,
       changefreq: meta.changefreq,
     })),
+    ...generatedTripDestinations.map((destination) => ({
+      loc: `${siteUrl}/di-dau/${destination.slug}`,
+      priority: '0.78',
+      changefreq: 'weekly',
+    })),
+    ...fallbackTravelCollections.map((collection) => ({
+      loc: `${siteUrl}/di-dau/chu-de/${collection.slug}`,
+      priority: '0.76',
+      changefreq: 'weekly',
+    })),
     {
       loc: `${siteUrl}/blog`,
       priority: '0.8',
@@ -1684,10 +1721,11 @@ function renderSitemap(posts, vehicles) {
       lastmod: post.publishedAt?.slice(0, 10),
     })),
   ];
+  const uniqueUrls = [...new Map(urls.map((url) => [url.loc, url])).values()];
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((url) => `  <url>
+${uniqueUrls.map((url) => `  <url>
     <loc>${url.loc}</loc>${url.lastmod ? `
     <lastmod>${url.lastmod}</lastmod>` : ''}
     <changefreq>${url.changefreq}</changefreq>
@@ -2853,7 +2891,7 @@ function renderCollectionLanding(collection) {
 
 async function main() {
   const [posts, vehicles, destinations] = await Promise.all([fetchBlogPosts(), fetchVehicles(), fetchTravelDestinations()]);
-  const travelDestinations = destinations.length ? destinations : fallbackTripDestinations;
+  const travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
   generatedTripDestinations = travelDestinations;
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
   const contentIndex = {

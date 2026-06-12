@@ -12,10 +12,20 @@ const destinationImageFallbacks: Record<string, string> = {
   'dai-lai': 'from-cyan-400 via-emerald-500 to-slate-900',
   'hai-phong': 'from-orange-400 via-rose-500 to-slate-900',
   'cat-ba': 'from-blue-500 via-cyan-500 to-slate-900',
+  'sam-son': 'from-sky-500 via-cyan-500 to-slate-900',
+  'van-don': 'from-blue-600 via-cyan-600 to-slate-950',
   'mai-chau': 'from-lime-600 via-green-600 to-slate-900',
   'pu-luong': 'from-emerald-600 via-lime-500 to-slate-900',
   sapa: 'from-indigo-500 via-violet-600 to-slate-900',
   'ho-nui-coc': 'from-cyan-600 via-teal-500 to-slate-900',
+  'hoa-binh': 'from-sky-600 via-teal-600 to-slate-950',
+  'duong-lam': 'from-amber-500 via-orange-500 to-slate-900',
+  'co-to': 'from-cyan-400 via-blue-500 to-slate-950',
+  'ba-be': 'from-emerald-600 via-cyan-600 to-slate-950',
+  'thanh-hoa': 'from-orange-500 via-rose-500 to-slate-950',
+  'trang-an-tam-coc': 'from-lime-500 via-emerald-600 to-slate-950',
+  'hai-duong': 'from-amber-500 via-sky-500 to-slate-950',
+  'bac-ninh': 'from-red-500 via-orange-500 to-slate-950',
 };
 
 export function destinationHeroClass(destination: Pick<TripDestination, 'slug'>) {

@@ -80,6 +80,33 @@ const fallbackTravelContent: TravelContentState = {
   source: 'fallback',
 };
 
+function hasValue(value: unknown) {
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== undefined && value !== null && value !== '';
+}
+
+function mergeRecord<T extends { slug: string }>(primary: T, fallback?: T): T {
+  if (!fallback) return primary;
+  const merged = { ...fallback, ...primary } as Record<string, unknown>;
+
+  for (const [key, fallbackValue] of Object.entries(fallback)) {
+    const primaryValue = (primary as Record<string, unknown>)[key];
+    if (!hasValue(primaryValue) && hasValue(fallbackValue)) {
+      merged[key] = fallbackValue;
+    }
+  }
+
+  return merged as T;
+}
+
+function mergeBySlug<T extends { slug: string }>(primary: T[], fallback: T[]): T[] {
+  const fallbackBySlug = new Map(fallback.map((item) => [item.slug, item]));
+  const seen = new Set(primary.map((item) => item.slug));
+  const mergedPrimary = primary.map((item) => mergeRecord(item, fallbackBySlug.get(item.slug)));
+  const missingFallback = fallback.filter((item) => !seen.has(item.slug));
+  return [...mergedPrimary, ...missingFallback];
+}
+
 function asArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
@@ -188,9 +215,12 @@ export async function fetchTravelContent(): Promise<TravelContentState> {
       slugsByCollection.set(row.collection_id, [...(slugsByCollection.get(row.collection_id) || []), destinationSlug]);
     }
 
+    const supabaseDestinations = destinationRows.map(mapDestination);
+    const supabaseCollections = collectionRows.map((row) => mapCollection(row, slugsByCollection.get(row.id) || []));
+
     return {
-      destinations: destinationRows.map(mapDestination),
-      collections: collectionRows.map((row) => mapCollection(row, slugsByCollection.get(row.id) || [])),
+      destinations: mergeBySlug(supabaseDestinations, fallbackDestinations),
+      collections: mergeBySlug(supabaseCollections, fallbackCollections),
       source: 'supabase',
     };
   } catch (error) {
