@@ -19,6 +19,7 @@ const vehiclePlaceholderImage =
 let prerenderedHomeRoot = '';
 let prerenderedFleetRoot = '';
 let prerenderedMonthlyRoot = '';
+let spaBaseHtml = '';
 const hanoiDeliveryDetails = {
   '@type': 'OfferShippingDetails',
   shippingDestination: {
@@ -2035,6 +2036,18 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
   const normalizedTitle = normalizeBrandText(title);
   const normalizedDescription = normalizeBrandText(description);
   const normalizedStructuredData = normalizeBrandText(JSON.stringify(structuredData));
+
+  if (spaBaseHtml) {
+    return renderSpaShell(spaBaseHtml, {
+      title: normalizedTitle,
+      description: normalizedDescription,
+      canonical,
+      image: brandIcon,
+      structuredData: JSON.parse(normalizedStructuredData),
+      path: new URL(canonical).pathname,
+    });
+  }
+
   return `<!doctype html>
 <html lang="vi">
   <head>
@@ -2894,6 +2907,7 @@ async function main() {
   const travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
   generatedTripDestinations = travelDestinations;
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
+  spaBaseHtml = baseHtml;
   const contentIndex = {
     destinationNames: new Map(travelDestinations.map((destination) => [destination.slug, destination.name])),
     postTitles: new Map(posts.map((post) => [post.slug.current, post.title])),
