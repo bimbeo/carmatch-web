@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { CheckCircle2, Building2, FileText, Headphones, TrendingDown, ArrowRight, Send, Home as HomeIcon, Car, Users, ClipboardCheck, MapPin, Gauge } from 'lucide-react';
+import { CheckCircle2, Building2, FileText, Headphones, TrendingDown, ArrowRight, Send, Home as HomeIcon, Car, Users, ClipboardCheck, MapPin, Gauge, CalendarDays, ShieldCheck, Wallet } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import { submitLead } from '@/hooks/useLeads';
+import { cars as fallbackCars, formatPrice } from '@/data/cars';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -83,10 +84,35 @@ const monthlyFaqs = [
 ];
 
 const useCaseItems = [
-  { icon: '🏠', title: 'Cư dân chung cư', desc: 'Đi làm hàng ngày, đón con, về quê dịp lễ — thuê tháng rẻ hơn mua xe.' },
-  { icon: '👪', title: 'Gia đình đô thị', desc: 'Có xe dùng khi cần mà không phải lo phí đỗ xe, bảo dưỡng, khấu hao.' },
-  { icon: '🏢', title: 'Doanh nghiệp vừa & nhỏ', desc: 'Xe công tác, đón đối tác, hỗ trợ lãnh đạo — không cần mua xe công ty.' },
-  { icon: '🔨', title: 'Dự án dài hạn', desc: 'Công trình xây dựng, dự án thi công kéo dài cần xe ổn định.' },
+  { icon: HomeIcon, label: 'Cư dân', title: 'Đi làm, đón con hằng ngày', desc: 'Có xe ổn định 1-3 tháng mà chưa phải mua xe hoặc lo bãi đỗ dài hạn.' },
+  { icon: Users, label: 'Gia đình', title: 'Cuối tuần và về quê', desc: 'Chủ động xe 5-7 chỗ cho lịch gia đình, không cần thuê ngày lẻ nhiều lần.' },
+  { icon: Building2, label: 'Doanh nghiệp', title: 'Xe công tác theo dự án', desc: 'Một đầu mối báo giá, hợp đồng và hóa đơn cho đội nhóm dùng xe thường xuyên.' },
+  { icon: ClipboardCheck, label: 'Dài hạn', title: 'Chạy công trình, khảo sát', desc: 'Gói thuê rõ km/tháng, điểm giao nhận và trách nhiệm vận hành trước khi nhận xe.' },
+];
+
+const monthlyProcess = [
+  { icon: MapPin, title: 'Gửi khu vực nhận xe', desc: 'Tòa nhà, văn phòng hoặc điểm hẹn tại Hà Nội.' },
+  { icon: Car, title: 'Chọn nhóm xe', desc: '5 chỗ, 7 chỗ, xe điện hoặc cần tư vấn.' },
+  { icon: Gauge, title: 'Ước lượng km/tháng', desc: 'Giúp chọn gói km và tránh phát sinh bị động.' },
+  { icon: CalendarDays, title: 'Chốt thời gian thuê', desc: '1, 3, 6 hoặc 12 tháng tùy lịch xe thật.' },
+];
+
+const handoffSteps = [
+  { icon: Send, title: 'Gửi nhu cầu', desc: 'Khu vực nhận xe, thời gian thuê, số xe và nhóm xe mong muốn.' },
+  { icon: ClipboardCheck, title: 'Kiểm tra lịch xe thật', desc: 'Đội vận hành lọc xe còn lịch, giới hạn km, cọc và điều kiện giao nhận.' },
+  { icon: FileText, title: 'Chốt báo giá rõ ràng', desc: 'Gửi giá thuê, cọc, km/tháng, phụ phí nếu có và thông tin hợp đồng.' },
+  { icon: Car, title: 'Giao xe theo hẹn', desc: 'Bàn giao tại tòa nhà, văn phòng hoặc điểm hẹn đã xác nhận trước.' },
+];
+
+const serviceAreas = [
+  'Vinhomes Ocean Park',
+  'Times City',
+  'Vinhomes Smart City',
+  'Royal City',
+  'Ecopark',
+  'The Manor Central Park',
+  'Linh Đàm',
+  'Nội thành Hà Nội',
 ];
 
 type CustomerType = 'resident' | 'business';
@@ -123,7 +149,11 @@ export default function B2B() {
   const [loading, setLoading] = useState(false);
   const { cars } = useVehicles();
 
-  const featuredCars = cars.slice(0, 3);
+  const displayCars = cars.length > 0 ? cars : fallbackCars;
+  const monthlyCars = displayCars.filter((car) => car.price > 0);
+  const featuredCars = monthlyCars.slice(0, 3);
+  const heroCar = monthlyCars.find((car) => car.priceMonth && car.images[0]) || monthlyCars.find((car) => car.images[0]);
+  const heroMonthlyPrice = heroCar?.priceMonth ? String(formatPrice(heroCar.priceMonth)).replace(/^Từ\s+/i, '') : '10-20tr';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -189,28 +219,28 @@ export default function B2B() {
       <ZaloFAB />
 
       {/* Hero */}
-      <section className="pt-28 pb-16 px-4 bg-gradient-to-br from-brand-50 via-white to-slate-50">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-12 items-center">
+      <section className="pt-24 pb-12 px-4 bg-gradient-to-br from-brand-50 via-white to-slate-50 sm:pt-28 sm:pb-16">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[0.98fr_1.02fr] gap-8 lg:gap-12 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-6">
               <Car className="w-4 h-4" />
               Xe tự lái theo tháng · Hà Nội
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight tracking-tight">
               Thuê xe tự lái theo tháng<br />
               <span className="text-brand-600">tại Hà Nội</span>
             </h1>
-            <p className="text-gray-600 text-lg sm:text-xl max-w-2xl mb-8 leading-relaxed">
+            <p className="text-gray-600 text-lg sm:text-xl max-w-2xl mb-7 leading-relaxed">
               Từ 10tr/tháng, giao xe tận tòa nhà, linh hoạt 1-12 tháng cho cư dân chung cư và doanh nghiệp nhỏ. Car Match kiểm tra lịch xe thật rồi báo giá trong 30 phút.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a href="#form"
-                className="px-8 py-4 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200 text-center">
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-600 px-6 py-3 text-center text-sm font-black text-white shadow-md shadow-brand-200 transition-colors hover:bg-brand-700">
                 Nhận báo giá xe tháng trong 30 phút
               </a>
               <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
                 onClick={() => trackZaloClick('b2b_hero')}
-                className="px-8 py-4 bg-white text-gray-800 font-semibold rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm text-center">
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-gray-200 bg-white px-6 py-3 text-center text-sm font-black text-gray-800 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50">
                 Chat Zalo ngay
               </a>
             </div>
@@ -228,26 +258,47 @@ export default function B2B() {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-xl shadow-slate-200/60 p-6 lg:p-8">
-            <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Báo giá nhanh</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Gửi 4 thông tin để Car Match lọc xe phù hợp</h2>
-            <div className="space-y-3 mb-6">
-              {[
-                { icon: MapPin, text: 'Khu vực nhận xe hoặc tên tòa nhà' },
-                { icon: Car, text: 'Loại xe mong muốn: 5 chỗ, 7 chỗ, xe điện' },
-                { icon: Gauge, text: 'Dự kiến số km đi mỗi tháng' },
-                { icon: ClipboardCheck, text: 'Thời gian thuê: 1, 3, 6 hoặc 12 tháng' },
-              ].map((item) => (
-                <div key={item.text} className="flex items-start gap-3 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
-                  <item.icon className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
-                  <span className="text-sm font-medium text-gray-700">{item.text}</span>
+          <div className="overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white shadow-xl shadow-slate-200/60">
+            {heroCar?.images[0] ? (
+              <div className="relative h-52 bg-slate-100 sm:h-64">
+                <img src={heroCar.images[0]} alt={`Xe thuê tháng ${heroCar.name}`} className="h-full w-full object-cover" loading="eager" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+                <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 text-white">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-white/70">Gói mẫu</p>
+                    <h2 className="mt-1 text-2xl font-black">{heroCar.name}</h2>
+                    <p className="mt-1 text-sm font-semibold text-white/75">{heroCar.seats} chỗ · {heroCar.fuel} · {heroCar.transmission}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/95 px-4 py-3 text-right text-slate-950 shadow-sm">
+                    <p className="text-xs font-bold text-slate-500">Từ</p>
+                    <p className="text-lg font-black">{heroMonthlyPrice}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+            ) : null}
+            <div className="p-5 sm:p-6 lg:p-7">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide">Báo giá nhanh</p>
+                  <h2 className="mt-1 text-2xl font-bold text-gray-900">4 thông tin để lọc xe phù hợp</h2>
+                </div>
+                <div className="rounded-full bg-brand-50 px-4 py-2 text-sm font-black text-brand-700">30 phút</div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {monthlyProcess.map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                    <item.icon className="mb-3 h-5 w-5 text-brand-600" />
+                    <h3 className="font-bold text-gray-900">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-gray-500">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <a href="#form" className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-5 py-3.5 text-sm font-black text-white transition-colors hover:bg-brand-700">
+                Điền form báo giá
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <p className="text-gray-400 text-xs text-center mt-3">Hoặc nhắn Zalo 0975 563 290 nếu cần xe gấp.</p>
             </div>
-            <a href="#form" className="block w-full py-3.5 bg-brand-600 text-white text-center font-bold rounded-xl hover:bg-brand-700 transition-colors">
-              Điền form báo giá
-            </a>
-            <p className="text-gray-400 text-xs text-center mt-3">Hoặc nhắn Zalo 0975 563 290 nếu cần xe gấp.</p>
           </div>
         </div>
       </section>
@@ -259,13 +310,23 @@ export default function B2B() {
             Ai nên thuê xe theo tháng?
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {useCaseItems.map((item) => (
-              <div key={item.title} className="bg-gray-50 border border-gray-100 rounded-2xl p-5 hover:shadow-sm transition-all">
-                <span className="text-3xl mb-3 block">{item.icon}</span>
-                <h3 className="text-gray-900 font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
+            {useCaseItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="bg-gray-50 border border-gray-100 rounded-2xl p-5 hover:shadow-sm transition-all">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-brand-600 shadow-sm">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
+                      {item.label}
+                    </span>
+                  </div>
+                  <h3 className="text-gray-900 font-semibold mb-2">{item.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -279,15 +340,19 @@ export default function B2B() {
             <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
               <button
                 onClick={() => setForm(f => ({ ...f, customerType: 'resident' }))}
-                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${isResident ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+                aria-pressed={isResident}
+                className={`inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${isResident ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                🏠 Cư dân
+                <HomeIcon className="h-4 w-4" />
+                Cư dân
               </button>
               <button
                 onClick={() => setForm(f => ({ ...f, customerType: 'business' }))}
-                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${!isResident ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+                aria-pressed={!isResident}
+                className={`inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${!isResident ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                🏢 Doanh nghiệp
+                <Building2 className="h-4 w-4" />
+                Doanh nghiệp
               </button>
             </div>
           </div>
@@ -315,7 +380,43 @@ export default function B2B() {
               Mức dưới đây dùng để dự tính ngân sách. Giá chính xác phụ thuộc mẫu xe, lịch trống, thời gian thuê, giới hạn km và khu vực giao nhận.
             </p>
           </div>
-          <div className="overflow-x-auto bg-white border border-gray-100 rounded-2xl shadow-sm">
+          <div className="grid gap-4 lg:hidden">
+            {pricingRows.map((row) => (
+              <article key={row.group} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                    <Car className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{row.group}</h3>
+                    <p className="mt-1 text-sm leading-6 text-gray-500">{row.examples}</p>
+                  </div>
+                </div>
+                <div className="mt-5 rounded-2xl bg-gray-50 p-4">
+                  {[
+                    { icon: Wallet, label: 'Giá thuê', value: row.price },
+                    { icon: Gauge, label: 'Km/tháng', value: row.km },
+                    { icon: ShieldCheck, label: 'Cọc dự kiến', value: row.deposit },
+                  ].map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={item.label} className={`flex items-start justify-between gap-4 ${index > 0 ? 'border-t border-gray-200/70 pt-3 mt-3' : ''}`}>
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Icon className="h-4 w-4 text-brand-600" />
+                          <span className="text-xs font-bold uppercase tracking-wide">{item.label}</span>
+                        </div>
+                        <p className="max-w-[52%] text-right text-sm font-bold leading-5 text-gray-900">{item.value}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-4 rounded-2xl bg-brand-50 px-4 py-3 text-sm font-semibold leading-6 text-gray-700">
+                  Phù hợp: {row.fit}
+                </p>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto bg-white border border-gray-100 rounded-2xl shadow-sm lg:block">
             <table className="w-full min-w-[880px] text-left">
               <thead className="bg-gray-50">
                 <tr className="text-xs font-bold uppercase tracking-wide text-gray-500">
@@ -349,11 +450,76 @@ export default function B2B() {
               </div>
             ))}
           </div>
+          <div className="mt-8 rounded-3xl bg-slate-950 p-5 text-white shadow-xl shadow-slate-200/70 sm:p-6">
+            <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-brand-200">Chưa chắc chọn gói nào?</p>
+                <h3 className="mt-2 text-2xl font-black">Gửi khu vực nhận xe và lịch dùng, Car Match lọc xe tháng phù hợp.</h3>
+                <p className="mt-2 text-sm leading-6 text-white/65">Phù hợp khi anh/chị cần biết trước giá, cọc, km/tháng và mẫu xe còn lịch trống.</p>
+              </div>
+              <a href="#form" className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-black text-slate-950 transition-colors hover:bg-brand-50">
+                Nhận báo giá
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Process and service areas */}
+      <section className="px-4 py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch">
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-7 max-w-2xl">
+              <p className="mb-2 text-sm font-black uppercase tracking-[0.18em] text-brand-600">Sau khi gửi yêu cầu</p>
+              <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Quy trình thuê xe tháng diễn ra thế nào?</h2>
+              <p className="mt-3 text-sm leading-6 text-gray-500 sm:text-base">
+                Khách không cần chọn chính xác mẫu xe ngay từ đầu. Car Match dùng nhu cầu thực tế để lọc xe, báo giá và hẹn bàn giao.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {handoffSteps.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <div key={step.title} className="rounded-2xl bg-gray-50 p-4">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-brand-600 shadow-sm">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-[0.16em] text-gray-400">Bước {index + 1}</span>
+                    </div>
+                    <h3 className="font-bold text-gray-900">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-500">{step.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-brand-100 bg-brand-50 p-6 shadow-sm sm:p-8">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-brand-600 shadow-sm">
+              <MapPin className="h-6 w-6" />
+            </div>
+            <h2 className="mt-5 text-2xl font-bold tracking-tight text-gray-900">Khu vực giao xe phổ biến</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Ưu tiên các khu đô thị, chung cư và văn phòng tại Hà Nội để việc nhận xe tháng ổn định hơn.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {serviceAreas.map((area) => (
+                <span key={area} className="rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm">
+                  {area}
+                </span>
+              ))}
+            </div>
+            <a href="#form" className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-sm font-black text-white transition-colors hover:bg-brand-700">
+              Kiểm tra xe theo khu vực
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
         </div>
       </section>
 
       {/* Documents */}
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-16 px-4 bg-white">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[0.9fr_1.1fr] gap-10 items-start">
           <div>
             <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Điều kiện thuê xe tháng</p>
@@ -426,13 +592,17 @@ export default function B2B() {
                 <div className="flex gap-3">
                   <button type="button"
                     onClick={() => setForm(f => ({ ...f, customerType: 'resident' }))}
-                    className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${form.customerType === 'resident' ? 'bg-brand-600 border-brand-600 text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                    🏠 Cư dân
+                    aria-pressed={form.customerType === 'resident'}
+                    className={`flex flex-1 items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all ${form.customerType === 'resident' ? 'bg-brand-600 border-brand-600 text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                    <HomeIcon className="h-4 w-4" />
+                    Cư dân
                   </button>
                   <button type="button"
                     onClick={() => setForm(f => ({ ...f, customerType: 'business' }))}
-                    className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${form.customerType === 'business' ? 'bg-brand-600 border-brand-600 text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                    🏢 Doanh nghiệp
+                    aria-pressed={form.customerType === 'business'}
+                    className={`flex flex-1 items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all ${form.customerType === 'business' ? 'bg-brand-600 border-brand-600 text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                    <Building2 className="h-4 w-4" />
+                    Doanh nghiệp
                   </button>
                 </div>
               </div>
@@ -445,7 +615,7 @@ export default function B2B() {
                   placeholder={form.customerType === 'resident' ? 'VD: Nguyễn Văn A' : 'VD: Công ty TNHH ABC'}
                   className="w-full bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200 transition-colors" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Số lượng xe *</label>
                   <select name="quantity" value={form.quantity} onChange={handleChange} required
