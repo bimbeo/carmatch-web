@@ -1,28 +1,127 @@
 const siteUrl = 'https://www.carmatch.vn';
 const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
+const brandSocialImage = `${siteUrl}/og-image.png`;
+const socialProfiles = [
+  'https://zalo.me/0975563290',
+  'https://www.facebook.com/carmatchvn',
+  'https://www.instagram.com/carmatchvn/',
+];
 
-function optimizeImageUrl(url = '', width = 1200) {
+const postTitleOverrides = {
+  'kinh-nghiem-thue-xe-tu-lai-ha-noi': 'Kinh Nghiệm Thuê Xe Tự Lái Hà Nội | Car Match',
+};
+
+function publisherData() {
+  return {
+    '@type': 'Organization',
+    '@id': `${siteUrl}/#organization`,
+    name: 'Car Match',
+    url: siteUrl,
+    logo: {
+      '@type': 'ImageObject',
+      url: brandLogo,
+    },
+    sameAs: socialProfiles,
+  };
+}
+
+function organizationData() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${siteUrl}/#organization`,
+    name: 'Car Match',
+    url: siteUrl,
+    logo: {
+      '@type': 'ImageObject',
+      url: brandImage,
+      width: 512,
+      height: 512,
+    },
+    image: brandLogo,
+    email: 'info@carmatch.vn',
+    telephone: '+84975563290',
+    sameAs: socialProfiles,
+    contactPoint: [{
+      '@type': 'ContactPoint',
+      telephone: '+84975563290',
+      contactType: 'customer support',
+      areaServed: 'VN',
+      availableLanguage: ['vi'],
+    }],
+  };
+}
+
+function webSiteData() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${siteUrl}/#website`,
+    name: 'Car Match',
+    url: siteUrl,
+    inLanguage: 'vi-VN',
+    publisher: publisherData(),
+  };
+}
+
+function optimizeImageUrl(url = '', width = 1200, quality = 68) {
   if (!url) return '';
-  if (url.includes('res.cloudinary.com') && url.includes('/image/upload/')) {
-    return url.replace('/image/upload/', `/image/upload/f_auto,q_auto,c_limit,w_${width}/`);
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.hostname === 'images.unsplash.com') {
+      parsed.searchParams.set('auto', 'format');
+      parsed.searchParams.set('fit', 'crop');
+      parsed.searchParams.set('w', String(width));
+      parsed.searchParams.set('q', String(quality));
+      return parsed.toString();
+    }
+
+    if (
+      parsed.hostname.endsWith('.supabase.co') &&
+      parsed.pathname.includes('/storage/v1/object/public/')
+    ) {
+      parsed.pathname = parsed.pathname.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+      parsed.searchParams.set('width', String(width));
+      parsed.searchParams.set('quality', String(quality));
+      parsed.searchParams.set('resize', 'contain');
+      parsed.searchParams.set('format', 'webp');
+      return parsed.toString();
+    }
+
+    if (parsed.hostname === 'res.cloudinary.com' && parsed.pathname.includes('/upload/')) {
+      parsed.pathname = parsed.pathname.replace('/upload/', `/upload/f_auto,q_auto,w_${width},c_limit/`);
+      return parsed.toString();
+    }
+  } catch {
+    return url;
   }
   return url;
 }
 
-function optimizeBodyImages(html = '') {
-  return String(html).replace(/(<img\b[^>]*\ssrc=(["']))([^"']+)(\2[^>]*>)/gi, (_match, prefix, quote, src, suffix) => {
-    const optimizedSrc = optimizeImageUrl(src, 1400);
-    const hasLazy = /loading\s*=/i.test(_match);
-    if (hasLazy) return `${prefix}${optimizedSrc}${suffix}`;
-    // Insert loading attrs before the closing > or />
-    const lazySuffix = suffix.replace(/(\s*\/?>)$/, ' loading="lazy" decoding="async"$1');
-    return `${prefix}${optimizedSrc}${lazySuffix}`;
+function optimizeImageSrcSet(url = '', widths = [640, 960, 1280], quality = 68) {
+  return widths.map((width) => `${optimizeImageUrl(url, width, quality)} ${width}w`).join(', ');
+}
+
+function optimizeBodyImages(html = '', fallbackAlt = 'Ảnh minh họa bài viết Car Match') {
+  return String(html).replace(/<img\b[^>]*\ssrc=(["'])([^"']+)\1[^>]*>/gi, (match, _quote, src) => {
+    let img = match.replace(src, optimizeImageUrl(src, 1400, 68));
+    const additions = [];
+    if (!/\ssrcset\s*=/i.test(img)) additions.push(`srcset="${escapeHtml(optimizeImageSrcSet(src, [640, 960, 1280], 68))}"`);
+    if (!/\ssizes\s*=/i.test(img)) additions.push('sizes="(min-width: 1024px) 760px, 100vw"');
+    if (!/\sloading\s*=/i.test(img)) additions.push('loading="lazy"');
+    if (!/\sdecoding\s*=/i.test(img)) additions.push('decoding="async"');
+    if (!/\salt\s*=/i.test(img)) additions.push(`alt="${escapeHtml(fallbackAlt)}"`);
+    if (!/\swidth\s*=/i.test(img)) additions.push('width="1200"');
+    if (!/\sheight\s*=/i.test(img)) additions.push('height="675"');
+    if (!additions.length) return img;
+    return img.replace(/(\s*\/?>)$/, ` ${additions.join(' ')}$1`);
   });
 }
 
 function escapeHtml(value = '') {
-  return normalizeBrandText(value)
+  return normalizeCustomerText(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -36,8 +135,16 @@ function normalizeBrandText(value = '') {
     .replace(/\bCARMATCH\b/g, 'CAR MATCH');
 }
 
-function stripHtml(value = '') {
+function normalizeCustomerText(value = '') {
   return normalizeBrandText(value)
+    .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
+    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
+    .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
+}
+
+function stripHtml(value = '') {
+  return normalizeCustomerText(value)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
@@ -73,6 +180,101 @@ function getPostUrl(post) {
 
 function getDescription(post) {
   return post.seoDescription || post.excerpt || stripHtml(post.bodyHtml).slice(0, 155) || 'Kinh nghiệm thuê xe tự lái Hà Nội từ Car Match.';
+}
+
+const blogHubTopics = [
+  {
+    title: 'Chuẩn bị giấy tờ khi thuê xe',
+    body: 'Khách thuê nên chuẩn bị CCCD, giấy phép lái xe hạng B và thông tin lịch trình trước khi nhắn Car Match. Việc chốt sớm ngày nhận, ngày trả, khu vực giao xe và số người đi giúp đội vận hành kiểm tra mẫu xe phù hợp nhanh hơn.',
+    links: [
+      { href: '/thue-xe-tu-lai-ha-noi', label: 'Thuê xe tự lái Hà Nội' },
+      { href: '/chinh-sach', label: 'Điều kiện thuê xe' },
+    ],
+  },
+  {
+    title: 'Chọn xe theo nhu cầu di chuyển',
+    body: 'Xe 5 chỗ phù hợp đi nội đô hoặc cặp đôi cuối tuần, xe 7 chỗ thoải mái hơn cho gia đình có trẻ nhỏ, còn xe điện VinFast hợp với lịch trình có điểm sạc rõ ràng. Blog Car Match tập trung vào cách chọn xe theo hành lý, cung đường và thời gian thuê.',
+    links: [
+      { href: '/xe', label: 'Xem danh sách xe' },
+      { href: '/xe?seats=7', label: 'Xe 7 chỗ' },
+      { href: '/xe?category=electric', label: 'Xe điện VinFast' },
+    ],
+  },
+  {
+    title: 'Lên lịch trình trước khi đặt xe',
+    body: 'Với các chuyến đi Hạ Long, Ninh Bình, Tam Đảo, Mộc Châu hoặc Nội Bài, khách nên kiểm tra cao tốc, bãi đỗ, giờ nhận phòng và chi phí xăng sạc. Các hướng dẫn trên blog sẽ ưu tiên lịch trình thực tế cho gia đình và nhóm bạn xuất phát từ Hà Nội.',
+    links: [
+      { href: '/di-dau', label: 'Gợi ý đi đâu gần Hà Nội' },
+      { href: '/lap-ke-hoach-chuyen-di', label: 'Lập kế hoạch chuyến đi' },
+    ],
+  },
+];
+
+const blogHubFaqItems = [
+  {
+    question: 'Blog Car Match phù hợp với ai?',
+    answer: 'Blog dành cho khách đang tìm thuê xe tự lái Hà Nội, khách thuê xe theo tháng, gia đình chuẩn bị đi chơi gần Hà Nội và người cần so sánh xe 5 chỗ, 7 chỗ, xe điện trước khi đặt.',
+  },
+  {
+    question: 'Chưa thấy bài viết mới thì có đặt xe được không?',
+    answer: 'Có. Khách vẫn có thể xem danh sách xe hoặc nhắn Zalo 0975 563 290 để Car Match kiểm tra lịch xe, tư vấn giấy tờ cần chuẩn bị và gợi ý mẫu xe theo lịch trình.',
+  },
+  {
+    question: 'Car Match có tư vấn lịch trình trước khi thuê xe không?',
+    answer: 'Có. Car Match có thể gợi ý loại xe, điểm nhận trả, lưu ý bãi đỗ và chi phí di chuyển tham khảo cho các tuyến phổ biến quanh Hà Nội.',
+  },
+];
+
+function renderBlogHubContent() {
+  return `<section class="hub-section" aria-label="Hướng dẫn thuê xe tự lái">
+        <div class="hub-heading">
+          <p class="eyebrow">Hướng dẫn nhanh</p>
+          <h2>Nên đọc gì trước khi thuê xe tự lái?</h2>
+          <p>Trong lúc các bài viết chuyên sâu được đăng dần, trang này vẫn gom các chủ đề quan trọng nhất để khách mới không bị lạc giữa giấy tờ, giá thuê, chọn xe và lịch trình.</p>
+        </div>
+        <div class="guide-grid">
+          ${blogHubTopics.map((topic) => `<article class="guide-card">
+            <h3>${escapeHtml(topic.title)}</h3>
+            <p>${escapeHtml(topic.body)}</p>
+            <div class="guide-links">
+              ${topic.links.map((link) => `<a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`).join('')}
+            </div>
+          </article>`).join('')}
+        </div>
+      </section>
+      <section class="hub-section hub-split" aria-label="Cách Car Match hỗ trợ khách thuê xe">
+        <div>
+          <p class="eyebrow">Quy trình đặt xe</p>
+          <h2>Từ đọc kinh nghiệm đến chốt xe</h2>
+          <ol class="step-list">
+            <li><strong>Chọn nhu cầu:</strong> xác định số người đi, hành lý, cung đường và số ngày thuê.</li>
+            <li><strong>Đối chiếu mẫu xe:</strong> xem xe 5 chỗ, 7 chỗ, xe điện hoặc gói thuê tháng phù hợp ngân sách.</li>
+            <li><strong>Nhắn Zalo:</strong> gửi lịch trình, khu vực nhận xe và giấy tờ để Car Match kiểm tra xe còn phù hợp.</li>
+            <li><strong>Xác nhận nhận xe:</strong> thống nhất điểm hẹn, thời gian giao nhận và các lưu ý trước chuyến đi.</li>
+          </ol>
+        </div>
+        <aside class="hub-cta">
+          <p class="eyebrow">Cần xe sớm?</p>
+          <h2>Nhắn Car Match kiểm tra xe</h2>
+          <p>Đội vận hành hỗ trợ 7h-22h, ưu tiên tư vấn theo lịch trình thực tế và khu vực nhận xe tại Hà Nội.</p>
+          <div class="cta-actions">
+            <a class="button primary" href="https://zalo.me/0975563290" rel="me noopener noreferrer" data-blog-action="hub_zalo" data-blog-target="https://zalo.me/0975563290">Nhắn Zalo</a>
+            <a class="button" href="/xe" data-blog-action="hub_fleet" data-blog-target="/xe">Xem xe</a>
+          </div>
+        </aside>
+      </section>
+      <section class="hub-section" aria-label="Câu hỏi thường gặp về blog thuê xe">
+        <div class="hub-heading">
+          <p class="eyebrow">FAQ</p>
+          <h2>Câu hỏi thường gặp</h2>
+        </div>
+        <div class="faq-grid">
+          ${blogHubFaqItems.map((item) => `<article class="faq-card">
+            <h3>${escapeHtml(item.question)}</h3>
+            <p>${escapeHtml(item.answer)}</p>
+          </article>`).join('')}
+        </div>
+      </section>`;
 }
 
 function extractHeadings(html = '') {
@@ -203,6 +405,8 @@ function renderPortableText(blocks = []) {
 function structuredData(post, faqItems) {
   const canonical = getPostUrl(post);
   const graph = [
+    organizationData(),
+    webSiteData(),
     {
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
@@ -210,15 +414,11 @@ function structuredData(post, faqItems) {
       description: getDescription(post),
       url: canonical,
       mainEntityOfPage: canonical,
-      image: [post.mainImageUrl || brandImage],
+      image: [post.mainImageUrl || brandSocialImage],
       datePublished: post.publishedAt,
       dateModified: post.publishedAt,
-      author: { '@type': 'Person', name: post.author || 'Car Match' },
-      publisher: {
-        '@type': 'Organization',
-        name: 'Car Match',
-        logo: { '@type': 'ImageObject', url: `${siteUrl}/brand/carmatch-lockup-navy.png` },
-      },
+      author: publisherData(),
+      publisher: publisherData(),
       inLanguage: 'vi-VN',
     },
     {
@@ -250,7 +450,7 @@ function renderTopbar() {
       <nav class="nav" aria-label="Điều hướng chính">
         <a class="brand" href="/" aria-label="Car Match"><img src="/brand/carmatch-lockup-navy.png" alt="Car Match" /></a>
         <div class="navlinks"><a href="/xe">Thuê xe tự lái</a><a href="/di-dau">Đi đâu</a><a href="/lap-ke-hoach-chuyen-di">Lập chuyến đi</a><a href="/thue-xe-thang">Thuê xe tháng</a><a href="/hop-tac">Hợp tác chủ xe</a><a href="/gioi-thieu">Giới thiệu</a><a href="/blog">Blog</a></div>
-        <a class="nav-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+        <a class="nav-cta" href="https://zalo.me/0975563290" rel="me noopener noreferrer">Đặt xe qua Zalo</a>
       </nav>
     </header>`;
 }
@@ -274,7 +474,8 @@ function sharedStyles() {
       h1, h2, h3 { color: #111827; overflow-wrap: anywhere; word-break: break-word; }
       p, li { color: #374151; font-size: 18px; line-height: 1.78; }
       img { max-width: 100%; }
-      @media (max-width: 720px) { .nav { height: 64px; padding: 0 16px; } .navlinks, .nav-cta { display: none; } .brand img { height: 30px; } h1 { font-size: 30px; line-height: 1.1; max-width: 100%; } p, li { font-size: 16px; } }
+      .mobile-conversion { display: none; }
+      @media (max-width: 720px) { body { padding-bottom: 96px; } .nav { height: 64px; padding: 0 16px; } .navlinks, .nav-cta { display: none; } .brand img { height: 30px; } h1 { font-size: 30px; line-height: 1.1; max-width: 100%; } p, li { font-size: 16px; } .mobile-conversion { background: rgba(255,255,255,.97); border-top: 1px solid #dbe4ef; bottom: 0; box-shadow: 0 -14px 34px rgba(15,23,42,.12); display: block; left: 0; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); position: fixed; right: 0; z-index: 90; } .mobile-conversion-row { display: grid; gap: 8px; grid-template-columns: 1fr 1.25fr; } .mobile-conversion a { align-items: center; border: 1px solid #dbe4ef; border-radius: 8px; color: #11163e; display: flex; font-size: 14px; font-weight: 950; height: 48px; justify-content: center; } .mobile-conversion a.primary { background: #11163e; border-color: #11163e; color: #fff; } .mobile-conversion p { color: #64748b; font-size: 11px; font-weight: 850; line-height: 1.2; margin: 5px 0 0; text-align: center; } }
       /* Footer */
       .site-footer { background: #111827; color: #e2e8f0; margin-top: 80px; padding: 48px 24px 24px; }
       .footer-inner { display: grid; gap: 40px; grid-template-columns: 1fr repeat(3, auto); margin: 0 auto; max-width: 1180px; }
@@ -304,6 +505,18 @@ function sharedStyles() {
     </style>`;
 }
 
+function renderMobileConversionBar(source = 'blog_static', zaloLabel = 'Hỏi thuê xe') {
+  const safeSource = escapeHtml(source);
+  const safeZaloLabel = escapeHtml(zaloLabel);
+  return `<div class="mobile-conversion" aria-label="Liên hệ nhanh Car Match">
+    <div class="mobile-conversion-row">
+      <a href="tel:0975563290" data-cta="${safeSource}-mobile-phone" data-blog-action="mobile_phone" data-blog-target="tel:0975563290">Gọi</a>
+      <a class="primary" href="https://zalo.me/0975563290" data-cta="${safeSource}-mobile-zalo" data-blog-action="mobile_zalo" data-blog-target="https://zalo.me/0975563290">${safeZaloLabel}</a>
+    </div>
+    <p>Hỗ trợ 7h-22h</p>
+  </div>`;
+}
+
 function renderFooter() {
   const svgPhone = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
   const svgMail = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`;
@@ -312,15 +525,15 @@ function renderFooter() {
     <div class="footer-inner">
       <div class="footer-brand">
         <a href="/"><img src="/brand/carmatch-lockup-white.png" alt="Car Match" /></a>
-        <p>Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.</p>
+        <p>Thuê xe tự lái tại Hà Nội theo ngày hoặc theo tháng. Giao nhận xe tận sảnh chung cư hoặc điểm hẹn theo lịch đã xác nhận.</p>
         <div class="footer-socials">
-          <a class="social-icon" href="https://facebook.com/carmatch.vn" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+          <a class="social-icon" href="https://www.facebook.com/carmatchvn" target="_blank" rel="me noopener noreferrer" aria-label="Facebook">
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg>
           </a>
-          <a class="social-icon" href="https://instagram.com/carmatch.vn" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+          <a class="social-icon" href="https://www.instagram.com/carmatchvn/" target="_blank" rel="me noopener noreferrer" aria-label="Instagram">
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd"/></svg>
           </a>
-          <a class="social-icon social-zalo" href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer" aria-label="Zalo">
+          <a class="social-icon social-zalo" href="https://zalo.me/0975563290" target="_blank" rel="me noopener noreferrer" aria-label="Zalo">
             <span style="font-size:11px;font-weight:900;line-height:1">Z</span>
           </a>
         </div>
@@ -348,7 +561,7 @@ function renderFooter() {
         <p>Liên hệ</p>
         <ul>
           <li><a class="contact-item" href="tel:0975563290">${svgPhone}<span>0975 563 290</span></a></li>
-          <li><a class="contact-item" href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer"><span class="zalo-z">Z</span><span>Zalo: 0975 563 290</span></a></li>
+          <li><a class="contact-item" href="https://zalo.me/0975563290" target="_blank" rel="me noopener noreferrer"><span class="zalo-z">Z</span><span>Zalo: 0975 563 290</span></a></li>
           <li><a class="contact-item" href="mailto:info@carmatch.vn">${svgMail}<span>info@carmatch.vn</span></a></li>
           <li><span class="contact-item">${svgPin}<span>Hà Nội, Việt Nam</span></span></li>
         </ul>
@@ -370,27 +583,51 @@ export function renderBlogIndex(posts = []) {
   const postItems = posts.map((post, index) => ({
     ...post,
     url: getPostUrl(post),
-    image: optimizeImageUrl(post.mainImageUrl || brandImage, index === 0 ? 1200 : 720),
+    image: optimizeImageUrl(post.mainImageUrl || brandSocialImage, index === 0 ? 1200 : 720),
     minutes: readingTime(post),
   }));
-  const graph = {
-    '@context': 'https://schema.org',
-    '@type': 'Blog',
-    name: title,
-    description,
-    url: `${siteUrl}/blog`,
-    blogPost: postItems.map((post) => ({
-      '@type': 'BlogPosting',
-      headline: post.title,
-      description: getDescription(post),
-      url: post.url,
-      image: [post.mainImageUrl || brandImage],
-      datePublished: post.publishedAt,
-      dateModified: post.publishedAt,
-      author: { '@type': 'Person', name: post.author || 'Car Match' },
-      publisher: { '@type': 'Organization', name: 'Car Match', logo: { '@type': 'ImageObject', url: brandLogo } },
-    })),
-  };
+  const graph = [
+    organizationData(),
+    webSiteData(),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Blog',
+      '@id': `${siteUrl}/blog#blog`,
+      name: title,
+      description,
+      url: `${siteUrl}/blog`,
+      inLanguage: 'vi-VN',
+      publisher: publisherData(),
+      blogPost: postItems.map((post) => ({
+        '@type': 'BlogPosting',
+        headline: post.title,
+        description: getDescription(post),
+        url: post.url,
+        image: [post.mainImageUrl || brandSocialImage],
+        datePublished: post.publishedAt,
+        dateModified: post.publishedAt,
+        author: publisherData(),
+        publisher: publisherData(),
+      })),
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: siteUrl },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${siteUrl}/blog` },
+      ],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: blogHubFaqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
+    },
+  ];
 
   return `<!doctype html>
 <html lang="vi">
@@ -402,11 +639,21 @@ export function renderBlogIndex(posts = []) {
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="${siteUrl}/blog" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Car Match" />
+    <meta property="og:locale" content="vi_VN" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${siteUrl}/blog" />
-    <meta property="og:image" content="${escapeHtml(brandImage)}" />
+    <meta property="og:image" content="${escapeHtml(brandSocialImage)}" />
+    <meta property="og:image:alt" content="Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:image" content="${escapeHtml(brandSocialImage)}" />
+    <meta name="twitter:image:alt" content="Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư" />
     <script type="application/ld+json">${normalizeBrandText(JSON.stringify(graph))}</script>
     ${sharedStyles()}
     <style>
@@ -428,6 +675,24 @@ export function renderBlogIndex(posts = []) {
       .card h2 { font-size: 22px; line-height: 1.25; margin: 0; }
       .card p { font-size: 15px; line-height: 1.65; margin: 0; }
       .card .meta { margin-top: auto; text-transform: none; letter-spacing: 0; }
+      .empty-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; grid-column: 1 / -1; padding: 24px; }
+      .empty-panel p { font-size: 16px; margin: 0; }
+      .hub-section { margin-top: 46px; }
+      .hub-heading { max-width: 760px; }
+      .hub-heading h2, .hub-split h2, .hub-cta h2 { font-size: clamp(26px, 4vw, 38px); line-height: 1.14; margin: 10px 0 12px; }
+      .guide-grid, .faq-grid { display: grid; gap: 18px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 22px; }
+      .guide-card, .faq-card, .hub-cta { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px; }
+      .guide-card h3, .faq-card h3 { font-size: 20px; line-height: 1.25; margin: 0 0 10px; }
+      .guide-card p, .faq-card p, .hub-cta p, .step-list li { font-size: 16px; line-height: 1.72; }
+      .guide-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+      .guide-links a { background: #f8fafc; border: 1px solid #dbe3ff; border-radius: 999px; font-size: 13px; padding: 8px 10px; }
+      .hub-split { align-items: start; display: grid; gap: 24px; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); }
+      .step-list { margin: 18px 0 0; padding-left: 24px; }
+      .step-list li + li { margin-top: 10px; }
+      .hub-cta { background: #eef0f8; border-color: #d4d8ef; position: sticky; top: 92px; }
+      .hub-cta .button { align-items: center; border: 1px solid #cbd5e1; justify-content: center; }
+      .hub-cta .button.primary { border-color: #11163e; }
+      @media (max-width: 920px) { .guide-grid, .faq-grid, .hub-split { grid-template-columns: 1fr; } .hub-cta { position: static; } }
       @media (max-width: 820px) { main { padding: 38px 16px 64px; } .hero { display: block; } .topic-panel { margin-top: 24px; } .topic-list a { font-size: 12px; } .grid { grid-template-columns: 1fr; } .card h2 { font-size: 20px; } }
     </style>
   </head>
@@ -451,17 +716,19 @@ export function renderBlogIndex(posts = []) {
         </aside>
       </section>
       <section class="grid" aria-label="Danh sách bài viết">
-        ${postItems.map((post) => `<a class="card" href="/blog/${escapeHtml(post.slug.current)}">
-          <div class="thumb"><img src="${escapeHtml(post.image)}" alt="${escapeHtml(post.title)}" loading="lazy" decoding="async" /></div>
+        ${postItems.length ? postItems.map((post) => `<a class="card" href="/blog/${escapeHtml(post.slug.current)}">
+          <div class="thumb"><img src="${escapeHtml(post.image)}" srcset="${escapeHtml(optimizeImageSrcSet(post.mainImageUrl || brandSocialImage, [480, 720, 960], 62))}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" alt="${escapeHtml(post.title)}" loading="lazy" decoding="async" width="720" height="405" /></div>
           <div class="card-body">
             ${(post.categories || []).length ? `<span class="pill">${escapeHtml(post.categories[0])}</span>` : ''}
             <h2>${escapeHtml(post.title)}</h2>
             <p>${escapeHtml(getDescription(post))}</p>
             <p class="meta">${escapeHtml(post.author || 'Car Match')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''} · ${post.minutes} phút đọc</p>
           </div>
-        </a>`).join('')}
+        </a>`).join('') : '<div class="empty-panel"><p>Các bài viết chuyên sâu đang được Car Match biên tập và sẽ xuất hiện tại đây khi được đăng chính thức. Trong lúc chờ bài mới, bạn có thể xem nhanh các hướng dẫn nền tảng bên dưới.</p></div>'}
       </section>
+      ${renderBlogHubContent()}
     </main>
+    ${renderMobileConversionBar('blog_index', 'Hỏi thuê xe')}
     ${renderFooter()}
   </body>
 </html>`;
@@ -469,10 +736,10 @@ export function renderBlogIndex(posts = []) {
 
 export function renderBlogPage(post) {
   const canonical = getPostUrl(post);
-  const title = `${post.seoTitle || post.title} | Car Match`;
+  const title = postTitleOverrides[post.slug.current] || `${post.seoTitle || post.title} | Car Match`;
   const description = getDescription(post);
-  const image = optimizeImageUrl(post.mainImageUrl || brandImage, 1400);
-  const rawBodyHtml = optimizeBodyImages(post.bodyHtml || renderPortableText(post.body));
+  const image = optimizeImageUrl(post.mainImageUrl || brandSocialImage, 1400);
+  const rawBodyHtml = optimizeBodyImages(post.bodyHtml || renderPortableText(post.body), post.title);
   const headings = extractHeadings(rawBodyHtml);
   const bodyHtml = addHeadingIds(rawBodyHtml, headings);
   const faqItems = extractFaqItems(bodyHtml);
@@ -488,14 +755,22 @@ export function renderBlogPage(post) {
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="${escapeHtml(canonical)}" />
     <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Car Match" />
+    <meta property="og:locale" content="vi_VN" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
-    <meta property="og:image" content="${escapeHtml(post.mainImageUrl || brandImage)}" />
+    ${post.publishedAt ? `<meta property="article:published_time" content="${escapeHtml(post.publishedAt)}" />` : ''}
+    ${post.publishedAt ? `<meta property="article:modified_time" content="${escapeHtml(post.publishedAt)}" />` : ''}
+    <meta property="article:publisher" content="https://www.facebook.com/carmatchvn" />
+    <meta property="og:image" content="${escapeHtml(post.mainImageUrl || brandSocialImage)}" />
+    ${post.mainImageUrl ? '' : '<meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" /><meta property="og:image:type" content="image/png" />'}
+    <meta property="og:image:alt" content="${escapeHtml(post.title)}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${escapeHtml(post.mainImageUrl || brandImage)}" />
+    <meta name="twitter:image" content="${escapeHtml(post.mainImageUrl || brandSocialImage)}" />
+    <meta name="twitter:image:alt" content="${escapeHtml(post.title)}" />
     <script type="application/ld+json">${normalizeBrandText(JSON.stringify(structuredData(post, faqItems)))}</script>
     ${sharedStyles()}
     <style>
@@ -537,8 +812,8 @@ export function renderBlogPage(post) {
         <p class="meta">${escapeHtml(post.author || 'Car Match')}${post.publishedAt ? ` · ${escapeHtml(formatDate(post.publishedAt))}` : ''}</p>
         ${post.excerpt ? `<p class="excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
         ${renderToc(headings)}
-        ${post.mainImageUrl && !hasInlineImages ? `<img class="hero" src="${escapeHtml(image)}" alt="${escapeHtml(post.title)}" loading="eager" fetchpriority="high" />` : ''}
-        ${normalizeBrandText(bodyHtml)}
+        ${post.mainImageUrl && !hasInlineImages ? `<img class="hero" src="${escapeHtml(image)}" srcset="${escapeHtml(optimizeImageSrcSet(post.mainImageUrl, [720, 960, 1200, 1600], 68))}" sizes="(min-width: 1024px) 760px, 100vw" alt="${escapeHtml(post.title)}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="675" />` : ''}
+        ${normalizeCustomerText(bodyHtml)}
         ${renderRelated(post)}
         ${renderCta(post)}
       </article>
@@ -551,6 +826,7 @@ export function renderBlogPage(post) {
         window.dataLayer.push({ event: 'blog_conversion_click', article_slug: ${JSON.stringify(post.slug.current)}, action: link.getAttribute('data-blog-action') || '', target: link.getAttribute('data-blog-target') || link.getAttribute('href') || '' });
       });
     </script>
+    ${renderMobileConversionBar('blog_post', 'Hỏi thuê xe')}
     ${renderFooter()}
   </body>
 </html>`;

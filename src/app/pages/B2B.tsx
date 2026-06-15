@@ -9,6 +9,8 @@ import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
 import { useSEO } from '@/hooks/useSEO';
 import { trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
+import { vehicleImageAlt } from '@/lib/imageAlt';
+import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -20,10 +22,10 @@ const residentBenefits = [
 ];
 
 const businessBenefits = [
-  { icon: TrendingDown, title: 'Tiết kiệm 30–40%', desc: 'So với thuê xe ngày lẻ. Hợp đồng dài hạn = giá tốt hơn đáng kể.' },
+  { icon: TrendingDown, title: 'Dễ kiểm soát chi phí', desc: 'Gói thuê dài ngày được báo theo mẫu xe, lịch dùng, giới hạn km và điểm giao nhận.' },
   { icon: Building2, title: 'Giao xe tận văn phòng', desc: 'Xe được giao đến văn phòng, công trình, hoặc địa điểm bạn chỉ định.' },
-  { icon: FileText, title: 'Hóa đơn VAT đầy đủ', desc: 'Xuất hóa đơn đỏ đầy đủ, thuận tiện cho kế toán doanh nghiệp.' },
-  { icon: Users, title: 'Quản lý đội xe dễ', desc: 'Một đầu mối liên hệ, một hóa đơn — dù thuê 1 hay 10 xe.' },
+  { icon: FileText, title: 'Hợp đồng rõ điều kiện', desc: 'Chi phí thuê, cọc, phụ phí và chứng từ thanh toán được xác nhận trước khi ký.' },
+  { icon: Users, title: 'Một đầu mối liên hệ', desc: 'Car Match hỗ trợ lọc phương án xe và đối soát theo nhu cầu sử dụng thực tế.' },
 ];
 
 const pricingRows = [
@@ -261,7 +263,18 @@ export default function B2B() {
           <div className="overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white shadow-xl shadow-slate-200/60">
             {heroCar?.images[0] ? (
               <div className="relative h-52 bg-slate-100 sm:h-64">
-                <img src={heroCar.images[0]} alt={`Xe thuê tháng ${heroCar.name}`} className="h-full w-full object-cover" loading="eager" />
+                <img
+                  src={optimizedImageUrl(heroCar.images[0], 960, 68)}
+                  srcSet={optimizedImageSrcSet(heroCar.images[0], [640, 960, 1280], 68)}
+                  sizes="(min-width: 1024px) 420px, 100vw"
+                  alt={vehicleImageAlt(heroCar, 'cho thuê theo tháng tại Hà Nội')}
+                  className="h-full w-full object-cover"
+                  width={1280}
+                  height={720}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
                 <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 text-white">
                   <div>
@@ -443,7 +456,7 @@ export default function B2B() {
             </table>
           </div>
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {['Có thể xuất hóa đơn VAT cho doanh nghiệp.', 'Linh hoạt 1-12 tháng, tối ưu hơn khi thuê dài.', 'Báo giá sau khi kiểm tra xe thật và lịch trống.'].map((note) => (
+            {['Chứng từ thanh toán được xác nhận trước khi ký hợp đồng.', 'Linh hoạt 1-12 tháng theo nhu cầu sử dụng.', 'Báo giá sau khi kiểm tra xe thật và lịch trống.'].map((note) => (
               <div key={note} className="flex items-start gap-3 rounded-xl bg-brand-50 border border-brand-100 px-4 py-3 text-sm font-medium text-gray-700">
                 <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0" />
                 <span>{note}</span>

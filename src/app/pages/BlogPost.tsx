@@ -6,8 +6,10 @@ import type { TypedObject } from '@portabletext/types';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import MobileConversionBar from '../components/MobileConversionBar';
 import { useSEO } from '@/hooks/useSEO';
 import { trackEvent } from '@/lib/analytics';
+import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 interface Post {
   _id: string;
@@ -64,6 +66,49 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '');
 }
 
+function normalizeBrandText(value = '') {
+  return String(value)
+    .replace(/\bCarMatch\b/g, 'Car Match')
+    .replace(/\bCARMATCH\b/g, 'CAR MATCH');
+}
+
+function normalizeCustomerText(value = '') {
+  return normalizeBrandText(value)
+    .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
+    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
+    .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
+}
+
+function normalizeOptionalText(value?: string) {
+  if (!value?.trim()) return value;
+  return normalizeCustomerText(value);
+}
+
+function normalizePost(post: Post): Post {
+  return {
+    ...post,
+    title: normalizeCustomerText(post.title),
+    excerpt: normalizeCustomerText(post.excerpt || ''),
+    author: normalizeCustomerText(post.author || 'Car Match'),
+    bodyHtml: normalizeOptionalText(post.bodyHtml),
+    seoTitle: normalizeOptionalText(post.seoTitle),
+    seoDescription: normalizeOptionalText(post.seoDescription),
+    ctaTitle: normalizeOptionalText(post.ctaTitle),
+    ctaDescription: normalizeOptionalText(post.ctaDescription),
+    ctaPrimaryLabel: normalizeOptionalText(post.ctaPrimaryLabel),
+    ctaZaloLabel: normalizeOptionalText(post.ctaZaloLabel),
+    relatedVehicleLinks: post.relatedVehicleLinks?.map((link) => ({
+      ...link,
+      label: normalizeCustomerText(link.label || ''),
+    })),
+    relatedPosts: post.relatedPosts?.map((relatedPost) => ({
+      ...relatedPost,
+      title: normalizeCustomerText(relatedPost.title),
+    })),
+  };
+}
+
 function extractHeadings(html: string) {
   const headings: Array<{ level: number; text: string; id: string }> = [];
   html.replace(/<h([23])[^>]*>([\s\S]*?)<\/h\1>/gi, (_match, level, content) => {
@@ -97,7 +142,7 @@ function extractFaqItems(html: string) {
 }
 
 function CmsHtml({ html }: { html: string }) {
-  const chunks = html.split(/(<img\b[^>]*>)/gi).filter(Boolean);
+  const chunks = normalizeCustomerText(html).split(/(<img\b[^>]*>)/gi).filter(Boolean);
   return (
     <div className="cms-blog-body max-w-none">
       {chunks.map((chunk, index) => {
@@ -107,10 +152,15 @@ function CmsHtml({ html }: { html: string }) {
           return (
             <figure key={`image-${src}-${index}`} className="my-8">
               <img
-                src={src}
+                src={optimizedImageUrl(src, 960, 68)}
+                srcSet={optimizedImageSrcSet(src, [640, 960, 1280], 68)}
+                sizes="(min-width: 1024px) 760px, 100vw"
                 alt={alt}
                 className="w-full rounded-xl object-cover shadow-sm"
+                width={1280}
+                height={720}
                 loading="lazy"
+                decoding="async"
               />
               {caption || alt ? <figcaption className="mt-2 text-center text-sm text-gray-500">{caption || alt}</figcaption> : null}
             </figure>
@@ -152,6 +202,35 @@ function trackBlogClick(postSlug: string, action: string, target: string) {
     action,
     target,
   });
+}
+
+async function fetchJson<T>(path: string): Promise<T> {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const contentType = res.headers.get('content-type') || '';
+  const body = await res.text();
+  if (!contentType.includes('json') && body.trimStart().startsWith('<')) {
+    throw new Error(`Expected JSON from ${path}, received HTML`);
+  }
+
+  return JSON.parse(body) as T;
+}
+
+async function fetchStaticPost(slug: string): Promise<Post | null> {
+  const posts = await fetchJson<Post[]>('/data/blog-posts.json');
+  return posts.find((item) => item.slug?.current === slug) || null;
+}
+
+async function fetchPostBySlug(slug: string): Promise<Post | null> {
+  try {
+    const post = await fetchJson<Post>(`/api/posts?slug=${encodeURIComponent(slug)}`);
+    if (post?._id) return post;
+  } catch {
+    // Local preview has no serverless API; fall back to static build data.
+  }
+
+  return fetchStaticPost(slug);
 }
 
 function BlogToc({ headings }: { headings: Array<{ level: number; text: string; id: string }> }) {
@@ -218,9 +297,15 @@ const portableTextComponents = {
       return (
         <figure className="my-8">
           <img
-            src={url}
+            src={optimizedImageUrl(url, 960, 68)}
+            srcSet={optimizedImageSrcSet(url, [640, 960, 1280], 68)}
+            sizes="(min-width: 1024px) 760px, 100vw"
             alt={value.alt || ''}
             className="w-full rounded-xl object-cover"
+            width={1280}
+            height={720}
+            loading="lazy"
+            decoding="async"
           />
           {value.alt && (
             <figcaption className="text-center text-gray-500 text-sm mt-2">{value.alt}</figcaption>
@@ -265,25 +350,36 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`/api/posts?slug=${encodeURIComponent(slug)}`)
-      .then((res) => {
-        if (res.status === 404) { setNotFound(true); setLoading(false); return null; }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data: Post | null) => {
-        if (!data) return;
-        if (!data._id) {
+    const currentSlug = slug;
+    let cancelled = false;
+
+    async function loadPost() {
+      setLoading(true);
+      setNotFound(false);
+      setPost(null);
+
+      try {
+        const data = await fetchPostBySlug(currentSlug);
+        if (cancelled) return;
+        if (!data?._id) {
           setNotFound(true);
         } else {
-          setPost(data);
+          setPost(normalizePost(data));
         }
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
+        if (cancelled) return;
         setNotFound(true);
+      } finally {
+        if (cancelled) return;
         setLoading(false);
-      });
+      }
+    }
+
+    void loadPost();
+
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   useEffect(() => {
@@ -297,7 +393,7 @@ export default function BlogPost() {
         description: post.seoDescription || post.excerpt,
         url: canonical,
         mainEntityOfPage: canonical,
-        image: [post.mainImageUrl || 'https://www.carmatch.vn/og-image.jpg'],
+        image: [post.mainImageUrl || 'https://www.carmatch.vn/og-image.png'],
         datePublished: post.publishedAt,
         dateModified: post.publishedAt,
         author: { '@type': 'Person', name: post.author || 'Car Match' },
@@ -338,9 +434,10 @@ export default function BlogPost() {
   }, [faqItems, post]);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-white pb-24 text-gray-900 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
+      <MobileConversionBar source="blog_post" zaloHref={post?.ctaZaloUrl || undefined} zaloLabel="Hỏi thuê xe" />
 
       <main className="pt-24 pb-16 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -408,9 +505,16 @@ export default function BlogPost() {
               {post.mainImageUrl && !hasInlineBodyImages && (
                 <div className="mb-10">
                   <img
-                    src={post.mainImageUrl}
+                    src={optimizedImageUrl(post.mainImageUrl, 1200, 68)}
+                    srcSet={optimizedImageSrcSet(post.mainImageUrl, [720, 960, 1200, 1600], 68)}
+                    sizes="(min-width: 1024px) 760px, 100vw"
                     alt={post.title}
                     className="w-full rounded-xl object-cover aspect-[16/9]"
+                    width={1200}
+                    height={675}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                 </div>
               )}

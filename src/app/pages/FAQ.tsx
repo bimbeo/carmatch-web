@@ -10,15 +10,15 @@ const faqGroups = [
     items: [
       {
         q: 'Quy trình đặt xe online như thế nào?',
-        a: 'Chọn xe → Chọn ngày giờ → Điền thông tin → Chuyển khoản cọc 30% qua QR → Nhận mã booking. Car Match sẽ liên hệ xác nhận trong 30 phút.',
+        a: 'Chọn xe → Chọn ngày giờ → Điền thông tin → Car Match kiểm tra lịch xe thật → Chuyển khoản đặt cọc theo hướng dẫn → Nhận xác nhận qua Zalo/hotline.',
       },
       {
         q: 'Tôi có thể hủy và hoàn cọc không?',
-        a: 'Hủy trước 48h: hoàn 100%. Hủy từ 24-48h: hoàn 50%. Hủy trong 24h: mất cọc. Liên hệ hotline 0971 593 290 để hủy.',
+        a: 'Có thể hủy, nhưng điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Khách nên liên hệ hotline/Zalo 0975 563 290 để Car Match xác nhận điều kiện cụ thể trước khi hủy.',
       },
       {
         q: 'Có thể đặt xe vào buổi tối không?',
-        a: 'Có. Car Match giao xe theo ca từ sau 20:00 đến trước 23:00. Đặt xe buổi tối hoàn toàn bình thường.',
+        a: 'Khách có thể gửi yêu cầu buổi tối qua website hoặc Zalo. Lịch giao nhận ngoài khung hỗ trợ thông thường cần được đội vận hành xác nhận trước theo xe và khu vực nhận.',
       },
       {
         q: 'Có mã giảm giá không?',
@@ -31,7 +31,7 @@ const faqGroups = [
     items: [
       {
         q: 'Cần mang những giấy tờ gì khi nhận xe?',
-        a: 'CCCD/Căn cước (bản gốc) + Giấy phép lái xe hạng B2 (bản gốc) + Tài sản thế chấp (tiền mặt hoặc xe máy, thỏa thuận khi ký hợp đồng).',
+        a: 'Khách cần CCCD/Căn cước bản gốc, giấy phép lái xe hạng B còn hiệu lực và khoản đặt cọc theo mẫu xe. Điều kiện cụ thể được xác nhận trước khi giao xe.',
       },
       {
         q: 'Giới hạn km mỗi ngày là bao nhiêu?',
@@ -39,7 +39,7 @@ const faqGroups = [
       },
       {
         q: 'Xe có bảo hiểm không?',
-        a: 'Có. Tất cả xe đều có bảo hiểm trách nhiệm dân sự và bảo hiểm thân xe (khấu trừ 2 triệu/sự cố nếu có tai nạn do lỗi tài xế).',
+        a: 'Xe có điều kiện bảo hiểm và trách nhiệm sử dụng được ghi nhận trong hợp đồng/bàn giao. Trước khi nhận xe, khách nên xác nhận rõ phạm vi bảo hiểm, mức khấu trừ nếu có và trách nhiệm khi phát sinh sự cố.',
       },
       {
         q: 'Tôi có thể đi ra ngoài tỉnh không?',
@@ -47,7 +47,7 @@ const faqGroups = [
       },
       {
         q: 'Xe bị hỏng giữa đường thì làm sao?',
-        a: 'Gọi ngay hotline 0971 593 290. Car Match hỗ trợ 24/7 xử lý sự cố, bao gồm cứu hộ và xe thay thế nếu cần.',
+        a: 'Liên hệ ngay hotline/Zalo 0975 563 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo và phương án hỗ trợ phù hợp với tình huống thực tế.',
       },
     ],
   },

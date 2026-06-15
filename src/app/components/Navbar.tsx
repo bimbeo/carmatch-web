@@ -12,6 +12,7 @@ const navLinks = [
   { href: '/thue-xe-thang', label: 'Thuê xe tháng' },
   { href: '/hop-tac', label: 'Hợp tác chủ xe' },
   { href: '/gioi-thieu', label: 'Giới thiệu' },
+  { href: '/lien-he', label: 'Liên hệ' },
   { href: '/blog', label: 'Blog', staticPage: true },
 ];
 
@@ -28,18 +29,25 @@ export default function Navbar() {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm transition-shadow ${scrolled ? 'shadow-sm' : ''} border-b border-gray-100`}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white"
+      >
+        Bỏ qua menu
+      </a>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center" aria-label="Car Match">
             <img
               src="/brand/carmatch-lockup-navy.png"
-              alt="Car Match"
+              alt="Car Match logo màu navy"
               width="288"
               height="66"
-              fetchPriority="high"
+              decoding="async"
               className="h-9 w-auto object-contain"
             />
+            <span className="sr-only">Trang chủ Car Match</span>
           </Link>
 
           {/* Desktop Menu */}
@@ -68,11 +76,12 @@ export default function Navbar() {
             <a
               href={ZALO_LINK}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="me noopener noreferrer"
               onClick={() => trackZaloClick('navbar_desktop')}
               className="px-5 py-2.5 bg-brand-600 text-white rounded-full font-semibold text-sm hover:bg-brand-700 transition-colors shadow-sm"
+              data-cta="navbar-zalo"
             >
-              Đặt xe qua Zalo
+              Đặt xe qua Zalo<span className="sr-only"> từ thanh điều hướng</span>
             </a>
           </div>
 
@@ -120,7 +129,7 @@ export default function Navbar() {
               <a
                 href={ZALO_LINK}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="me noopener noreferrer"
                 onClick={() => trackZaloClick('navbar_mobile')}
                 className="block w-full px-4 py-3 bg-brand-600 text-white rounded-full font-semibold text-sm text-center hover:bg-brand-700 transition-colors"
               >

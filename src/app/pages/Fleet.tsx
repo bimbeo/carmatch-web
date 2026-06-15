@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useLocation } from 'react-router';
 import { MessageCircle, Phone, SlidersHorizontal, X } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
@@ -7,15 +8,28 @@ import DateRangeFilter from '../components/DateRangeFilter';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import MobileConversionBar from '../components/MobileConversionBar';
 import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 const PHONE_LINK = 'tel:0975563290';
 
+function buildZaloHref(message: string) {
+  return `${ZALO_LINK}?text=${encodeURIComponent(message)}`;
+}
+
 type FuelFilter  = 'all' | 'Điện' | 'Xăng' | 'Dầu';
 type SeatsFilter = 'all' | '4' | '5' | '7' | '8+';
 type SortOption  = 'default' | 'price-asc' | 'price-desc';
+
+function parseFuelFilter(value: string | null): FuelFilter {
+  return value === 'Điện' || value === 'Xăng' || value === 'Dầu' ? value : 'all';
+}
+
+function parseSeatsFilter(value: string | null): SeatsFilter {
+  return value === '4' || value === '5' || value === '7' || value === '8+' ? value : 'all';
+}
 
 function SkeletonCard() {
   return (
@@ -61,6 +75,16 @@ function Chip({
 export default function Fleet() {
   const { search } = useLocation();
   const hasQueryParams = search.length > 0;
+  const queryFilters = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return {
+      area: params.get('area') || '',
+      from: params.get('from') || '',
+      to: params.get('to') || '',
+      fuel: parseFuelFilter(params.get('fuelFilter') || params.get('fuel')),
+      seats: parseSeatsFilter(params.get('seatFilter') || params.get('seats')),
+    };
+  }, [search]);
 
   useSEO({
     title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
@@ -72,11 +96,25 @@ export default function Fleet() {
   const { cars, loading, error } = useVehicles();
 
   const [brandFilter, setBrandFilter] = useState<string>('all');
-  const [fuelFilter,  setFuelFilter]  = useState<FuelFilter>('all');
-  const [seatsFilter, setSeatsFilter] = useState<SeatsFilter>('all');
+  const [fuelFilter,  setFuelFilter]  = useState<FuelFilter>(queryFilters.fuel);
+  const [seatsFilter, setSeatsFilter] = useState<SeatsFilter>(queryFilters.seats);
   const [sortBy,      setSortBy]      = useState<SortOption>('default');
   const [unavailableModels, setUnavailableModels] = useState<string[]>([]);
   const [dateFilterActive, setDateFilterActive] = useState(false);
+  const [leadArea, setLeadArea] = useState(queryFilters.area);
+  const [leadDate, setLeadDate] = useState(queryFilters.from);
+  const [leadPassengers, setLeadPassengers] = useState('');
+  const [leadNeed, setLeadNeed] = useState('');
+
+  useEffect(() => {
+    setFuelFilter(queryFilters.fuel);
+    setSeatsFilter(queryFilters.seats);
+  }, [queryFilters.fuel, queryFilters.seats]);
+
+  useEffect(() => {
+    if (queryFilters.area) setLeadArea(queryFilters.area);
+    if (queryFilters.from) setLeadDate(queryFilters.from);
+  }, [queryFilters.area, queryFilters.from]);
 
   // ── derive available facet values from unfiltered data ──────────────────────
   const brands = useMemo(() => {
@@ -146,6 +184,57 @@ export default function Fleet() {
     (fuelFilter   !== 'all' ? 1 : 0) +
     (seatsFilter  !== 'all' ? 1 : 0);
 
+  const querySummary = [
+    queryFilters.area && `Nhận xe: ${queryFilters.area}`,
+    queryFilters.from && `Nhận ngày: ${queryFilters.from}`,
+    queryFilters.to && `Trả ngày: ${queryFilters.to}`,
+    queryFilters.seats !== 'all' && `Số chỗ: ${queryFilters.seats}`,
+    queryFilters.fuel !== 'all' && `Nhiên liệu: ${queryFilters.fuel}`,
+  ].filter(Boolean);
+
+  const leadFilterSummary = useMemo(() => [
+    brandFilter !== 'all' && `Hãng xe: ${brandFilter}`,
+    fuelFilter !== 'all' && `Nhiên liệu: ${fuelFilter}`,
+    seatsFilter !== 'all' && `Số chỗ: ${seatsFilter}`,
+    sortBy !== 'default' && `Sắp xếp: ${sortBy === 'price-asc' ? 'giá thấp trước' : 'giá cao trước'}`,
+  ].filter(Boolean), [brandFilter, fuelFilter, seatsFilter, sortBy]);
+
+  const fleetZaloMessage = useMemo(() => [
+    'Xin chào Car Match, tôi cần thuê xe tự lái tại Hà Nội.',
+    leadArea.trim() ? `Khu vực nhận xe: ${leadArea.trim()}` : 'Khu vực nhận xe: cần tư vấn',
+    leadDate ? `Ngày dự kiến nhận xe: ${leadDate}` : 'Ngày dự kiến nhận xe: cần tư vấn',
+    leadPassengers.trim() ? `Số người/hành lý: ${leadPassengers.trim()}` : 'Số người/hành lý: chưa chắc',
+    leadNeed.trim() ? `Nhu cầu chuyến đi: ${leadNeed.trim()}` : 'Nhu cầu chuyến đi: cần Car Match gợi ý xe phù hợp',
+    leadFilterSummary.length ? `Bộ lọc đang xem: ${leadFilterSummary.join(', ')}` : null,
+    `Số xe đang xem sau lọc: ${filtered.length}`,
+    '',
+    'Car Match kiểm tra giúp xe còn lịch trống, giá thuê, cọc và điểm giao nhận phù hợp ạ.',
+  ].filter(Boolean).join('\n'), [
+    filtered.length,
+    leadArea,
+    leadDate,
+    leadFilterSummary,
+    leadNeed,
+    leadPassengers,
+  ]);
+
+  const fleetZaloHref = buildZaloHref(fleetZaloMessage);
+
+  const handleLeadSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    trackZaloClick('fleet_quick_lead_form', {
+      area: leadArea || null,
+      pickup_date: leadDate || null,
+      passengers: leadPassengers || null,
+      need: leadNeed || null,
+      filtered_count: filtered.length,
+      brand_filter: brandFilter,
+      fuel_filter: fuelFilter,
+      seats_filter: seatsFilter,
+    });
+    window.open(fleetZaloHref, '_blank', 'noopener,noreferrer');
+  };
+
   const resetAll = () => {
     setBrandFilter('all');
     setFuelFilter('all');
@@ -154,12 +243,13 @@ export default function Fleet() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-gray-50 pb-24 text-gray-900 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
+      <MobileConversionBar source="fleet" />
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100 pt-24 pb-8">
+      <div id="main-content" className="bg-white border-b border-gray-100 pt-24 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Đội xe Car Match</p>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
@@ -176,6 +266,26 @@ export default function Fleet() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <DateRangeFilter onFilter={setUnavailableModels} onActiveChange={setDateFilterActive} />
 
+        {querySummary.length > 0 && (
+          <div className="mb-5 grid gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Nhu cầu vừa chọn từ trang chủ</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-600">{querySummary.join(' · ')}</p>
+            </div>
+            <a
+              href={fleetZaloHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackZaloClick('fleet_query_summary')}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-brand-700"
+              data-cta="fleet-query-zalo"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Kiểm tra lịch qua Zalo
+            </a>
+          </div>
+        )}
+
         <div className="mb-6 grid gap-3 rounded-2xl border border-brand-100 bg-white p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="text-sm font-bold text-gray-900">Chưa chắc nên thuê xe nào?</p>
@@ -185,7 +295,7 @@ export default function Fleet() {
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             <a
-              href={ZALO_LINK}
+              href={fleetZaloHref}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackZaloClick('fleet_advice_banner')}
@@ -211,6 +321,69 @@ export default function Fleet() {
             </a>
           </div>
         </div>
+
+        <form
+          onSubmit={handleLeadSubmit}
+          className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          aria-label="Gửi nhu cầu thuê xe nhanh qua Zalo"
+        >
+          <div className="grid gap-4 lg:grid-cols-[0.95fr_2fr_auto] lg:items-end">
+            <div>
+              <p className="text-sm font-black text-gray-900">Gửi nhu cầu nhanh</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                Car Match nhận thông tin này qua Zalo rồi kiểm tra xe trống, giá và cọc trước khi chốt lịch.
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="block">
+                <span className="sr-only">Khu vực nhận xe</span>
+                <input
+                  value={leadArea}
+                  onChange={(event) => setLeadArea(event.target.value)}
+                  placeholder="Khu vực nhận xe"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-slate-50 px-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+              <label className="block">
+                <span className="sr-only">Ngày nhận xe dự kiến</span>
+                <input
+                  type="date"
+                  value={leadDate}
+                  onChange={(event) => setLeadDate(event.target.value)}
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-slate-50 px-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+              <label className="block">
+                <span className="sr-only">Số người và hành lý</span>
+                <input
+                  value={leadPassengers}
+                  onChange={(event) => setLeadPassengers(event.target.value)}
+                  placeholder="Số người / hành lý"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-slate-50 px-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+              <label className="block">
+                <span className="sr-only">Nhu cầu chuyến đi</span>
+                <input
+                  value={leadNeed}
+                  onChange={(event) => setLeadNeed(event.target.value)}
+                  placeholder="Đi tỉnh, nội thành..."
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-slate-50 px-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-black text-white transition-colors hover:bg-brand-700"
+              data-cta="fleet-quick-lead-zalo"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Gửi Zalo
+            </button>
+          </div>
+        </form>
 
         {dateFilterActive && !loading && (
           <div className="mb-5 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700">
@@ -294,7 +467,7 @@ export default function Fleet() {
         ) : error ? (
           <div className="text-center py-24">
             <p className="text-gray-500 mb-4">{error}</p>
-            <a href="https://zalo.me/0975563290" target="_blank" rel="noopener noreferrer"
+            <a href={fleetZaloHref} target="_blank" rel="noopener noreferrer"
               onClick={() => trackZaloClick('fleet_error_state')}
               className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
               Liên hệ qua Zalo
@@ -323,7 +496,7 @@ export default function Fleet() {
                 Xóa bộ lọc
               </button>
               <a
-                href="https://zalo.me/0975563290"
+                href={fleetZaloHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackZaloClick('fleet_empty_state')}

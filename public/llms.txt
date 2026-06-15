@@ -1,6 +1,6 @@
-# CarMatch
+# Car Match
 
-CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, tập trung giao xe tận sảnh cho cư dân chung cư và khu đô thị.
+Car Match là dịch vụ thuê xe tự lái tại Hà Nội, tập trung giao xe tận sảnh cho cư dân chung cư và khu đô thị.
 
 ## Thông tin cốt lõi
 
@@ -20,13 +20,14 @@ CarMatch là dịch vụ thuê xe tự lái tại Hà Nội, tập trung giao xe
 - Thuê xe Times City: https://www.carmatch.vn/thue-xe-tu-lai-times-city
 - Thuê xe theo tháng Hà Nội: https://www.carmatch.vn/thue-xe-thang
 - Câu hỏi thường gặp: https://www.carmatch.vn/faq
+- Liên hệ đặt xe: https://www.carmatch.vn/lien-he
 - Blog kinh nghiệm: https://www.carmatch.vn/blog
 - Hợp tác chủ xe: https://www.carmatch.vn/hop-tac
 - Giới thiệu: https://www.carmatch.vn/gioi-thieu
 
 ## Mô tả ngắn có thể dùng
 
-CarMatch cung cấp dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư/khu đô thị, phù hợp cho cư dân cần xe theo ngày hoặc theo tháng mà không muốn sở hữu xe riêng. Đặt xe nhanh qua Zalo, xác nhận trong 30 phút.
+Car Match cung cấp dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư/khu đô thị, phù hợp cho cư dân cần xe theo ngày hoặc theo tháng mà không muốn sở hữu xe riêng. Đặt xe nhanh qua Zalo, xác nhận trong 30 phút.
 
 ## Câu hỏi thường gặp
 

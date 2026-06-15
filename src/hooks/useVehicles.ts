@@ -4,8 +4,8 @@ import type { Car } from '@/data/cars';
 // Default conditions shown on every car (same as ops rental policy)
 const DEFAULT_CONDITIONS = [
   'CCCD công dân (bản gốc)',
-  'Giấy phép lái xe (GPLX) còn hạn',
-  'Đặt cọc 30.000.000đ hoặc xe máy có giá trị tương đương',
+  'Giấy phép lái xe hạng B còn hạn',
+  'Khoản đặt cọc theo mẫu xe, xác nhận trước khi giao',
 ];
 
 // Default km/day allowance if not set
@@ -87,11 +87,13 @@ interface SupabaseVehicle {
 declare global {
   interface Window {
     __CM_INITIAL_VEHICLES__?: SupabaseVehicle[];
+    __CM_TOTAL_VEHICLES__?: number;
   }
 
   // Used by the build-time React prerenderer.
   // eslint-disable-next-line no-var
   var __CM_INITIAL_VEHICLES__: SupabaseVehicle[] | undefined;
+  var __CM_TOTAL_VEHICLES__: number | undefined;
 }
 
 interface VehicleMediaFile {
@@ -213,7 +215,9 @@ function mapToCar(v: SupabaseVehicle): Car {
     available: v.status === 'available',
     images: galleryImages.length > 0 ? galleryImages : [PLACEHOLDER_IMAGE],
     category: mapCategory(fuel),
-    description: variant ? `${make} ${model} ${variant} — ${v.color || ''}`.trim() : undefined,
+    description: [make, model, variant].filter(Boolean).join(' ')
+      ? `${[make, model, variant].filter(Boolean).join(' ')}${v.color ? ` — ${v.color}` : ''}`
+      : v.color || undefined,
     useCases: undefined,
   };
 }
@@ -222,6 +226,22 @@ export interface UseVehiclesResult {
   cars: Car[];
   loading: boolean;
   error: string | null;
+}
+
+async function fetchVehicleJson(path: string): Promise<SupabaseVehicle[]> {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}`);
+
+  const contentType = res.headers.get('content-type') || '';
+  const body = await res.text();
+  if (!contentType.includes('json') && body.trimStart().startsWith('<')) {
+    throw new Error(`Expected JSON from ${path}, received HTML`);
+  }
+
+  const data = JSON.parse(body) as unknown;
+  if (!Array.isArray(data)) throw new Error(`Expected vehicle array from ${path}`);
+
+  return data as SupabaseVehicle[];
 }
 
 export function useVehicles(): UseVehiclesResult {
@@ -238,20 +258,39 @@ export function useVehicles(): UseVehiclesResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/vehicles')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data: SupabaseVehicle[]) => {
+    let cancelled = false;
+
+    async function loadVehicles() {
+      try {
+        const data = await fetchVehicleJson('/api/vehicles');
+        if (cancelled) return;
         setCars(uniquifyCarSlugs(data.map(mapToCar)));
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error('[useVehicles]', err);
+        return;
+      } catch (apiError) {
+        try {
+          const data = await fetchVehicleJson('/data/vehicles.json');
+          if (cancelled) return;
+          setCars(uniquifyCarSlugs(data.map(mapToCar)));
+          setLoading(false);
+          return;
+        } catch (staticError) {
+          if (cancelled) return;
+          console.error('[useVehicles]', apiError, staticError);
+        }
+      }
+
+      if (!cancelled) {
         setError('Không thể tải danh sách xe. Vui lòng thử lại sau.');
         setLoading(false);
-      });
+      }
+    }
+
+    void loadVehicles();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { cars, loading, error };

@@ -16,8 +16,8 @@ const ZALO_LINK = 'https://zalo.me/0975563290';
 const residentPerks = [
   {
     icon: TrendingUp,
-    title: 'Xe nhàn rỗi → thu nhập thụ động',
-    desc: 'Xe đỗ tầng hầm 80% thời gian? Car Match giúp bạn kiếm 8–18 triệu/tháng từ xe không dùng đến, hoàn toàn tự động.',
+    title: 'Xe nhàn rỗi → thêm dòng tiền',
+    desc: 'Xe đỗ tầng hầm nhiều ngày? Car Match thẩm định mẫu xe, lịch rảnh và khu vực để đề xuất phương án khai thác phù hợp.',
   },
   {
     icon: MapPin,
@@ -26,46 +26,46 @@ const residentPerks = [
   },
   {
     icon: BadgeCheck,
-    title: 'Bù phí đỗ xe & trả góp',
-    desc: 'Thu nhập từ hợp tác đủ bù hoàn toàn phí gửi xe hàng tháng, hoặc giảm đáng kể khoản trả góp vay mua xe.',
+    title: 'Đối soát minh bạch',
+    desc: 'Doanh thu, lịch xe và chi phí liên quan được đối soát theo hình thức hợp tác đã thỏa thuận.',
   },
   {
     icon: Shield,
-    title: 'An toàn & bảo hiểm đầy đủ',
-    desc: 'Mỗi xe được lắp GPS định vị, bảo hiểm bổ sung, kiểm tra kỹ khách thuê trước khi giao xe.',
+    title: 'Kiểm tra khách và xe',
+    desc: 'Car Match kiểm tra thông tin khách thuê, tình trạng xe và các điều kiện bảo hiểm/trách nhiệm trước khi vận hành.',
   },
 ];
 
 const ownerPerks = [
   {
     icon: CalendarCheck,
-    title: 'Không cần làm gì thêm',
-    desc: 'Car Match lo toàn bộ: tìm khách, vetting, giao nhận xe, thu tiền, báo cáo. Bạn chỉ ký hợp đồng và nhận tiền.',
+    title: 'Hỗ trợ vận hành',
+    desc: 'Car Match hỗ trợ tìm khách, kiểm tra thông tin, điều phối giao nhận, thu tiền và báo cáo theo thỏa thuận.',
   },
   {
     icon: Wrench,
-    title: 'Bảo dưỡng chuyên nghiệp',
-    desc: 'Xe được bảo dưỡng định kỳ bởi đội kỹ thuật Car Match. Hao mòn thông thường do Car Match chịu (hình thức tháng).',
+    title: 'Theo dõi tình trạng xe',
+    desc: 'Tình trạng xe, lịch bảo dưỡng và trách nhiệm hao mòn được thống nhất trong hợp đồng hợp tác.',
   },
   {
     icon: Zap,
-    title: 'Thanh toán đúng hạn',
-    desc: 'Hình thức tháng: chuyển khoản cố định đầu tháng. Hình thức ngày: quyết toán theo tuần, minh bạch từng giao dịch.',
+    title: 'Lịch thanh toán rõ ràng',
+    desc: 'Hình thức tháng hoặc theo giao dịch được đối soát theo kỳ, minh bạch từng lượt khai thác.',
   },
   {
     icon: TrendingUp,
-    title: 'Hỗ trợ tối ưu doanh thu',
-    desc: 'Car Match tư vấn giá theo mùa vụ, loại xe, khu vực để tối đa hóa thu nhập cho chủ xe.',
+    title: 'Hỗ trợ ước tính doanh thu',
+    desc: 'Car Match tư vấn giá theo mùa vụ, loại xe và khu vực để chủ xe hiểu phương án khai thác trước khi ký.',
   },
 ];
 
 const form1Steps = [
   'Cung cấp hồ sơ xe & kiểm định chất lượng',
-  'Lắp thiết bị: GPS, bảo hiểm, ETC',
+  'Hoàn thiện thiết bị và hồ sơ vận hành cần thiết',
   'Ký hợp đồng cho thuê theo tháng',
   'Car Match đưa xe vào vận hành',
-  'Bảo dưỡng định kỳ do Car Match xử lý',
-  'Nhận tiền cố định đầu mỗi tháng',
+  'Theo dõi lịch sử dụng và tình trạng xe',
+  'Đối soát doanh thu theo kỳ đã thỏa thuận',
 ];
 
 const form2Steps = [
@@ -74,7 +74,7 @@ const form2Steps = [
   'Ký hợp đồng ủy thác theo giao dịch',
   'Đăng lịch rảnh xe hàng tuần',
   'Car Match xác nhận khách & điều phối giao nhận',
-  'Nhận 60% giá trị mỗi giao dịch thành công',
+  'Đối soát theo tỷ lệ trong hợp đồng',
 ];
 
 const faqs = [
@@ -84,11 +84,11 @@ const faqs = [
   },
   {
     q: 'Nếu xe bị hỏng hoặc tai nạn thì sao?',
-    a: 'Car Match yêu cầu khách đặt cọc và mua bảo hiểm bổ sung. Thiệt hại được xử lý qua bảo hiểm. Hao mòn thông thường trong hình thức tháng do Car Match chịu.',
+    a: 'Car Match xác nhận điều kiện đặt cọc, bảo hiểm và trách nhiệm sử dụng trước khi đưa xe vào vận hành. Thiệt hại hoặc hao mòn được xử lý theo hợp đồng hợp tác và biên bản bàn giao thực tế.',
   },
   {
     q: 'Hình thức tháng trả bao nhiêu tiền?',
-    a: 'Tùy mẫu xe và tình trạng: xe 5 chỗ phổ thông từ 8–12 triệu/tháng, xe 7 chỗ từ 12–18 triệu/tháng. Xe điện có mức riêng. Liên hệ để nhận báo giá chính xác.',
+    a: 'Mức doanh thu phụ thuộc mẫu xe, đời xe, tình trạng xe, khu vực đỗ và lịch có thể khai thác. Chủ xe gửi thông tin để Car Match thẩm định và đề xuất phương án cụ thể.',
   },
   {
     q: 'Hình thức ngày tôi có dùng xe cá nhân được không?',
@@ -96,7 +96,7 @@ const faqs = [
   },
   {
     q: 'Cư dân chung cư có điều kiện đặc biệt không?',
-    a: 'Car Match ưu tiên xe của cư dân các khu đô thị đang phục vụ (Vinhomes, Ecopark, The Manor...) vì tiện giao nhận. Điều này giúp tối ưu tỷ lệ lấp đầy và tăng thu nhập cho chủ xe.',
+    a: 'Car Match ưu tiên xe của cư dân các khu đô thị đang phục vụ (Vinhomes, Ecopark, The Manor...) vì tiện giao nhận. Điều này giúp việc điều phối xe và đối soát lịch khai thác rõ hơn cho hai bên.',
   },
 ];
 
@@ -110,8 +110,8 @@ interface FormData {
 
 export default function Partner() {
   useSEO({
-    title: 'Hợp Tác Chủ Xe — Kiếm 8–18 Triệu/Tháng | Car Match',
-    description: 'Xe đỗ nhàn rỗi? Hợp tác với Car Match để kiếm 8–18 triệu/tháng từ xe không dùng đến. Hợp đồng minh bạch, bảo hiểm đầy đủ, thanh toán đúng hạn.',
+    title: 'Hợp Tác Chủ Xe Tại Hà Nội | Car Match',
+    description: 'Chủ xe tại Hà Nội có thể gửi thông tin xe để Car Match thẩm định phương án hợp tác, lịch khai thác, điều kiện vận hành và đối soát doanh thu.',
     canonical: 'https://www.carmatch.vn/hop-tac',
   });
 
@@ -183,16 +183,16 @@ export default function Partner() {
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Xe nhàn rỗi?<br />
-            <span className="text-brand-600">Để Car Match kiếm tiền cho bạn</span>
+            <span className="text-brand-600">Để Car Match thẩm định phương án khai thác</span>
           </h1>
           <p className="text-gray-600 text-lg sm:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
-            Hợp tác cho thuê xe cùng Car Match — thu nhập 8–18 triệu/tháng, không cần tự tìm khách, xe vẫn an toàn tại tòa nhà của bạn.
+            Hợp tác cho thuê xe cùng Car Match — chủ xe gửi thông tin để được thẩm định mẫu xe, lịch rảnh, khu vực đỗ và phương án khai thác phù hợp.
           </p>
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-8 mb-10">
             {[
-              { value: '8–18tr', label: 'Thu nhập/tháng' },
-              { value: '60%', label: 'Doanh thu/giao dịch' },
+              { value: 'Theo xe', label: 'Ước tính doanh thu' },
+              { value: 'Theo hợp đồng', label: 'Tỷ lệ đối soát' },
               { value: '0đ', label: 'Chi phí gia nhập' },
               { value: '30 phút', label: 'Phản hồi tư vấn' },
             ].map((s) => (
@@ -229,7 +229,7 @@ export default function Partner() {
             </h2>
             <p className="text-brand-200 max-w-2xl mx-auto">
               Phí gửi xe 800K–2 triệu/tháng. Bảo hiểm. Bảo dưỡng. Trong khi xe đỗ im 20–25 ngày/tháng.<br />
-              Hợp tác cùng Car Match để biến chi phí thành thu nhập.
+              Hợp tác cùng Car Match để thẩm định khả năng khai thác xe theo lịch rảnh và khu vực đỗ.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -244,13 +244,13 @@ export default function Partner() {
             ))}
           </div>
           <div className="mt-10 bg-white/10 border border-white/20 rounded-2xl p-6 max-w-3xl mx-auto">
-            <p className="text-white font-semibold text-center mb-4">Ví dụ thực tế — Cư dân Vinhomes Ocean Park</p>
+            <p className="text-white font-semibold text-center mb-4">Ví dụ cần đối soát — Cư dân Vinhomes Ocean Park</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               {[
                 { label: 'Xe Toyota Innova 2022', sub: '7 chỗ, số tự động', accent: false },
-                { label: '−2.500.000đ', sub: 'Phí đỗ xe/tháng hiện tại', accent: false },
-                { label: '+14.000.000đ', sub: 'Thu nhập từ Car Match/tháng', accent: true },
-                { label: '≈ 11.500.000đ', sub: 'Thu nhập thực/tháng', accent: true },
+                { label: 'Phí cố định', sub: 'Gửi xe, bảo dưỡng, bảo hiểm', accent: false },
+                { label: 'Lịch rảnh', sub: 'Số ngày có thể khai thác', accent: true },
+                { label: 'Theo hợp đồng', sub: 'Doanh thu sau thẩm định', accent: true },
               ].map((item) => (
                 <div key={item.label} className={`rounded-xl p-4 ${item.accent ? 'bg-white' : 'bg-white/10'}`}>
                   <div className={`font-bold text-lg ${item.accent ? 'text-brand-600' : 'text-white'}`}>{item.label}</div>
@@ -299,12 +299,12 @@ export default function Partner() {
               </div>
               <h3 className="text-2xl font-bold mb-2">Cho thuê theo tháng</h3>
               <p className="text-brand-200 text-sm mb-6 leading-relaxed">
-                Bạn giao xe, Car Match lo toàn bộ vận hành. Thu nhập cố định NET mỗi tháng — không phụ thuộc thị trường.
+                Bạn giao xe theo thời hạn đã thỏa thuận. Car Match hỗ trợ vận hành và đối soát doanh thu theo điều kiện hợp đồng.
               </p>
               <div className="mb-6">
                 <div className="text-brand-200 text-xs font-semibold uppercase tracking-wide mb-3">Phù hợp nếu bạn</div>
                 <ul className="space-y-2">
-                  {['Không cần dùng xe hàng ngày', 'Muốn thu nhập thụ động ổn định', 'Không muốn tham gia vận hành'].map((t) => (
+                  {['Không cần dùng xe hàng ngày', 'Muốn có kỳ đối soát rõ ràng', 'Muốn giảm việc tự tìm khách thuê'].map((t) => (
                     <li key={t} className="flex items-center gap-2 text-sm text-white">
                       <CheckCircle2 className="w-4 h-4 text-brand-300 shrink-0" />
                       {t}
@@ -313,8 +313,8 @@ export default function Partner() {
                 </ul>
               </div>
               <div className="bg-white/15 rounded-xl p-4 mb-6">
-                <div className="text-white font-bold text-lg">8 – 18 triệu đồng</div>
-                <div className="text-brand-200 text-xs">Thu nhập cố định NET / tháng</div>
+                <div className="text-white font-bold text-lg">Ước tính sau thẩm định</div>
+                <div className="text-brand-200 text-xs">Doanh thu theo mẫu xe và hợp đồng</div>
               </div>
               <div>
                 <div className="text-brand-200 text-xs font-semibold uppercase tracking-wide mb-3">Quy trình</div>
@@ -336,12 +336,12 @@ export default function Partner() {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Ủy thác theo ngày</h3>
               <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                Bạn vẫn dùng xe cá nhân, đăng lịch rảnh hàng tuần. Mỗi giao dịch thành công bạn nhận tới 60%.
+                Bạn vẫn dùng xe cá nhân và đăng lịch rảnh hàng tuần. Mỗi giao dịch được đối soát theo tỷ lệ đã thống nhất.
               </p>
               <div className="mb-6">
                 <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-3">Phù hợp nếu bạn</div>
                 <ul className="space-y-2">
-                  {['Dùng xe cá nhân không đều đặn', 'Muốn linh hoạt lịch cho thuê', 'Muốn tối đa hoá thu nhập theo giao dịch'].map((t) => (
+                  {['Dùng xe cá nhân không đều đặn', 'Muốn linh hoạt lịch cho thuê', 'Muốn đối soát theo từng giao dịch'].map((t) => (
                     <li key={t} className="flex items-center gap-2 text-sm text-gray-700">
                       <CheckCircle2 className="w-4 h-4 text-brand-500 shrink-0" />
                       {t}
@@ -350,8 +350,8 @@ export default function Partner() {
                 </ul>
               </div>
               <div className="bg-brand-50 border border-brand-100 rounded-xl p-4 mb-6">
-                <div className="text-brand-600 font-bold text-lg">Lên tới 60%</div>
-                <div className="text-gray-500 text-xs">Giá trị giao dịch / chuyến thành công</div>
+                <div className="text-brand-600 font-bold text-lg">Theo hợp đồng</div>
+                <div className="text-gray-500 text-xs">Tỷ lệ đối soát / chuyến thành công</div>
               </div>
               <div>
                 <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-3">Quy trình</div>
@@ -375,11 +375,11 @@ export default function Partner() {
               <div className="p-4 text-center text-gray-700">Ủy thác ngày</div>
             </div>
             {[
-              ['Thu nhập', '8–18tr cố định/tháng', 'Lên tới 60%/giao dịch'],
+              ['Thu nhập', 'Ước tính sau thẩm định', 'Theo tỷ lệ đối soát'],
               ['Dùng xe cá nhân', '✗ Giao xe toàn thời gian', '✓ Linh hoạt theo lịch'],
               ['Tham gia vận hành', 'Không cần', 'Hỗ trợ giao nhận nhẹ'],
               ['Phù hợp xe', 'Xe dư / không dùng', 'Xe cá nhân rảnh lịch'],
-              ['Thanh toán', 'Đầu tháng (cố định)', 'Theo tuần (theo giao dịch)'],
+              ['Thanh toán', 'Theo kỳ hợp đồng', 'Theo kỳ đối soát giao dịch'],
             ].map(([label, v1, v2]) => (
               <div key={label} className="grid grid-cols-3 border-b border-gray-50 last:border-0 text-sm">
                 <div className="p-4 text-gray-500">{label}</div>

@@ -1,5 +1,3 @@
-import { StrictMode } from 'react'
-import { createRoot, hydrateRoot } from 'react-dom/client'
 import './styles/index.css'
 
 const chunkErrorPattern = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i
@@ -34,17 +32,23 @@ window.addEventListener('error', (event) => {
 })
 
 async function bootApp() {
-  const { default: App } = await import('./app/App')
+  const [{ StrictMode, createElement }, { createRoot, hydrateRoot }, { default: App }] = await Promise.all([
+    import('react'),
+    import('react-dom/client'),
+    import('./app/App'),
+  ])
   const root = document.getElementById('root')!
-  const app = (
-    <StrictMode>
-      <App />
-    </StrictMode>
-  )
+  const app = createElement(StrictMode, null, createElement(App))
 
   if (root.dataset.prerendered) {
+    delete root.dataset.prerendered
     hydrateRoot(root, app)
     return
+  }
+
+  if (root.dataset.staticShell) {
+    root.replaceChildren()
+    delete root.dataset.staticShell
   }
 
   createRoot(root).render(app)

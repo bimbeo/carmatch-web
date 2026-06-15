@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { Users, Zap, Fuel, CalendarDays } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
 import { trackVehicleClick } from '@/lib/analytics';
+import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 const fuelBadge: Record<Car['fuel'], { class: string; icon: React.ReactNode }> = {
@@ -27,6 +28,7 @@ interface CarCardProps {
 
 export default function CarCard({ car, compact = false, source = 'vehicle_card' }: CarCardProps) {
   const badge = fuelBadge[car.fuel];
+  const vehicleLinkLabel = [car.name, car.description, car.plateNumber].filter(Boolean).join(' - ');
   const trackCar = (action: string) => trackVehicleClick(action, {
     source,
     vehicle_id: car.id,
@@ -43,12 +45,15 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
         onClick={() => trackCar('image_click')}
         className="relative block overflow-hidden aspect-video bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
       >
+        <span className="sr-only">Xem chi tiết {vehicleLinkLabel} </span>
         <img
           src={optimizedImageUrl(car.images[0], 480, 58)}
           srcSet={optimizedImageSrcSet(car.images[0], [480, 720], 58)}
           sizes="(min-width: 1280px) 411px, (min-width: 768px) 33vw, 100vw"
-          alt={car.name}
+          alt={vehicleImageAlt(car)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          width={720}
+          height={405}
           loading="lazy"
           decoding="async"
         />
@@ -69,7 +74,7 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-base mb-1">{car.name}</h3>
+        <h3 id={`xe-${car.slug}`} className="font-semibold text-gray-900 text-base mb-1">{car.name}</h3>
 
         {!compact && car.description && (
           <p className="text-gray-500 text-xs leading-relaxed mb-3 line-clamp-2">{car.description}</p>
@@ -106,7 +111,7 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
             onClick={() => trackCar('detail_click')}
             className="flex-1 py-2.5 text-center text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all"
           >
-            Chi tiết
+            Chi tiết<span className="sr-only"> {vehicleLinkLabel}</span>
           </Link>
           <Link
             to={`/xe/${car.slug}`}
@@ -114,7 +119,7 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
             className="flex-1 py-2.5 text-center text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors flex items-center justify-center gap-1.5"
           >
             <CalendarDays className="w-3.5 h-3.5" />
-            Đặt xe
+            Đặt xe<span className="sr-only"> {vehicleLinkLabel}</span>
           </Link>
         </div>
       </div>

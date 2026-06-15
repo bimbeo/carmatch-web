@@ -593,8 +593,9 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const handleBook = () => setShowModal(true);
 
   const handleConfirmZalo = async () => {
+    const message = buildMessage();
     try {
-      await navigator.clipboard.writeText(buildMessage());
+      await navigator.clipboard.writeText(message);
     } catch { /* blocked */ }
     trackZaloClick('booking_widget_confirm_zalo', {
       vehicle_id: vehicleId || null,
@@ -602,7 +603,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       rental_days: rentalDays,
       total_amount: finalTotal,
     });
-    window.open(ZALO_LINK, '_blank');
+    window.open(`${ZALO_LINK}?text=${encodeURIComponent(message)}`, '_blank');
     setShowModal(false);
   };
 
@@ -622,6 +623,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   returnDt.setHours(returnHour, 0, 0, 0);
   const rentalDays = Math.max(1, Math.ceil((returnDt.getTime() - pickupDt.getTime()) / 86_400_000));
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
+  const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
 
   const copyBookingConfirmation = async () => {
     const lines = [
@@ -638,11 +640,11 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
       `${BANK_QR_ENABLED ? 'Đã cọc' : 'Tiền cọc dự kiến'}: ${depositAmount.toLocaleString('vi-VN')}đ`,
       deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
-      'Bảo hiểm chuyến đi: 0đ',
+      'Điều kiện bảo hiểm: xác nhận theo hợp đồng và biên bản bàn giao',
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
       `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: 3.000đ/km | 100.000đ/giờ`,
-      'Liên hệ: Car Match Vận Hành 0971593290',
+      'Liên hệ: Car Match Vận Hành 0975563290',
     ].filter(l => l !== null).join('\n');
     try {
       await navigator.clipboard.writeText(lines);
@@ -990,7 +992,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
         <div className="grid grid-cols-2 gap-2">
           <a
-            href={ZALO_LINK}
+            href={bookingZaloHref}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackZaloClick('booking_widget_contact', {
@@ -1020,9 +1022,9 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         {/* Trust list */}
         <ul className="space-y-1 pt-0.5">
           {[
-            '✓ Giá đã bao gồm bảo hiểm',
-            '✓ Đặt cọc 30% giữ xe, còn lại thanh toán khi nhận xe',
-            '✓ Giao xe tận tòa nhà',
+            '✓ Giá, cọc và điều kiện bảo hiểm được xác nhận trước khi chốt',
+            '✓ Đặt cọc giữ xe theo hướng dẫn của Car Match',
+            '✓ Giao xe tận tòa nhà theo lịch hẹn',
           ].map(t => (
             <li key={t} className="text-xs text-gray-400">{t}</li>
           ))}
@@ -1573,6 +1575,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                           src={buildVietQR(depositAmount, `DATXE ${bookingRef}`)}
                           alt="QR chuyển khoản"
                           className="w-52 h-52 object-contain"
+                          width={208}
+                          height={208}
+                          loading="lazy"
+                          decoding="async"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                       </div>
@@ -1604,14 +1610,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-700">
                       <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-                      <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để Car Match xác nhận tự động. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
+                      <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để Car Match đối soát nhanh hơn. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
                     </div>
 
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
                       <span className="shrink-0 mt-0.5">ℹ️</span>
                       <span>
-                        <strong>Chính sách hủy:</strong> Hủy trước 24h được hoàn 100% tiền cọc.
-                        Hủy trong 24h hoặc không đến nhận xe sẽ mất cọc.{' '}
+                        <strong>Chính sách hủy:</strong> Điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ.{' '}
                         <a href="/chinh-sach" className="underline text-amber-600 hover:text-amber-800" target="_blank" rel="noopener noreferrer">
                           Xem chi tiết →
                         </a>
@@ -1715,7 +1720,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
                     <p className="font-semibold text-slate-700">Liên hệ nhận xe & xử lý sự cố</p>
-                    <p className="text-slate-500">📞 Car Match Vận Hành: <span className="font-semibold text-slate-800">0971 593 290</span></p>
+                    <p className="text-slate-500">📞 Car Match Vận Hành: <span className="font-semibold text-slate-800">0975 563 290</span></p>
                     {selectedLocationInfo?.name && (
                       <p className="text-slate-500">📍 {selectedLocationInfo.name}</p>
                     )}

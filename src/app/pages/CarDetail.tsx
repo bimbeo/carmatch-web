@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
   Zap, ChevronLeft, ChevronRight, Phone,
-  MapPin, Star, BadgeCheck, Clock, MessageCircle,
+  MapPin, BadgeCheck, Clock, MessageCircle, Share2,
 } from 'lucide-react';
 import { formatPrice } from '@/data/cars';
 import { findVehicleBySlug, useVehicles } from '@/hooks/useVehicles';
@@ -15,6 +15,7 @@ import BookingWidget from '../components/BookingWidget';
 import CarReviews from '../components/CarReviews';
 import { useSEO } from '@/hooks/useSEO';
 import { trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -58,6 +59,7 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const multi = images.length > 1;
+  const activeImage = images[active];
 
   const prev = () => setActive((i) => (i - 1 + images.length) % images.length);
   const next = () => setActive((i) => (i + 1) % images.length);
@@ -72,16 +74,26 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
         >
           <img
             key={`bg-${active}`}
-            src={images[active]}
+            src={optimizedImageUrl(activeImage, 720, 45)}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-20"
+            width={720}
+            height={540}
+            decoding="async"
           />
           <img
             key={active}
-            src={images[active]}
+            src={optimizedImageUrl(activeImage, 960, 68)}
+            srcSet={optimizedImageSrcSet(activeImage, [640, 960, 1280, 1600], 68)}
+            sizes="(min-width: 1024px) 832px, 100vw"
             alt={`${name} - ảnh ${active + 1}`}
             className="relative z-10 w-full h-full object-contain object-center transition-opacity duration-200"
+            width={1280}
+            height={960}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
           />
           {/* Gradient overlay bottom */}
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-b-2xl" />
@@ -124,7 +136,17 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
                 }`}
                 style={{ width: 112, height: 80 }}
               >
-                <img src={img} alt={`thumb ${i + 1}`} className="w-full h-full object-cover" />
+                <img
+                  src={optimizedImageUrl(img, 224, 60)}
+                  srcSet={optimizedImageSrcSet(img, [112, 224], 60)}
+                  sizes="112px"
+                  alt={`${name} - ảnh thu nhỏ ${i + 1}`}
+                  className="w-full h-full object-cover"
+                  width={112}
+                  height={80}
+                  loading="lazy"
+                  decoding="async"
+                />
               </button>
             ))}
           </div>
@@ -160,9 +182,15 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
             </>
           )}
           <img
-            src={images[active]}
+            src={optimizedImageUrl(activeImage, 1600, 72)}
+            srcSet={optimizedImageSrcSet(activeImage, [960, 1280, 1600, 1920], 72)}
+            sizes="100vw"
             alt={`${name} - ảnh ${active + 1}`}
             className="max-w-full max-h-[90vh] object-contain rounded-xl"
+            width={1600}
+            height={1200}
+            loading="lazy"
+            decoding="async"
             onClick={(e) => e.stopPropagation()}
           />
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/70 text-sm">
@@ -214,7 +242,7 @@ export default function CarDetail() {
       ? `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | Car Match`
       : 'Thuê Xe Tự Lái Hà Nội | Car Match',
     description: car
-      ? `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày. Giao xe tận sảnh tòa nhà, bảo hiểm đầy đủ.`
+      ? `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày, giao xe tận sảnh và xác nhận điều kiện thuê trước khi chốt.`
       : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.',
     canonical: canonicalSlug ? `https://www.carmatch.vn/xe/${canonicalSlug}` : 'https://www.carmatch.vn/xe',
     ogImage: car?.images?.[0] ?? undefined,
@@ -308,6 +336,8 @@ export default function CarDetail() {
 
   const zaloMessage = encodeURIComponent(`Xin chào Car Match! Tôi muốn thuê xe ${car.name}. Cho tôi hỏi về lịch trống và giá thuê ạ.`);
   const zaloHref = `${ZALO_LINK}?text=${zaloMessage}`;
+  const detailUrl = `${SITE_URL}/xe/${canonicalSlug || car.slug}`;
+  const shareTitle = `Thuê ${car.name} tự lái tại Hà Nội | Car Match`;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900" style={{ fontFamily: "'Be Vietnam Pro','Inter',sans-serif" }}>
@@ -354,20 +384,17 @@ export default function CarDetail() {
                 </span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">{car.name}</h1>
-              {/* Rating placeholder */}
-              <div className="flex items-center gap-3 mt-2">
+              <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-500">
+                <span>Hà Nội</span>
+                <span className="text-gray-300">·</span>
                 <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-amber-400 fill-current" />
-                  ))}
-                  <span className="text-sm font-semibold text-gray-900 ml-1">4.9</span>
-                </div>
-                <span className="text-gray-300">·</span>
-                <span className="text-sm text-gray-500">Hà Nội</span>
-                <span className="text-gray-300">·</span>
-                <div className="flex items-center gap-1 text-sm text-gray-500">
                   <MapPin className="w-3.5 h-3.5" />
                   Giao tận tòa nhà
+                </div>
+                <span className="text-gray-300">·</span>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  Kiểm tra lịch qua Zalo
                 </div>
               </div>
             </div>
@@ -474,9 +501,9 @@ export default function CarDetail() {
               <div className="flex items-start gap-3">
                 <BadgeCheck className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-semibold text-brand-900 text-sm mb-1">Bảo hiểm & an toàn</div>
+                  <div className="font-semibold text-brand-900 text-sm mb-1">Bàn giao & an toàn</div>
                   <p className="text-brand-700 text-sm leading-relaxed">
-                    Xe có bảo hiểm vật chất 2 chiều đầy đủ. Thiệt hại được xử lý theo quy trình bảo hiểm rõ ràng. Mọi xe được kiểm định kỹ trước mỗi chuyến.
+                    Trước khi nhận xe, hai bên kiểm tra ngoại thất, nội thất, nhiên liệu/pin, km và phụ kiện. Điều kiện bảo hiểm, cọc và trách nhiệm phát sinh được xác nhận trước khi chốt lịch thuê.
                   </p>
                 </div>
               </div>
@@ -531,10 +558,31 @@ export default function CarDetail() {
               {/* Trust badges */}
               <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
                 <div className="space-y-2.5">
-                  <TrustBadge icon={<Shield className="w-4 h-4" />} text="Bảo hiểm vật chất 2 chiều" />
-                  <TrustBadge icon={<BadgeCheck className="w-4 h-4" />} text="Xe kiểm định kỹ trước chuyến" />
-                  <TrustBadge icon={<Clock className="w-4 h-4" />} text="Xác nhận trong 30 phút" />
-                  <TrustBadge icon={<MapPin className="w-4 h-4" />} text="Giao xe tận tòa nhà" />
+                  <TrustBadge icon={<Shield className="w-4 h-4" />} text="Điều kiện cọc/bảo hiểm được xác nhận trước" />
+                  <TrustBadge icon={<BadgeCheck className="w-4 h-4" />} text="Kiểm tra xe cùng khách khi bàn giao" />
+                  <TrustBadge icon={<Clock className="w-4 h-4" />} text="Phản hồi trong khoảng 30 phút khi có xe phù hợp" />
+                  <TrustBadge icon={<MapPin className="w-4 h-4" />} text="Giao xe tận tòa nhà theo lịch hẹn" />
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">Chia sẻ xe này</h3>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(detailUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Facebook
+                  </a>
+                  <a
+                    href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(detailUrl)}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    Email
+                  </a>
                 </div>
               </div>
 

@@ -1,9 +1,10 @@
 import { Link } from 'react-router';
 import { Phone, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
-import { trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 const FACEBOOK_LINK = 'https://www.facebook.com/carmatchvn';
+const INSTAGRAM_LINK = 'https://www.instagram.com/carmatchvn/';
 const PHONE = '0975 563 290';
 
 export default function Footer() {
@@ -16,31 +17,36 @@ export default function Footer() {
             <Link to="/" className="mb-4 inline-flex items-center" aria-label="Car Match">
               <img
                 src="/brand/carmatch-lockup-white.png"
-                alt="Car Match"
+                alt="Car Match logo màu trắng"
                 width="288"
                 height="66"
                 loading="lazy"
                 decoding="async"
                 className="h-10 w-auto object-contain"
               />
+              <span className="sr-only">Trang chủ Car Match</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-5">
-              Dịch vụ cho thuê xe tự lái uy tín tại Hà Nội. Xe mới, giá tốt, giao xe tận nơi.
+              Thuê xe tự lái tại Hà Nội theo ngày hoặc theo tháng. Giao nhận xe tận sảnh chung cư hoặc điểm hẹn theo lịch đã xác nhận.
             </p>
             <div className="flex items-center gap-3">
-              <a href={FACEBOOK_LINK} target="_blank" rel="noopener noreferrer" aria-label="Facebook Car Match"
+              <a href={FACEBOOK_LINK} target="_blank" rel="me noopener noreferrer" aria-label="Facebook Car Match"
+                onClick={() => trackCtaClick('footer_social_facebook', { target: FACEBOOK_LINK })}
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Facebook className="w-4 h-4 text-gray-300" />
                 <span className="sr-only">Facebook Car Match</span>
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+              <a href={INSTAGRAM_LINK} target="_blank" rel="me noopener noreferrer" aria-label="Instagram Car Match"
+                onClick={() => trackCtaClick('footer_social_instagram', { target: INSTAGRAM_LINK })}
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Instagram className="w-4 h-4 text-gray-300" />
+                <span className="sr-only">Instagram Car Match</span>
               </a>
-              <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" aria-label="Zalo"
+              <a href={ZALO_LINK} target="_blank" rel="me noopener noreferrer" aria-label="Zalo"
                 onClick={() => trackZaloClick('footer_social')}
                 className="w-9 h-9 rounded-full bg-[#0068FF]/30 flex items-center justify-center hover:bg-[#0068FF]/50 transition-colors">
                 <span className="text-[#60a5fa] text-xs font-bold">Z</span>
+                <span className="sr-only">Zalo Car Match</span>
               </a>
             </div>
           </div>
@@ -70,6 +76,7 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {[
                 { href: '/gioi-thieu', label: 'Về Car Match' },
+                { href: '/lien-he', label: 'Liên hệ Car Match' },
                 { href: '/blog', label: 'Blog & Kinh nghiệm' },
                 { href: '/gioi-thieu#quy-trinh', label: 'Quy trình thuê xe' },
                 { href: '/chinh-sach', label: 'Điều kiện & Chính sách' },
@@ -97,7 +104,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
+                <a href={ZALO_LINK} target="_blank" rel="me noopener noreferrer"
                   onClick={() => trackZaloClick('footer_contact')}
                   className="flex items-start gap-3 text-gray-400 hover:text-white transition-colors group">
                   <span className="w-4 h-4 mt-0.5 shrink-0 text-[#60a5fa] font-bold text-xs leading-none">Z</span>
@@ -126,6 +133,7 @@ export default function Footer() {
           <p className="text-gray-400 text-xs">© {new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
           <div className="flex items-center gap-6">
             <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Chính sách</Link>
+            <Link to="/lien-he" className="text-gray-400 text-xs hover:text-white transition-colors">Liên hệ</Link>
             <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Điều khoản</Link>
           </div>
         </div>

@@ -37,6 +37,8 @@ import Footer from '../components/Footer';
 import TravelAssistant from '../components/TravelAssistant';
 import ZaloFAB from '../components/ZaloFAB';
 import { trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
+import { vehicleImageAlt } from '@/lib/imageAlt';
+import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -818,10 +820,15 @@ export default function TripFinder() {
                   {tripVisualImageUrl ? (
                     <div className="relative hidden overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:block">
                       <img
-                        src={tripVisualImageUrl}
+                        src={optimizedImageUrl(tripVisualImageUrl, 360, 62)}
+                        srcSet={optimizedImageSrcSet(tripVisualImageUrl, [360, 540], 62)}
+                        sizes="180px"
                         alt={`Hình ảnh tuyến ${tripPlan.name}`}
                         className="h-full min-h-40 w-full object-cover"
+                        width={540}
+                        height={360}
                         loading="lazy"
+                        decoding="async"
                       />
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 to-transparent p-3">
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-white/70">Tuyến đang tính</p>
@@ -888,7 +895,17 @@ export default function TripFinder() {
               <div className="overflow-hidden rounded-3xl border border-brand-100 bg-white shadow-sm">
                 <div className="grid md:grid-cols-[240px_1fr]">
                   <Link to={`/xe/${primaryCar.slug}`} className="block min-h-56 bg-gray-100">
-                    <img src={primaryCar.images[0]} alt={primaryCar.name} className="h-full w-full object-cover" loading="lazy" />
+                    <img
+                      src={optimizedImageUrl(primaryCar.images[0], 720, 62)}
+                      srcSet={optimizedImageSrcSet(primaryCar.images[0], [480, 720, 960], 62)}
+                      sizes="(min-width: 768px) 240px, 100vw"
+                      alt={vehicleImageAlt(primaryCar, `phù hợp cho chuyến ${tripPlan.name}`)}
+                      className="h-full w-full object-cover"
+                      width={960}
+                      height={540}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </Link>
                   <div className="p-5 sm:p-6">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -964,7 +981,17 @@ export default function TripFinder() {
                         to={`/xe/${car.slug}`}
                         className={`relative block overflow-hidden bg-gray-100 ${index === 0 ? 'aspect-[16/9] xl:aspect-auto xl:h-full xl:min-h-[280px]' : 'aspect-[16/9]'}`}
                       >
-                        <img src={car.images[0]} alt={car.name} className="h-full w-full object-cover" loading="lazy" />
+                        <img
+                          src={optimizedImageUrl(car.images[0], index === 0 ? 960 : 720, 62)}
+                          srcSet={optimizedImageSrcSet(car.images[0], [480, 720, 960], 62)}
+                          sizes={index === 0 ? '(min-width: 1280px) 45vw, 100vw' : '(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw'}
+                          alt={vehicleImageAlt(car, `gợi ý cho chuyến ${tripPlan.name}`)}
+                          className="h-full w-full object-cover"
+                          width={960}
+                          height={540}
+                          loading="lazy"
+                          decoding="async"
+                        />
                         <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
                           <span className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-black leading-none shadow-sm ${
                             index === 0 ? 'bg-brand-600 text-white' : 'bg-white/95 text-slate-800'
@@ -1037,10 +1064,15 @@ export default function TripFinder() {
                 {tripVisualImageUrl ? (
                   <div className="relative hidden h-28 overflow-hidden rounded-2xl bg-slate-100 lg:block">
                     <img
-                      src={tripVisualImageUrl}
+                      src={optimizedImageUrl(tripVisualImageUrl, 360, 62)}
+                      srcSet={optimizedImageSrcSet(tripVisualImageUrl, [240, 360], 62)}
+                      sizes="180px"
                       alt={`Ảnh minh họa lịch trình ${tripPlan.name}`}
                       className="h-full w-full object-cover"
+                      width={360}
+                      height={224}
                       loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
                     <div className="absolute inset-x-3 bottom-3">
@@ -1212,7 +1244,17 @@ export default function TripFinder() {
               >
                 <div className="relative h-full min-h-32 bg-slate-100 md:h-28 md:min-h-0">
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={`Ảnh tuyến ${item.name}`} className="h-full w-full object-cover" loading="lazy" />
+                    <img
+                      src={optimizedImageUrl(item.imageUrl, 480, 62)}
+                      srcSet={optimizedImageSrcSet(item.imageUrl, [240, 480, 720], 62)}
+                      sizes="(min-width: 768px) 33vw, 118px"
+                      alt={`Ảnh tuyến ${item.name}`}
+                      className="h-full w-full object-cover"
+                      width={720}
+                      height={480}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-slate-950/10 to-transparent" />
                   <div className="absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-black text-slate-900 shadow-sm md:bottom-3 md:left-3 md:px-3 md:text-xs">

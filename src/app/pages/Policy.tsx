@@ -6,10 +6,10 @@ const sections = [
   {
     title: 'Chính sách hủy',
     items: [
-      'Hủy trước 48h: hoàn 100% tiền cọc',
-      'Hủy từ 24h-48h: hoàn 50% tiền cọc',
-      'Hủy trong 24h hoặc không đến nhận xe: mất toàn bộ cọc',
-      'Hủy do sự cố bất khả kháng (tai nạn, thiên tai): thỏa thuận hoàn cọc',
+      'Điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ',
+      'Khách cần báo hủy qua hotline/Zalo 0975 563 290 để Car Match xác nhận phương án xử lý',
+      'Trường hợp hủy sát giờ nhận xe hoặc không đến nhận xe sẽ áp dụng theo thỏa thuận trong hợp đồng',
+      'Sự cố bất khả kháng được hai bên đối soát và thỏa thuận theo tình huống thực tế',
     ],
   },
   {
@@ -25,16 +25,16 @@ const sections = [
     title: 'Giấy tờ cần thiết',
     items: [
       'Căn cước công dân / CCCD (bản gốc, xác minh tại chỗ, không giữ lại)',
-      'Giấy phép lái xe hạng B2 trở lên (bản gốc)',
-      'Tài sản thế chấp: tiền mặt 10-30 triệu hoặc xe máy tương đương (tùy mẫu xe, thỏa thuận khi ký hợp đồng)',
+      'Giấy phép lái xe hạng B còn hiệu lực (bản gốc)',
+      'Khoản đặt cọc theo mẫu xe, được xác nhận trước khi giao xe',
     ],
   },
   {
     title: 'Bảo hiểm',
     items: [
-      'Bảo hiểm trách nhiệm dân sự: đã bao gồm trong giá thuê',
-      'Bảo hiểm thân xe: đã bao gồm (khấu trừ 2 triệu/sự cố)',
-      'Tai nạn do lỗi tài xế: khách chịu mức khấu trừ theo hợp đồng',
+      'Điều kiện bảo hiểm và trách nhiệm sử dụng xe được ghi nhận trong hợp đồng/bàn giao',
+      'Khách nên xác nhận phạm vi bảo hiểm, mức khấu trừ nếu có và quy trình xử lý sự cố trước khi nhận xe',
+      'Thiệt hại phát sinh trong thời gian thuê được đối soát theo biên bản bàn giao và thỏa thuận thuê xe',
     ],
   },
   {
@@ -51,7 +51,7 @@ const sections = [
     items: [
       'Nhận xe: ký biên bản bàn giao, chụp ảnh hiện trạng xe',
       'Trả xe: kiểm tra xe cùng nhân viên, thanh lý hợp đồng tại chỗ',
-      'Thời gian giao nhận: sau 20:00 đến trước 23:00 (theo ca xe)',
+      'Thời gian giao nhận được xác nhận trước theo lịch xe, khu vực nhận và giờ hỗ trợ thực tế',
     ],
   },
 ];

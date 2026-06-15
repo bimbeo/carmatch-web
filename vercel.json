@@ -1,6 +1,15 @@
 {
   "routes": [
     {
+      "src": "/(.*)",
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com; frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; form-action 'self' https://zalo.me; upgrade-insecure-requests",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "continue": true
+    },
+    {
       "src": "/assets/(.*)",
       "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
       "continue": true
@@ -73,6 +82,14 @@
       "headers": { "Location": "https://www.carmatch.vn/xe" }
     },
     {
+      "src": "/lien-he/?",
+      "dest": "/lien-he/index.html"
+    },
+    {
+      "src": "/thue-xe-thang/?",
+      "dest": "/thue-xe-thang/index.html"
+    },
+    {
       "src": "/xe",
       "has": [{ "type": "query", "key": "category" }],
       "dest": "/api/vehicles?cleanXe=1"
@@ -81,6 +98,10 @@
       "src": "/xe",
       "has": [{ "type": "query", "key": "seats" }],
       "dest": "/api/vehicles?cleanXe=1"
+    },
+    {
+      "src": "/xe/?",
+      "dest": "/xe/index.html"
     },
     {
       "src": "/xe/vinfast-vf5-2025-30l-53361/?",
@@ -96,6 +117,14 @@
       "src": "/blog/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
+      "src": "/blog/([^/]+)/?",
+      "dest": "/blog/$1/index.html"
+    },
+    {
+      "src": "/blog/?",
+      "dest": "/blog/index.html"
     },
     {
       "src": "/(ve-chung-toi|about|gioi-thieu-carmatch)/?",
@@ -152,14 +181,6 @@
         "Cache-Control": "no-store, max-age=0",
         "X-Content-Type-Options": "nosniff"
       }
-    },
-    {
-      "src": "/blog/([^/]+)/?",
-      "dest": "/api/posts?slug=$1&format=html"
-    },
-    {
-      "src": "/blog/?",
-      "dest": "/api/posts?format=html"
     },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },

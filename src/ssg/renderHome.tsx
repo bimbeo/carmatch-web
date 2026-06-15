@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router';
 import Home from '../app/pages/Home';
 import Fleet from '../app/pages/Fleet';
 import B2B from '../app/pages/B2B';
+import Contact from '../app/pages/Contact';
 
 export function renderHome(vehicles: unknown[]) {
   globalThis.__CM_INITIAL_VEHICLES__ = vehicles as typeof globalThis.__CM_INITIAL_VEHICLES__;
@@ -45,4 +46,12 @@ export function renderFleet(vehicles: unknown[]) {
   } finally {
     delete globalThis.__CM_INITIAL_VEHICLES__;
   }
+}
+
+export function renderContact() {
+  return renderToString(
+    <MemoryRouter initialEntries={['/lien-he']}>
+      <Contact />
+    </MemoryRouter>,
+  );
 }

@@ -16,6 +16,7 @@ const Partner = lazy(() => import('./pages/Partner'));
 const BookingConfirm = lazy(() => import('./pages/BookingConfirm'));
 const Policy = lazy(() => import('./pages/Policy'));
 const FAQ = lazy(() => import('./pages/FAQ'));
+const Contact = lazy(() => import('./pages/Contact'));
 const Admin = lazy(() => import('./pages/Admin'));
 
 const chunkReloadKey = 'carmatch-chunk-reload-attempted';
@@ -137,6 +138,7 @@ export default function App() {
             <Route path="/dat-xe" element={<BookingConfirm />} />
             <Route path="/chinh-sach" element={<Policy />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/lien-he" element={<Contact />} />
             <Route path="/admin" element={<Admin />} />
           </Routes>
         </Suspense>

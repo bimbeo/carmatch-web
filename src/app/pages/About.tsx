@@ -8,30 +8,30 @@ const ZALO_LINK = 'https://zalo.me/0975563290';
 
 const stats = [
   { value: '20+', label: 'Mẫu xe đa dạng' },
-  { value: '500+', label: 'Chuyến thành công' },
-  { value: '2 năm', label: 'Kinh nghiệm' },
-  { value: '4.8★', label: 'Đánh giá trung bình' },
+  { value: '7h-22h', label: 'Hỗ trợ mỗi ngày' },
+  { value: 'CCCD + GPLX', label: 'Giấy tờ chính' },
+  { value: 'Zalo', label: 'Kiểm tra lịch xe' },
 ];
 
 const commitments = [
-  { icon: Shield, title: 'Xe an toàn, bảo hiểm đầy đủ', desc: 'Tất cả xe được kiểm tra định kỳ. Bảo hiểm thân xe và tai nạn đầy đủ.' },
-  { icon: Clock, title: 'Phản hồi trong 30 phút', desc: 'Đội ngũ trực Zalo từ 7h–22h. Xử lý sự cố nhanh trong ngày.' },
-  { icon: Smile, title: 'Trải nghiệm không phiền não', desc: 'Quy trình thuê đơn giản 3 bước. Không phí ẩn. Hoàn cọc ngay khi trả xe.' },
-  { icon: Wrench, title: 'Hỗ trợ kỹ thuật 24/7', desc: 'Nếu có sự cố trong chuyến, đội kỹ thuật Car Match sẵn sàng hỗ trợ.' },
+  { icon: Shield, title: 'Kiểm tra xe khi bàn giao', desc: 'Hai bên ghi nhận tình trạng xe, nhiên liệu/pin, km và phụ kiện trước khi khởi hành.' },
+  { icon: Clock, title: 'Phản hồi trong giờ hỗ trợ', desc: 'Đội ngũ trực Zalo từ 7h–22h và kiểm tra lịch xe thật trước khi báo phương án.' },
+  { icon: Smile, title: 'Điều kiện thuê rõ ràng', desc: 'Giá thuê, cọc, phí giao nhận và điều kiện hoàn/hủy được xác nhận trước khi chốt.' },
+  { icon: Wrench, title: 'Hỗ trợ khi phát sinh', desc: 'Khi có sự cố trong chuyến, khách liên hệ Car Match để được hướng dẫn bước xử lý tiếp theo.' },
 ];
 
 const processSteps = [
-  { step: '01', title: 'Chọn xe & liên hệ Zalo', desc: 'Xem fleet trên website, chọn xe phù hợp và nhắn Zalo để đặt lịch. Xác nhận trong 30 phút.' },
-  { step: '02', title: 'Ký hợp đồng & đặt cọc', desc: 'Xuất trình CCCD + GPLX. Đặt cọc 30M hoặc xe máy tương đương. Ký hợp đồng đơn giản.' },
+  { step: '01', title: 'Chọn xe & liên hệ Zalo', desc: 'Xem fleet trên website, chọn xe phù hợp và nhắn Zalo để Car Match kiểm tra lịch xe.' },
+  { step: '02', title: 'Xác nhận giấy tờ & đặt cọc', desc: 'Xuất trình CCCD + GPLX hạng B. Khoản cọc và điều kiện thuê được báo theo mẫu xe trước khi giao.' },
   { step: '03', title: 'Nhận xe & lên đường', desc: 'Xe được giao tận nơi hoặc nhận tại địa điểm hẹn. Kiểm tra xe cùng nhân viên, rồi tự do khởi hành.' },
-  { step: '04', title: 'Trả xe & hoàn cọc', desc: 'Trả xe đúng giờ hẹn. Kiểm tra xe, thanh lý hợp đồng, hoàn tiền cọc ngay trong ngày.' },
+  { step: '04', title: 'Trả xe & đối soát', desc: 'Trả xe đúng giờ hẹn. Hai bên kiểm tra lại xe, đối soát chi phí phát sinh và xử lý cọc theo hợp đồng.' },
 ];
 
 const conditions = [
   'Chứng minh nhân dân / CCCD (bản gốc)',
-  'Giấy phép lái xe hạng B2 còn hiệu lực',
-  'Đặt cọc 30.000.000đ (tiền mặt hoặc chuyển khoản)',
-  'Hoặc thế chấp xe máy có giá trị tương đương',
+  'Giấy phép lái xe hạng B còn hiệu lực',
+  'Khoản đặt cọc theo mẫu xe, được xác nhận trước khi giao xe',
+  'Thông tin nơi ở hoặc điểm giao nhận tại Hà Nội',
   'Tuổi: 21–65 tuổi',
   'Không yêu cầu hộ khẩu Hà Nội',
 ];
@@ -39,7 +39,7 @@ const conditions = [
 export default function About() {
   useSEO({
     title: 'Về Car Match — Dịch Vụ Thuê Xe Tự Lái Hà Nội',
-    description: 'Car Match là dịch vụ thuê xe tự lái tại Hà Nội, chuyên phục vụ cư dân chung cư cao cấp. Xe an toàn, bảo hiểm đầy đủ, giao xe tận sảnh tòa nhà.',
+    description: 'Car Match là dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh tòa nhà, kiểm tra lịch xe qua Zalo và xác nhận điều kiện thuê trước khi chốt.',
     canonical: 'https://www.carmatch.vn/gioi-thieu',
   });
 
@@ -81,7 +81,7 @@ export default function About() {
           <div className="space-y-4 text-gray-600 leading-relaxed">
             <p>Car Match được thành lập tại Hà Nội với mong muốn mang lại trải nghiệm thuê xe tự lái đơn giản, minh bạch và đáng tin cậy.</p>
             <p>Chúng tôi hoạt động theo mô hình đối tác — kết nối người sở hữu xe chất lượng với khách hàng có nhu cầu, tạo ra giá trị cho cả hai phía trong khi đảm bảo tiêu chuẩn dịch vụ cao nhất.</p>
-            <p>Sau 2 năm hoạt động, Car Match tự hào đã phục vụ hàng trăm khách hàng cá nhân lẫn doanh nghiệp, với đội xe ngày càng đa dạng từ xe điện VinFast đến các dòng xe 7 chỗ cao cấp.</p>
+            <p>Car Match tập trung xây dựng đội xe đa dạng từ xe điện VinFast đến các dòng xe 7 chỗ, đồng thời chuẩn hóa quy trình xác nhận lịch, đặt cọc, bàn giao và hỗ trợ khách trong chuyến đi.</p>
           </div>
         </div>
       </section>
@@ -148,7 +148,7 @@ export default function About() {
       <section className="py-20 px-4 bg-gradient-to-br from-brand-50 to-brand-50">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Sẵn sàng khởi hành?</h2>
-          <p className="text-gray-600 mb-8">Đặt xe ngay hôm nay qua Zalo — xác nhận trong 30 phút.</p>
+          <p className="text-gray-600 mb-8">Đặt xe qua Zalo để Car Match kiểm tra lịch xe, báo giá và điều kiện thuê trước khi chốt.</p>
           <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-4 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200">
             Đặt xe qua Zalo

@@ -5,6 +5,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { submitLead } from '@/hooks/useLeads';
 import { useTravelContent } from '@/hooks/useTravelContent';
 import { trackEvent } from '@/lib/analytics';
+import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import { destinationHeroClass, destinationImageStyle } from '@/lib/travelMedia';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -478,7 +479,19 @@ export default function GoWhereDetail() {
               <div className="mt-5 grid gap-3">
                 {(destination.nearbyPlaces || []).map((place) => (
                   <div key={place.name} className="overflow-hidden rounded-2xl bg-slate-50">
-                    {place.imageUrl ? <img src={place.imageUrl} alt={place.name} className="h-36 w-full object-cover" loading="lazy" /> : null}
+                    {place.imageUrl ? (
+                      <img
+                        src={optimizedImageUrl(place.imageUrl, 720, 62)}
+                        srcSet={optimizedImageSrcSet(place.imageUrl, [480, 720, 960], 62)}
+                        sizes="(min-width: 1024px) 40vw, 100vw"
+                        alt={place.name}
+                        className="h-36 w-full object-cover"
+                        width={960}
+                        height={540}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : null}
                     <div className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>

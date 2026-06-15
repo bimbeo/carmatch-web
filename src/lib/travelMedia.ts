@@ -1,4 +1,5 @@
 import type { TripDestination } from '@/data/tripDestinations';
+import { optimizedImageUrl } from '@/lib/imageUrl';
 
 const destinationImageFallbacks: Record<string, string> = {
   'ha-long': 'from-cyan-500 via-blue-500 to-slate-900',
@@ -34,6 +35,6 @@ export function destinationHeroClass(destination: Pick<TripDestination, 'slug'>)
 
 export function destinationImageStyle(destination: Pick<TripDestination, 'imageUrl'>) {
   return destination.imageUrl
-    ? { backgroundImage: `linear-gradient(180deg, rgba(15,23,42,0.08), rgba(15,23,42,0.76)), url("${destination.imageUrl}")` }
+    ? { backgroundImage: `linear-gradient(180deg, rgba(15,23,42,0.08), rgba(15,23,42,0.76)), url("${optimizedImageUrl(destination.imageUrl, 1280, 68)}")` }
     : undefined;
 }

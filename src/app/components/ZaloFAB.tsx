@@ -7,7 +7,7 @@ export default function ZaloFAB() {
     <a
       href={ZALO_LINK}
       target="_blank"
-      rel="noopener noreferrer"
+      rel="me noopener noreferrer"
       onClick={() => trackZaloClick('floating_fab')}
       className="hidden sm:flex fixed bottom-6 right-6 z-50 items-center gap-2 bg-[#0068FF] text-white px-4 py-3 rounded-full shadow-lg shadow-blue-500/25 hover:bg-blue-600 transition-all hover:scale-105 active:scale-95"
       aria-label="Chat Zalo"

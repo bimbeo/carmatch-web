@@ -19,30 +19,62 @@ function categoryLabel(slug = '') {
     .join(' ');
 }
 
+function normalizeBrandText(value = '') {
+  return String(value)
+    .replace(/\bCarMatch\b/g, 'Car Match')
+    .replace(/\bCARMATCH\b/g, 'CAR MATCH');
+}
+
+function normalizeCustomerText(value = '') {
+  return normalizeBrandText(value)
+    .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
+    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
+    .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
+}
+
+function normalizeOptionalText(value) {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  return normalizeCustomerText(value);
+}
+
+function normalizeRequiredText(value, fallback = '') {
+  if (typeof value !== 'string' || !value.trim()) return fallback;
+  return normalizeCustomerText(value);
+}
+
+function normalizeRelatedVehicleLinks(links) {
+  if (!Array.isArray(links)) return [];
+  return links.map((link) => ({
+    ...link,
+    label: normalizeRequiredText(link?.label),
+  }));
+}
+
 function mapSupabasePost(row) {
   return {
     _id: row.id,
-    title: row.title,
+    title: normalizeRequiredText(row.title),
     slug: { current: row.slug },
     publishedAt: row.published_at || row.updated_at || row.created_at,
-    excerpt: row.excerpt || '',
+    excerpt: normalizeRequiredText(row.excerpt),
     mainImageUrl: row.main_image_url || null,
     categories: row.category_slug ? [categoryLabel(row.category_slug)] : [],
-    author: row.author || 'Car Match',
+    author: normalizeRequiredText(row.author, 'Car Match'),
     body: [],
-    bodyHtml: row.content_html || '',
-    seoTitle: row.seo_title || undefined,
-    seoDescription: row.seo_description || undefined,
+    bodyHtml: normalizeRequiredText(row.content_html),
+    seoTitle: normalizeOptionalText(row.seo_title),
+    seoDescription: normalizeOptionalText(row.seo_description),
     canonicalUrl: row.canonical_url || undefined,
     ctaEnabled: row.cta_enabled ?? true,
-    ctaTitle: row.cta_title || undefined,
-    ctaDescription: row.cta_description || undefined,
-    ctaPrimaryLabel: row.cta_primary_label || undefined,
+    ctaTitle: normalizeOptionalText(row.cta_title),
+    ctaDescription: normalizeOptionalText(row.cta_description),
+    ctaPrimaryLabel: normalizeOptionalText(row.cta_primary_label),
     ctaPrimaryUrl: row.cta_primary_url || undefined,
-    ctaZaloLabel: row.cta_zalo_label || undefined,
+    ctaZaloLabel: normalizeOptionalText(row.cta_zalo_label),
     ctaZaloUrl: row.cta_zalo_url || undefined,
     relatedDestinationSlugs: row.related_destination_slugs || [],
-    relatedVehicleLinks: row.related_vehicle_links || [],
+    relatedVehicleLinks: normalizeRelatedVehicleLinks(row.related_vehicle_links),
     relatedPostSlugs: row.related_post_slugs || [],
   };
 }
@@ -93,7 +125,10 @@ async function fetchSupabasePost(slug) {
   return {
     ...post,
     relatedDestinations: destinationRes.data || [],
-    relatedPosts: relatedPostRes.data || [],
+    relatedPosts: (relatedPostRes.data || []).map((relatedPost) => ({
+      ...relatedPost,
+      title: normalizeRequiredText(relatedPost.title),
+    })),
   };
 }
 

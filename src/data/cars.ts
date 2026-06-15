@@ -23,8 +23,8 @@ export interface Car {
 
 const conditions = [
   'CCCD công dân (bản gốc)',
-  'Giấy phép lái xe (GPLX) còn hạn',
-  'Đặt cọc 30.000.000đ hoặc xe máy có giá trị tương đương',
+  'Giấy phép lái xe hạng B còn hạn',
+  'Khoản đặt cọc theo mẫu xe, xác nhận trước khi giao',
 ];
 
 export const cars: Car[] = [
