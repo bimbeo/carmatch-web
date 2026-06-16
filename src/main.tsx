@@ -51,6 +51,8 @@ async function bootApp() {
   if (root.dataset.staticShell) {
     root.replaceChildren()
     delete root.dataset.staticShell
+    // Remove SSG-injected styles so their global rules (p, li, a, h1…) don't bleed into React content
+    document.querySelectorAll('style[data-ssg]').forEach((el) => el.remove())
   }
 
   createRoot(root).render(app)

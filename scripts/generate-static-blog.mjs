@@ -4287,9 +4287,10 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="preload" as="image" href="/brand/carmatch-lockup-navy.png" />
     <script type="application/ld+json">${normalizedStructuredData}</script>
-    <style>
-      /* Layer order: ssg styles override Tailwind base/reset, but Tailwind utilities override ssg.
-         This prevents static-shell CSS (a{color:inherit}, p{color:…}) from bleeding into React-rendered elements. */
+    <style data-ssg>
+      /* Removed by main.tsx when React takes over — prevents SSG global rules from bleeding into React content.
+         Layer order: ssg > base (so our h1/h2/p override Tailwind preflight during static phase),
+         but utilities > ssg (so Tailwind text-white etc. win over a{color:inherit}). */
       @layer base, ssg, components, utilities;
       :root { color-scheme: light; font-family: "Be Vietnam Pro", Inter, Arial, sans-serif; }
       @layer ssg {
