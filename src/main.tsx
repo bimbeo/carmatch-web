@@ -32,12 +32,14 @@ window.addEventListener('error', (event) => {
 })
 
 async function bootApp() {
+  const root = document.getElementById('root')!
+  const hadStaticShell = Boolean(root.dataset.staticShell)
+
   const [{ StrictMode, createElement }, { createRoot, hydrateRoot }, { default: App }] = await Promise.all([
     import('react'),
     import('react-dom/client'),
     import('./app/App'),
   ])
-  const root = document.getElementById('root')!
   const app = createElement(StrictMode, null, createElement(App))
 
   if (root.dataset.prerendered) {
@@ -52,6 +54,13 @@ async function bootApp() {
   }
 
   createRoot(root).render(app)
+
+  if (hadStaticShell) {
+    requestAnimationFrame(() => {
+      root.style.transition = 'opacity 0.15s ease'
+      root.style.opacity = '1'
+    })
+  }
 }
 
 function scheduleHomeBoot() {

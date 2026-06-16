@@ -4288,77 +4288,83 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
     <link rel="preload" as="image" href="/brand/carmatch-lockup-navy.png" />
     <script type="application/ld+json">${normalizedStructuredData}</script>
     <style>
-      :root { color-scheme: light; font-family: "Be Vietnam Pro", Inter, Arial, sans-serif; background: #f8fafc; color: #0f172a; }
-      * { box-sizing: border-box; }
-      body { margin: 0; background: #f8fafc; }
-      a { color: inherit; text-decoration: none; }
-      .nav { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid #e2e8f0; background: rgba(255,255,255,.94); backdrop-filter: blur(10px); }
-      .nav-inner { align-items: center; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1180px; padding: 14px 20px; }
-      .brand img { display: block; height: 34px; width: auto; }
-      .links { align-items: center; display: flex; gap: 22px; font-size: 14px; font-weight: 850; color: #475569; }
-      .links a[data-active="true"] { color: #0f766e; }
-      .nav-cta, .btn { align-items: center; border-radius: 999px; display: inline-flex; font-weight: 900; justify-content: center; padding: 13px 18px; }
-      .nav-cta, .btn.primary { background: #0f766e; color: white; }
-      .btn.secondary { background: white; border: 1px solid #cbd5e1; color: #0f172a; }
-      .container { margin: 0 auto; max-width: 1180px; padding-left: 20px; padding-right: 20px; }
-      .hero { display: grid; gap: 34px; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); padding-bottom: 58px; padding-top: 62px; }
-      .eyebrow { color: #0f766e; font-size: 12px; font-weight: 950; letter-spacing: .16em; margin: 0 0 12px; text-transform: uppercase; }
-      h1 { font-size: clamp(38px, 6vw, 68px); letter-spacing: 0; line-height: 1; margin: 0 0 18px; }
-      h2 { font-size: clamp(28px, 4vw, 44px); letter-spacing: 0; line-height: 1.08; margin: 0 0 18px; }
-      h3 { font-size: 21px; line-height: 1.25; margin: 0 0 8px; }
-      p, li { color: #475569; font-size: 16px; font-weight: 650; line-height: 1.72; }
-      .lead { font-size: 18px; max-width: 700px; }
-      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
-      .panel, .card, .band-card, details { background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 14px 38px rgba(15,23,42,.05); }
-      .panel { padding: 24px; }
-      .panel-image { aspect-ratio: 16 / 10; border-radius: 8px; display: block; margin: -8px -8px 20px; object-fit: cover; width: calc(100% + 16px); }
-      .metric-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0,1fr)); margin-top: 24px; }
-      .metric { background: #f1f5f9; border-radius: 8px; padding: 16px; }
-      .metric strong { display: block; font-size: 24px; }
-      .metric span { color: #64748b; display: block; font-size: 12px; font-weight: 900; margin-top: 4px; text-transform: uppercase; }
-      .section { padding-bottom: 64px; padding-top: 64px; }
-      .band { background: white; border-bottom: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
-      .section-head { align-items: end; display: flex; gap: 22px; justify-content: space-between; margin-bottom: 28px; }
-      .muted { max-width: 720px; }
-      .grid-2 { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .grid-3 { display: grid; gap: 18px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .grid-4 { display: grid; gap: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .card { padding: 22px; }
-      .card .tag { color: #0f766e; display: block; font-size: 12px; font-weight: 950; letter-spacing: .12em; margin-bottom: 12px; text-transform: uppercase; }
-      .card-link { display: block; transition: transform .16s ease, box-shadow .16s ease; }
-      .card-link:hover { box-shadow: 0 18px 46px rgba(15,23,42,.1); transform: translateY(-2px); }
-      .route-card { display: block; overflow: hidden; padding: 0; }
-      .route-card-image { aspect-ratio: 16 / 10; background: linear-gradient(135deg,#0f766e,#0f172a); display: block; object-fit: cover; width: 100%; }
-      .route-card-body { padding: 22px; }
-      .route-stats { display: grid; gap: 10px; grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 16px; }
-      .route-stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
-      .route-stat strong { display: block; font-size: 15px; }
-      .route-stat span { color: #64748b; display: block; font-size: 11px; font-weight: 900; margin-top: 3px; text-transform: uppercase; }
-      .hero-photo { border-radius: 8px; min-height: 440px; overflow: hidden; padding: 0; }
-      .hero-photo img { display: block; height: 100%; min-height: 440px; object-fit: cover; width: 100%; }
-      .mini-list { display: grid; gap: 12px; margin-top: 18px; }
-      .mini { align-items: start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: grid; gap: 6px; padding: 15px; }
-      .table-wrap { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto; }
-      table { border-collapse: collapse; min-width: 720px; width: 100%; }
-      th { background: #0f172a; color: white; padding: 16px; text-align: left; }
-      td { border-top: 1px solid #e2e8f0; color: #475569; font-weight: 750; padding: 16px; }
-      td:first-child { color: #0f172a; font-weight: 950; }
-      .dark { background: #0f172a; color: white; }
-      .dark p, .dark li { color: #cbd5e1; }
-      .dark h2, .dark h3 { color: white; }
-      .pill-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-      .pill-links a { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 999px; color: #334155; font-size: 14px; font-weight: 900; padding: 10px 14px; }
-      details { box-shadow: none; margin-top: 12px; padding: 19px 20px; }
-      summary { cursor: pointer; font-size: 18px; font-weight: 950; }
-      footer { background: #020617; color: white; padding: 34px 20px; text-align: center; }
-      footer p { color: #cbd5e1; margin: 8px 0 0; }
-      @media (max-width: 980px) { .hero, .grid-4 { grid-template-columns: 1fr 1fr; } .grid-3 { grid-template-columns: 1fr 1fr; } .links { display: none; } }
-      @media (max-width: 680px) { .hero, .grid-2, .grid-3, .grid-4, .metric-grid { grid-template-columns: 1fr; } .hero { padding-top: 38px; } .section-head { align-items: start; flex-direction: column; } .nav-cta { display: none; } }
+      /* Layer order: ssg styles override Tailwind base/reset, but Tailwind utilities override ssg.
+         This prevents static-shell CSS (a{color:inherit}, p{color:…}) from bleeding into React-rendered elements. */
+      @layer base, ssg, components, utilities;
+      :root { color-scheme: light; font-family: "Be Vietnam Pro", Inter, Arial, sans-serif; }
+      @layer ssg {
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f8fafc; color: #0f172a; }
+        a { color: inherit; text-decoration: none; }
+        .nav { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid #e2e8f0; background: rgba(255,255,255,.94); backdrop-filter: blur(10px); }
+        .nav-inner { align-items: center; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1180px; padding: 14px 20px; }
+        .brand img { display: block; height: 34px; width: auto; }
+        .links { align-items: center; display: flex; gap: 22px; font-size: 14px; font-weight: 850; color: #475569; }
+        .links a[data-active="true"] { color: #0f766e; }
+        .nav-cta, .btn { align-items: center; border-radius: 999px; display: inline-flex; font-weight: 900; justify-content: center; padding: 13px 18px; }
+        .nav-cta, .btn.primary { background: #0f766e; color: white; }
+        .btn.secondary { background: white; border: 1px solid #cbd5e1; color: #0f172a; }
+        .container { margin: 0 auto; max-width: 1180px; padding-left: 20px; padding-right: 20px; }
+        .hero { display: grid; gap: 34px; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); padding-bottom: 58px; padding-top: 62px; }
+        .eyebrow { color: #0f766e; font-size: 12px; font-weight: 950; letter-spacing: .16em; margin: 0 0 12px; text-transform: uppercase; }
+        h1 { font-size: clamp(38px, 6vw, 68px); letter-spacing: 0; line-height: 1; margin: 0 0 18px; }
+        h2 { font-size: clamp(28px, 4vw, 44px); letter-spacing: 0; line-height: 1.08; margin: 0 0 18px; }
+        h3 { font-size: 21px; line-height: 1.25; margin: 0 0 8px; }
+        p, li { color: #475569; font-size: 16px; font-weight: 650; line-height: 1.72; }
+        .lead { font-size: 18px; max-width: 700px; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+        .panel, .card, .band-card, details { background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 14px 38px rgba(15,23,42,.05); }
+        .panel { padding: 24px; }
+        .panel-image { aspect-ratio: 16 / 10; border-radius: 8px; display: block; margin: -8px -8px 20px; object-fit: cover; width: calc(100% + 16px); }
+        .metric-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0,1fr)); margin-top: 24px; }
+        .metric { background: #f1f5f9; border-radius: 8px; padding: 16px; }
+        .metric strong { display: block; font-size: 24px; }
+        .metric span { color: #64748b; display: block; font-size: 12px; font-weight: 900; margin-top: 4px; text-transform: uppercase; }
+        .section { padding-bottom: 64px; padding-top: 64px; }
+        .band { background: white; border-bottom: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
+        .section-head { align-items: end; display: flex; gap: 22px; justify-content: space-between; margin-bottom: 28px; }
+        .muted { max-width: 720px; }
+        .grid-2 { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-3 { display: grid; gap: 18px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-4 { display: grid; gap: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .card { padding: 22px; }
+        .card .tag { color: #0f766e; display: block; font-size: 12px; font-weight: 950; letter-spacing: .12em; margin-bottom: 12px; text-transform: uppercase; }
+        .card-link { display: block; transition: transform .16s ease, box-shadow .16s ease; }
+        .card-link:hover { box-shadow: 0 18px 46px rgba(15,23,42,.1); transform: translateY(-2px); }
+        .route-card { display: block; overflow: hidden; padding: 0; }
+        .route-card-image { aspect-ratio: 16 / 10; background: linear-gradient(135deg,#0f766e,#0f172a); display: block; object-fit: cover; width: 100%; }
+        .route-card-body { padding: 22px; }
+        .route-stats { display: grid; gap: 10px; grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 16px; }
+        .route-stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+        .route-stat strong { display: block; font-size: 15px; }
+        .route-stat span { color: #64748b; display: block; font-size: 11px; font-weight: 900; margin-top: 3px; text-transform: uppercase; }
+        .hero-photo { border-radius: 8px; min-height: 440px; overflow: hidden; padding: 0; }
+        .hero-photo img { display: block; height: 100%; min-height: 440px; object-fit: cover; width: 100%; }
+        .mini-list { display: grid; gap: 12px; margin-top: 18px; }
+        .mini { align-items: start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: grid; gap: 6px; padding: 15px; }
+        .table-wrap { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto; }
+        table { border-collapse: collapse; min-width: 720px; width: 100%; }
+        th { background: #0f172a; color: white; padding: 16px; text-align: left; }
+        td { border-top: 1px solid #e2e8f0; color: #475569; font-weight: 750; padding: 16px; }
+        td:first-child { color: #0f172a; font-weight: 950; }
+        .dark { background: #0f172a; color: white; }
+        .dark p, .dark li { color: #cbd5e1; }
+        .dark h2, .dark h3 { color: white; }
+        .pill-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+        .pill-links a { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 999px; color: #334155; font-size: 14px; font-weight: 900; padding: 10px 14px; }
+        details { box-shadow: none; margin-top: 12px; padding: 19px 20px; }
+        summary { cursor: pointer; font-size: 18px; font-weight: 950; }
+        footer { background: #020617; color: white; padding: 34px 20px; text-align: center; }
+        footer p { color: #cbd5e1; margin: 8px 0 0; }
+        @media (max-width: 980px) { .hero, .grid-4 { grid-template-columns: 1fr 1fr; } .grid-3 { grid-template-columns: 1fr 1fr; } .links { display: none; } }
+        @media (max-width: 680px) { .hero, .grid-2, .grid-3, .grid-4, .metric-grid { grid-template-columns: 1fr; } .hero { padding-top: 38px; } .section-head { align-items: start; flex-direction: column; } .nav-cta { display: none; } }
+      }
     </style>
     ${appAssets}
   </head>
   <body>
     <div${rootAttributes}>
+    <script>!function(){var r=document.getElementById('root');r&&r.dataset.staticShell&&(r.style.opacity='0')}()</script>
     <header class="nav">
       <div class="nav-inner">
         <a class="brand" href="/"><img src="/brand/carmatch-lockup-navy.png" alt="Car Match" width="288" height="66" decoding="async" /></a>
