@@ -3027,6 +3027,11 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   </head>`,
     );
     html = html.replace(/<div id="root"><\/div>/, staticFallbackRoot(meta));
+    // Inject initial vehicle data for /xe/* pages so React hydrates without spinner
+    if (String(meta.path || '').startsWith('/xe/') && vehicles.length > 0) {
+      const data = JSON.stringify(vehicles.map(pruneVehicleForClient));
+      html = html.replace('</body>', `<script>window.__CM_INITIAL_VEHICLES__=${data};</script>\n</body>`);
+    }
   } else {
     html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
     html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/, '<div id="root"></div>\n    <script');
@@ -3109,7 +3114,7 @@ async function writeStaticRouteShells(vehicles) {
       staticSecondaryHref: '/xe',
       staticSecondaryLabel: 'Xem xe khác',
       structuredData: vehicleStructuredData(vehicle),
-    });
+    }, [vehicle]);
   }
 
   const reservedVehicleSlugs = new Set(vehicles.map((vehicle) => vehicle.slug));
@@ -3134,7 +3139,7 @@ async function writeStaticRouteShells(vehicles) {
         staticSecondaryHref: '/xe',
         staticSecondaryLabel: 'Xem xe khác',
         structuredData: vehicleStructuredData(vehicle),
-      });
+      }, [vehicle]);
     }
   }
 }
