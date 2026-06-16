@@ -3325,6 +3325,12 @@ function layout({ title, description, canonical, image, type = 'article', body, 
       .cta h2 { font-size: 28px; margin: 0 0 8px; }
       .cta p { font-size: 16px; margin: 0 0 16px; }
       .article img { border-radius: 8px; height: auto; max-width: 100%; }
+      .article table { border-collapse: collapse; display: block; margin: 28px 0; max-width: 100%; overflow-x: auto; width: 100%; }
+      .article table > thead, .article table > tbody, .article table > tfoot { display: table; min-width: 680px; width: 100%; }
+      .article th, .article td { border: 1px solid #e5e7eb; color: #374151; font-size: 16px; line-height: 1.55; padding: 14px 16px; text-align: left; vertical-align: top; }
+      .article th { background: #f1f5f9; color: #111827; font-weight: 900; }
+      .article tr:nth-child(even) td { background: #fafafa; }
+      .article th p, .article td p { color: inherit; font-size: inherit; line-height: inherit; margin: 0; }
       .button { background: #11163e; border-radius: 999px; color: #fff; display: inline-flex; margin-top: 8px; padding: 13px 22px; }
       .cta-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
       .button.secondary { background: #fff; border: 1px solid #cbd5e1; color: #11163e; }
