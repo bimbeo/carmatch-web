@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowRight, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapPin, Home as HomeIcon, Car, ChevronLeft, ChevronRight, Key, FileText, RefreshCw, Share2, CalendarDays, Search, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapPin, Home as HomeIcon, Car, ChevronLeft, ChevronRight, Key, FileText, RefreshCw, Share2, CalendarDays, Search, Users, X } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import { usePromotions } from '@/hooks/usePromotions';
 import { useSEO } from '@/hooks/useSEO';
@@ -14,6 +14,25 @@ import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
+
+// ── Date picker helpers ───────────────────────────────────────
+const DAY_NAMES = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const MONTH_NAMES = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+const TIME_SLOTS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
+
+function parseDateStr(s: string): Date | null {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function formatShortDate(s: string): string {
+  const d = parseDateStr(s);
+  if (!d) return '';
+  return `${DAY_NAMES[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
 const SITE_URL = 'https://www.carmatch.vn/';
 
 const stats = [
@@ -199,6 +218,11 @@ export default function Home() {
     d.setDate(d.getDate() + 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
+  const [quickFromTime, setQuickFromTime] = useState('08:00');
+  const [quickToTime, setQuickToTime] = useState('20:00');
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calMonthOffset, setCalMonthOffset] = useState(0);
+  const [pickStep, setPickStep] = useState<'from' | 'to'>('from');
 
   useEffect(() => {
     let cancelled = false;
@@ -256,6 +280,106 @@ export default function Home() {
     const query = params.toString();
     return query ? `/xe?${query}` : '/xe';
   }, [quickSeats, quickFuel, quickFromDate, quickToDate]);
+
+  const rentalDays = useMemo(() => {
+    const f = parseDateStr(quickFromDate);
+    const t = parseDateStr(quickToDate);
+    if (!f || !t) return 1;
+    return Math.max(1, Math.round((t.getTime() - f.getTime()) / 86400000));
+  }, [quickFromDate, quickToDate]);
+
+  const calViewDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + calMonthOffset);
+    return d;
+  }, [calMonthOffset]);
+
+  const calNextViewDate = useMemo(() => {
+    const d = new Date(calViewDate);
+    d.setMonth(d.getMonth() + 1);
+    return d;
+  }, [calViewDate]);
+
+  const handleDayClick = (dateStr: string) => {
+    if (pickStep === 'from') {
+      setQuickFromDate(dateStr);
+      const from = parseDateStr(dateStr)!;
+      const to = parseDateStr(quickToDate);
+      if (!to || from >= to) {
+        const next = new Date(from);
+        next.setDate(next.getDate() + 1);
+        setQuickToDate(toDateStr(next));
+      }
+      setPickStep('to');
+    } else {
+      if (dateStr <= quickFromDate) {
+        setQuickToDate(quickFromDate);
+        setQuickFromDate(dateStr);
+      } else {
+        setQuickToDate(dateStr);
+      }
+      setPickStep('from');
+    }
+  };
+
+  const renderCalendarGrid = (year: number, month: number) => {
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    // Monday-first: (Sun=0 → index 6, Mon=1 → index 0)
+    const rawFirst = new Date(year, month, 1).getDay();
+    const firstOffset = (rawFirst + 6) % 7;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const fromDate = parseDateStr(quickFromDate);
+    const toDate = parseDateStr(quickToDate);
+
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < firstOffset; i++) cells.push(null);
+    for (let d = 1; d <= totalDays; d++) cells.push(d);
+
+    return (
+      <div key={`${year}-${month}`}>
+        <p className="text-center text-sm font-bold text-gray-700 mb-3">
+          {MONTH_NAMES[month]} {year}
+        </p>
+        <div className="grid grid-cols-7 text-center text-xs font-semibold text-gray-400 mb-1">
+          {['T2','T3','T4','T5','T6','T7','CN'].map((d) => (
+            <span key={d} className="py-1">{d}</span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 text-center">
+          {cells.map((day, i) => {
+            if (!day) return <span key={i} />;
+            const date = new Date(year, month, day);
+            date.setHours(0, 0, 0, 0);
+            const ds = toDateStr(date);
+            const isPast = date < today;
+            const isFrom = ds === quickFromDate;
+            const isTo = ds === quickToDate;
+            const isInRange = fromDate && toDate && date > fromDate && date < toDate;
+            return (
+              <button
+                key={i}
+                type="button"
+                disabled={isPast}
+                onClick={() => handleDayClick(ds)}
+                className={[
+                  'text-sm py-1.5 mx-0.5 my-0.5 rounded-full transition-colors',
+                  isPast ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer',
+                  isFrom || isTo
+                    ? 'bg-brand-600 text-white font-bold'
+                    : isInRange
+                      ? 'bg-brand-100 text-brand-700 rounded-none'
+                      : isPast ? '' : 'hover:bg-brand-50 text-gray-700',
+                ].join(' ')}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const handleQuickSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -474,123 +598,232 @@ export default function Home() {
       </section>
 
       {/* ── QUICK SEARCH / CONVERSION SURFACE ─────────────────── */}
-      <section id="tim-xe-nhanh" className="px-4 py-10 bg-gray-50 sm:py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Tìm xe nhanh</p>
-              <h2 id="tim-xe-tu-lai-theo-lich" className="text-2xl font-bold leading-tight text-gray-900 sm:text-3xl">
-                Lọc xe theo lịch, khu vực nhận và số chỗ
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-gray-600">
-                Chọn nhu cầu cơ bản để xem đội xe phù hợp hơn. Car Match vẫn kiểm tra lại xe trống và chi phí qua Zalo trước khi chốt.
-              </p>
-            </div>
-            <a
-              href={ZALO_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackZaloClick('home_quick_search_header_zalo')}
-              className="hidden items-center justify-center gap-2 rounded-[8px] border border-brand-200 bg-white px-4 py-3 text-sm font-black text-brand-700 transition-colors hover:bg-brand-50 sm:inline-flex"
-              data-cta="home-quick-search-header-zalo"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Nhờ Car Match lọc xe
-            </a>
-          </div>
+      <section id="tim-xe-nhanh" className="px-4 py-12 bg-gray-50">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-center text-brand-600 font-semibold text-sm uppercase tracking-widest mb-2">Tìm xe nhanh</p>
+          <h2 id="tim-xe-tu-lai-theo-lich" className="text-center text-3xl sm:text-4xl font-bold text-gray-900 mb-8">
+            Chọn ngày, chọn xe — xác nhận qua Zalo
+          </h2>
 
-          <form
-            onSubmit={handleQuickSearch}
-            className="rounded-[8px] border border-gray-200 bg-white p-3 shadow-sm sm:p-4"
-            aria-label="Tìm xe tự lái nhanh"
-          >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[0.75fr_0.85fr_1fr_1fr_auto]">
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-gray-500">Số chỗ</span>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            {/* ── Tabs ── */}
+            <div className="flex border-b border-gray-100">
+              <button
+                type="button"
+                className="flex-1 py-3.5 text-sm font-bold text-brand-600 border-b-2 border-brand-600 flex items-center justify-center gap-2"
+              >
+                <Car className="w-4 h-4" />
+                Thuê theo ngày
+              </button>
+              <Link
+                to="/thue-xe-thang"
+                onClick={() => trackCtaClick('home_search_tab_monthly', { target_path: '/thue-xe-thang' })}
+                className="flex-1 py-3.5 text-sm font-semibold text-gray-400 hover:text-gray-700 flex items-center justify-center gap-2 transition-colors"
+              >
+                <CalendarDays className="w-4 h-4" />
+                Thuê xe tháng
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {/* ── Form ── */}
+            <form onSubmit={handleQuickSearch} className="p-4 sm:p-5" aria-label="Tìm xe tự lái nhanh">
+              {/* Date/time trigger */}
+              <button
+                type="button"
+                onClick={() => { setShowCalendar(true); setPickStep('from'); }}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-left hover:border-brand-400 hover:bg-brand-50/30 transition-colors mb-3 group"
+              >
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1.5 group-hover:text-brand-500">
+                  Thời gian thuê
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CalendarDays className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span className="font-semibold text-sm text-gray-800">
+                    {quickFromTime} {formatShortDate(quickFromDate)}
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  <span className="font-semibold text-sm text-gray-800">
+                    {quickToTime} {formatShortDate(quickToDate)}
+                  </span>
+                  <span className="ml-auto bg-brand-50 text-brand-600 text-xs font-bold px-2.5 py-1 rounded-full">
+                    {rentalDays} ngày
+                  </span>
+                </div>
+              </button>
+
+              {/* Filters + submit */}
+              <div className="flex gap-2 sm:gap-3">
                 <select
                   value={quickSeats}
-                  onChange={(event) => setQuickSeats(event.target.value)}
-                  className="h-11 w-full rounded-[8px] border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:h-12"
+                  onChange={(e) => setQuickSeats(e.target.value)}
+                  className="flex-1 h-12 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 >
-                  {quickSearchSeats.map((option) => (
-                    <option key={option.value || 'all'} value={option.value}>{option.label}</option>
+                  {quickSearchSeats.map((o) => (
+                    <option key={o.value || 'all'} value={o.value}>{o.label}</option>
                   ))}
                 </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-gray-500">Nhiên liệu</span>
                 <select
                   value={quickFuel}
-                  onChange={(event) => setQuickFuel(event.target.value)}
-                  className="h-11 w-full rounded-[8px] border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:h-12"
+                  onChange={(e) => setQuickFuel(e.target.value)}
+                  className="flex-1 h-12 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 >
-                  {quickSearchFuel.map((option) => (
-                    <option key={option.value || 'all'} value={option.value}>{option.label}</option>
+                  {quickSearchFuel.map((o) => (
+                    <option key={o.value || 'all'} value={o.value}>{o.label}</option>
                   ))}
                 </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-gray-500">Ngày nhận</span>
-                <div className="relative">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="date"
-                    value={quickFromDate}
-                    onChange={(event) => setQuickFromDate(event.target.value)}
-                    className="h-11 w-full rounded-[8px] border border-gray-200 bg-white pl-9 pr-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:h-12"
-                  />
-                </div>
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-gray-500">Ngày trả</span>
-                <div className="relative">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="date"
-                    value={quickToDate}
-                    onChange={(event) => setQuickToDate(event.target.value)}
-                    className="h-11 w-full rounded-[8px] border border-gray-200 bg-white pl-9 pr-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:h-12"
-                    aria-label="Ngày trả xe"
-                  />
-                </div>
-              </label>
-
-              <button
-                type="submit"
-                className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-[8px] bg-brand-600 px-5 text-sm font-black text-white transition-colors hover:bg-brand-700 sm:h-12 md:col-span-2 xl:col-span-1"
-                data-cta="home-quick-search"
-              >
-                <Search className="h-4 w-4" />
-                Tìm xe
-              </button>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="hidden flex-wrap gap-2 sm:flex">
-                {['Giao tận sảnh', 'Báo cọc trước', 'Kiểm tra xe trống qua Zalo'].map((item) => (
-                  <span key={item} className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-brand-500" />
-                    {item}
-                  </span>
-                ))}
+                <button
+                  type="submit"
+                  className="flex-shrink-0 h-12 px-5 sm:px-6 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors inline-flex items-center gap-2"
+                  data-cta="home-quick-search"
+                >
+                  <Search className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tìm xe</span>
+                </button>
               </div>
-              <a
-                href={ZALO_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackZaloClick('home_quick_search_zalo')}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-black text-brand-700 transition-colors hover:bg-brand-100 sm:w-auto"
-                data-cta="home-quick-search-zalo"
-              >
-                <Users className="h-4 w-4" />
-                Chưa chắc chọn xe nào? Nhắn Zalo
-              </a>
-            </div>
-          </form>
+
+              {/* Trust + Zalo */}
+              <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  {['Giao tận sảnh', 'Báo cọc trước', 'Xác nhận qua Zalo'].map((item) => (
+                    <span key={item} className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                <a
+                  href={ZALO_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackZaloClick('home_quick_search_zalo')}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline flex-shrink-0"
+                  data-cta="home-quick-search-zalo"
+                >
+                  <Users className="w-4 h-4" />
+                  Chưa chắc? Nhắn Zalo
+                </a>
+              </div>
+            </form>
+          </div>
         </div>
+
+        {/* ── CALENDAR MODAL ── */}
+        {showCalendar && (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowCalendar(false); }}
+          >
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-2xl max-h-[92vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Thời gian thuê</h3>
+                  <p className="text-xs text-brand-600 font-semibold mt-0.5">
+                    {pickStep === 'from' ? '→ Chọn ngày nhận xe' : '→ Chọn ngày trả xe'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendar(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Đóng"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Calendar body (scrollable) */}
+              <div className="overflow-y-auto flex-1">
+                {/* Month nav */}
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setCalMonthOffset((o) => Math.max(0, o - 1))}
+                    disabled={calMonthOffset === 0}
+                    className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                  </button>
+                  <span className="text-sm font-semibold text-gray-500 select-none">
+                    {MONTH_NAMES[calViewDate.getMonth()]} {calViewDate.getFullYear()}
+                    {' — '}
+                    {MONTH_NAMES[calNextViewDate.getMonth()]} {calNextViewDate.getFullYear()}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCalMonthOffset((o) => o + 1)}
+                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+
+                {/* Dual calendar */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 px-4 pb-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                  <div className="py-3 sm:py-2 sm:pr-4">
+                    {renderCalendarGrid(calViewDate.getFullYear(), calViewDate.getMonth())}
+                  </div>
+                  <div className="py-3 sm:py-2 sm:pl-4">
+                    {renderCalendarGrid(calNextViewDate.getFullYear(), calNextViewDate.getMonth())}
+                  </div>
+                </div>
+
+                {/* Time selectors */}
+                <div className="px-5 py-4 border-t border-gray-100">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1.5">Giờ nhận xe</label>
+                      <select
+                        value={quickFromTime}
+                        onChange={(e) => setQuickFromTime(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                      >
+                        {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0 mb-3" />
+                    <div className="flex-1">
+                      <label className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1.5">Giờ trả xe</label>
+                      <select
+                        value={quickToTime}
+                        onChange={(e) => setQuickToTime(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                      >
+                        {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sticky footer CTA */}
+              <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-4 bg-white">
+                <div>
+                  <p className="text-sm font-bold text-gray-900">
+                    {quickFromTime} {formatShortDate(quickFromDate)} → {quickToTime} {formatShortDate(quickToDate)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Thời gian thuê:{' '}
+                    <span className="font-bold text-brand-600">{rentalDays} ngày</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCalendar(false);
+                    trackCtaClick('home_calendar_confirm', { target_path: quickSearchHref });
+                    navigate(quickSearchHref);
+                  }}
+                  className="flex-shrink-0 px-6 py-3 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors inline-flex items-center gap-2"
+                >
+                  Tìm xe
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── DIRECT ANSWER / GEO SUMMARY ───────────────────────── */}
@@ -1363,6 +1596,86 @@ export default function Home() {
             Muốn được thông báo sớm?{' '}
             <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('home_early_access')} className="text-brand-600 hover:underline font-medium">
               Nhắn Zalo để đăng ký trước
+            </a>
+          </p>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ──────────────────────────────────────── */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-center text-sm font-semibold uppercase tracking-widest text-brand-600 mb-2">Khách hàng nói gì</p>
+          <h2 className="text-center text-3xl sm:text-4xl font-bold text-gray-900 mb-12">
+            Hơn 200 chuyến xe — và khách vẫn quay lại
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                name: 'Anh Minh',
+                area: 'Vinhomes Ocean Park',
+                trip: 'VF3 · Ninh Bình cuối tuần',
+                avatar: 'M',
+                color: 'bg-brand-600',
+                quote:
+                  'Đặt qua Zalo buổi tối, sáng hôm sau xe có ở sảnh lúc 7h. Xe sạch, pin đầy, không phát sinh gì. Đi Ninh Bình khứ hồi thoải mái.',
+              },
+              {
+                name: 'Chị Hà',
+                area: 'The Manor Central Park',
+                trip: 'Innova 7 chỗ · Về quê Tết',
+                avatar: 'H',
+                color: 'bg-emerald-600',
+                quote:
+                  'Cả nhà 6 người về quê dịp Tết. Xe giao đúng giờ, có kiểm tra ngoại thất trước khi nhận. Lần sau chắc chắn đặt lại.',
+              },
+              {
+                name: 'Anh Tuấn',
+                area: 'Ecopark, Văn Giang',
+                trip: 'Fadil · Thuê tháng 3 tháng',
+                avatar: 'T',
+                color: 'bg-slate-700',
+                quote:
+                  'Thuê theo tháng tiện hơn grab nhiều. Hợp đồng rõ, biết trước chi phí, không lo phát sinh. Team hỗ trợ nhanh khi cần.',
+              },
+              {
+                name: 'Chị Lan',
+                area: 'Vinhomes Times City',
+                trip: 'VF3 · Lần đầu thuê tự lái',
+                avatar: 'L',
+                color: 'bg-cyan-600',
+                quote:
+                  'Lần đầu thuê tự lái, hơi lo. Nhưng bên Car Match hướng dẫn rất kỹ qua Zalo, bàn giao xe cẩn thận. Sẽ giới thiệu cho bạn bè.',
+              },
+            ].map((t) => (
+              <div key={t.name} className="bg-gray-50 rounded-2xl p-6 flex flex-col gap-4 border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <span className={`${t.color} text-white font-bold text-base w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0`}>
+                    {t.avatar}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.area}</p>
+                  </div>
+                </div>
+                <div className="flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  ))}
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed flex-1">"{t.quote}"</p>
+                <p className="text-xs text-gray-400 font-medium">{t.trip}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-sm text-gray-500 mt-8">
+            Xem thêm đánh giá trên{' '}
+            <a
+              href="https://www.facebook.com/carmatchvn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-600 hover:underline font-medium"
+            >
+              Facebook Car Match
             </a>
           </p>
         </div>

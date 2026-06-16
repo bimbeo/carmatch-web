@@ -12,9 +12,18 @@
 .cms-blog-body table {
   display: block;
   width: 100%;
+  max-width: 100%;
   margin: 1.75rem 0;
   overflow-x: auto;
   border-collapse: collapse;
+}
+
+.cms-blog-body table > thead,
+.cms-blog-body table > tbody,
+.cms-blog-body table > tfoot {
+  display: table;
+  width: 100%;
+  min-width: 680px;
 }
 
 .cms-blog-body th,
@@ -25,10 +34,22 @@
   vertical-align: top;
 }
 
+.cms-blog-body tr:nth-child(even) td {
+  background: #fafafa;
+}
+
 .cms-blog-body th {
   background: #f8fafc;
   color: #111827;
   font-weight: 800;
+}
+
+.cms-blog-body th p,
+.cms-blog-body td p {
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .cms-blog-body [data-callout] {
