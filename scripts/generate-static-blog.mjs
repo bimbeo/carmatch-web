@@ -177,6 +177,49 @@ async function fetchTravelDestinations() {
   }));
 }
 
+async function fetchTravelCollections() {
+  if (!supabase) return [];
+  try {
+    const [collectionRes, relationRes] = await Promise.all([
+      supabase
+        .from('travel_collections')
+        .select('id,slug,title,eyebrow,description,seo_title,seo_description,cta_label')
+        .eq('status', 'published')
+        .order('sort_order', { ascending: true })
+        .order('title', { ascending: true }),
+      supabase
+        .from('travel_collection_destinations')
+        .select('collection_id, sort_order, travel_destinations(slug)')
+        .order('sort_order', { ascending: true }),
+    ]);
+    if (collectionRes.error) throw collectionRes.error;
+    if (relationRes.error) throw relationRes.error;
+
+    const slugsByCollection = new Map();
+    for (const row of (relationRes.data || [])) {
+      const relation = Array.isArray(row.travel_destinations) ? row.travel_destinations[0] : row.travel_destinations;
+      const slug = relation?.slug;
+      if (!slug) continue;
+      if (!slugsByCollection.has(row.collection_id)) slugsByCollection.set(row.collection_id, []);
+      slugsByCollection.get(row.collection_id).push(slug);
+    }
+
+    return (collectionRes.data || []).map((item) => ({
+      slug: item.slug,
+      title: item.title,
+      eyebrow: item.eyebrow || '',
+      description: item.description || '',
+      seoTitle: item.seo_title || item.title,
+      seoDescription: item.seo_description || item.description || '',
+      destinationSlugs: slugsByCollection.get(item.id) || [],
+      ctaLabel: item.cta_label || 'Tư vấn xe phù hợp',
+    }));
+  } catch (error) {
+    console.warn(`Skipped travel collections: ${error.message}`);
+    return [];
+  }
+}
+
 async function fetchLandingPages() {
   if (!supabase) return [];
   try {
@@ -3596,7 +3639,7 @@ function renderPost(post, contentIndex) {
   });
 }
 
-function renderSitemap(posts, vehicles, landingPages = []) {
+function renderSitemap(posts, vehicles, landingPages = [], travelCollections = []) {
   const urls = [
     // CMS landing pages override hardcoded routeMeta entries for the same slug
     ...landingPages.map((page) => ({
@@ -3616,7 +3659,7 @@ function renderSitemap(posts, vehicles, landingPages = []) {
       priority: '0.78',
       changefreq: 'weekly',
     })),
-    ...fallbackTravelCollections.map((collection) => ({
+    ...travelCollections.map((collection) => ({
       loc: `${siteUrl}/di-dau/chu-de/${collection.slug}`,
       priority: '0.76',
       changefreq: 'weekly',
@@ -3650,6 +3693,95 @@ ${uniqueUrls.map((url) => `  <url>
   </url>`).join('\n')}
 </urlset>
 `;
+}
+
+function createHanoiLandingFallbackPage() {
+  return {
+    slug: 'thue-xe-tu-lai-ha-noi',
+    title: 'Thuê xe tự lái Hà Nội - giao xe tận sảnh chung cư | Car Match',
+    seo_title: 'Thuê xe tự lái Hà Nội - giao xe tận sảnh chung cư | Car Match',
+    description: 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ, xe điện VinFast, đặt Zalo xác nhận 30 phút.',
+    seo_description: 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ, xe điện VinFast, đặt Zalo xác nhận 30 phút.',
+    canonical_url: `${siteUrl}/thue-xe-tu-lai-ha-noi`,
+    hero_kicker: 'Car Match · giao xe tận sảnh Hà Nội',
+    hero_title: 'Thuê xe tự lái Hà Nội cho cư dân chung cư và gia đình trẻ',
+    hero_description: 'Chọn xe theo ngày hoặc theo tháng, nhận xe tại sảnh chung cư/khu đô thị, kiểm tra lịch qua Zalo và xác nhận rõ giá, giấy tờ, điểm giao nhận trước chuyến đi.',
+    hero_image_url: 'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/team-media/images/2026-06-04/21246fc6-1f47-4460-b94d-266b416dedf9.jpg',
+    cta_primary_label: 'Nhắn Zalo kiểm tra xe',
+    cta_primary_url: 'https://zalo.me/0975563290',
+    cta_secondary_label: 'Xem danh sách xe',
+    cta_secondary_url: '/xe',
+    page_content: {
+      blockOrder: ['proof', 'vehicles', 'price', 'areas', 'scenarios', 'process', 'trust', 'blog', 'faq'],
+      stats: [
+        ['20+ mẫu xe', '5 chỗ, 7 chỗ, xe điện'],
+        ['Từ 600K/ngày', 'tùy xe và thời điểm'],
+        ['7:00-22:00', 'hỗ trợ giao nhận'],
+      ],
+      proofCards: [
+        ['Giao tận sảnh', 'Nhận xe ở sảnh tòa hoặc điểm hẹn phù hợp trong khu vực phục vụ.'],
+        ['Tư vấn người thật', 'So sánh xe theo số người, hành lý, cung đường và ngân sách.'],
+        ['Giá có điều kiện rõ', 'Báo theo mẫu xe, ngày thuê, phí giao nhận và lịch trống thực tế.'],
+        ['Hợp đồng rõ ràng', 'Thống nhất giấy tờ, đặt cọc, kiểm tra xe và trả xe trước chuyến đi.'],
+      ],
+      vehicles: [
+        { tag: 'Xe điện 5 chỗ', name: 'VinFast VF5 / VF6', fit: 'Đi phố, đi làm, gia đình trẻ, ưu tiên nhận xe gọn trong nội thành.', price: 'từ 600.000đ/ngày' },
+        { tag: 'SUV/Crossover', name: 'Kia Seltos / Hyundai Creta', fit: 'Cân bằng cho gia đình 3-5 người, đi tỉnh cuối tuần.', price: 'tùy dòng xe' },
+        { tag: 'Xe 7 chỗ', name: 'Innova / Carnival', fit: 'Phù hợp gia đình đông người, đi tỉnh, nhiều hành lý.', price: 'báo theo lịch' },
+        { tag: 'Thuê tháng', name: 'Gói linh hoạt', fit: 'Cho gia đình hoặc doanh nghiệp dùng xe định kỳ.', price: 'từ 10.000.000đ/tháng' },
+      ],
+      priceRows: [
+        ['Xe điện/xe 5 chỗ đô thị', 'Từ 600.000đ/ngày', 'Đi phố, đi làm, gia đình trẻ, nhận xe tại chung cư'],
+        ['SUV/Crossover', 'Tùy dòng xe', 'Gia đình 3-5 người, đi tỉnh cuối tuần'],
+        ['Xe 7 chỗ', 'Báo theo lịch', 'Gia đình đông người, nhiều hành lý'],
+        ['Gói thuê theo tháng', 'Từ 10.000.000đ/tháng', 'Gia đình/doanh nghiệp dùng xe định kỳ'],
+      ],
+      deliveryAreas: [
+        ['Khu Đông', 'Vinhomes Ocean Park, Ecopark, Gia Lâm, Long Biên'],
+        ['Khu Tây', 'Vinhomes Smart City, Mỹ Đình, Nam Từ Liêm'],
+        ['Khu Nam', 'The Manor Central Park, Linh Đàm, Hoàng Mai'],
+        ['Nội thành', 'Times City, Royal City và các điểm hẹn phù hợp'],
+      ],
+      scenarios: [
+        { meta: 'Cuối tuần', title: 'Gia đình ở chung cư cần xe cuối tuần', text: 'Phù hợp khi không dùng xe hằng ngày nhưng muốn có xe riêng cho lịch về quê, picnic hoặc đưa gia đình đi nhiều điểm trong ngày.' },
+        { meta: 'Đi tỉnh', title: 'Khách cần xe đi tỉnh hoặc Nội Bài', text: 'Đội tư vấn hỏi số người, hành lý, cung đường và thời gian trả xe để gợi ý nhóm xe phù hợp.' },
+        { meta: 'Thuê dài ngày', title: 'Doanh nghiệp nhỏ cần xe theo tháng', text: 'Phù hợp đội sale, vận hành hoặc chủ doanh nghiệp cần xe đều đặn nhưng chưa muốn mua xe.' },
+      ],
+      processSteps: [
+        ['01', 'Gửi nhu cầu', 'Khu vực nhận xe, ngày đi/ngày về, số người, loại xe mong muốn.'],
+        ['02', 'Kiểm tra xe', 'Car Match kiểm tra xe trống, giá thuê, phí giao nhận và giấy tờ.'],
+        ['03', 'Xác nhận', 'Thống nhất lịch, đặt cọc qua chuyển khoản và điểm giao nhận.'],
+        ['04', 'Nhận xe', 'Kiểm tra xe, ký hợp đồng, bàn giao chìa khóa và bắt đầu chuyến đi.'],
+      ],
+      trustLinks: [
+        ['Xem FAQ thuê xe', '/faq'],
+        ['Chính sách thuê xe', '/chinh-sach'],
+        ['Danh sách xe', '/xe'],
+      ],
+      blogLinks: [
+        ['Kinh nghiệm thuê xe tự lái Hà Nội', '/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi'],
+        ['Gợi ý đi đâu bằng xe tự lái', '/di-dau'],
+      ],
+      faqItems: [
+        {
+          question: 'Thuê xe tự lái Hà Nội tại Car Match cần giấy tờ gì?',
+          answer: 'Khách thuê cần CCCD và GPLX hạng B hợp lệ. Tùy lịch thuê và mẫu xe, Car Match sẽ xác nhận thêm thông tin đặt cọc khi tư vấn qua Zalo.',
+        },
+        {
+          question: 'Car Match có giao xe tận sảnh chung cư không?',
+          answer: 'Có. Car Match tập trung phục vụ cư dân chung cư/khu đô thị tại Hà Nội và hỗ trợ giao xe tận sảnh hoặc điểm hẹn phù hợp trong khu vực phục vụ.',
+        },
+        {
+          question: 'Giá thuê xe tự lái Hà Nội bắt đầu từ bao nhiêu?',
+          answer: 'Giá thuê xe tự lái tại Car Match tham khảo từ 600.000 VND/ngày. Gói thuê theo tháng tham khảo từ 10.000.000 VND/tháng.',
+        },
+        {
+          question: 'Đặt xe qua Car Match mất bao lâu để xác nhận?',
+          answer: 'Khách nhắn Zalo 0975 563 290, Car Match kiểm tra lịch xe và phản hồi xác nhận trong khoảng 30 phút khi có xe phù hợp.',
+        },
+      ],
+    },
+  };
 }
 
 function renderHanoiLanding() {
@@ -4107,7 +4239,7 @@ function renderCmsLandingPage(page) {
     </div></section>
   </main>`;
 
-  return renderSeoLandingLayout({ title, description, canonical, structuredData, body });
+  return renderSeoLandingLayout({ title, description, canonical, structuredData, body, includeAppAssets: false });
 }
 
 function spaAssetTags() {
@@ -4117,11 +4249,11 @@ function spaAssetTags() {
   ).join('\n    ');
 }
 
-function renderSeoLandingLayout({ title, description, canonical, structuredData, active = '', body }) {
+function renderSeoLandingLayout({ title, description, canonical, structuredData, active = '', body, includeAppAssets = true }) {
   const normalizedTitle = normalizeBrandText(title);
   const normalizedDescription = normalizeBrandText(description);
   const normalizedStructuredData = normalizeBrandText(JSON.stringify(structuredData));
-  const appAssets = spaAssetTags();
+  const appAssets = includeAppAssets ? spaAssetTags() : '';
   const rootAttributes = appAssets ? ' id="root" data-static-shell="seo-landing"' : '';
 
   return `<!doctype html>
@@ -4994,13 +5126,15 @@ function renderCollectionLanding(collection) {
 }
 
 async function main() {
-  const [posts, vehicles, destinations, landingPages] = await Promise.all([
+  const [posts, vehicles, destinations, cmsCollections, landingPages] = await Promise.all([
     fetchBlogPosts(),
     fetchVehicles(),
     fetchTravelDestinations(),
+    fetchTravelCollections(),
     fetchLandingPages(),
   ]);
   const travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
+  const travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
   generatedTripDestinations = travelDestinations;
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
   spaBaseHtml = baseHtml;
@@ -5021,10 +5155,10 @@ async function main() {
     console.log(`  CMS landing: /${page.slug}`);
   }
 
-  // Fallback hardcoded Hanoi landing only if not already rendered by CMS
+  // Fallback Hanoi landing only if not already rendered by CMS
   if (!cmsRenderedSlugs.has('thue-xe-tu-lai-ha-noi')) {
-    await mkdir(path.join(distDir, 'thue-xe-tu-lai-ha-noi'), { recursive: true });
-    await writeFile(path.join(distDir, 'thue-xe-tu-lai-ha-noi', 'index.html'), renderHanoiLanding(), 'utf8');
+    await writeHtmlRoute('/thue-xe-tu-lai-ha-noi', renderCmsLandingPage(createHanoiLandingFallbackPage()));
+    console.log('  Fallback CMS-style landing: /thue-xe-tu-lai-ha-noi');
   }
 
   await writeHtmlRoute('/di-dau', renderGoWhereLanding());
@@ -5034,7 +5168,7 @@ async function main() {
     await writeHtmlRoute(`/di-dau/${destination.slug}`, renderDestinationLanding(destination));
   }
 
-  for (const collection of fallbackTravelCollections) {
+  for (const collection of travelCollections) {
     await writeHtmlRoute(`/di-dau/chu-de/${collection.slug}`, renderCollectionLanding(collection));
   }
 
@@ -5044,7 +5178,7 @@ async function main() {
     await writeHtmlRoute(`/blog/${post.slug.current}`, renderPost(post, contentIndex));
   }
 
-  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, landingPages), 'utf8');
+  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, landingPages, travelCollections), 'utf8');
   await writeFile(
     path.join(distDir, 'robots.txt'),
     [
