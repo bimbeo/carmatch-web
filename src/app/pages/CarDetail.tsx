@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useLocation } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
   Zap, ChevronLeft, ChevronRight, Phone,
@@ -230,8 +230,21 @@ function TrustBadge({ icon, text }: { icon: React.ReactNode; text: string }) {
 /* ─── Main ─── */
 export default function CarDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const { hash } = useLocation();
   const { cars, loading } = useVehicles();
   const car = findVehicleBySlug(cars, slug);
+
+  useEffect(() => {
+    if (hash !== '#booking' || !car) return;
+    const scroll = () => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Wait one frame after render so layout is stable
+    const raf = requestAnimationFrame(() => {
+      scroll();
+      // Fallback: some browsers need a second tick
+      setTimeout(scroll, 300);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [hash, car]);
   const canonicalSlug = car && slug && (car.slug === slug || car.slugAliases?.includes(slug)) ? slug : car?.slug;
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
@@ -547,6 +560,7 @@ export default function CarDetail() {
               )}
 
               {/* Booking widget with pricing calculator */}
+              <div id="booking">
               <BookingWidget
                 basePrice={car.price}
                 carName={car.name}
@@ -554,6 +568,7 @@ export default function CarDetail() {
                 vehicleId={car.id}
                 kmPerDay={car.kmPerDay}
               />
+              </div>
 
               {/* Trust badges */}
               <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">

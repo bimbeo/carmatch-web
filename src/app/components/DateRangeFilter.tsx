@@ -82,6 +82,7 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
                 setReturnDate(toDateStr(addDays(new Date(nextPickup), 1)));
               }
             }}
+            onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
         </div>
@@ -92,6 +93,7 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
             min={pickupDate}
             value={returnDate}
             onChange={event => setReturnDate(event.target.value)}
+            onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
         </div>

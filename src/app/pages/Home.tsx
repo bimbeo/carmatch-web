@@ -19,8 +19,8 @@ const SITE_URL = 'https://www.carmatch.vn/';
 const stats = [
   { value: '20+', label: 'Mẫu xe', note: 'Xe 5 chỗ, 7 chỗ, xe điện', icon: Car },
   { value: '7h-22h', label: 'Hỗ trợ mỗi ngày', note: 'Tư vấn và xử lý phát sinh', icon: Clock },
-  { value: 'CCCD + GPLX', label: 'Giấy tờ chính', note: 'Kiểm tra khi bàn giao', icon: FileText },
-  { value: 'Zalo', label: 'Kiểm tra lịch xe', note: 'Xác nhận xe trống trước khi chốt', icon: MessageCircle },
+  { value: 'Từ 600K', label: 'Giá thuê/ngày', note: 'Xe điện đô thị đến MPV 7 chỗ gia đình', icon: Zap },
+  { value: '30 phút', label: 'Xác nhận lịch', note: 'Kiểm tra xe trống và báo giá qua Zalo', icon: CalendarDays },
 ];
 
 const residentialAreas = [
@@ -188,11 +188,17 @@ export default function Home() {
   const { promotions } = usePromotions();
   const [promoIndex, setPromoIndex] = useState(0);
   const promoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [quickArea, setQuickArea] = useState('');
   const [quickSeats, setQuickSeats] = useState('');
   const [quickFuel, setQuickFuel] = useState('');
-  const [quickFromDate, setQuickFromDate] = useState('');
-  const [quickToDate, setQuickToDate] = useState('');
+  const [quickFromDate, setQuickFromDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [quickToDate, setQuickToDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -243,20 +249,18 @@ export default function Home() {
 
   const quickSearchHref = useMemo(() => {
     const params = new URLSearchParams();
-    if (quickArea) params.set('area', quickArea);
     if (quickSeats) params.set('seatFilter', quickSeats);
     if (quickFuel) params.set('fuelFilter', quickFuel);
     if (quickFromDate) params.set('from', quickFromDate);
     if (quickToDate) params.set('to', quickToDate);
     const query = params.toString();
     return query ? `/xe?${query}` : '/xe';
-  }, [quickArea, quickSeats, quickFuel, quickFromDate, quickToDate]);
+  }, [quickSeats, quickFuel, quickFromDate, quickToDate]);
 
   const handleQuickSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     trackCtaClick('home_quick_search_submit', {
       target_path: quickSearchHref,
-      area: quickArea || undefined,
       seats: quickSeats || undefined,
       fuel: quickFuel || undefined,
       date_from: quickFromDate || undefined,
@@ -500,21 +504,7 @@ export default function Home() {
             className="rounded-[8px] border border-gray-200 bg-white p-3 shadow-sm sm:p-4"
             aria-label="Tìm xe tự lái nhanh"
           >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.15fr_0.75fr_0.85fr_0.95fr_0.95fr_auto]">
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-gray-500">Khu vực nhận</span>
-                <select
-                  value={quickArea}
-                  onChange={(event) => setQuickArea(event.target.value)}
-                  className="h-11 w-full rounded-[8px] border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition-colors focus:border-brand-400 focus:ring-2 focus:ring-brand-100 sm:h-12"
-                >
-                  <option value="">Chọn khu vực</option>
-                  {quickSearchAreas.map((area) => (
-                    <option key={area} value={area}>{area}</option>
-                  ))}
-                </select>
-              </label>
-
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[0.75fr_0.85fr_1fr_1fr_auto]">
               <label className="block">
                 <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-gray-500">Số chỗ</span>
                 <select

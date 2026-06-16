@@ -455,6 +455,10 @@ export default function B2B() {
               </tbody>
             </table>
           </div>
+          <p className="mt-4 text-center text-xs text-gray-400">
+            * Giá trên là mức tham khảo để ước tính ngân sách. Giá chính xác phụ thuộc mẫu xe cụ thể, lịch xe còn trống, thời gian thuê và giới hạn km — Car Match báo giá sau khi kiểm tra thực tế.
+          </p>
+
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             {['Chứng từ thanh toán được xác nhận trước khi ký hợp đồng.', 'Linh hoạt 1-12 tháng theo nhu cầu sử dụng.', 'Báo giá sau khi kiểm tra xe thật và lịch trống.'].map((note) => (
               <div key={note} className="flex items-start gap-3 rounded-xl bg-brand-50 border border-brand-100 px-4 py-3 text-sm font-medium text-gray-700">

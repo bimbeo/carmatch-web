@@ -11,6 +11,7 @@ export interface Car {
   fuel: 'Điện' | 'Xăng' | 'Dầu';
   transmission: string;
   kmPerDay: number;
+  model_year?: number | null;
   amenities: string[];
   conditions: string[];
   available: boolean;

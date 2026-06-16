@@ -88,8 +88,12 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
           </span>
           <span className="text-gray-300">•</span>
           <span>{car.transmission}</span>
-          <span className="text-gray-300">•</span>
-          <span>{car.kmPerDay} km/ngày</span>
+          {car.model_year && (
+            <>
+              <span className="text-gray-300">•</span>
+              <span>{car.model_year}</span>
+            </>
+          )}
         </div>
 
         {/* Price */}
@@ -114,7 +118,7 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
             Chi tiết<span className="sr-only"> {vehicleLinkLabel}</span>
           </Link>
           <Link
-            to={`/xe/${car.slug}`}
+            to={`/xe/${car.slug}#booking`}
             onClick={() => trackCar('book_click')}
             className="flex-1 py-2.5 text-center text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors flex items-center justify-center gap-1.5"
           >

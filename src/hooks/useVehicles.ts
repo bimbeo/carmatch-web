@@ -73,6 +73,7 @@ interface SupabaseVehicle {
   current_km: number | null;
   status: string;
   published: boolean;
+  website_description?: string | null;
   external_refs: Record<string, unknown> | null;
   vehicle_models: {
     make: string | null;
@@ -210,14 +211,13 @@ function mapToCar(v: SupabaseVehicle): Car {
     fuel,
     transmission: mapTransmission(vm?.transmission || ''),
     kmPerDay: DEFAULT_KM_PER_DAY,
+    model_year: v.model_year ?? undefined,
     amenities: [],
     conditions: DEFAULT_CONDITIONS,
     available: v.status === 'available',
     images: galleryImages.length > 0 ? galleryImages : [PLACEHOLDER_IMAGE],
     category: mapCategory(fuel),
-    description: [make, model, variant].filter(Boolean).join(' ')
-      ? `${[make, model, variant].filter(Boolean).join(' ')}${v.color ? ` — ${v.color}` : ''}`
-      : v.color || undefined,
+    description: v.website_description?.trim() || undefined,
     useCases: undefined,
   };
 }
