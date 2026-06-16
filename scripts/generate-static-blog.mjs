@@ -177,6 +177,22 @@ async function fetchTravelDestinations() {
   }));
 }
 
+async function fetchLandingPages() {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('seo_landing_pages')
+      .select('*')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false, nullsFirst: false });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.warn(`Skipped CMS landing pages: ${error.message}`);
+    return [];
+  }
+}
+
 function hasValue(value) {
   if (Array.isArray(value)) return value.length > 0;
   return value !== undefined && value !== null && value !== '';
@@ -3574,8 +3590,15 @@ function renderPost(post, contentIndex) {
   });
 }
 
-function renderSitemap(posts, vehicles) {
+function renderSitemap(posts, vehicles, landingPages = []) {
   const urls = [
+    // CMS landing pages override hardcoded routeMeta entries for the same slug
+    ...landingPages.map((page) => ({
+      loc: page.canonical_url || `${siteUrl}/${page.slug}`,
+      priority: '0.92',
+      changefreq: 'weekly',
+      lastmod: (page.published_at || page.updated_at)?.slice(0, 10),
+    })),
     ...routeMeta.map((meta) => ({
       loc: meta.canonical,
       priority: meta.priority,
@@ -3922,6 +3945,163 @@ function renderHanoiLanding() {
     <footer><img src="/brand/carmatch-lockup-white.png" alt="Car Match" width="288" height="66" decoding="async" style="height:38px;width:auto" /><p>Thuê xe tự lái Hà Nội · giao xe tận sảnh chung cư/khu đô thị</p></footer>
   </body>
 </html>`;
+}
+
+function renderCmsLandingPage(page) {
+  const title = normalizeBrandText(page.seo_title || page.title);
+  const description = normalizeBrandText(page.seo_description || page.description || '');
+  const canonical = page.canonical_url || `${siteUrl}/${page.slug}`;
+  const heroImage = page.hero_image_url;
+  const c = {
+    blockOrder: ['proof', 'vehicles', 'price', 'areas', 'scenarios', 'process', 'trust', 'blog', 'faq'],
+    stats: [],
+    proofCards: [],
+    vehicles: [],
+    priceRows: [],
+    deliveryAreas: [],
+    scenarios: [],
+    processSteps: [],
+    trustLinks: [],
+    blogLinks: [],
+    faqItems: [],
+    ...(page.page_content || {}),
+  };
+
+  const ctaPrimary = page.cta_primary_label && page.cta_primary_url
+    ? `<a class="btn primary" href="${escapeHtml(page.cta_primary_url)}">${escapeHtml(page.cta_primary_label)}</a>`
+    : '<a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo kiểm tra xe</a>';
+  const ctaSecondary = page.cta_secondary_label && page.cta_secondary_url
+    ? `<a class="btn secondary" href="${escapeHtml(page.cta_secondary_url)}">${escapeHtml(page.cta_secondary_label)}</a>`
+    : '';
+
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      '@id': `${canonical}#service`,
+      name: page.hero_title || page.title,
+      serviceType: 'Thuê xe tự lái',
+      provider: publisherData(),
+      url: canonical,
+      description,
+    },
+    ...(c.faqItems.length ? [{
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      '@id': `${canonical}#faq`,
+      mainEntity: c.faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
+    }] : []),
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: page.hero_title || page.title, path: `/${page.slug}` },
+    ]),
+  ];
+
+  function blockHtml(block) {
+    switch (block) {
+      case 'proof':
+        return c.proofCards.length ? `<section class="band">
+          <div class="container section grid-4" style="padding-top:40px;padding-bottom:40px">
+            ${c.proofCards.map(([t, d]) => `<article class="card"><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></article>`).join('')}
+          </div>
+        </section>` : '';
+
+      case 'vehicles':
+        return c.vehicles.length ? `<section id="xe-phu-hop" class="container section">
+          <div class="section-head"><div><p class="eyebrow">Chọn xe theo nhu cầu</p><h2>Nhóm xe Car Match thường tư vấn</h2></div><a class="btn secondary" href="/xe">Xem tất cả xe</a></div>
+          <div class="grid-4">
+            ${c.vehicles.map((v) => `<article class="card"><span class="tag">${escapeHtml(v.tag)}</span><h3>${escapeHtml(v.name)}</h3><p>${escapeHtml(v.fit)}</p><strong style="color:#0f172a">${escapeHtml(v.price)}</strong></article>`).join('')}
+          </div>
+        </section>` : '';
+
+      case 'price':
+        return c.priceRows.length ? `<section id="bang-gia" class="band">
+          <div class="container section">
+            <div class="section-head"><div><p class="eyebrow">Bảng giá tham khảo</p><h2>Giá thuê xe tự lái</h2></div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Nhóm xe</th><th>Giá tham khảo</th><th>Phù hợp</th></tr></thead>
+              <tbody>${c.priceRows.map(([group, price, fit]) => `<tr><td>${escapeHtml(group)}</td><td>${escapeHtml(price)}</td><td>${escapeHtml(fit)}</td></tr>`).join('')}</tbody>
+            </table></div>
+          </div>
+        </section>` : '';
+
+      case 'areas':
+        return c.deliveryAreas.length ? `<section id="khu-vuc" class="container section">
+          <div class="section-head"><div><p class="eyebrow">Khu vực phục vụ</p><h2>Khu vực giao nhận xe</h2></div></div>
+          <div class="grid-2">
+            ${c.deliveryAreas.map(([name, desc]) => `<article class="card"><h3>${escapeHtml(name)}</h3><p>${escapeHtml(desc)}</p></article>`).join('')}
+          </div>
+        </section>` : '';
+
+      case 'scenarios':
+        return c.scenarios.length ? `<section class="band">
+          <div class="container section">
+            <div class="section-head"><div><p class="eyebrow">Tình huống thực tế</p><h2>Khi nào nên thuê xe tự lái?</h2></div></div>
+            <div class="grid-3">
+              ${c.scenarios.map((s) => `<article class="card"><span class="tag">${escapeHtml(s.meta)}</span><h3>${escapeHtml(s.title)}</h3><p>${escapeHtml(s.text)}</p></article>`).join('')}
+            </div>
+          </div>
+        </section>` : '';
+
+      case 'process':
+        return c.processSteps.length ? `<section class="container section">
+          <p class="eyebrow">Quy trình đặt xe</p>
+          <h2>Từ nhu cầu đến nhận xe</h2>
+          <div class="grid-2" style="margin-top:24px">
+            ${c.processSteps.map(([num, name, desc]) => `<div class="mini"><strong>${escapeHtml(num)}</strong><span style="display:block;font-weight:900;color:#0f172a;margin:4px 0">${escapeHtml(name)}</span><p style="margin:0">${escapeHtml(desc)}</p></div>`).join('')}
+          </div>
+        </section>` : '';
+
+      case 'trust':
+        return c.trustLinks.length ? `<section class="container" style="padding-bottom:0">
+          <p class="eyebrow">Tham khảo</p>
+          <div class="pill-links">${c.trustLinks.map(([label, href]) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`).join('')}</div>
+        </section>` : '';
+
+      case 'blog':
+        return c.blogLinks.length ? `<section class="container" style="padding-bottom:12px">
+          <p class="eyebrow">Bài viết liên quan</p>
+          <div class="pill-links">${c.blogLinks.map(([label, href]) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`).join('')}</div>
+        </section>` : '';
+
+      case 'faq':
+        return c.faqItems.length ? `<section id="faq" class="container section">
+          <h2>Câu hỏi thường gặp</h2>
+          ${c.faqItems.map((item) => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}
+        </section>` : '';
+
+      default:
+        return '';
+    }
+  }
+
+  const body = `<main>
+    <section style="background:linear-gradient(135deg,#f8fafc 0%,#fff7ed 48%,#ecfeff 100%);border-bottom:1px solid #e2e8f0">
+      <div class="container hero">
+        <div>
+          ${page.hero_kicker ? `<p class="eyebrow">${escapeHtml(page.hero_kicker)}</p>` : ''}
+          <h1>${escapeHtml(page.hero_title || page.title)}</h1>
+          ${page.hero_description ? `<p class="lead">${escapeHtml(page.hero_description)}</p>` : ''}
+          ${c.stats.length ? `<div class="metric-grid">${c.stats.map(([val, lbl]) => `<div class="metric"><strong>${escapeHtml(val)}</strong><span>${escapeHtml(lbl)}</span></div>`).join('')}</div>` : ''}
+          <div class="actions">${ctaPrimary}${ctaSecondary}</div>
+        </div>
+        ${heroImage ? `<div class="hero-photo panel"><img src="${escapeHtml(optimizedStaticImageUrl(heroImage, 960, 68))}" alt="${escapeHtml(page.hero_title || page.title)}" loading="eager" decoding="async" fetchpriority="high" width="960" height="640" /></div>` : ''}
+      </div>
+    </section>
+    ${c.blockOrder.map(blockHtml).join('\n')}
+    <section class="dark"><div class="container section">
+      <p class="eyebrow" style="color:#5eead4">Đặt xe qua Zalo</p>
+      <h2>Muốn biết xe nào còn trống cho lịch của anh/chị?</h2>
+      <p>Gửi ngày thuê, khu vực nhận xe và số người đi. Car Match kiểm tra lịch xe thật rồi báo mẫu xe, giá thuê và giấy tờ cần chuẩn bị.</p>
+      <div class="actions"><a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo 0975 563 290</a><a class="btn secondary" style="color:white;border-color:#475569" href="/xe">Xem danh sách xe</a></div>
+    </div></section>
+  </main>`;
+
+  return renderSeoLandingLayout({ title, description, canonical, structuredData, body });
 }
 
 function spaAssetTags() {
@@ -4808,7 +4988,12 @@ function renderCollectionLanding(collection) {
 }
 
 async function main() {
-  const [posts, vehicles, destinations] = await Promise.all([fetchBlogPosts(), fetchVehicles(), fetchTravelDestinations()]);
+  const [posts, vehicles, destinations, landingPages] = await Promise.all([
+    fetchBlogPosts(),
+    fetchVehicles(),
+    fetchTravelDestinations(),
+    fetchLandingPages(),
+  ]);
   const travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
   generatedTripDestinations = travelDestinations;
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
@@ -4822,8 +5007,19 @@ async function main() {
   await writeStaticVehicleData(vehicles);
   await writeStaticBlogData(posts);
 
-  await mkdir(path.join(distDir, 'thue-xe-tu-lai-ha-noi'), { recursive: true });
-  await writeFile(path.join(distDir, 'thue-xe-tu-lai-ha-noi', 'index.html'), renderHanoiLanding(), 'utf8');
+  // Render CMS-managed landing pages (published entries from seo_landing_pages table)
+  const cmsRenderedSlugs = new Set();
+  for (const page of landingPages) {
+    await writeHtmlRoute(`/${page.slug}`, renderCmsLandingPage(page));
+    cmsRenderedSlugs.add(page.slug);
+    console.log(`  CMS landing: /${page.slug}`);
+  }
+
+  // Fallback hardcoded Hanoi landing only if not already rendered by CMS
+  if (!cmsRenderedSlugs.has('thue-xe-tu-lai-ha-noi')) {
+    await mkdir(path.join(distDir, 'thue-xe-tu-lai-ha-noi'), { recursive: true });
+    await writeFile(path.join(distDir, 'thue-xe-tu-lai-ha-noi', 'index.html'), renderHanoiLanding(), 'utf8');
+  }
 
   await writeHtmlRoute('/di-dau', renderGoWhereLanding());
   await writeHtmlRoute('/lap-ke-hoach-chuyen-di', renderTripPlannerLanding());
@@ -4842,7 +5038,7 @@ async function main() {
     await writeHtmlRoute(`/blog/${post.slug.current}`, renderPost(post, contentIndex));
   }
 
-  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles), 'utf8');
+  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, landingPages), 'utf8');
   await writeFile(
     path.join(distDir, 'robots.txt'),
     [
@@ -4874,7 +5070,7 @@ async function main() {
     'utf8',
   );
 
-  console.log(`Generated static SEO HTML for ${routeMeta.length} routes, ${vehicles.length} vehicles, ${posts.length} posts`);
+  console.log(`Generated static SEO HTML for ${routeMeta.length} routes, ${vehicles.length} vehicles, ${posts.length} posts, ${landingPages.length} CMS landing pages`);
 }
 
 main().catch((error) => {
