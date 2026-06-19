@@ -29,6 +29,8 @@ let prerenderedHomeRoot = '';
 let prerenderedFleetRoot = '';
 let prerenderedMonthlyRoot = '';
 let prerenderedContactRoot = '';
+let prerenderedAboutRoot = '';
+let prerenderedPartnerRoot = '';
 let spaBaseHtml = '';
 const hanoiDeliveryDetails = {
   '@type': 'OfferShippingDetails',
@@ -1645,6 +1647,25 @@ async function writeStaticBlogData(posts) {
   );
 }
 
+async function createReactSsrRenderer() {
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const renderer = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    return {
+      renderer,
+      close: () => vite.close(),
+    };
+  } catch (error) {
+    await vite.close();
+    throw error;
+  }
+}
+
 async function renderReactHomeRoot(vehicles) {
   const initialVehicles = vehicles.slice(0, 6).map(pruneVehicleForClient);
   const totalVehicles = vehicles.length;
@@ -1700,6 +1721,38 @@ async function renderReactContactRoot() {
   }
 }
 
+async function renderReactAboutRoot() {
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderAbout } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderAbout();
+    return `<div id="root" data-prerendered="about">${html}</div>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactPartnerRoot() {
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderPartner } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderPartner();
+    return `<div id="root" data-prerendered="partner">${html}</div>`;
+  } finally {
+    await vite.close();
+  }
+}
+
 async function renderReactFleetRoot(vehicles) {
   const initialVehicles = vehicles.map(pruneVehicleForClient);
   const vite = await createViteServer({
@@ -1715,6 +1768,24 @@ async function renderReactFleetRoot(vehicles) {
     return `<div id="root" data-prerendered="fleet">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
   } finally {
     await vite.close();
+  }
+}
+
+function renderReactVehicleRoot(renderer, routePath, vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const html = renderer.renderCarDetail(routePath, initialVehicles);
+  const data = serializeForInlineScript(initialVehicles);
+  return `<div id="root" data-prerendered="vehicle">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
+}
+
+function safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle) {
+  if (!vehicleRenderer?.renderer?.renderCarDetail) return '';
+
+  try {
+    return renderReactVehicleRoot(vehicleRenderer.renderer, routePath, [vehicle]);
+  } catch (error) {
+    console.warn(`Skipped React vehicle prerender for ${routePath}: ${error instanceof Error ? error.message : String(error)}`);
+    return '';
   }
 }
 
@@ -1963,6 +2034,12 @@ function removeRootCriticalCss(html) {
   return html
     .replace(/\s*<link data-critical-home rel="stylesheet" href="\/static-shell\.css"\s*\/?>/g, '')
     .replace(/\s*<style data-critical-home>[\s\S]*?<\/style>/g, '');
+}
+
+function applyRootCriticalCss(html, hasPrerenderedRoot) {
+  if (hasPrerenderedRoot) return removeRootCriticalCss(html);
+
+  return replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
 }
 
 function formatStaticPrice(value) {
@@ -2451,7 +2528,7 @@ function trustStaticShell(config) {
   const steps = config.steps || [];
   const faqs = config.faqs || [];
 
-  return `<div id="root" data-static-shell="${escapeHtml(config.shellName)}"><div class="cm-static-trust-page">
+  return `<div id="root" data-static-page="${escapeHtml(config.shellName)}"><div class="cm-static-trust-page">
       ${trustNav(config.navCtaLabel)}
       <main id="main-content">
         <section class="cm-static-trust-hero">
@@ -3034,22 +3111,30 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
       html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
     }
     html = html.replace(/<div id="root"><\/div>/, prerenderedHomeRoot || rootStaticShell(vehicles));
+  } else if (meta.prerenderedRoot) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = removeRootCriticalCss(html);
+    html = html.replace(/<div id="root"><\/div>/, meta.prerenderedRoot);
   } else if (meta.path === '/xe') {
+    const root = prerenderedFleetRoot || fleetStaticShell(vehicles);
     html = moveStylesheetsBeforeModuleScripts(html);
-    html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
-    html = html.replace(/<div id="root"><\/div>/, fleetStaticShell(vehicles));
+    html = applyRootCriticalCss(html, Boolean(prerenderedFleetRoot));
+    html = html.replace(/<div id="root"><\/div>/, root);
   } else if (meta.path === '/thue-xe-thang') {
+    const root = prerenderedMonthlyRoot || monthlyStaticShell(vehicles);
     html = moveStylesheetsBeforeModuleScripts(html);
-    html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
-    html = html.replace(/<div id="root"><\/div>/, monthlyStaticShell(vehicles));
+    html = applyRootCriticalCss(html, Boolean(prerenderedMonthlyRoot));
+    html = html.replace(/<div id="root"><\/div>/, root);
   } else if (meta.path === '/lien-he') {
+    const root = prerenderedContactRoot || contactStaticShell();
     html = moveStylesheetsBeforeModuleScripts(html);
-    html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
-    html = html.replace(/<div id="root"><\/div>/, contactStaticShell());
+    html = applyRootCriticalCss(html, Boolean(prerenderedContactRoot));
+    html = html.replace(/<div id="root"><\/div>/, root);
   } else if (meta.path === '/gioi-thieu') {
+    const root = prerenderedAboutRoot || aboutStaticShell();
     html = moveStylesheetsBeforeModuleScripts(html);
-    html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
-    html = html.replace(/<div id="root"><\/div>/, aboutStaticShell());
+    html = applyRootCriticalCss(html, Boolean(prerenderedAboutRoot));
+    html = html.replace(/<div id="root"><\/div>/, root);
   } else if (meta.path === '/chinh-sach') {
     html = moveStylesheetsBeforeModuleScripts(html);
     html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
@@ -3059,9 +3144,10 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
     html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
     html = html.replace(/<div id="root"><\/div>/, faqStaticShell());
   } else if (meta.path === '/hop-tac') {
+    const root = prerenderedPartnerRoot || partnerStaticShell();
     html = moveStylesheetsBeforeModuleScripts(html);
-    html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
-    html = html.replace(/<div id="root"><\/div>/, partnerStaticShell());
+    html = applyRootCriticalCss(html, Boolean(prerenderedPartnerRoot));
+    html = html.replace(/<div id="root"><\/div>/, root);
   } else if (meta.staticH1 || meta.staticLead) {
     html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
     html = html.replace(
@@ -3135,11 +3221,43 @@ async function writeStaticRouteShells(vehicles) {
   prerenderedFleetRoot = '';
   prerenderedMonthlyRoot = '';
   prerenderedContactRoot = '';
+  prerenderedAboutRoot = '';
+  prerenderedPartnerRoot = '';
 
   try {
     prerenderedHomeRoot = await renderReactHomeRoot(vehicles);
   } catch (error) {
     console.warn(`Skipped React home prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedFleetRoot = await renderReactFleetRoot(vehicles);
+  } catch (error) {
+    console.warn(`Skipped React fleet prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedMonthlyRoot = await renderReactMonthlyRoot(vehicles);
+  } catch (error) {
+    console.warn(`Skipped React monthly prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedContactRoot = await renderReactContactRoot();
+  } catch (error) {
+    console.warn(`Skipped React contact prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedAboutRoot = await renderReactAboutRoot();
+  } catch (error) {
+    console.warn(`Skipped React about prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedPartnerRoot = await renderReactPartnerRoot();
+  } catch (error) {
+    console.warn(`Skipped React partner prerender: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   for (const meta of routeMeta) {
@@ -3167,39 +3285,24 @@ async function writeStaticRouteShells(vehicles) {
     });
   }
 
-  for (const vehicle of vehicles) {
-    const name = getVehicleName(vehicle);
-    await writeSpaShell(baseHtml, {
-      path: `/xe/${vehicle.slug}`,
-      title: `Thuê ${name} Tự Lái Hà Nội | Car Match`,
-      description: vehicleDescription(vehicle),
-      canonical: `${siteUrl}/xe/${vehicle.slug}`,
-      image: getVehicleImage(vehicle),
-      staticH1: `Thuê ${name} tự lái tại Hà Nội`,
-      staticLead: vehicleDescription(vehicle),
-      staticExtraHtml: vehicleStaticDetailHtml(vehicle),
-      staticPrimaryHref: 'https://zalo.me/0975563290',
-      staticPrimaryLabel: 'Hỏi xe qua Zalo',
-      staticSecondaryHref: '/xe',
-      staticSecondaryLabel: 'Xem xe khác',
-      structuredData: vehicleStructuredData(vehicle),
-    }, [vehicle]);
+  let vehicleRenderer = null;
+  try {
+    vehicleRenderer = await createReactSsrRenderer();
+  } catch (error) {
+    console.warn(`Skipped React vehicle prerender setup: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  const reservedVehicleSlugs = new Set(vehicles.map((vehicle) => vehicle.slug));
-  const writtenAliases = new Set();
-  for (const vehicle of vehicles) {
-    const aliases = Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [];
-    for (const alias of aliases) {
-      if (!alias || reservedVehicleSlugs.has(alias) || writtenAliases.has(alias)) continue;
-      writtenAliases.add(alias);
+  try {
+    for (const vehicle of vehicles) {
       const name = getVehicleName(vehicle);
+      const routePath = `/xe/${vehicle.slug}`;
       await writeSpaShell(baseHtml, {
-        path: `/xe/${alias}`,
+        path: routePath,
         title: `Thuê ${name} Tự Lái Hà Nội | Car Match`,
         description: vehicleDescription(vehicle),
         canonical: `${siteUrl}/xe/${vehicle.slug}`,
         image: getVehicleImage(vehicle),
+        prerenderedRoot: safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle),
         staticH1: `Thuê ${name} tự lái tại Hà Nội`,
         staticLead: vehicleDescription(vehicle),
         staticExtraHtml: vehicleStaticDetailHtml(vehicle),
@@ -3210,6 +3313,36 @@ async function writeStaticRouteShells(vehicles) {
         structuredData: vehicleStructuredData(vehicle),
       }, [vehicle]);
     }
+
+    const reservedVehicleSlugs = new Set(vehicles.map((vehicle) => vehicle.slug));
+    const writtenAliases = new Set();
+    for (const vehicle of vehicles) {
+      const aliases = Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [];
+      for (const alias of aliases) {
+        if (!alias || reservedVehicleSlugs.has(alias) || writtenAliases.has(alias)) continue;
+        writtenAliases.add(alias);
+        const name = getVehicleName(vehicle);
+        const routePath = `/xe/${alias}`;
+        await writeSpaShell(baseHtml, {
+          path: routePath,
+          title: `Thuê ${name} Tự Lái Hà Nội | Car Match`,
+          description: vehicleDescription(vehicle),
+          canonical: `${siteUrl}/xe/${vehicle.slug}`,
+          image: getVehicleImage(vehicle),
+          prerenderedRoot: safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle),
+          staticH1: `Thuê ${name} tự lái tại Hà Nội`,
+          staticLead: vehicleDescription(vehicle),
+          staticExtraHtml: vehicleStaticDetailHtml(vehicle),
+          staticPrimaryHref: 'https://zalo.me/0975563290',
+          staticPrimaryLabel: 'Hỏi xe qua Zalo',
+          staticSecondaryHref: '/xe',
+          staticSecondaryLabel: 'Xem xe khác',
+          structuredData: vehicleStructuredData(vehicle),
+        }, [vehicle]);
+      }
+    }
+  } finally {
+    if (vehicleRenderer) await vehicleRenderer.close();
   }
 }
 
@@ -4264,7 +4397,7 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
   const normalizedDescription = normalizeBrandText(description);
   const normalizedStructuredData = normalizeBrandText(JSON.stringify(structuredData));
   const appAssets = includeAppAssets ? spaAssetTags() : '';
-  const rootAttributes = appAssets ? ' id="root" data-static-shell="seo-landing"' : '';
+  const rootAttributes = appAssets ? ' id="root" data-static-page="seo-landing"' : '';
 
   return `<!doctype html>
 <html lang="vi">
@@ -4375,7 +4508,6 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
   </head>
   <body>
     <div${rootAttributes}>
-    <script>!function(){var r=document.getElementById('root');r&&r.dataset.staticShell&&(r.style.opacity='0')}()</script>
     <header class="nav">
       <div class="nav-inner">
         <a class="brand" href="/"><img src="/brand/carmatch-lockup-navy.png" alt="Car Match" width="288" height="66" decoding="async" /></a>

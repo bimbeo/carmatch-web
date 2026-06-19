@@ -23,6 +23,17 @@ function reloadOnceForChunkError(error: unknown) {
   void clearStaleAppCache().finally(() => window.location.reload())
 }
 
+function preloadPrerenderedRoute(pathname = window.location.pathname): Promise<unknown> {
+  if (pathname === '/xe') return import('./app/pages/Fleet')
+  if (pathname.startsWith('/xe/')) return import('./app/pages/CarDetail')
+  if (pathname === '/thue-xe-thang') return import('./app/pages/B2B')
+  if (pathname === '/gioi-thieu') return import('./app/pages/About')
+  if (pathname === '/hop-tac') return import('./app/pages/Partner')
+  if (pathname === '/lien-he') return import('./app/pages/Contact')
+
+  return Promise.resolve()
+}
+
 window.addEventListener('unhandledrejection', (event) => {
   reloadOnceForChunkError(event.reason)
 })
@@ -33,7 +44,14 @@ window.addEventListener('error', (event) => {
 
 async function bootApp() {
   const root = document.getElementById('root')!
+  if (root.dataset.staticPage || root.dataset.staticFallback) return
+
   const hadStaticShell = Boolean(root.dataset.staticShell)
+  const shouldHydratePrerendered = Boolean(root.dataset.prerendered)
+
+  if (shouldHydratePrerendered) {
+    await preloadPrerenderedRoute()
+  }
 
   const [{ StrictMode, createElement }, { createRoot, hydrateRoot }, { default: App }] = await Promise.all([
     import('react'),
@@ -42,7 +60,7 @@ async function bootApp() {
   ])
   const app = createElement(StrictMode, null, createElement(App))
 
-  if (root.dataset.prerendered) {
+  if (shouldHydratePrerendered) {
     delete root.dataset.prerendered
     hydrateRoot(root, app)
     return

@@ -292,6 +292,13 @@ export default function Fleet() {
           </div>
         )}
 
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Danh sách xe tự lái đang có</h2>
+          <p className="mt-1 text-sm leading-6 text-gray-500">
+            Lọc nhanh theo lịch nhận xe, hãng xe, nhiên liệu và số chỗ để tìm mẫu phù hợp trước khi nhắn Zalo kiểm tra lịch thật.
+          </p>
+        </div>
+
         <DateRangeFilter onFilter={setUnavailableModels} onActiveChange={setDateFilterActive} />
 
         {dateFilterActive && !loading && (
