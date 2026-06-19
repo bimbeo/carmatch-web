@@ -9,7 +9,7 @@ interface SEOProps {
 }
 
 const BASE_URL = 'https://www.carmatch.vn';
-const DEFAULT_IMAGE = `${BASE_URL}/og-image.png`;
+const DEFAULT_IMAGE = `${BASE_URL}/og-image-20260619.png`;
 const BRAND_NAME_PATTERN = /\bcar\s*match\b/i;
 
 export function normalizeBrandName(value: string) {

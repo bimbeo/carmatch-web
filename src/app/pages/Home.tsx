@@ -33,6 +33,38 @@ function formatShortDate(s: string): string {
   if (!d) return '';
   return `${DAY_NAMES[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
 }
+function defaultQuickDateRange() {
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(from);
+  to.setDate(to.getDate() + 1);
+  return { from: toDateStr(from), to: toDateStr(to) };
+}
+function nextDateStr(dateStr: string) {
+  const base = parseDateStr(dateStr) || new Date();
+  base.setHours(0, 0, 0, 0);
+  base.setDate(base.getDate() + 1);
+  return toDateStr(base);
+}
+function createQuickSearchHref({
+  seats,
+  fuel,
+  from,
+  to,
+}: {
+  seats: string;
+  fuel: string;
+  from: string;
+  to: string;
+}) {
+  const params = new URLSearchParams();
+  if (seats) params.set('seatFilter', seats);
+  if (fuel) params.set('fuelFilter', fuel);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.toString();
+  return query ? `/xe?${query}` : '/xe';
+}
 const SITE_URL = 'https://www.carmatch.vn/';
 
 const stats = [
@@ -209,15 +241,8 @@ export default function Home() {
   const promoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [quickSeats, setQuickSeats] = useState('');
   const [quickFuel, setQuickFuel] = useState('');
-  const [quickFromDate, setQuickFromDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-  const [quickToDate, setQuickToDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [quickFromDate, setQuickFromDate] = useState('');
+  const [quickToDate, setQuickToDate] = useState('');
   const [quickFromTime, setQuickFromTime] = useState('08:00');
   const [quickToTime, setQuickToTime] = useState('20:00');
   const [showCalendar, setShowCalendar] = useState(false);
@@ -271,22 +296,30 @@ export default function Home() {
   const allCarsPreview = cars.slice(0, 6);
   const totalCars = Math.max(cars.length, totalVehicleHint ?? 0);
 
-  const quickSearchHref = useMemo(() => {
-    const params = new URLSearchParams();
-    if (quickSeats) params.set('seatFilter', quickSeats);
-    if (quickFuel) params.set('fuelFilter', quickFuel);
-    if (quickFromDate) params.set('from', quickFromDate);
-    if (quickToDate) params.set('to', quickToDate);
-    const query = params.toString();
-    return query ? `/xe?${query}` : '/xe';
-  }, [quickSeats, quickFuel, quickFromDate, quickToDate]);
-
   const rentalDays = useMemo(() => {
     const f = parseDateStr(quickFromDate);
     const t = parseDateStr(quickToDate);
     if (!f || !t) return 1;
     return Math.max(1, Math.round((t.getTime() - f.getTime()) / 86400000));
   }, [quickFromDate, quickToDate]);
+
+  const hasQuickDateRange = Boolean(quickFromDate && quickToDate);
+  const resolveQuickDateRange = () => {
+    const fallback = defaultQuickDateRange();
+    const from = quickFromDate || fallback.from;
+    return {
+      from,
+      to: quickToDate || nextDateStr(from),
+    };
+  };
+  const openQuickCalendar = () => {
+    const fallback = defaultQuickDateRange();
+    const from = quickFromDate || fallback.from;
+    setQuickFromDate(from);
+    setQuickToDate(quickToDate || nextDateStr(from));
+    setShowCalendar(true);
+    setPickStep('from');
+  };
 
   const calViewDate = useMemo(() => {
     const d = new Date();
@@ -313,8 +346,9 @@ export default function Home() {
       }
       setPickStep('to');
     } else {
-      if (dateStr <= quickFromDate) {
-        setQuickToDate(quickFromDate);
+      const fromDate = quickFromDate || defaultQuickDateRange().from;
+      if (dateStr <= fromDate) {
+        setQuickToDate(fromDate);
         setQuickFromDate(dateStr);
       } else {
         setQuickToDate(dateStr);
@@ -383,14 +417,21 @@ export default function Home() {
 
   const handleQuickSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const dates = resolveQuickDateRange();
+    const targetPath = createQuickSearchHref({
+      seats: quickSeats,
+      fuel: quickFuel,
+      from: dates.from,
+      to: dates.to,
+    });
     trackCtaClick('home_quick_search_submit', {
-      target_path: quickSearchHref,
+      target_path: targetPath,
       seats: quickSeats || undefined,
       fuel: quickFuel || undefined,
-      date_from: quickFromDate || undefined,
-      date_to: quickToDate || undefined,
+      date_from: dates.from,
+      date_to: dates.to,
     });
-    navigate(quickSearchHref);
+    navigate(targetPath);
   };
 
   return (
@@ -631,7 +672,7 @@ export default function Home() {
               {/* Date/time trigger */}
               <button
                 type="button"
-                onClick={() => { setShowCalendar(true); setPickStep('from'); }}
+                onClick={openQuickCalendar}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-left hover:border-brand-400 hover:bg-brand-50/30 transition-colors mb-3 group"
               >
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1.5 group-hover:text-brand-500">
@@ -640,14 +681,14 @@ export default function Home() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <CalendarDays className="w-4 h-4 text-gray-400 flex-shrink-0" />
                   <span className="font-semibold text-sm text-gray-800">
-                    {quickFromTime} {formatShortDate(quickFromDate)}
+                    {quickFromDate ? `${quickFromTime} ${formatShortDate(quickFromDate)}` : 'Ngày nhận xe'}
                   </span>
                   <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
                   <span className="font-semibold text-sm text-gray-800">
-                    {quickToTime} {formatShortDate(quickToDate)}
+                    {quickToDate ? `${quickToTime} ${formatShortDate(quickToDate)}` : 'Ngày trả xe'}
                   </span>
                   <span className="ml-auto bg-brand-50 text-brand-600 text-xs font-bold px-2.5 py-1 rounded-full">
-                    {rentalDays} ngày
+                    {hasQuickDateRange ? `${rentalDays} ngày` : 'Chọn lịch'}
                   </span>
                 </div>
               </button>
@@ -811,9 +852,16 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => {
+                    const dates = resolveQuickDateRange();
+                    const targetPath = createQuickSearchHref({
+                      seats: quickSeats,
+                      fuel: quickFuel,
+                      from: dates.from,
+                      to: dates.to,
+                    });
                     setShowCalendar(false);
-                    trackCtaClick('home_calendar_confirm', { target_path: quickSearchHref });
-                    navigate(quickSearchHref);
+                    trackCtaClick('home_calendar_confirm', { target_path: targetPath });
+                    navigate(targetPath);
                   }}
                   className="flex-shrink-0 px-6 py-3 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors inline-flex items-center gap-2"
                 >

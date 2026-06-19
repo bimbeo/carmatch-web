@@ -16,7 +16,7 @@ const distDir = path.join(rootDir, 'dist');
 const siteUrl = 'https://www.carmatch.vn';
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 const brandIcon = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
-const brandSocialImage = `${siteUrl}/og-image.png`;
+const brandSocialImage = `${siteUrl}/og-image-20260619.png`;
 const homeLastModified = '2026-06-14';
 const socialProfiles = [
   'https://zalo.me/0975563290',
@@ -371,7 +371,7 @@ const routeMeta = [
     title: 'Car Match — Thuê Xe Tự Lái Hà Nội | Từ 600K/Ngày',
     description:
       'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận nơi. Đặt qua Zalo 0975 563 290.',
-    canonical: siteUrl,
+    canonical: `${siteUrl}/`,
     priority: '1.0',
     changefreq: 'weekly',
   },
@@ -1959,6 +1959,12 @@ function rootCriticalCss() {
   return '<link data-critical-home rel="stylesheet" href="/static-shell.css" />';
 }
 
+function removeRootCriticalCss(html) {
+  return html
+    .replace(/\s*<link data-critical-home rel="stylesheet" href="\/static-shell\.css"\s*\/?>/g, '')
+    .replace(/\s*<style data-critical-home>[\s\S]*?<\/style>/g, '');
+}
+
 function formatStaticPrice(value) {
   const price = Number(value || 0);
   if (price >= 1000000) {
@@ -3022,7 +3028,11 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
 
   if (meta.path === '/') {
     html = moveStylesheetsBeforeModuleScripts(html);
-    html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
+    if (prerenderedHomeRoot) {
+      html = removeRootCriticalCss(html);
+    } else {
+      html = replaceOrInsertHead(html, /<style data-critical-home>[\s\S]*?<\/style>/, rootCriticalCss());
+    }
     html = html.replace(/<div id="root"><\/div>/, prerenderedHomeRoot || rootStaticShell(vehicles));
   } else if (meta.path === '/xe') {
     html = moveStylesheetsBeforeModuleScripts(html);

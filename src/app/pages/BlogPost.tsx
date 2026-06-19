@@ -393,7 +393,7 @@ export default function BlogPost() {
         description: post.seoDescription || post.excerpt,
         url: canonical,
         mainEntityOfPage: canonical,
-        image: [post.mainImageUrl || 'https://www.carmatch.vn/og-image.png'],
+        image: [post.mainImageUrl || 'https://www.carmatch.vn/og-image-20260619.png'],
         datePublished: post.publishedAt,
         dateModified: post.publishedAt,
         author: { '@type': 'Person', name: post.author || 'Car Match' },

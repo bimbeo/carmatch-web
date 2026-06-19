@@ -1,7 +1,7 @@
 const siteUrl = 'https://www.carmatch.vn';
 const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
-const brandSocialImage = `${siteUrl}/og-image.png`;
+const brandSocialImage = `${siteUrl}/og-image-20260619.png`;
 const socialProfiles = [
   'https://zalo.me/0975563290',
   'https://www.facebook.com/carmatchvn',
