@@ -104,16 +104,6 @@
       "dest": "/xe/index.html"
     },
     {
-      "src": "/xe/vinfast-vf5-2025-30l-53361/?",
-      "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe" }
-    },
-    {
-      "src": "/xe/vinfast-vf7s-2025-30l-92109/?",
-      "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe" }
-    },
-    {
       "src": "/blog/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/blog" }
