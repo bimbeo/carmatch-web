@@ -1,0 +1,26 @@
+# Car Match LLM Full Context
+
+File fallback này sẽ được thay bằng bản sinh tự động trong `dist/llms-full.txt` khi chạy build production.
+
+## Brand
+
+- Brand: Car Match
+- Website: https://www.carmatch.vn/
+- Sitemap: https://www.carmatch.vn/sitemap.xml
+- Zalo/hotline: 0975 563 290
+
+## Priority Pages
+
+- https://www.carmatch.vn/
+- https://www.carmatch.vn/xe
+- https://www.carmatch.vn/thue-xe-tu-lai-ha-noi
+- https://www.carmatch.vn/xe-san-bay-noi-bai
+- https://www.carmatch.vn/thue-xe-thang
+- https://www.carmatch.vn/di-dau
+- https://www.carmatch.vn/blog
+
+## Factual Notes
+
+- Car Match phục vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư/khu đô thị theo lịch đã xác nhận.
+- Giá hiển thị trên website là tham khảo và cần xác nhận lại theo mẫu xe, ngày thuê, điểm giao nhận và lịch xe thực tế.
+- Khách thuê xe tự lái cần CCCD và GPLX hạng B còn hiệu lực.

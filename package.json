@@ -6,6 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node --env-file-if-exists=.env.local scripts/generate-static-blog.mjs",
+    "build:geo": "npm run build && npm run geo:audit",
+    "build:seo": "npm run build && npm run seo:audit",
+    "seo:audit": "node scripts/audit-geo-foundation.mjs",
+    "seo:index-status": "node scripts/check-search-index.mjs",
+    "geo:audit": "node scripts/audit-geo-foundation.mjs",
+    "geo:crawlers": "node scripts/classify-ai-crawlers.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

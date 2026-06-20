@@ -248,7 +248,7 @@ export const tripDestinations: TripDestination[] = [
     slug: 'noi-bai',
     name: 'Sân bay Nội Bài',
     region: 'Hà Nội',
-    summary: 'Tuyến ngắn để khách chủ động đón tiễn sân bay, đi công tác trong ngày hoặc kết hợp lấy xe cho chuyến đi tỉnh.',
+    summary: 'Tuyến ngắn để khách chủ động đón tiễn sân bay, đi công tác trong ngày hoặc kết hợp lấy xe cho chuyến đi tỉnh. Nếu chỉ cần xe sân bay một chiều, nên xem thêm dịch vụ xe sân bay Nội Bài đặt trước.',
     imageUrl: commonsImage('Noi Bai International Airport Terminal 2 Night View.JPG'),
     tags: ['Trong ngày', 'Sân bay', 'Công tác', 'Gia đình'],
     distanceKm: 30,
@@ -270,11 +270,11 @@ export const tripDestinations: TripDestination[] = [
         items: ['Nhận xe trước giờ bay/giờ đón ít nhất 2-3 tiếng', 'Dự phòng thời gian vào nhà ga', 'Trả xe sau khi hoàn tất chuyến đi'],
       },
     ],
-    notes: ['Phù hợp chuyến công tác ngắn hoặc gia đình cần chủ động giờ bay.', 'Nếu chỉ đi một chiều, nên hỏi Car Match để được tư vấn phương án tiết kiệm hơn.'],
+    notes: ['Phù hợp chuyến công tác ngắn hoặc gia đình cần chủ động giờ bay.', 'Nếu chỉ đi một chiều, nên xem dịch vụ xe sân bay Nội Bài đặt trước để Car Match báo phương án phù hợp hơn.'],
     faq: [
       {
         question: 'Chỉ đi sân bay có nên thuê xe tự lái không?',
-        answer: 'Nếu bạn cần dùng xe thêm trong ngày hoặc chủ động lịch trình, thuê xe tự lái có thể hợp lý. Nếu chỉ đưa đón một chiều, nên so sánh thêm phương án xe dịch vụ.',
+        answer: 'Nếu bạn cần dùng xe thêm trong ngày hoặc chủ động lịch trình, thuê xe tự lái có thể hợp lý. Nếu chỉ đưa đón một chiều, nên so sánh thêm phương án xe sân bay Nội Bài đặt trước.',
       },
     ],
     tollEstimate: 80000,

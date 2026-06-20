@@ -3,6 +3,25 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
+import {
+  aiCrawlerUserAgentPatterns,
+  geoKnowledgeBase,
+  geoPriorityPages,
+} from '../src/data/geoKnowledge.ts';
+import {
+  buildBreadcrumbSchema,
+  buildBlogPostingSchema,
+  buildFAQSchema,
+  buildImageObjectSchema,
+  buildLocalBusinessSchema,
+  buildOrganizationSchema,
+  buildProductCarSchema,
+  buildPublisherSchema,
+  buildServiceSchema,
+  buildWebPageSchema,
+  buildWebSiteSchema,
+  safeJsonLdStringify,
+} from '../src/lib/seoSchemas.ts';
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
 
 process.env.NODE_ENV ||= 'production';
@@ -23,6 +42,21 @@ const socialProfiles = [
   'https://www.facebook.com/carmatchvn',
   'https://www.instagram.com/carmatchvn/',
 ];
+const seoSchemaConfig = {
+  siteUrl,
+  brandName: 'Car Match',
+  logoUrl: brandLogo,
+  iconUrl: brandIcon,
+  socialProfiles,
+  telephone: '+84975563290',
+  email: 'info@carmatch.vn',
+  address: {
+    streetAddress: '38 Sunrise H, The Manor Central Park, Định Công',
+    addressLocality: 'Hà Nội',
+    postalCode: '10000',
+    addressCountry: 'VN',
+  },
+};
 const vehiclePlaceholderImage =
   'https://images.unsplash.com/photo-1493238792000-8113da705763?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
 let prerenderedHomeRoot = '';
@@ -307,6 +341,14 @@ const blogHubTopics = [
       { href: '/lap-ke-hoach-chuyen-di', label: 'Lập kế hoạch chuyến đi' },
     ],
   },
+  {
+    title: 'Xe sân bay Nội Bài đặt trước',
+    body: 'Nếu chỉ cần đi Nội Bài một chiều hoặc đón người thân có nhiều hành lý, khách nên tách nhu cầu này khỏi thuê xe tự lái nhiều ngày. Car Match nhận thông tin điểm đón, giờ bay, số người và vali để báo phương án xe sân bay phù hợp qua Zalo.',
+    links: [
+      { href: '/xe-san-bay-noi-bai', label: 'Xe sân bay Nội Bài' },
+      { href: '/di-dau/noi-bai', label: 'Tự lái đi Nội Bài' },
+    ],
+  },
 ];
 
 const blogHubFaqItems = [
@@ -402,6 +444,15 @@ const routeMeta = [
       'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ, xe điện VinFast, đặt Zalo xác nhận 30 phút.',
     canonical: `${siteUrl}/thue-xe-tu-lai-ha-noi`,
     priority: '0.92',
+    changefreq: 'weekly',
+  },
+  {
+    path: '/xe-san-bay-noi-bai',
+    title: 'Xe Sân Bay Nội Bài Hà Nội | Đặt Trước Qua Car Match',
+    description:
+      'Đặt xe sân bay Nội Bài từ Hà Nội qua Car Match. Gửi điểm đón, giờ bay, số người và vali để được báo xe 5-7 chỗ phù hợp qua Zalo.',
+    canonical: `${siteUrl}/xe-san-bay-noi-bai`,
+    priority: '0.86',
     changefreq: 'weekly',
   },
   {
@@ -745,7 +796,165 @@ const internalLinks = {
     { href: '/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh', label: 'Thuê xe tự lái Vinhomes Ocean Park' },
     { href: '/thue-xe-thang', label: 'Tìm hiểu gói thuê xe dài ngày' },
   ],
+  'taxi-san-bay-noi-bai-gia-bao-nhieu': [
+    { href: '/xe-san-bay-noi-bai', label: 'Đặt xe sân bay Nội Bài qua Car Match' },
+    { href: '/di-dau/noi-bai', label: 'Xem hướng dẫn tự lái đi Nội Bài' },
+    { href: '/xe', label: 'Tham khảo xe 5-7 chỗ tại Hà Nội' },
+  ],
+  'di-noi-bai-nen-di-taxi-xe-cong-nghe-hay-xe-dat-truoc': [
+    { href: '/xe-san-bay-noi-bai', label: 'Soạn yêu cầu xe sân bay Nội Bài' },
+    { href: '/lap-ke-hoach-chuyen-di', label: 'Lập kế hoạch chuyến đi từ Hà Nội' },
+    { href: '/di-dau/noi-bai', label: 'Tự lái đi sân bay Nội Bài' },
+  ],
+  'kinh-nghiem-don-khach-san-bay-noi-bai-t1-t2': [
+    { href: '/xe-san-bay-noi-bai', label: 'Nhờ Car Match tư vấn xe đón sân bay' },
+    { href: '/di-dau/noi-bai', label: 'Lưu ý đường đi Nội Bài' },
+    { href: '/faq', label: 'Câu hỏi thường gặp khi thuê xe' },
+  ],
 };
+
+const airportPostImage =
+  fallbackTripDestinations.find((destination) => destination.slug === 'noi-bai')?.imageUrl || brandSocialImage;
+
+const staticAirportBlogPosts = [
+  {
+    _id: 'static-airport-price-guide',
+    title: 'Taxi sân bay Nội Bài giá bao nhiêu? Cách hỏi giá để không bị lệch kỳ vọng',
+    slug: { current: 'taxi-san-bay-noi-bai-gia-bao-nhieu' },
+    publishedAt: '2026-06-20T08:00:00+07:00',
+    excerpt:
+      'Giá xe sân bay Nội Bài phụ thuộc điểm đón, giờ bay, chiều đi, loại xe và số hành lý. Bài này giúp bạn hỏi giá đúng trước khi đặt.',
+    mainImageUrl: airportPostImage,
+    categories: ['Xe sân bay Nội Bài'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Khi tìm "taxi sân bay Nội Bài giá bao nhiêu", điều khách thực sự cần không chỉ là một con số. Cùng một chuyến đi nhưng giá có thể thay đổi theo điểm đón ở Hà Nội, giờ bay sớm hay muộn, chiều đi lên sân bay hay từ sân bay về, loại xe 5 chỗ hay 7 chỗ và số vali.</p>
+      <p>Vì vậy, Car Match không khuyến nghị khách chốt xe chỉ bằng một bảng giá chung. Cách chắc hơn là gửi thông tin chuyến đi để được báo phương án cụ thể: điểm đón, nhà ga T1/T2, giờ bay, số người, số vali và yêu cầu ghế trẻ em nếu có.</p>
+      <h2>Nên hỏi giá xe sân bay Nội Bài như thế nào?</h2>
+      <p>Bạn nên gửi một tin nhắn ngắn nhưng đủ dữ liệu: "Tôi cần xe từ Times City đi Nội Bài T2 lúc 6h sáng, 3 người, 2 vali lớn, muốn xe 5 chỗ hoặc 7 chỗ nếu cốp rộng hơn". Tin nhắn này giúp đội vận hành báo đúng loại xe, thời gian đón và các khoản cần xác nhận trước.</p>
+      <ul>
+        <li><strong>Điểm đón cụ thể:</strong> tên tòa nhà, sảnh, khu đô thị hoặc địa chỉ gần nhất.</li>
+        <li><strong>Giờ bay hoặc giờ cần có mặt:</strong> nên cộng thêm thời gian làm thủ tục và giờ cao điểm.</li>
+        <li><strong>Nhà ga:</strong> T1 cho nội địa, T2 cho quốc tế nếu lịch bay yêu cầu.</li>
+        <li><strong>Hành lý:</strong> số vali lớn quyết định nên chọn xe 5 chỗ, 7 chỗ hay MPV rộng hơn.</li>
+      </ul>
+      <h2>Khi nào nên chọn xe 5 chỗ, 7 chỗ hoặc MPV?</h2>
+      <p>Xe 5 chỗ phù hợp 1-3 người và ít vali. Xe 7 chỗ phù hợp gia đình 4-5 người, có trẻ nhỏ hoặc nhiều hành lý. Nếu đi công tác nhiều vali, đón khách quốc tế hoặc muốn ngồi rộng, nên hỏi thêm phương án MPV như Carnival hoặc nhóm xe tương đương khi còn lịch.</p>
+      <h2>Car Match báo giá xe sân bay ra sao?</h2>
+      <p>Car Match nhận thông tin qua Zalo, kiểm tra lịch xe/tài xế phù hợp rồi báo lại phương án. Giá cuối cùng phụ thuộc điểm đón, giờ bay, loại xe, chiều đi và điều kiện vận hành thực tế. Những chi tiết liên quan đến điểm dừng, chờ, đỗ hoặc đón tại sân bay sẽ được xác nhận theo quy định hiện hành của khu vực nhà ga.</p>
+      <h2>Liên kết hữu ích trước khi đặt</h2>
+      <p>Nếu bạn muốn tự lái đi Nội Bài, hãy xem thêm <a href="/di-dau/noi-bai">hướng dẫn đi sân bay Nội Bài bằng xe tự lái</a>. Nếu chỉ cần xe đưa đón một chiều hoặc đón người thân, trang <a href="/xe-san-bay-noi-bai">xe sân bay Nội Bài của Car Match</a> sẽ phù hợp hơn.</p>`,
+    seoTitle: 'Taxi Sân Bay Nội Bài Giá Bao Nhiêu?',
+    seoDescription:
+      'Cách hỏi giá taxi/xe sân bay Nội Bài đúng: điểm đón, giờ bay, nhà ga, số người, vali và loại xe trước khi đặt qua Car Match.',
+    canonicalUrl: `${siteUrl}/blog/taxi-san-bay-noi-bai-gia-bao-nhieu`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần báo xe sân bay Nội Bài?',
+    ctaDescription: 'Gửi điểm đón, giờ bay, nhà ga, số người và số vali để Car Match kiểm tra phương án xe phù hợp.',
+    ctaPrimaryLabel: 'Xem dịch vụ xe sân bay',
+    ctaPrimaryUrl: '/xe-san-bay-noi-bai',
+    ctaZaloLabel: 'Nhắn Zalo báo giá',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: ['noi-bai'],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: [],
+  },
+  {
+    _id: 'static-airport-option-guide',
+    title: 'Đi Nội Bài nên đi taxi, xe công nghệ hay xe đặt trước?',
+    slug: { current: 'di-noi-bai-nen-di-taxi-xe-cong-nghe-hay-xe-dat-truoc' },
+    publishedAt: '2026-06-20T07:45:00+07:00',
+    excerpt:
+      'So sánh các lựa chọn đi sân bay Nội Bài theo sự chủ động, hành lý, giờ bay và nhu cầu gia đình/công tác.',
+    mainImageUrl: airportPostImage,
+    categories: ['Xe sân bay Nội Bài'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Không có một lựa chọn đúng cho mọi chuyến đi Nội Bài. Taxi phù hợp khi cần đi ngay và ít yêu cầu về loại xe. Xe công nghệ tiện nếu bạn quen ứng dụng và đi giờ không quá căng. Xe đặt trước phù hợp hơn khi giờ bay sớm, có nhiều vali, đi cùng trẻ nhỏ hoặc cần thống nhất rõ điểm đón trước.</p>
+      <h2>Taxi phù hợp khi nào?</h2>
+      <p>Taxi truyền thống phù hợp với chuyến đi đơn giản, ít hành lý và không cần chọn xe quá cụ thể. Điểm cần lưu ý là khách vẫn nên hỏi rõ giá, chiều đi, phụ phí nếu có và thời gian dự kiến vì mỗi thời điểm giao thông có thể khác nhau.</p>
+      <h2>Xe công nghệ phù hợp khi nào?</h2>
+      <p>Xe công nghệ tiện cho khách đi một mình hoặc nhóm nhỏ, đặc biệt khi điểm đón dễ tìm. Tuy nhiên, vào giờ cao điểm, trời mưa hoặc khung giờ bay sớm, thời gian chờ xe và loại xe nhận cuốc có thể khó đoán hơn. Nếu có nhiều vali, nên cân nhắc xe rộng hơn từ đầu.</p>
+      <h2>Xe sân bay đặt trước phù hợp khi nào?</h2>
+      <p>Xe đặt trước phù hợp khi bạn muốn giảm rủi ro vào phút cuối: đi sân bay sáng sớm, đón người thân, đi công tác cần đúng giờ, có trẻ nhỏ hoặc nhiều hành lý. Bạn gửi thông tin trước để bên cung cấp xe xác nhận loại xe, giờ đón và cách liên hệ trong ngày đi.</p>
+      <div class="table-wrap"><table><thead><tr><th>Nhu cầu</th><th>Lựa chọn nên cân nhắc</th><th>Lý do</th></tr></thead><tbody>
+        <tr><td>Đi ngay, ít hành lý</td><td>Taxi hoặc xe công nghệ</td><td>Nhanh, dễ gọi, không cần chuẩn bị nhiều.</td></tr>
+        <tr><td>Giờ bay sớm hoặc đêm muộn</td><td>Xe đặt trước</td><td>Giảm rủi ro chờ xe sát giờ bay.</td></tr>
+        <tr><td>Gia đình có trẻ nhỏ</td><td>Xe đặt trước 7 chỗ/MPV</td><td>Dễ tính hành lý, ghế trẻ em và thời gian lên xe.</td></tr>
+        <tr><td>Cần tự lái đi việc khác trong ngày</td><td>Thuê xe tự lái</td><td>Phù hợp nếu sau sân bay còn nhiều điểm đi.</td></tr>
+      </tbody></table></div>
+      <h2>Car Match nên được dùng ở bước nào?</h2>
+      <p>Nếu bạn chỉ cần hỏi phương án xe sân bay, hãy gửi thông tin qua <a href="/xe-san-bay-noi-bai">trang xe sân bay Nội Bài</a>. Nếu sau khi ra sân bay bạn còn đi tỉnh, đi gặp khách hoặc cần dùng xe cả ngày, hãy xem thêm <a href="/di-dau/noi-bai">phương án tự lái đi Nội Bài</a> và <a href="/xe">danh sách xe tự lái</a>.</p>`,
+    seoTitle: 'Đi Nội Bài Nên Chọn Taxi Hay Xe Đặt Trước?',
+    seoDescription:
+      'So sánh taxi, xe công nghệ, xe sân bay đặt trước và thuê xe tự lái khi đi Nội Bài từ Hà Nội.',
+    canonicalUrl: `${siteUrl}/blog/di-noi-bai-nen-di-taxi-xe-cong-nghe-hay-xe-dat-truoc`,
+    ctaEnabled: true,
+    ctaTitle: 'Muốn chọn phương án ít rủi ro hơn?',
+    ctaDescription: 'Gửi lịch bay và hành lý để Car Match tư vấn nên dùng xe 5 chỗ, 7 chỗ hay phương án tự lái.',
+    ctaPrimaryLabel: 'Xem xe sân bay Nội Bài',
+    ctaPrimaryUrl: '/xe-san-bay-noi-bai',
+    ctaZaloLabel: 'Nhắn Zalo tư vấn',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: ['noi-bai'],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['taxi-san-bay-noi-bai-gia-bao-nhieu'],
+  },
+  {
+    _id: 'static-airport-pickup-guide',
+    title: 'Kinh nghiệm đón khách sân bay Nội Bài T1/T2: chuẩn bị gì trước khi đi?',
+    slug: { current: 'kinh-nghiem-don-khach-san-bay-noi-bai-t1-t2' },
+    publishedAt: '2026-06-20T07:30:00+07:00',
+    excerpt:
+      'Checklist trước khi đón khách ở Nội Bài: nhà ga, giờ hạ cánh, số hành lý, điểm hẹn và phương án xe phù hợp.',
+    mainImageUrl: airportPostImage,
+    categories: ['Xe sân bay Nội Bài'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Đón khách ở Nội Bài dễ bị rối nếu chỉ biết giờ máy bay đáp. Bạn cần biết khách xuống nhà ga nào, có gửi hành lý ký gửi không, có sim/roaming để liên lạc không và điểm hẹn lên xe sẽ được xác nhận ra sao trong ngày đi.</p>
+      <h2>Trước khi đi nên hỏi khách những gì?</h2>
+      <ul>
+        <li><strong>Nhà ga T1 hay T2:</strong> T1 thường phục vụ nội địa, T2 thường phục vụ quốc tế, nhưng vẫn nên kiểm tra theo vé bay.</li>
+        <li><strong>Giờ hạ cánh dự kiến:</strong> nên cộng thêm thời gian lấy hành lý, nhập cảnh hoặc di chuyển trong nhà ga.</li>
+        <li><strong>Số vali:</strong> 2 vali lớn trở lên có thể khiến xe 5 chỗ không còn thoải mái.</li>
+        <li><strong>Liên hệ khi hạ cánh:</strong> thống nhất số điện thoại, Zalo hoặc người đứng đón.</li>
+      </ul>
+      <h2>Nên chọn xe gì để đón sân bay?</h2>
+      <p>Với 1-2 khách và ít hành lý, xe 5 chỗ thường đủ dùng. Với gia đình có trẻ nhỏ, khách quốc tế có nhiều vali hoặc nhóm 4-5 người, xe 7 chỗ hoặc MPV rộng hơn sẽ dễ chịu hơn. Nếu bạn chưa chắc, hãy gửi số người và ảnh/số lượng vali để được tư vấn trước.</p>
+      <h2>Điểm đón tại sân bay cần lưu ý gì?</h2>
+      <p>Điểm đón cụ thể có thể thay đổi theo nhà ga, luồng xe và quy định vận hành hiện hành tại sân bay. Vì vậy không nên hẹn chung chung "đón ở cửa ra". Hãy thống nhất nhà ga, cột/sảnh, số điện thoại liên hệ và phương án thay đổi nếu chuyến bay chậm.</p>
+      <h2>Checklist nhanh cho người đặt xe</h2>
+      <ol>
+        <li>Gửi mã chuyến bay, giờ đáp và nhà ga.</li>
+        <li>Gửi số người, số vali lớn và nhu cầu ghế trẻ em nếu có.</li>
+        <li>Xác nhận điểm đón, thời gian chờ và cách liên hệ.</li>
+        <li>Dự phòng giờ cao điểm tuyến Võ Nguyên Giáp, cầu Nhật Tân hoặc đường vành đai.</li>
+      </ol>
+      <p>Nếu muốn giảm thao tác trong ngày bay, bạn có thể gửi thông tin qua <a href="/xe-san-bay-noi-bai">dịch vụ xe sân bay Nội Bài của Car Match</a>. Nếu người nhà tự lái xe đi đón, xem thêm <a href="/di-dau/noi-bai">lưu ý tự lái đi Nội Bài</a>.</p>`,
+    seoTitle: 'Kinh Nghiệm Đón Khách Sân Bay Nội Bài T1/T2',
+    seoDescription:
+      'Checklist đón khách sân bay Nội Bài T1/T2: giờ bay, nhà ga, hành lý, điểm hẹn, loại xe và cách đặt trước qua Car Match.',
+    canonicalUrl: `${siteUrl}/blog/kinh-nghiem-don-khach-san-bay-noi-bai-t1-t2`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần xe đón khách ở Nội Bài?',
+    ctaDescription: 'Gửi nhà ga, giờ đáp, số người và số vali để Car Match kiểm tra xe/tài xế phù hợp.',
+    ctaPrimaryLabel: 'Xem dịch vụ xe sân bay',
+    ctaPrimaryUrl: '/xe-san-bay-noi-bai',
+    ctaZaloLabel: 'Nhắn Zalo đặt xe',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: ['noi-bai'],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['di-noi-bai-nen-di-taxi-xe-cong-nghe-hay-xe-dat-truoc'],
+  },
+];
+
+function mergeStaticBlogPosts(posts) {
+  const existingSlugs = new Set(posts.map((post) => post.slug?.current).filter(Boolean));
+  return [
+    ...posts,
+    ...staticAirportBlogPosts.filter((post) => !existingSlugs.has(post.slug.current)),
+  ].sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime());
+}
 
 function escapeHtml(value = '') {
   return normalizeCustomerText(value)
@@ -1037,176 +1246,48 @@ function vehicleStaticDetailHtml(vehicle) {
 }
 
 function publisherData() {
-  return {
-    '@type': 'Organization',
-    '@id': `${siteUrl}/#organization`,
-    name: 'Car Match',
-    url: siteUrl,
-    logo: {
-      '@type': 'ImageObject',
-      url: brandIcon,
-    },
-  };
+  return buildPublisherSchema(seoSchemaConfig);
 }
 
 function organizationData() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': `${siteUrl}/#organization`,
-    name: 'Car Match',
-    url: siteUrl,
-    logo: {
-      '@type': 'ImageObject',
-      url: brandIcon,
-      width: 512,
-      height: 512,
-    },
-    image: brandLogo,
-    email: 'info@carmatch.vn',
-    telephone: '+84975563290',
-    sameAs: socialProfiles,
-    contactPoint: [
-      {
-        '@type': 'ContactPoint',
-        telephone: '+84975563290',
-        contactType: 'customer support',
-        areaServed: 'VN',
-        availableLanguage: ['vi'],
-      },
-    ],
-  };
+  return buildOrganizationSchema(seoSchemaConfig);
 }
 
 function webSiteData() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    '@id': `${siteUrl}/#website`,
-    name: 'Car Match',
-    url: siteUrl,
-    inLanguage: 'vi-VN',
-    publisher: publisherData(),
-  };
+  return buildWebSiteSchema(seoSchemaConfig);
 }
 
 function localBusinessData() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'AutoRental',
-    '@id': `${siteUrl}/#localbusiness`,
-    name: 'Car Match — The Manor Central Park',
-    alternateName: 'Car Match',
-    description: 'Dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư và khu đô thị.',
-    url: siteUrl,
-    telephone: '+84975563290',
-    email: 'info@carmatch.vn',
-    image: brandIcon,
-    logo: brandIcon,
-    hasMap: 'https://www.google.com/maps/search/?api=1&query=Car%20Match%20The%20Manor%20Central%20Park%2038%20Sunrise%20H%20Ha%20Noi',
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: '38 Sunrise H, The Manor Central Park, Định Công',
-      addressLocality: 'Hà Nội',
-      postalCode: '10000',
-      addressCountry: 'VN',
-    },
-    openingHoursSpecification: {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      opens: '07:00',
-      closes: '22:00',
-    },
-    priceRange: '600.000đ – 25.000.000đ',
-    currenciesAccepted: 'VND',
-    paymentAccepted: 'Chuyển khoản, Tiền mặt',
-    areaServed: [
-      { '@type': 'Place', name: 'Vinhomes Ocean Park, Gia Lâm, Hà Nội' },
-      { '@type': 'Place', name: 'Vinhomes Smart City, Nam Từ Liêm, Hà Nội' },
-      { '@type': 'Place', name: 'Vinhomes Times City, Hai Bà Trưng, Hà Nội' },
-      { '@type': 'Place', name: 'Ecopark, Văn Giang, Hưng Yên' },
-      { '@type': 'Place', name: 'The Manor Central Park, Định Công, Hà Nội' },
-    ],
-    sameAs: socialProfiles,
-  };
+  return buildLocalBusinessSchema(seoSchemaConfig);
 }
 
 function breadcrumbData(items) {
-  return {
-    '@type': 'BreadcrumbList',
-    itemListElement: items.map((item, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: item.name,
-      item: `${siteUrl}${item.path === '/' ? '' : item.path}`,
-    })),
-  };
+  return buildBreadcrumbSchema(items, seoSchemaConfig);
 }
 
 function imageObjectData(url, name, width, height) {
-  return {
-    '@type': 'ImageObject',
-    url,
-    name,
-    ...(width ? { width } : {}),
-    ...(height ? { height } : {}),
-  };
+  return buildImageObjectSchema(url, name, width, height);
 }
 
 function webPageData(meta, extra = {}) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': extra.type || 'WebPage',
-    name: meta.title,
-    description: meta.description,
-    url: meta.canonical,
-    inLanguage: 'vi-VN',
-    isPartOf: {
-      '@type': 'WebSite',
-      name: 'Car Match',
-      url: siteUrl,
-    },
-    publisher: publisherData(),
-    ...extra.fields,
-  };
+  return buildWebPageSchema(meta, extra, seoSchemaConfig);
 }
 
 function faqPageData(meta) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    name: meta.title,
-    description: meta.description,
-    url: meta.canonical,
-    inLanguage: 'vi-VN',
-    publisher: publisherData(),
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'Cần giấy tờ gì để thuê xe tự lái tại Car Match?',
-        acceptedAnswer: {
-        '@type': 'Answer',
-          text: 'Khách thuê cần CCCD, giấy phép lái xe hạng B còn hiệu lực và khoản đặt cọc theo từng mẫu xe, được xác nhận trước khi giao xe.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Car Match có giao xe tận nơi không?',
-        acceptedAnswer: {
-        '@type': 'Answer',
-          text: 'Có. Car Match hỗ trợ giao xe tận sảnh chung cư, tòa nhà hoặc điểm hẹn phù hợp tại Hà Nội theo lịch xe đã xác nhận.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Giá thuê xe tự lái tại Car Match tính thế nào?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Giá thuê phụ thuộc mẫu xe, thời gian thuê và nhu cầu giao nhận. Khách có thể xem danh sách xe hoặc liên hệ Zalo để được báo giá nhanh.',
-        },
-      },
-    ],
-  };
+  return buildFAQSchema(meta, [
+    {
+      question: 'Cần giấy tờ gì để thuê xe tự lái tại Car Match?',
+      answer: 'Khách thuê cần CCCD, giấy phép lái xe hạng B còn hiệu lực và khoản đặt cọc theo từng mẫu xe, được xác nhận trước khi giao xe.',
+    },
+    {
+      question: 'Car Match có giao xe tận nơi không?',
+      answer: 'Có. Car Match hỗ trợ giao xe tận sảnh chung cư, tòa nhà hoặc điểm hẹn phù hợp tại Hà Nội theo lịch xe đã xác nhận.',
+    },
+    {
+      question: 'Giá thuê xe tự lái tại Car Match tính thế nào?',
+      answer: 'Giá thuê phụ thuộc mẫu xe, thời gian thuê và nhu cầu giao nhận. Khách có thể xem danh sách xe hoặc liên hệ Zalo để được báo giá nhanh.',
+    },
+  ], seoSchemaConfig);
 }
 
 function homeFaqData(meta) {
@@ -1229,23 +1310,12 @@ function homeFaqData(meta) {
     },
   ];
 
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    '@id': `${siteUrl}/#home-faq`,
-    name: 'Câu hỏi thường gặp về thuê xe tự lái Car Match',
-    url: meta.canonical,
-    inLanguage: 'vi-VN',
-    publisher: publisherData(),
-    mainEntity: faqs.map((faq) => ({
-      '@type': 'Question',
-      name: faq.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: faq.answer,
-      },
-    })),
-  };
+  return buildFAQSchema(
+    { title: 'Câu hỏi thường gặp về thuê xe tự lái Car Match', canonical: meta.canonical },
+    faqs,
+    seoSchemaConfig,
+    `${siteUrl}/#home-faq`,
+  );
 }
 
 function homeStructuredData(meta, vehicles) {
@@ -1309,43 +1379,24 @@ function monthlyRentalStructuredData(meta) {
   ];
 
   return [
-    webPageData(meta, {
-      type: 'Service',
-      fields: {
-        serviceType: 'Thuê xe tự lái theo tháng',
-        provider: publisherData(),
-        areaServed: {
-          '@type': 'City',
-          name: 'Hà Nội',
-          addressCountry: 'VN',
-        },
-        offers: {
-          '@type': 'AggregateOffer',
-          priceCurrency: 'VND',
-          lowPrice: 10000000,
-          highPrice: 25000000,
-          offerCount: 3,
-          availability: 'https://schema.org/InStock',
-          url: meta.canonical,
-        },
+    buildServiceSchema(meta, {
+      serviceType: 'Thuê xe tự lái theo tháng',
+      areaServed: {
+        '@type': 'City',
+        name: 'Hà Nội',
+        addressCountry: 'VN',
+      },
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'VND',
+        lowPrice: 10000000,
+        highPrice: 25000000,
+        offerCount: 3,
+        availability: 'https://schema.org/InStock',
+        url: meta.canonical,
       },
     }),
-    {
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      name: 'FAQ thuê xe tự lái theo tháng tại Hà Nội',
-      url: meta.canonical,
-      inLanguage: 'vi-VN',
-      publisher: publisherData(),
-      mainEntity: faqs.map((faq) => ({
-        '@type': 'Question',
-        name: faq.question,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: faq.answer,
-        },
-      })),
-    },
+    buildFAQSchema({ title: 'FAQ thuê xe tự lái theo tháng tại Hà Nội', canonical: meta.canonical }, faqs, seoSchemaConfig),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Thuê xe tự lái theo tháng', path: '/thue-xe-thang' },
@@ -1360,26 +1411,18 @@ function vehicleStructuredData(vehicle) {
   const price = Number(vehicle.daily_base_price || 0);
 
   return [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
+    buildProductCarSchema({
       name: `Thuê ${name}`,
       description: vehicleDescription(vehicle),
-      image: [getVehicleImage(vehicle)],
-      brand: model.make ? { '@type': 'Brand', name: model.make } : undefined,
+      image: getVehicleImage(vehicle),
+      brand: model.make,
       category: 'Xe tự lái',
-      url,
-      offers: {
-        '@type': 'Offer',
-        url,
-        priceCurrency: 'VND',
-        price: price || undefined,
-        availability: 'https://schema.org/LimitedAvailability',
-        seller: publisherData(),
-        shippingDetails: hanoiDeliveryDetails,
-        hasMerchantReturnPolicy: rentalReturnPolicy,
-      },
-    },
+      canonical: url,
+      price,
+      availability: 'https://schema.org/LimitedAvailability',
+      shippingDetails: hanoiDeliveryDetails,
+      returnPolicy: rentalReturnPolicy,
+    }, seoSchemaConfig),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Thuê xe tự lái', path: '/xe' },
@@ -1551,6 +1594,25 @@ function uniqueVehicleSlugs(vehicles) {
 function replaceOrInsertHead(html, pattern, replacement) {
   if (pattern.test(html)) return html.replace(pattern, replacement);
   return html.replace('</head>', `    ${replacement}\n  </head>`);
+}
+
+function estimateTokenCount(value = '') {
+  const text = stripHtmlForLlms(value);
+  if (!text) return 0;
+  return Math.max(1, Math.ceil(text.length / 4));
+}
+
+function jsonLdString(value) {
+  return normalizeBrandText(safeJsonLdStringify(value));
+}
+
+function withAiTokenMeta(html) {
+  const tokenCount = estimateTokenCount(html);
+  return replaceOrInsertHead(
+    html,
+    /<meta name="ai:token-count" content="\d+"\s*\/>/,
+    `<meta name="ai:token-count" content="${tokenCount}" />`,
+  );
 }
 
 function moveStylesheetsBeforeModuleScripts(html) {
@@ -3153,7 +3215,7 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   if (meta.structuredData) {
     html = html.replace(
       /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
-      `<script type="application/ld+json">${JSON.stringify(meta.structuredData)}</script>`,
+      `<script type="application/ld+json">${jsonLdString(meta.structuredData)}</script>`,
     );
   }
 
@@ -3246,7 +3308,7 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
     html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/, '<div id="root"></div>\n    <script');
   }
 
-  return html;
+  return withAiTokenMeta(html);
 }
 
 async function writeSpaShell(baseHtml, meta, vehicles = []) {
@@ -3260,11 +3322,12 @@ async function writeHtmlRoute(routePath, html) {
   const cleanPath = routePath === '/' ? '' : routePath.replace(/^\/+/, '');
   const outputDir = path.join(distDir, cleanPath);
   await mkdir(outputDir, { recursive: true });
-  await writeFile(path.join(outputDir, 'index.html'), html, 'utf8');
+  const finalHtml = withAiTokenMeta(html);
+  await writeFile(path.join(outputDir, 'index.html'), finalHtml, 'utf8');
   if (cleanPath) {
     const cleanUrlFile = path.join(distDir, `${cleanPath}.html`);
     await mkdir(path.dirname(cleanUrlFile), { recursive: true });
-    await writeFile(cleanUrlFile, html, 'utf8');
+    await writeFile(cleanUrlFile, finalHtml, 'utf8');
   }
 }
 
@@ -3521,7 +3584,7 @@ function layout({ title, description, canonical, image, type = 'article', body, 
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="preload" as="image" href="/brand/carmatch-lockup-navy.png" />
-    <script type="application/ld+json">${normalizeBrandText(JSON.stringify(structuredData))}</script>
+    <script type="application/ld+json">${jsonLdString(structuredData)}</script>
     <style>
       :root { color-scheme: light; font-family: "Be Vietnam Pro", Arial, sans-serif; color: #172033; background: #f8fafc; }
       * { box-sizing: border-box; }
@@ -3722,6 +3785,7 @@ function renderBlogIndex(posts) {
           <div class="blog-topic-list">
             <a href="/xe">Danh sách xe</a>
             <a href="/thue-xe-thang">Thuê xe tháng</a>
+            <a href="/xe-san-bay-noi-bai">Xe sân bay Nội Bài</a>
             <a href="/di-dau">Lịch trình đi chơi</a>
             <a href="/faq">Câu hỏi thường gặp</a>
           </div>
@@ -3752,17 +3816,14 @@ function renderBlogIndex(posts) {
         url: blogMeta.canonical,
         inLanguage: 'vi-VN',
         publisher: publisherData(),
-        blogPost: posts.map((post) => ({
-          '@type': 'BlogPosting',
-          headline: post.title,
+        blogPost: posts.map((post) => buildBlogPostingSchema({
+          title: post.title,
           description: postDescription(post),
-          url: postUrl(post),
-          image: [postImage(post)],
-          datePublished: post.publishedAt,
-          dateModified: post.publishedAt,
-          author: publisherData(),
-          publisher: publisherData(),
-        })),
+          canonical: postUrl(post),
+          image: postImage(post),
+          publishedAt: post.publishedAt,
+          modifiedAt: post.publishedAt,
+        }, seoSchemaConfig)),
       },
       breadcrumbData([
         { name: 'Trang chủ', path: '/' },
@@ -3811,22 +3872,14 @@ function renderPost(post, contentIndex) {
     structuredData: [
       organizationData(),
       webSiteData(),
-      {
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        '@id': `${canonical}#article`,
-        headline: post.title,
+      buildBlogPostingSchema({
+        title: post.title,
         description,
-        url: canonical,
-        mainEntityOfPage: canonical,
-        isPartOf: { '@id': `${siteUrl}/#website` },
-        image: [image],
-        datePublished: post.publishedAt,
-        dateModified: post.publishedAt,
-        author: publisherData(),
-        publisher: publisherData(),
-        inLanguage: 'vi-VN',
-      },
+        canonical,
+        image,
+        publishedAt: post.publishedAt,
+        modifiedAt: post.publishedAt,
+      }, seoSchemaConfig),
       breadcrumbData([
         { name: 'Trang chủ', path: '/' },
         { name: 'Blog', path: '/blog' },
@@ -3836,7 +3889,7 @@ function renderPost(post, contentIndex) {
   });
 }
 
-function renderSitemap(posts, vehicles, landingPages = [], travelCollections = []) {
+function collectSitemapEntries(posts, vehicles, landingPages = [], travelCollections = []) {
   const urls = [
     // CMS landing pages override hardcoded routeMeta entries for the same slug
     ...landingPages.map((page) => ({
@@ -3878,7 +3931,12 @@ function renderSitemap(posts, vehicles, landingPages = [], travelCollections = [
       lastmod: post.publishedAt?.slice(0, 10),
     })),
   ];
-  const uniqueUrls = [...new Map(urls.map((url) => [url.loc, url])).values()];
+
+  return [...new Map(urls.map((url) => [url.loc, url])).values()];
+}
+
+function renderSitemap(posts, vehicles, landingPages = [], travelCollections = []) {
+  const uniqueUrls = collectSitemapEntries(posts, vehicles, landingPages, travelCollections);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -3889,6 +3947,178 @@ ${uniqueUrls.map((url) => `  <url>
     <priority>${url.priority}</priority>
   </url>`).join('\n')}
 </urlset>
+`;
+}
+
+function stripHtmlForLlms(value = '') {
+  return normalizeCustomerText(String(value))
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function truncateText(value = '', maxLength = 220) {
+  const text = stripHtmlForLlms(value);
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+function routeTitleFromMeta(meta) {
+  return String(meta.title || '').replace(/\s+\|\s+Car Match$/i, '').replace(/\s+—\s+Car Match$/i, '');
+}
+
+function routeMetaForPath(pathName) {
+  return routeMeta.find((meta) => meta.path === pathName);
+}
+
+function pageLine({ title, url, description, tokenEstimate }) {
+  const cleanTitle = normalizeCustomerText(title || url);
+  const cleanDescription = truncateText(description || '', 180);
+  const tokenLabel = tokenEstimate ? ` (tokens: ~${tokenEstimate})` : '';
+  return cleanDescription
+    ? `- [${cleanTitle}](${url})${tokenLabel}: ${cleanDescription}`
+    : `- [${cleanTitle}](${url})${tokenLabel}`;
+}
+
+function renderLlmsText(posts, vehicles, landingPages = [], travelCollections = []) {
+  const priorityLines = geoPriorityPages
+    .map((page) => {
+      const meta = routeMetaForPath(page.path);
+      return pageLine({
+        title: page.topic,
+        url: `${siteUrl}${page.path === '/' ? '/' : page.path}`,
+        description: page.directAnswer || meta?.description,
+        tokenEstimate: estimateTokenCount(`${page.topic} ${page.directAnswer || meta?.description || ''}`),
+      });
+    })
+    .join('\n');
+  const serviceLines = geoKnowledgeBase
+    .map((entry) => pageLine({
+      title: entry.title,
+      url: entry.sourceUrl,
+      description: entry.summary,
+      tokenEstimate: estimateTokenCount(`${entry.summary} ${entry.facts.join(' ')}`),
+    }))
+    .join('\n');
+  const blogLines = posts.slice(0, 8)
+    .map((post) => pageLine({
+      title: post.title,
+      url: postUrl(post),
+      description: post.excerpt || post.seoDescription || post.bodyHtml,
+      tokenEstimate: estimateTokenCount(`${post.title} ${post.excerpt || post.seoDescription || post.bodyHtml || ''}`),
+    }))
+    .join('\n');
+  const destinationLines = generatedTripDestinations.slice(0, 8)
+    .map((destination) => pageLine({
+      title: `Đi ${destination.name} bằng xe tự lái`,
+      url: `${siteUrl}/di-dau/${destination.slug}`,
+      description: destination.summary || destination.seoDescription || destination.ideal,
+      tokenEstimate: estimateTokenCount(`${destination.name} ${destination.summary || destination.seoDescription || destination.ideal || ''}`),
+    }))
+    .join('\n');
+  const crawlerLines = aiCrawlerUserAgentPatterns
+    .filter((group) => group.category === 'ai_bot')
+    .map((group) => `- ${group.label}: ${group.patterns.join(', ')}`)
+    .join('\n');
+
+  return `# Car Match
+
+> Car Match cung cấp dịch vụ thuê xe tự lái, xe sân bay Nội Bài và thuê xe theo tháng tại Hà Nội. Nội dung dưới đây giúp crawler và trợ lý AI hiểu các trang chính, nhưng không thay thế sitemap XML.
+
+## Thông tin cốt lõi
+
+- Website chính: ${siteUrl}/
+- Sitemap XML: ${siteUrl}/sitemap.xml
+- Bản đầy đủ cho LLM/crawler thử nghiệm: ${siteUrl}/llms-full.txt
+- Token estimate: số token là ước lượng để crawler/assistant dự trù ngữ cảnh, không phải yếu tố xếp hạng Google.
+- Liên hệ/Zalo: 0975 563 290
+- Khu vực chính: Hà Nội, ưu tiên chung cư và khu đô thị.
+- Lưu ý giá: giá trên website là tham khảo, cần xác nhận theo mẫu xe, ngày thuê, điểm giao nhận và lịch xe thực tế.
+
+## Trang ưu tiên
+
+${priorityLines}
+
+## Dịch vụ và nguồn kiến thức
+
+${serviceLines}
+
+## Blog gần đây
+
+${blogLines || '- Chưa có bài blog công khai.'}
+
+## Đi đâu từ Hà Nội
+
+${destinationLines}
+
+## AI crawler nên được phép truy cập
+
+${crawlerLines}
+`;
+}
+
+function renderLlmsFullText(posts, vehicles, landingPages = [], travelCollections = []) {
+  const sitemapEntries = collectSitemapEntries(posts, vehicles, landingPages, travelCollections);
+  const routeLines = sitemapEntries
+    .map((entry) => `- ${entry.loc}${entry.lastmod ? ` (updated ${entry.lastmod})` : ''}`)
+    .join('\n');
+  const knowledgeLines = geoKnowledgeBase
+    .map((entry) => {
+      const facts = entry.facts.map((fact) => `  - ${normalizeCustomerText(fact)}`).join('\n');
+      const routes = entry.relatedRoutes.map((routePath) => `${siteUrl}${routePath === '/' ? '/' : routePath}`).join(', ');
+      return `### ${entry.title}
+
+- Business line: ${entry.businessLine}
+- Audience: ${entry.audience}
+- Source: ${entry.sourceUrl}
+- Effective date: ${entry.effectiveDate}
+- Review status: ${entry.reviewStatus}
+- Risk level: ${entry.riskLevel}
+- Summary: ${entry.summary}
+- Related routes: ${routes}
+- Facts:
+${facts}`;
+    })
+    .join('\n\n');
+  const priorityLines = geoPriorityPages
+    .map((page) => {
+      const links = page.internalLinks.map((routePath) => `${siteUrl}${routePath === '/' ? '/' : routePath}`).join(', ');
+      return `### ${page.topic}
+
+- URL: ${siteUrl}${page.path === '/' ? '/' : page.path}
+- Token estimate: ~${estimateTokenCount(`${page.topic} ${page.directAnswer}`)}
+- Intent: ${page.intent}
+- Journey stage: ${page.journeyStage}
+- Direct answer: ${page.directAnswer}
+- Internal links: ${links}`;
+    })
+    .join('\n\n');
+
+  return `# Car Match LLM Full Context
+
+Generated for non-Google crawler and assistant experiments. Google ranking still depends on normal crawlable, helpful, indexable pages.
+
+## Brand and Contact
+
+- Brand: Car Match
+- Website: ${siteUrl}/
+- Zalo/Hotline: 0975 563 290
+- Primary market: Hà Nội, Việt Nam
+- Core offer: thuê xe tự lái theo ngày, thuê xe theo tháng, xe sân bay Nội Bài, gợi ý tuyến đi chơi từ Hà Nội.
+
+## Priority Page Briefs
+
+${priorityLines}
+
+## Evidence-Backed Knowledge Base
+
+${knowledgeLines}
+
+## Indexable URL Map
+
+${routeLines}
 `;
 }
 
@@ -4054,7 +4284,7 @@ function renderHanoiLanding() {
     <meta name="twitter:image:alt" content="Thuê xe tự lái Hà Nội tại Car Match" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="preload" as="image" href="/brand/carmatch-lockup-navy.png" />
-    <script type="application/ld+json">${normalizeBrandText(JSON.stringify(structuredData))}</script>
+    <script type="application/ld+json">${jsonLdString(structuredData)}</script>
     <style>
       :root { color-scheme: light; font-family: "Be Vietnam Pro", Inter, Arial, sans-serif; background: #f8fafc; color: #0f172a; }
       * { box-sizing: border-box; }
@@ -4449,7 +4679,7 @@ function spaAssetTags() {
 function renderSeoLandingLayout({ title, description, canonical, structuredData, active = '', body, includeAppAssets = true }) {
   const normalizedTitle = normalizeBrandText(title);
   const normalizedDescription = normalizeBrandText(description);
-  const normalizedStructuredData = normalizeBrandText(JSON.stringify(structuredData));
+  const normalizedStructuredData = jsonLdString(structuredData);
   const appAssets = includeAppAssets ? spaAssetTags() : '';
   const rootAttributes = appAssets ? ' id="root" data-static-page="seo-landing"' : '';
 
@@ -4579,6 +4809,257 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
     </div>
   </body>
 </html>`;
+}
+
+function renderAirportTransferLanding(vehicles = []) {
+  const title = 'Xe Sân Bay Nội Bài Hà Nội | Đặt Trước Qua Car Match';
+  const description =
+    'Đặt xe sân bay Nội Bài từ Hà Nội qua Car Match. Gửi điểm đón, giờ bay, số người và vali để được báo xe 5-7 chỗ phù hợp qua Zalo.';
+  const canonical = `${siteUrl}/xe-san-bay-noi-bai`;
+  const airportDestination =
+    generatedTripDestinations.find((destination) => destination.slug === 'noi-bai') ||
+    fallbackTripDestinations.find((destination) => destination.slug === 'noi-bai');
+  const heroImage = airportDestination?.imageUrl || airportPostImage;
+  const airportZaloHref = staticZaloHref(
+    'Xin chào Car Match, tôi cần đặt xe sân bay Nội Bài. Điểm đón/trả: ..., giờ bay: ..., nhà ga T1/T2: ..., số người: ..., số vali: ... Nhờ Car Match báo phương án xe phù hợp ạ.',
+  );
+  const vehicleCards = vehicles
+    .filter((vehicle) => {
+      const seats = Number(vehicle.vehicle_models?.seats || 0);
+      return seats >= 4 && seats <= 8 && Number(vehicle.daily_base_price || 0) > 0;
+    })
+    .slice(0, 3);
+  const faqItems = [
+    [
+      'Car Match có phải taxi sân bay Nội Bài không?',
+      'Car Match định vị trang này là dịch vụ xe sân bay đặt trước cho khách ở Hà Nội, không phải bảng giá taxi cố định. Khách gửi điểm đón, giờ bay, nhà ga, số người và hành lý; Car Match kiểm tra phương án xe/tài xế phù hợp rồi báo lại qua Zalo. Cách viết này giúp khách biết rõ xe, lịch và chi phí trước khi chốt.',
+    ],
+    [
+      'Giá xe sân bay Nội Bài được tính như thế nào?',
+      'Giá phụ thuộc điểm đón hoặc trả tại Hà Nội, giờ bay, chiều đi, loại xe, số người, số vali và điều kiện vận hành trong ngày. Vì vậy trang không công bố một mức cố định cho mọi chuyến. Khi nhận đủ thông tin, Car Match sẽ báo phương án cụ thể để khách xác nhận trước khi đi.',
+    ],
+    [
+      'Đi Nội Bài nên chọn xe 5 chỗ hay 7 chỗ?',
+      'Nếu đi 1-3 người và ít hành lý, xe 5 chỗ thường đủ dùng. Nếu đi gia đình, có trẻ nhỏ, 4-5 người hoặc nhiều vali lớn, nên cân nhắc xe 7 chỗ hoặc MPV rộng hơn để cốp và hàng ghế thoải mái. Trường hợp không chắc, hãy gửi số người và số vali để được tư vấn.',
+    ],
+    [
+      'Có thể đón khách ở T1/T2 không?',
+      'Có thể tư vấn phương án đón theo nhà ga T1 hoặc T2, nhưng điểm dừng, điểm hẹn và thời gian chờ cần xác nhận theo quy định hiện hành của sân bay và tình hình khai thác trong ngày. Khách nên gửi mã chuyến bay, giờ hạ cánh và số điện thoại liên hệ để giảm rủi ro lạc điểm hẹn.',
+    ],
+  ];
+  const structuredData = [
+    organizationData(),
+    webSiteData(),
+    localBusinessData(),
+    webPageData({ title, description, canonical }, {
+      type: 'Service',
+      fields: {
+        '@id': `${canonical}#service`,
+        name: 'Xe sân bay Nội Bài đặt trước tại Hà Nội',
+        serviceType: 'Xe sân bay Nội Bài đặt trước',
+        provider: { '@id': `${siteUrl}/#localbusiness` },
+        areaServed: [
+          { '@type': 'City', name: 'Hà Nội' },
+          { '@type': 'Airport', name: 'Sân bay quốc tế Nội Bài' },
+        ],
+        audience: {
+          '@type': 'Audience',
+          audienceType: 'Gia đình, khách công tác, khách có nhiều hành lý cần đi sân bay Nội Bài',
+        },
+        offers: {
+          '@type': 'Offer',
+          priceSpecification: {
+            '@type': 'PriceSpecification',
+            priceCurrency: 'VND',
+            description: 'Báo giá theo điểm đón, giờ bay, loại xe, số người và lịch vận hành thực tế.',
+          },
+          url: canonical,
+        },
+        availableChannel: {
+          '@type': 'ServiceChannel',
+          servicePhone: '+84975563290',
+          serviceUrl: canonical,
+        },
+      },
+    }),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map(([question, answer]) => ({
+        '@type': 'Question',
+        name: question,
+        acceptedAnswer: { '@type': 'Answer', text: answer },
+      })),
+    },
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Xe sân bay Nội Bài', path: '/xe-san-bay-noi-bai' },
+    ]),
+  ];
+
+  return renderSeoLandingLayout({
+    title,
+    description,
+    canonical,
+    active: 'airport',
+    structuredData,
+    body: `<main>
+      <section style="background:linear-gradient(135deg,#f8fafc 0%,#eefcf8 52%,#ffffff 100%);border-bottom:1px solid #e2e8f0">
+        <div class="container hero">
+          <div>
+            <p class="eyebrow">Xe sân bay Nội Bài</p>
+            <h1>Đặt xe sân bay Nội Bài từ Hà Nội</h1>
+            <p class="lead">Phù hợp khi bạn cần ra/về Nội Bài đúng giờ, có nhiều hành lý, đi cùng gia đình hoặc đón khách công tác. Gửi điểm đón, giờ bay, nhà ga, số người và vali; Car Match kiểm tra phương án xe phù hợp rồi báo lại qua Zalo.</p>
+            <div class="actions">
+              <a class="btn primary" href="${escapeHtml(airportZaloHref)}">Nhắn Zalo báo xe sân bay</a>
+              <a class="btn secondary" href="#chon-xe-san-bay">Chọn loại xe phù hợp</a>
+            </div>
+            <div class="metric-grid">
+              <div class="metric"><strong>T1/T2</strong><span>nhà ga cần xác nhận</span></div>
+              <div class="metric"><strong>5-7 chỗ</strong><span>theo người và vali</span></div>
+              <div class="metric"><strong>Zalo</strong><span>báo phương án trước</span></div>
+            </div>
+          </div>
+          <aside class="panel">
+            ${heroImage ? `<img class="panel-image" src="${escapeHtml(optimizedStaticImageUrl(heroImage, 960, 68))}" alt="Xe sân bay Nội Bài từ Hà Nội" loading="eager" decoding="async" fetchpriority="high" width="960" height="600" />` : ''}
+            <p class="eyebrow">Thông tin cần gửi</p>
+            <h2>Gửi càng rõ, báo xe càng nhanh</h2>
+            <div class="mini-list">
+              <div class="mini"><strong>Điểm đón/trả</strong><span>Ví dụ: Times City, Ocean Park, The Manor, phố nội thành hoặc nhà ga Nội Bài.</span></div>
+              <div class="mini"><strong>Giờ bay và nhà ga</strong><span>Ghi rõ giờ cần có mặt, mã chuyến bay nếu đón khách, T1/T2 nếu đã biết.</span></div>
+              <div class="mini"><strong>Số người và vali</strong><span>Đây là dữ liệu quan trọng để chọn xe 5 chỗ, 7 chỗ hoặc MPV rộng hơn.</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="container section grid-2">
+        <div>
+          <p class="eyebrow">Trả lời nhanh</p>
+          <h2>Xe sân bay Nội Bài của Car Match dành cho ai?</h2>
+          <p>Dịch vụ này dành cho khách muốn đặt trước xe ra/về sân bay, không muốn chờ xe sát giờ bay hoặc cần chọn xe theo hành lý. Nếu bạn cần dùng xe cả ngày sau khi ra sân bay, phương án thuê xe tự lái vẫn có thể hợp hơn.</p>
+          <div class="pill-links">
+            <a href="/di-dau/noi-bai">Tự lái đi Nội Bài</a>
+            <a href="/xe">Xem xe tự lái 5-7 chỗ</a>
+            <a href="/blog/di-noi-bai-nen-di-taxi-xe-cong-nghe-hay-xe-dat-truoc">So sánh các lựa chọn đi Nội Bài</a>
+          </div>
+        </div>
+        <aside class="card">
+          <span class="tag">Không hứa giá chung</span>
+          <h3>Báo giá theo lịch thật</h3>
+          <p>Giá phụ thuộc điểm đón, giờ bay, chiều đi, loại xe, số người, số vali và điều kiện vận hành trong ngày. Car Match sẽ xác nhận lại trước khi khách chốt.</p>
+        </aside>
+      </section>
+
+      <section id="chon-xe-san-bay" class="band">
+        <div class="container section">
+          <div class="section-head">
+            <div><p class="eyebrow">Chọn loại xe</p><h2>Nên đặt xe 5 chỗ, 7 chỗ hay MPV?</h2></div>
+            <p class="muted">Dưới đây là khung chọn xe theo nhu cầu thực tế. Xe cụ thể vẫn cần kiểm tra theo lịch còn trống.</p>
+          </div>
+          <div class="grid-3">
+            <article class="card"><span class="tag">1-3 người</span><h3>Xe 5 chỗ</h3><p>Hợp khách đi công tác, cặp đôi, ít vali. Nên báo trước nếu có 2 vali lớn trở lên.</p></article>
+            <article class="card"><span class="tag">4-5 người</span><h3>Xe 7 chỗ</h3><p>Hợp gia đình, có trẻ nhỏ hoặc cần cốp rộng hơn cho vali và xe đẩy.</p></article>
+            <article class="card"><span class="tag">Nhiều hành lý</span><h3>MPV/SUV rộng</h3><p>Hợp đón khách quốc tế, nhóm công tác hoặc khách muốn ngồi rộng trên tuyến sân bay.</p></article>
+          </div>
+          ${vehicleCards.length ? `<div class="section-head" style="margin-top:34px">
+            <div><p class="eyebrow">Xe tham khảo</p><h2>Một số mẫu xe có thể phù hợp</h2></div>
+            <a class="btn secondary" href="/xe">Xem toàn bộ xe</a>
+          </div>
+          <div class="grid-3">
+            ${vehicleCards.map((vehicle) => {
+              const model = vehicle.vehicle_models || {};
+              const seats = model.seats ? `${model.seats} chỗ` : 'nhiều chỗ';
+              const fuel = model.fuel_type || 'nhiên liệu';
+              return `<a class="card card-link route-card" href="/xe/${escapeHtml(vehicle.slug)}">
+                <img class="route-card-image" src="${escapeHtml(optimizedStaticImageUrl(getVehicleImage(vehicle), 720, 62))}" alt="${escapeHtml(`${getVehicleName(vehicle)} phù hợp đi sân bay Nội Bài`)}" loading="lazy" decoding="async" width="720" height="450" />
+                <span class="route-card-body">
+                  <span class="tag">${escapeHtml(seats)} · ${escapeHtml(fuel)}</span>
+                  <h3>${escapeHtml(getVehicleName(vehicle))}</h3>
+                  <p>${escapeHtml(formatStaticPrice(vehicle.daily_base_price))}/ngày khi thuê tự lái. Với xe sân bay đặt trước, Car Match sẽ báo phương án riêng theo lịch.</p>
+                </span>
+              </a>`;
+            }).join('\n')}
+          </div>` : ''}
+        </div>
+      </section>
+
+      <section class="container section">
+        <div class="section-head">
+          <div><p class="eyebrow">Quy trình</p><h2>4 bước đặt xe sân bay Nội Bài</h2></div>
+          <a class="btn secondary" href="${escapeHtml(airportZaloHref)}">Gửi thông tin qua Zalo</a>
+        </div>
+        <div class="grid-4">
+          <article class="card"><span class="tag">Bước 1</span><h3>Gửi lịch bay</h3><p>Điểm đón/trả, giờ bay, nhà ga, số người, số vali và ghi chú trẻ nhỏ nếu có.</p></article>
+          <article class="card"><span class="tag">Bước 2</span><h3>Kiểm tra xe</h3><p>Car Match kiểm tra phương án xe/tài xế phù hợp theo lịch vận hành thực tế.</p></article>
+          <article class="card"><span class="tag">Bước 3</span><h3>Báo phương án</h3><p>Khách nhận thông tin loại xe, giờ đón, điểm hẹn và điều kiện chi phí cần xác nhận.</p></article>
+          <article class="card"><span class="tag">Bước 4</span><h3>Chốt chuyến</h3><p>Hai bên thống nhất thông tin liên hệ, điểm đón và cách xử lý nếu chuyến bay thay đổi.</p></article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="container section">
+          <div class="section-head">
+            <div><p class="eyebrow">So sánh nhanh</p><h2>Khi nào nên đặt xe sân bay, khi nào nên tự lái?</h2></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nhu cầu</th><th>Phương án nên cân nhắc</th><th>Lý do</th></tr></thead>
+              <tbody>
+                <tr><td>Ra sân bay một chiều, không cần dùng xe sau đó</td><td>Xe sân bay đặt trước</td><td>Giảm thao tác nhận/trả xe, phù hợp lịch bay rõ ràng.</td></tr>
+                <tr><td>Đón người thân nhiều vali ở T1/T2</td><td>Xe sân bay đặt trước</td><td>Dễ chọn xe theo hành lý và thống nhất điểm hẹn trước.</td></tr>
+                <tr><td>Đi sân bay rồi tiếp tục đi tỉnh/công việc trong ngày</td><td>Thuê xe tự lái</td><td>Chủ động nhiều điểm đến, phù hợp nếu cần dùng xe sau sân bay.</td></tr>
+                <tr><td>Gia đình 4-6 người, nhiều đồ</td><td>Xe 7 chỗ hoặc MPV</td><td>Cốp rộng, dễ sắp xếp vali, trẻ nhỏ và đồ cá nhân.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="container section grid-2">
+        <div>
+          <p class="eyebrow">Lưu ý T1/T2</p>
+          <h2>Điểm đón tại sân bay cần xác nhận trước</h2>
+          <p>Nội Bài có nhà ga nội địa và quốc tế, luồng xe và điểm dừng có thể thay đổi theo quy định hiện hành. Khi đặt xe, hãy gửi mã chuyến bay hoặc nhà ga, giờ dự kiến, số điện thoại liên hệ và yêu cầu chờ nếu có để Car Match tư vấn phương án phù hợp.</p>
+        </div>
+        <aside class="card">
+          <span class="tag">Bài nên đọc</span>
+          <h3>Chuẩn bị trước khi đón khách</h3>
+          <p>Nếu bạn đặt xe để đón người thân hoặc khách công tác, bài checklist T1/T2 sẽ giúp tránh nhầm nhà ga, lạc điểm hẹn và chọn thiếu cốp.</p>
+          <div class="pill-links">
+            <a href="/blog/kinh-nghiem-don-khach-san-bay-noi-bai-t1-t2">Checklist đón khách Nội Bài</a>
+          </div>
+        </aside>
+      </section>
+
+      <section class="band">
+        <div class="container section">
+          <p class="eyebrow">FAQ</p>
+          <h2>Câu hỏi thường gặp về xe sân bay Nội Bài</h2>
+          ${faqItems.map(([question, answer]) => `<details><summary>${escapeHtml(question)}</summary><p>${escapeHtml(answer)}</p></details>`).join('\n')}
+        </div>
+      </section>
+
+      <section class="container section grid-2">
+        <div>
+          <p class="eyebrow">Liên kết nội bộ</p>
+          <h2>Đọc tiếp theo nhu cầu của bạn</h2>
+          <div class="pill-links">
+            <a href="/blog/taxi-san-bay-noi-bai-gia-bao-nhieu">Taxi sân bay Nội Bài giá bao nhiêu?</a>
+            <a href="/blog/di-noi-bai-nen-di-taxi-xe-cong-nghe-hay-xe-dat-truoc">Taxi, xe công nghệ hay xe đặt trước?</a>
+            <a href="/di-dau/noi-bai">Tự lái đi Nội Bài</a>
+            <a href="/lap-ke-hoach-chuyen-di?diem-den=noi-bai#trip-form">Lập kế hoạch đi Nội Bài</a>
+          </div>
+        </div>
+        <aside class="card dark">
+          <h2>Cần báo xe ngay?</h2>
+          <p>Gửi điểm đón, giờ bay, nhà ga, số người và số vali. Car Match sẽ kiểm tra phương án xe phù hợp trước khi bạn chốt.</p>
+          <div class="actions"><a class="btn primary" href="${escapeHtml(airportZaloHref)}">Nhắn Zalo Car Match</a></div>
+        </aside>
+      </section>
+    </main>`,
+    includeAppAssets: false,
+  });
 }
 
 function renderGoWhereLanding() {
@@ -5430,13 +5911,14 @@ async function writeReactTravelRoutes(baseHtml, vehicles, destinations, collecti
 }
 
 async function main() {
-  const [posts, vehicles, destinations, cmsCollections, landingPages] = await Promise.all([
+  const [cmsPosts, vehicles, destinations, cmsCollections, landingPages] = await Promise.all([
     fetchBlogPosts(),
     fetchVehicles(),
     fetchTravelDestinations(),
     fetchTravelCollections(),
     fetchLandingPages(),
   ]);
+  const posts = mergeStaticBlogPosts(cmsPosts);
   const travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
   const travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
   generatedTripDestinations = travelDestinations;
@@ -5467,6 +5949,9 @@ async function main() {
 
   await writeReactTravelRoutes(baseHtml, vehicles, travelDestinations, travelCollections);
 
+  await writeHtmlRoute('/xe-san-bay-noi-bai', renderAirportTransferLanding(vehicles));
+  console.log('  Static SEO landing: /xe-san-bay-noi-bai');
+
   await writeHtmlRoute('/blog', renderBlogIndex(posts));
 
   for (const post of posts) {
@@ -5474,6 +5959,8 @@ async function main() {
   }
 
   await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, landingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, vehicles, landingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, vehicles, landingPages, travelCollections), 'utf8');
   await writeFile(
     path.join(distDir, 'robots.txt'),
     [

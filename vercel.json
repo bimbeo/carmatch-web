@@ -142,6 +142,11 @@
       "headers": { "Location": "https://www.carmatch.vn/di-dau/ecopark" }
     },
     {
+      "src": "/taxi-san-bay-noi-bai/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe-san-bay-noi-bai" }
+    },
+    {
       "src": "/sitemap\\.rss",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/sitemap.xml" }

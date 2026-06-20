@@ -238,6 +238,86 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Không thể tạo đơn đặt xe, vui lòng thử lại' });
   }
 
+  // Track promo/referral code usage (fire-and-forget, không block response)
+  const promoCode = body.promo_code ? String(body.promo_code).trim().toUpperCase() : null;
+  if (promoCode) {
+    (async () => {
+      try {
+        // Lấy company_id
+        const { data: company } = await supabase
+          .from('companies').select('id').limit(1).single();
+        const companyId = company?.id || null;
+
+        // Kiểm tra đây là promo_code hay referral_code
+        const { data: promo } = await supabase
+          .from('promo_codes').select('id, uses_count').eq('code', promoCode).maybeSingle();
+
+        if (promo) {
+          // Là promo code thông thường → tăng uses_count + ghi log
+          await supabase.from('promo_codes')
+            .update({ uses_count: (Number(promo.uses_count) || 0) + 1 })
+            .eq('id', promo.id);
+
+          await supabase.from('promo_code_uses').insert({
+            company_id: companyId,
+            promo_code_id: promo.id,
+            discount_amount: Number(body.promo_discount || 0),
+            website_lead_ref: bookingRef,
+            customer_phone: body.customer_phone?.trim() || null,
+            customer_name: body.customer_name?.trim() || null,
+            code_type: 'promo',
+          });
+        } else {
+          // Thử tra referral code
+          const { data: referrer } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('referral_code', promoCode)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (referrer) {
+            // Tìm hoặc tạo referred customer theo phone
+            const phone = body.customer_phone?.trim();
+            let referredCustomerId = null;
+            if (phone) {
+              const { data: referred } = await supabase
+                .from('customers')
+                .select('id')
+                .eq('normalized_phone', phone.replace(/[\s\-().+]/g, ''))
+                .maybeSingle();
+              referredCustomerId = referred?.id || null;
+            }
+
+            // Ghi referral_rewards
+            await supabase.from('referral_rewards').insert({
+              company_id: companyId,
+              referrer_customer_id: referrer.id,
+              referred_customer_id: referredCustomerId,
+              status: 'pending',
+              reward_type: 'discount',
+              reward_value: Number(process.env.REFERRAL_DISCOUNT_AMOUNT || 50000),
+              reward_note: `Website booking ${bookingRef} · Khách: ${body.customer_name?.trim()} ${body.customer_phone?.trim()}`,
+            });
+
+            // Ghi promo_code_uses dạng referral
+            await supabase.from('promo_code_uses').insert({
+              company_id: companyId,
+              promo_code_id: null,
+              discount_amount: Number(body.promo_discount || 0),
+              website_lead_ref: bookingRef,
+              customer_phone: body.customer_phone?.trim() || null,
+              customer_name: body.customer_name?.trim() || null,
+              code_type: 'referral',
+            });
+          }
+        }
+      } catch (trackErr) {
+        console.error('[bookings] Promo tracking error:', trackErr.message);
+      }
+    })();
+  }
+
   // Gửi email xác nhận nếu khách cung cấp email (fire-and-forget)
   const customerEmail = body.customer_email || null;
   if (customerEmail && process.env.RESEND_API_KEY) {

@@ -1,38 +1,22 @@
 # Car Match
 
-Car Match là dịch vụ thuê xe tự lái tại Hà Nội, tập trung giao xe tận sảnh cho cư dân chung cư và khu đô thị.
+> File này là bản fallback. Khi chạy build production, `scripts/generate-static-blog.mjs` sẽ sinh lại `llms.txt` và `llms-full.txt` từ route, blog và knowledge base mới nhất.
 
-## Thông tin cốt lõi
+## Trang chính
 
-- Website chính: https://www.carmatch.vn/
-- Dịch vụ: thuê xe tự lái theo ngày, thuê xe theo tháng, xe 5 chỗ, xe 7 chỗ, xe điện VinFast.
-- Khu vực phục vụ: Vinhomes Ocean Park, Vinhomes Times City, Vinhomes Smart City, Ecopark, The Manor Central Park, Linh Đàm và các khu đô thị Hà Nội.
-- Cách đặt xe: nhắn Zalo 0975 563 290, xác nhận lịch trong khoảng 30 phút khi có xe phù hợp.
-- Giá tham khảo: từ 600.000 VND/ngày; gói tháng từ 10.000.000 VND/tháng.
-- Giấy tờ: CCCD và GPLX hạng B hợp lệ.
-- Giờ hỗ trợ: 7:00-22:00.
+- Website: https://www.carmatch.vn/
+- Sitemap: https://www.carmatch.vn/sitemap.xml
+- LLM full context: https://www.carmatch.vn/llms-full.txt
 
-## Trang nên tham chiếu
+## Dịch vụ cốt lõi
 
-- Tổng quan dịch vụ: https://www.carmatch.vn/thue-xe-tu-lai-ha-noi
+- Thuê xe tự lái Hà Nội: https://www.carmatch.vn/thue-xe-tu-lai-ha-noi
 - Danh sách xe: https://www.carmatch.vn/xe
-- Thuê xe Vinhomes Ocean Park: https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-ocean-park
-- Thuê xe Times City: https://www.carmatch.vn/thue-xe-tu-lai-times-city
-- Thuê xe theo tháng Hà Nội: https://www.carmatch.vn/thue-xe-thang
-- Câu hỏi thường gặp: https://www.carmatch.vn/faq
-- Liên hệ đặt xe: https://www.carmatch.vn/lien-he
+- Xe sân bay Nội Bài: https://www.carmatch.vn/xe-san-bay-noi-bai
+- Thuê xe theo tháng: https://www.carmatch.vn/thue-xe-thang
+- Đi đâu từ Hà Nội: https://www.carmatch.vn/di-dau
 - Blog kinh nghiệm: https://www.carmatch.vn/blog
-- Hợp tác chủ xe: https://www.carmatch.vn/hop-tac
-- Giới thiệu: https://www.carmatch.vn/gioi-thieu
 
-## Mô tả ngắn có thể dùng
+## Lưu ý
 
-Car Match cung cấp dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư/khu đô thị, phù hợp cho cư dân cần xe theo ngày hoặc theo tháng mà không muốn sở hữu xe riêng. Đặt xe nhanh qua Zalo, xác nhận trong 30 phút.
-
-## Câu hỏi thường gặp
-
-- Thuê xe tự lái cần giấy tờ gì? CCCD và bằng lái hạng B còn hiệu lực.
-- Giao xe ở đâu? Giao tận sảnh chung cư, khu đô thị tại Hà Nội.
-- Giá thuê xe bao nhiêu? Từ 600.000 VND/ngày tùy xe.
-- Có thể thuê xe theo tháng không? Có, từ 10 triệu/tháng.
-- Đặt xe thế nào? Nhắn Zalo 0975 563 290.
+Giá và lịch xe cần xác nhận lại theo mẫu xe, ngày thuê, điểm giao nhận và tình trạng xe thực tế. Liên hệ Zalo/hotline 0975 563 290.

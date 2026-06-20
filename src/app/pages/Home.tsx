@@ -1590,60 +1590,76 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── DỊCH VỤ SẮP CÓ ───────────────────────────────────── */}
+      {/* ── DỊCH VỤ MỞ RỘNG ───────────────────────────────────── */}
       <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-5">
               <Zap className="w-4 h-4" />
-              Sắp ra mắt
+              Dịch vụ mở rộng
             </span>
-            <h2 id="dich-vu-sap-co" className="text-3xl font-bold text-gray-900 mb-3">Dịch vụ sắp có tại Car Match</h2>
+            <h2 id="dich-vu-sap-co" className="text-3xl font-bold text-gray-900 mb-3">Thêm lựa chọn di chuyển tại Car Match</h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              Car Match đang mở rộng thành nền tảng xe toàn diện cho cư dân đô thị Hà Nội.
+              Bên cạnh thuê xe tự lái, Car Match đang mở rộng các nhu cầu di chuyển quen thuộc của cư dân đô thị Hà Nội.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               {
                 icon: '✈️',
-                label: 'Đưa đón sân bay',
-                desc: 'Đặt lịch trước, xe đón tận nơi, cố định giá — không lo tắc đường hay mặc cả.',
-                tag: 'Tháng 7/2026',
+                label: 'Xe sân bay Nội Bài',
+                desc: 'Gửi điểm đón, giờ bay, nhà ga và số vali để Car Match báo phương án xe phù hợp qua Zalo.',
+                tag: 'Đang nhận tư vấn',
+                href: '/xe-san-bay-noi-bai',
               },
               {
                 icon: '👨‍✈️',
                 label: 'Xe có tài xế',
                 desc: 'Tài xế chuyên nghiệp theo giờ hoặc ngày. Phù hợp hội họp, sự kiện, đi công tác.',
                 tag: 'Tháng 8/2026',
+                href: undefined,
               },
               {
                 icon: '🔑',
                 label: 'Gói thuê tuần',
                 desc: 'Linh hoạt 3–7 ngày. Giá tốt hơn thuê ngày lẻ, không cần cam kết dài hạn.',
                 tag: 'Sắp ra mắt',
+                href: undefined,
               },
               {
                 icon: '🔋',
                 label: 'Trạm sạc xe điện',
                 desc: 'Hỗ trợ cư dân tòa nhà sạc VF5, VF6, VF8 ngay tầng hầm theo đăng ký.',
                 tag: 'Đang khảo sát',
+                href: undefined,
               },
-            ].map((item) => (
-              <div key={item.label} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-all relative overflow-hidden">
-                <span className="absolute top-4 right-4 text-xs font-semibold px-2.5 py-1 bg-brand-50 text-brand-600 rounded-full">
-                  {item.tag}
-                </span>
-                <span className="text-3xl mb-4 block">{item.icon}</span>
-                <h3 className="text-gray-900 font-semibold mb-2">{item.label}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
+            ].map((item) => {
+              const cardContent = (
+                <>
+                  <span className="absolute top-4 right-4 text-xs font-semibold px-2.5 py-1 bg-brand-50 text-brand-600 rounded-full">
+                    {item.tag}
+                  </span>
+                  <span className="text-3xl mb-4 block">{item.icon}</span>
+                  <h3 className="text-gray-900 font-semibold mb-2">{item.label}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                </>
+              );
+
+              return item.href ? (
+                <a key={item.label} href={item.href} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-all relative overflow-hidden block">
+                  {cardContent}
+                </a>
+              ) : (
+                <div key={item.label} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-all relative overflow-hidden">
+                  {cardContent}
+                </div>
+              );
+            })}
           </div>
           <p className="text-center text-gray-600 text-sm mt-8">
-            Muốn được thông báo sớm?{' '}
+            Cần tư vấn dịch vụ chưa có trên website?{' '}
             <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('home_early_access')} className="text-brand-600 hover:underline font-medium">
-              Nhắn Zalo để đăng ký trước
+              Nhắn Zalo cho Car Match
             </a>
           </p>
         </div>
