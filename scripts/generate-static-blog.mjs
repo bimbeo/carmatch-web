@@ -252,6 +252,15 @@ function mergeRecord(primary, fallback) {
     if (!hasValue(primaryValue) && hasValue(fallbackValue)) {
       merged[key] = fallbackValue;
     }
+    if (
+      key === 'seoDescription' &&
+      typeof primaryValue === 'string' &&
+      typeof fallbackValue === 'string' &&
+      primaryValue.trim().length < 80 &&
+      fallbackValue.trim().length > primaryValue.trim().length
+    ) {
+      merged[key] = fallbackValue;
+    }
   }
 
   return merged;
@@ -417,7 +426,7 @@ const routeMeta = [
     path: '/di-dau/chu-de/di-trong-ngay',
     title: 'Đi Trong Ngày Từ Hà Nội Bằng Xe Tự Lái | Car Match',
     description:
-      'Các điểm đi trong ngày từ Hà Nội: Nội Bài, Ecopark, Sóc Sơn, Ba Vì, Ninh Bình, Hồ Núi Cốc kèm chi phí di chuyển.',
+      'Gợi ý các điểm đi trong ngày từ Hà Nội bằng xe tự lái: Nội Bài, Ecopark, Sóc Sơn, Ba Vì, Ninh Bình, Hồ Núi Cốc kèm chi phí và loại xe phù hợp.',
     canonical: `${siteUrl}/di-dau/chu-de/di-trong-ngay`,
     priority: '0.82',
     changefreq: 'weekly',
@@ -435,7 +444,7 @@ const routeMeta = [
     path: '/di-dau/chu-de/xe-7-cho-di-tinh',
     title: 'Thuê Xe 7 Chỗ Đi Tỉnh Từ Hà Nội | Car Match',
     description:
-      'Gợi ý các tuyến nên thuê xe 7 chỗ đi tỉnh từ Hà Nội: Hạ Long, Mộc Châu, Mai Châu, Pù Luông, Sapa, Cát Bà.',
+      'Gợi ý các tuyến nên thuê xe 7 chỗ đi tỉnh từ Hà Nội: Hạ Long, Mộc Châu, Mai Châu, Pù Luông, Sapa, Cát Bà, kèm lưu ý hành lý và chi phí.',
     canonical: `${siteUrl}/di-dau/chu-de/xe-7-cho-di-tinh`,
     priority: '0.8',
     changefreq: 'weekly',
@@ -444,7 +453,7 @@ const routeMeta = [
     path: '/di-dau/chu-de/di-xe-dien',
     title: 'Đi Du Lịch Gần Hà Nội Bằng Xe Điện | Car Match',
     description:
-      'Gợi ý tuyến gần Hà Nội phù hợp đi xe điện: Nội Bài, Ecopark, Ninh Bình, Hải Phòng, Hạ Long, Đại Lải.',
+      'Gợi ý tuyến gần Hà Nội phù hợp đi xe điện VinFast: Nội Bài, Ecopark, Ninh Bình, Hải Phòng, Hạ Long, Đại Lải, kèm lưu ý sạc pin.',
     canonical: `${siteUrl}/di-dau/chu-de/di-xe-dien`,
     priority: '0.78',
     changefreq: 'weekly',
