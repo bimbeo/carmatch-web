@@ -723,6 +723,7 @@ const noIndexRouteMeta = [
 ];
 
 const generatedRoutePaths = new Set([...routeMeta, ...noIndexRouteMeta].map((meta) => meta.path));
+const routeMetaByPath = new Map(routeMeta.map((meta) => [meta.path, meta]));
 
 const descriptionOverrides = {
   'thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh':
@@ -1796,6 +1797,50 @@ function safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle) {
     console.warn(`Skipped React vehicle prerender for ${routePath}: ${error instanceof Error ? error.message : String(error)}`);
     return '';
   }
+}
+
+function initialTravelContentScript(travelContent) {
+  if (!travelContent) return '';
+  return `window.__CM_INITIAL_TRAVEL_CONTENT__=${serializeForInlineScript(travelContent)};`;
+}
+
+function initialVehiclesScript(vehicles) {
+  if (!vehicles?.length) return '';
+  return `window.__CM_INITIAL_VEHICLES__=${serializeForInlineScript(vehicles)};`;
+}
+
+function inlineInitialStateScript(parts) {
+  const script = parts.filter(Boolean).join('');
+  return script ? `<script>${script}</script>` : '';
+}
+
+function renderReactGoWhereRoot(renderer, travelContent) {
+  const html = renderer.renderGoWhere(travelContent);
+  return `<div id="root" data-prerendered="go-where">${html}</div>${inlineInitialStateScript([
+    initialTravelContentScript(travelContent),
+  ])}`;
+}
+
+function renderReactGoWhereDetailRoot(renderer, routePath, travelContent) {
+  const html = renderer.renderGoWhereDetail(routePath, travelContent);
+  return `<div id="root" data-prerendered="go-where-detail">${html}</div>${inlineInitialStateScript([
+    initialTravelContentScript(travelContent),
+  ])}`;
+}
+
+function renderReactGoWhereCollectionRoot(renderer, routePath, travelContent) {
+  const html = renderer.renderGoWhereCollection(routePath, travelContent);
+  return `<div id="root" data-prerendered="go-where-collection">${html}</div>${inlineInitialStateScript([
+    initialTravelContentScript(travelContent),
+  ])}`;
+}
+
+function renderReactTripFinderRoot(renderer, routePath, vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const html = renderer.renderTripFinder(routePath, initialVehicles);
+  return `<div id="root" data-prerendered="trip-finder">${html}</div>${inlineInitialStateScript([
+    initialVehiclesScript(initialVehicles),
+  ])}`;
 }
 
 function staticShellCss() {
@@ -5283,6 +5328,107 @@ function renderCollectionLanding(collection) {
   });
 }
 
+function travelContentSnapshot(destinations, collections) {
+  return {
+    destinations,
+    collections,
+    source: 'supabase',
+  };
+}
+
+function metaForDestination(destination) {
+  const routePath = `/di-dau/${destination.slug}`;
+  const existing = routeMetaByPath.get(routePath);
+  return {
+    ...(existing || {}),
+    path: routePath,
+    title: existing?.title || destinationTitle(destination),
+    description: existing?.description || destinationDescription(destination),
+    canonical: existing?.canonical || `${siteUrl}${routePath}`,
+    image: destination.imageUrl || existing?.image || brandSocialImage,
+    preloadImage: destination.imageUrl || existing?.preloadImage || '/brand/carmatch-lockup-navy.png',
+    structuredData: destinationStructuredData(destination),
+  };
+}
+
+function metaForCollection(collection, destinations) {
+  const routePath = `/di-dau/chu-de/${collection.slug}`;
+  const existing = routeMetaByPath.get(routePath);
+  const collectionDestinations = collection.destinationSlugs
+    .map((slug) => destinations.find((destination) => destination.slug === slug))
+    .filter(Boolean);
+  const heroImage = collectionDestinations[0]?.imageUrl;
+
+  return {
+    ...(existing || {}),
+    path: routePath,
+    title: existing?.title || `${collection.seoTitle} | Car Match`,
+    description: existing?.description || collection.seoDescription,
+    canonical: existing?.canonical || `${siteUrl}${routePath}`,
+    image: heroImage || existing?.image || brandSocialImage,
+    preloadImage: heroImage || existing?.preloadImage || '/brand/carmatch-lockup-navy.png',
+    structuredData: collectionStructuredData(collection, collectionDestinations),
+  };
+}
+
+function metaForStaticTravelRoute(routePath, vehicles) {
+  const existing = routeMetaByPath.get(routePath);
+  if (!existing) {
+    throw new Error(`Missing route metadata for ${routePath}`);
+  }
+
+  return {
+    ...existing,
+    structuredData: routeStructuredData(existing, vehicles),
+  };
+}
+
+async function writeReactTravelRoutes(baseHtml, vehicles, destinations, collections) {
+  const travelContent = travelContentSnapshot(destinations, collections);
+  const rendererBundle = await createReactSsrRenderer();
+
+  try {
+    await writeSpaShell(baseHtml, {
+      ...metaForStaticTravelRoute('/di-dau', vehicles),
+      prerenderedRoot: renderReactGoWhereRoot(rendererBundle.renderer, travelContent),
+    }, vehicles);
+
+    await writeSpaShell(baseHtml, {
+      ...metaForStaticTravelRoute('/lap-ke-hoach-chuyen-di', vehicles),
+      prerenderedRoot: renderReactTripFinderRoot(rendererBundle.renderer, '/lap-ke-hoach-chuyen-di', vehicles),
+    }, vehicles);
+
+    const plannerRoutes = routeMeta
+      .map((meta) => meta.path)
+      .filter((routePath) => routePath.startsWith('/lap-ke-hoach-chuyen-di/'));
+
+    for (const routePath of plannerRoutes) {
+      await writeSpaShell(baseHtml, {
+        ...metaForStaticTravelRoute(routePath, vehicles),
+        prerenderedRoot: renderReactTripFinderRoot(rendererBundle.renderer, routePath, vehicles),
+      }, vehicles);
+    }
+
+    for (const destination of destinations) {
+      const routePath = `/di-dau/${destination.slug}`;
+      await writeSpaShell(baseHtml, {
+        ...metaForDestination(destination),
+        prerenderedRoot: renderReactGoWhereDetailRoot(rendererBundle.renderer, routePath, travelContent),
+      }, vehicles);
+    }
+
+    for (const collection of collections) {
+      const routePath = `/di-dau/chu-de/${collection.slug}`;
+      await writeSpaShell(baseHtml, {
+        ...metaForCollection(collection, destinations),
+        prerenderedRoot: renderReactGoWhereCollectionRoot(rendererBundle.renderer, routePath, travelContent),
+      }, vehicles);
+    }
+  } finally {
+    await rendererBundle.close();
+  }
+}
+
 async function main() {
   const [posts, vehicles, destinations, cmsCollections, landingPages] = await Promise.all([
     fetchBlogPosts(),
@@ -5319,16 +5465,7 @@ async function main() {
     console.log('  Fallback CMS-style landing: /thue-xe-tu-lai-ha-noi');
   }
 
-  await writeHtmlRoute('/di-dau', renderGoWhereLanding());
-  await writeHtmlRoute('/lap-ke-hoach-chuyen-di', renderTripPlannerLanding());
-
-  for (const destination of travelDestinations) {
-    await writeHtmlRoute(`/di-dau/${destination.slug}`, renderDestinationLanding(destination));
-  }
-
-  for (const collection of travelCollections) {
-    await writeHtmlRoute(`/di-dau/chu-de/${collection.slug}`, renderCollectionLanding(collection));
-  }
+  await writeReactTravelRoutes(baseHtml, vehicles, travelDestinations, travelCollections);
 
   await writeHtmlRoute('/blog', renderBlogIndex(posts));
 

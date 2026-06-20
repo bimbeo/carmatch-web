@@ -8,6 +8,33 @@ import Contact from '../app/pages/Contact';
 import About from '../app/pages/About';
 import Partner from '../app/pages/Partner';
 import CarDetail from '../app/pages/CarDetail';
+import GoWhere from '../app/pages/GoWhere';
+import GoWhereCollection from '../app/pages/GoWhereCollection';
+import GoWhereDetail from '../app/pages/GoWhereDetail';
+import TripFinder from '../app/pages/TripFinder';
+import type { TravelContentState } from '../lib/travelContent';
+
+type GlobalWithTravelContent = typeof globalThis & {
+  __CM_INITIAL_TRAVEL_CONTENT__?: TravelContentState;
+};
+
+function withInitialTravelContent(travelContent: TravelContentState | undefined, render: () => string) {
+  if (!travelContent) return render();
+
+  const globalStore = globalThis as GlobalWithTravelContent;
+  const previous = globalStore.__CM_INITIAL_TRAVEL_CONTENT__;
+  globalStore.__CM_INITIAL_TRAVEL_CONTENT__ = travelContent;
+
+  try {
+    return render();
+  } finally {
+    if (previous) {
+      globalStore.__CM_INITIAL_TRAVEL_CONTENT__ = previous;
+    } else {
+      delete globalStore.__CM_INITIAL_TRAVEL_CONTENT__;
+    }
+  }
+}
 
 export function renderHome(vehicles: unknown[]) {
   globalThis.__CM_INITIAL_VEHICLES__ = vehicles as typeof globalThis.__CM_INITIAL_VEHICLES__;
@@ -83,6 +110,51 @@ export function renderCarDetail(routePath: string, vehicles: unknown[]) {
       <MemoryRouter initialEntries={[routePath]}>
         <Routes>
           <Route path="/xe/:slug" element={<CarDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  } finally {
+    delete globalThis.__CM_INITIAL_VEHICLES__;
+  }
+}
+
+export function renderGoWhere(travelContent?: TravelContentState) {
+  return withInitialTravelContent(travelContent, () => renderToString(
+    <MemoryRouter initialEntries={['/di-dau']}>
+      <GoWhere />
+    </MemoryRouter>,
+  ));
+}
+
+export function renderGoWhereDetail(routePath: string, travelContent?: TravelContentState) {
+  return withInitialTravelContent(travelContent, () => renderToString(
+    <MemoryRouter initialEntries={[routePath]}>
+      <Routes>
+        <Route path="/di-dau/:slug" element={<GoWhereDetail />} />
+      </Routes>
+    </MemoryRouter>,
+  ));
+}
+
+export function renderGoWhereCollection(routePath: string, travelContent?: TravelContentState) {
+  return withInitialTravelContent(travelContent, () => renderToString(
+    <MemoryRouter initialEntries={[routePath]}>
+      <Routes>
+        <Route path="/di-dau/chu-de/:slug" element={<GoWhereCollection />} />
+      </Routes>
+    </MemoryRouter>,
+  ));
+}
+
+export function renderTripFinder(routePath: string, vehicles: unknown[]) {
+  globalThis.__CM_INITIAL_VEHICLES__ = vehicles as typeof globalThis.__CM_INITIAL_VEHICLES__;
+
+  try {
+    return renderToString(
+      <MemoryRouter initialEntries={[routePath]}>
+        <Routes>
+          <Route path="/lap-ke-hoach-chuyen-di" element={<TripFinder />} />
+          <Route path="/lap-ke-hoach-chuyen-di/:slug" element={<TripFinder />} />
         </Routes>
       </MemoryRouter>,
     );

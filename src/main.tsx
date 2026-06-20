@@ -24,12 +24,18 @@ function reloadOnceForChunkError(error: unknown) {
 }
 
 function preloadPrerenderedRoute(pathname = window.location.pathname): Promise<unknown> {
-  if (pathname === '/xe') return import('./app/pages/Fleet')
-  if (pathname.startsWith('/xe/')) return import('./app/pages/CarDetail')
-  if (pathname === '/thue-xe-thang') return import('./app/pages/B2B')
-  if (pathname === '/gioi-thieu') return import('./app/pages/About')
-  if (pathname === '/hop-tac') return import('./app/pages/Partner')
-  if (pathname === '/lien-he') return import('./app/pages/Contact')
+  const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+
+  if (normalizedPathname === '/xe') return import('./app/pages/Fleet')
+  if (normalizedPathname.startsWith('/xe/')) return import('./app/pages/CarDetail')
+  if (normalizedPathname === '/thue-xe-thang') return import('./app/pages/B2B')
+  if (normalizedPathname === '/gioi-thieu') return import('./app/pages/About')
+  if (normalizedPathname === '/hop-tac') return import('./app/pages/Partner')
+  if (normalizedPathname === '/lien-he') return import('./app/pages/Contact')
+  if (normalizedPathname === '/di-dau') return import('./app/pages/GoWhere')
+  if (normalizedPathname.startsWith('/di-dau/chu-de/')) return import('./app/pages/GoWhereCollection')
+  if (normalizedPathname.startsWith('/di-dau/')) return import('./app/pages/GoWhereDetail')
+  if (normalizedPathname.startsWith('/lap-ke-hoach-chuyen-di')) return import('./app/pages/TripFinder')
 
   return Promise.resolve()
 }
