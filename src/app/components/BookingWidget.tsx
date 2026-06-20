@@ -303,6 +303,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   }>>([]);
   const [promoListLoading, setPromoListLoading] = useState(false);
 
+  // ── Loyalty auto-discount ─────────────────────────────────────────────────
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState<{
+    tier: string;
+    discount_amount: number;
+    customer_name: string;
+  } | null>(null);
+
   // ── Booking flow ──────────────────────────────────────────────────────────
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
@@ -440,8 +447,9 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     setPromoError('');
     setPromoResult(null);
     try {
+      const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
       const res = await fetch(
-        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}`,
+        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}&pickup_date=${pickupDate}${phoneParam}`,
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
@@ -456,6 +464,33 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const clearPromo = () => {
     setPromoCode('');
     setPromoResult(null);
+    setPromoError('');
+  };
+
+  const checkLoyaltyDiscount = async (phone: string) => {
+    const clean = phone.trim().replace(/\s/g, '');
+    if (!/^(0[3-9]\d{8})$/.test(clean)) return;
+    try {
+      const res = await fetch(`/api/customer-discount?phone=${encodeURIComponent(clean)}`);
+      const json = await res.json();
+      if (res.ok && json.eligible && json.discount_amount > 0) {
+        setLoyaltyDiscount({ tier: json.tier, discount_amount: json.discount_amount, customer_name: json.customer_name || '' });
+      } else {
+        setLoyaltyDiscount(null);
+      }
+    } catch { setLoyaltyDiscount(null); }
+  };
+
+  const applyLoyaltyDiscount = () => {
+    if (!loyaltyDiscount) return;
+    const label = loyaltyDiscount.tier === 'vip' ? 'VIP' : 'KHACHQUEN';
+    setPromoResult({
+      code: label,
+      discount_amount: Math.min(loyaltyDiscount.discount_amount, totalAmount),
+      discount_type: 'fixed',
+      discount_value: loyaltyDiscount.discount_amount,
+    });
+    setPromoCode(label);
     setPromoError('');
   };
 
@@ -481,7 +516,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     setPromoError('');
     setPromoResult(null);
     try {
-      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}`);
+      const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
+      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}&pickup_date=${pickupDate}${phoneParam}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
       setPromoResult(json);
@@ -1464,11 +1500,31 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   </label>
                   <input
                     value={customerPhone}
-                    onChange={e => { setCustomerPhone(e.target.value); setBookingError(''); }}
+                    onChange={e => { setCustomerPhone(e.target.value); setBookingError(''); setLoyaltyDiscount(null); }}
+                    onBlur={e => void checkLoyaltyDiscount(e.target.value)}
                     placeholder="0912 345 678"
                     type="tel"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
                   />
+                  {loyaltyDiscount && !promoResult && (
+                    <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-violet-50 border border-violet-100 px-3 py-2.5">
+                      <div>
+                        <p className="text-xs font-black text-violet-800">
+                          {loyaltyDiscount.tier === 'vip' ? '⭐ Khách VIP' : '🔄 Khách thân thiết'} — Ưu đãi dành riêng
+                        </p>
+                        <p className="text-xs text-violet-600 mt-0.5">
+                          Giảm {loyaltyDiscount.discount_amount.toLocaleString('vi-VN')}đ cho đơn này
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={applyLoyaltyDiscount}
+                        className="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-700"
+                      >
+                        Áp dụng
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
