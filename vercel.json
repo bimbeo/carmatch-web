@@ -177,6 +177,14 @@
         "X-Content-Type-Options": "nosniff"
       }
     },
+    {
+      "src": "/api/promo-list/?",
+      "dest": "/api/promos?action=list"
+    },
+    {
+      "src": "/api/promo-validate/?",
+      "dest": "/api/promos?action=validate"
+    },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "status": 404, "dest": "/404.html" }
