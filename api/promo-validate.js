@@ -84,9 +84,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Đơn tối thiểu ${formatVND(minOrder)}` });
   }
 
-  // Weekends-only rule
+  // Weekends-only rule — use getUTCDay() because pickup_date is YYYY-MM-DD (parsed as UTC midnight)
   if (data.weekends_only && pickupDate) {
-    const day = new Date(pickupDate).getDay();
+    const day = new Date(pickupDate).getUTCDay();
     if (day !== 0 && day !== 6) {
       return res.status(400).json({ error: 'Mã chỉ áp dụng cho đặt xe cuối tuần (Thứ 7 & Chủ nhật)' });
     }
