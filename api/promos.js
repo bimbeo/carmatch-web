@@ -164,11 +164,17 @@ async function validatePromo(req, res) {
 
   if (data.first_time_only && customerPhone) {
     const normalizedPhone = customerPhone.replace(/[\s\-().+]/g, '').replace(/^0/, '84');
-    const { count } = await supabase
-      .from('website_leads')
-      .select('id', { count: 'exact', head: true })
-      .or(`phone.eq.${customerPhone},phone.eq.${normalizedPhone}`);
-    if (count && count > 0) {
+    const [{ count: leadsCount }, { count: customersCount }] = await Promise.all([
+      supabase
+        .from('website_leads')
+        .select('id', { count: 'exact', head: true })
+        .or(`phone.eq.${customerPhone},phone.eq.${normalizedPhone}`),
+      supabase
+        .from('customers')
+        .select('id', { count: 'exact', head: true })
+        .or(`phone.eq.${customerPhone},normalized_phone.eq.${normalizedPhone}`),
+    ]);
+    if ((leadsCount && leadsCount > 0) || (customersCount && customersCount > 0)) {
       return res.status(400).json({ error: 'Mã chỉ dành cho khách đặt xe lần đầu' });
     }
   }
