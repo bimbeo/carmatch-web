@@ -21,8 +21,9 @@ async function listPromos(req, res) {
   const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('promo_codes')
-    .select('code, description, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active')
+    .select('code, description, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, secret_only')
     .eq('active', true)
+    .eq('secret_only', false)
     .order('created_at', { ascending: false });
 
   if (error) {
