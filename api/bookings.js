@@ -289,6 +289,17 @@ export default async function handler(req, res) {
               referredCustomerId = referred?.id || null;
             }
 
+            // Chống duplicate: nếu đã có reward cho referred customer này thì bỏ qua
+            if (referredCustomerId) {
+              const { count: existingCount } = await supabase
+                .from('referral_rewards')
+                .select('id', { count: 'exact', head: true })
+                .eq('referred_customer_id', referredCustomerId);
+              if (existingCount && existingCount > 0) {
+                return; // reward đã tồn tại
+              }
+            }
+
             // Ghi referral_rewards
             await supabase.from('referral_rewards').insert({
               company_id: companyId,
@@ -296,7 +307,7 @@ export default async function handler(req, res) {
               referred_customer_id: referredCustomerId,
               status: 'pending',
               reward_type: 'discount',
-              reward_value: Number(process.env.REFERRAL_DISCOUNT_AMOUNT || 50000),
+              reward_value: Number(process.env.REFERRAL_REWARD_AMOUNT || process.env.REFERRAL_DISCOUNT_AMOUNT || 100000),
               reward_note: `Website booking ${bookingRef} · Khách: ${body.customer_name?.trim()} ${body.customer_phone?.trim()}`,
             });
 
