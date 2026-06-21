@@ -320,6 +320,7 @@ const blogHubTopics = [
     title: 'Chuẩn bị giấy tờ khi thuê xe',
     body: 'Khách thuê nên chuẩn bị CCCD, giấy phép lái xe hạng B và thông tin lịch trình trước khi nhắn Car Match. Việc chốt sớm ngày nhận, ngày trả, khu vực giao xe và số người đi giúp đội vận hành kiểm tra mẫu xe phù hợp nhanh hơn.',
     links: [
+      { href: '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu', label: 'Giấy tờ và cọc khi thuê xe' },
       { href: '/thue-xe-tu-lai-ha-noi', label: 'Thuê xe tự lái Hà Nội' },
       { href: '/chinh-sach', label: 'Điều kiện thuê xe' },
     ],
@@ -331,6 +332,23 @@ const blogHubTopics = [
       { href: '/xe', label: 'Xem danh sách xe' },
       { href: '/xe?seats=7', label: 'Xe 7 chỗ' },
       { href: '/xe?category=electric', label: 'Xe điện VinFast' },
+    ],
+  },
+  {
+    title: 'So sánh đơn vị thuê xe',
+    body: 'Nếu đang phân vân giữa app thuê xe, công ty truyền thống và dịch vụ giao xe tận sảnh, khách nên so theo điểm nhận xe, cọc, hợp đồng, giới hạn km, phí phát sinh và cách xử lý phạt nguội. Car Match phù hợp hơn với khách ở chung cư/khu đô thị muốn nhận xe tại sảnh sau khi kiểm tra lịch qua Zalo.',
+    links: [
+      { href: '/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao', label: 'Nên chọn đơn vị thuê xe nào?' },
+      { href: '/thue-xe-tu-lai-ha-noi', label: 'Thuê xe tự lái giao tận sảnh' },
+    ],
+  },
+  {
+    title: 'Tránh rủi ro khi thuê xe',
+    body: 'Nhiều khách lo bị tính phí oan, tranh chấp vết xước, cọc hoàn muộn hoặc không biết xử lý khi xe gặp sự cố. Các bài hướng dẫn này tập trung vào checklist nhận xe, hợp đồng, phí phát sinh, kênh đặt cọc an toàn và cách giữ bằng chứng trước/sau chuyến đi.',
+    links: [
+      { href: '/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi', label: 'Tránh tranh chấp vết xước' },
+      { href: '/blog/phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc', label: 'Hỏi phí ẩn trước khi cọc' },
+      { href: '/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai', label: 'Tránh lừa đảo cọc online' },
     ],
   },
   {
@@ -786,6 +804,66 @@ const postTitleOverrides = {
 };
 
 const internalLinks = {
+  'thue-xe-tu-lai-ha-noi-gia-bao-nhieu': [
+    { href: '/thue-xe-tu-lai-ha-noi', label: 'Thuê xe tự lái Hà Nội' },
+    { href: '/xe', label: 'Xem mẫu xe và giá tham khảo' },
+    { href: '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu', label: 'Giấy tờ và cọc khi thuê xe' },
+    { href: '/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao', label: 'So sánh đơn vị thuê xe tự lái' },
+  ],
+  'thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu': [
+    { href: '/thue-xe-tu-lai-ha-noi', label: 'Quy trình thuê xe tự lái Hà Nội' },
+    { href: '/faq', label: 'Câu hỏi thường gặp khi thuê xe' },
+    { href: '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu', label: 'Cách tính giá thuê xe tự lái' },
+    { href: '/blog/phat-nguoi-thue-xe-tu-lai-ai-tra', label: 'Phạt nguội khi thuê xe ai trả?' },
+  ],
+  'nen-thue-xe-tu-lai-hay-xe-co-tai-xe-taxi-xe-cong-nghe': [
+    { href: '/xe', label: 'Xem xe tự lái tại Hà Nội' },
+    { href: '/xe-san-bay-noi-bai', label: 'Xe sân bay Nội Bài đặt trước' },
+    { href: '/di-dau', label: 'Gợi ý đi đâu bằng xe tự lái' },
+    { href: '/lap-ke-hoach-chuyen-di', label: 'Lập kế hoạch chuyến đi' },
+  ],
+  'co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast': [
+    { href: '/xe?category=electric', label: 'Xem xe điện VinFast' },
+    { href: '/xe', label: 'Xem toàn bộ danh sách xe' },
+    { href: '/di-dau', label: 'Gợi ý tuyến đi gần Hà Nội' },
+    { href: '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu', label: 'Cách tính chi phí thuê xe' },
+  ],
+  'tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi': [
+    { href: '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu', label: 'Giấy tờ, cọc và biên bản thuê xe' },
+    { href: '/blog/phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc', label: 'Các phí cần hỏi trước khi chuyển cọc' },
+    { href: '/blog/xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi', label: 'Xử lý khi xe thuê gặp sự cố' },
+    { href: '/thue-xe-tu-lai-ha-noi', label: 'Quy trình thuê xe tự lái Hà Nội' },
+  ],
+  'phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc': [
+    { href: '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu', label: 'Cách tính giá thuê xe tự lái' },
+    { href: '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu', label: 'Điều kiện cọc và hoàn cọc' },
+    { href: '/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi', label: 'Tránh tranh chấp vết xước' },
+    { href: '/xe', label: 'Xem mẫu xe và giá tham khảo' },
+  ],
+  'tranh-lua-dao-coc-online-khi-thue-xe-tu-lai': [
+    { href: '/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao', label: 'Cách chọn đơn vị thuê xe tự lái' },
+    { href: '/blog/phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc', label: 'Hỏi rõ phí trước khi cọc' },
+    { href: '/thue-xe-tu-lai-ha-noi', label: 'Kênh thuê xe tự lái Hà Nội của Car Match' },
+    { href: '/lien-he', label: 'Thông tin liên hệ Car Match' },
+  ],
+  'xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi': [
+    { href: '/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi', label: 'Ghi nhận tình trạng xe khi bàn giao' },
+    { href: '/blog/phat-nguoi-thue-xe-tu-lai-ai-tra', label: 'Phạt nguội khi thuê xe ai trả?' },
+    { href: '/faq', label: 'Câu hỏi thường gặp khi thuê xe' },
+    { href: '/xe', label: 'Xem danh sách xe tự lái' },
+  ],
+  'moi-co-bang-lai-co-thue-xe-tu-lai-duoc-khong': [
+    { href: '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu', label: 'Giấy tờ cần chuẩn bị khi thuê xe' },
+    { href: '/blog/nen-thue-xe-tu-lai-hay-xe-co-tai-xe-taxi-xe-cong-nghe', label: 'Nên thuê tự lái hay có tài xế?' },
+    { href: '/xe', label: 'Xem xe tự lái tại Hà Nội' },
+    { href: '/thue-xe-tu-lai-ha-noi', label: 'Quy trình thuê xe tự lái Hà Nội' },
+  ],
+  'don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao': [
+    { href: '/thue-xe-tu-lai-ha-noi', label: 'Thuê xe tự lái Hà Nội giao tận sảnh' },
+    { href: '/xe', label: 'Xem danh sách xe Car Match' },
+    { href: '/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh', label: 'Thuê xe tại Vinhomes Ocean Park' },
+    { href: '/thue-xe-thang', label: 'Thuê xe tự lái theo tháng' },
+  ],
   'thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh': [
     { href: '/xe', label: 'Xem danh sách xe tự lái tại Hà Nội' },
     { href: '/thue-xe-thang', label: 'Tham khảo gói thuê xe theo tháng' },
@@ -815,6 +893,483 @@ const internalLinks = {
 
 const airportPostImage =
   fallbackTripDestinations.find((destination) => destination.slug === 'noi-bai')?.imageUrl || brandSocialImage;
+
+const hanoiProviderGuideImage =
+  'https://res.cloudinary.com/dewy3f4qi/image/upload/v1779545929/w3o4xovfbb7twyya3uub.jpg';
+
+const staticGeoBlogPosts = [
+  {
+    _id: 'static-hanoi-provider-comparison-guide',
+    title: 'Đơn vị thuê xe tự lái Hà Nội: nên chọn app, công ty truyền thống hay dịch vụ giao tận sảnh?',
+    slug: { current: 'don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao' },
+    publishedAt: '2026-06-21T10:00:00+07:00',
+    excerpt:
+      'Không có một đơn vị thuê xe tự lái Hà Nội tốt nhất cho mọi nhu cầu. Hãy so sánh theo điểm nhận xe, cọc, hợp đồng, phí phát sinh và cách hỗ trợ khi có vấn đề.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Kinh nghiệm thuê xe'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Khi tìm "đơn vị thuê xe tự lái Hà Nội" hoặc "thuê xe tự lái Hà Nội uy tín", kết quả thường trộn nhiều mô hình khác nhau: app/nền tảng cho thuê xe, công ty có kho xe, đơn vị chuyên xe điện và dịch vụ giao xe theo khu vực. Vì vậy, câu hỏi đúng không phải là bên nào luôn tốt nhất, mà là mô hình nào hợp với lịch trình, điểm nhận xe và mức rủi ro bạn chấp nhận.</p>
+      <p>Nếu muốn so sánh nhiều xe và giá nhanh, app/nền tảng là lựa chọn dễ bắt đầu. Nếu muốn làm việc trực tiếp với một công ty/kho xe, hãy ưu tiên bên có địa chỉ, hợp đồng và quy trình bàn giao rõ. Nếu ở chung cư hoặc khu đô thị và không muốn đi xa lấy xe, dịch vụ giao tận sảnh như Car Match sẽ đáng cân nhắc hơn.</p>
+      <h2>Cách chọn đơn vị thuê xe tự lái Hà Nội</h2>
+      <div class="table-wrap"><table><thead><tr><th>Nhu cầu</th><th>Nên ưu tiên</th><th>Cần hỏi kỹ trước khi chốt</th></tr></thead><tbody>
+        <tr><td>Muốn so sánh nhiều xe và nhiều mức giá</td><td>App hoặc nền tảng thuê xe</td><td>Điều kiện từng xe/chủ xe, tiền cọc, giới hạn km, phí vượt km và đánh giá thực tế.</td></tr>
+        <tr><td>Muốn gọi trực tiếp, ký hợp đồng với một đầu mối</td><td>Công ty hoặc kho xe truyền thống</td><td>Địa điểm nhận xe, giờ giao/trả, giấy tờ, bảo hiểm, phí phát sinh và biên bản bàn giao.</td></tr>
+        <tr><td>Ở chung cư/khu đô thị, không muốn đi xa lấy xe</td><td>Dịch vụ giao xe tận sảnh theo lịch xác nhận</td><td>Khu vực giao xe, phí giao nhận, thời gian hỗ trợ và tình trạng xe còn lịch.</td></tr>
+        <tr><td>Muốn thuê xe điện VinFast</td><td>Đơn vị có xe điện và tư vấn lịch trình phù hợp</td><td>Pin lúc nhận xe, điểm sạc, lịch đi tỉnh, thời gian sạc và chính sách trả xe.</td></tr>
+        <tr><td>Dùng xe đều trong tháng</td><td>Gói thuê xe theo tháng có hợp đồng rõ</td><td>Giới hạn km/tháng, cọc, bảo dưỡng, đổi xe, hủy gói và phí phát sinh.</td></tr>
+      </tbody></table></div>
+      <h2>Car Match phù hợp khi nào?</h2>
+      <p>Car Match phù hợp nhất với khách ở Hà Nội muốn thuê xe theo ngày hoặc theo tháng, ưu tiên nhận xe tại sảnh chung cư/khu đô thị hoặc điểm hẹn đã xác nhận. Khách thường nhắn Zalo để gửi ngày thuê, khu vực nhận xe, số người, hành lý và loại xe mong muốn; đội vận hành kiểm tra xe còn lịch rồi báo lại phương án phù hợp.</p>
+      <ul>
+        <li><strong>Khu vực mạnh:</strong> Vinhomes Ocean Park, Times City, Smart City, Ecopark, The Manor Central Park, Linh Đàm và các khu đô thị lớn tại Hà Nội.</li>
+        <li><strong>Giá tham khảo:</strong> từ 600.000đ/ngày tùy mẫu xe, ngày thuê, lịch giao nhận và tình trạng xe thực tế.</li>
+        <li><strong>Gói tháng:</strong> tham khảo từ 10.000.000đ/tháng, phù hợp cư dân hoặc doanh nghiệp dùng xe đều.</li>
+        <li><strong>Cách đặt:</strong> xem xe online, gửi lịch qua Zalo 0975 563 290, xác nhận xe, cọc/phí và điểm giao nhận trước khi chốt.</li>
+      </ul>
+      <h2>Car Match không phải lựa chọn tốt nhất khi nào?</h2>
+      <p>Nếu bạn muốn tự săn giá thấp nhất từ rất nhiều chủ xe, muốn đặt xe tức thì hoàn toàn trong app, hoặc cần một thương hiệu có điểm nhận xe cố định ở nhiều tỉnh thành, Car Match có thể không phải lựa chọn đầu tiên. Điểm mạnh của Car Match là sự rõ ràng trong giao nhận tại Hà Nội, đặc biệt với khách ở chung cư/khu đô thị cần một đầu mối xác nhận qua Zalo.</p>
+      <h2>Checklist 7 câu hỏi trước khi chuyển cọc</h2>
+      <ol>
+        <li>Giá thuê đã gồm những khoản nào, có phí giao nhận hoặc phụ phí cuối tuần không?</li>
+        <li>Cần cọc bao nhiêu, giữ cọc bao lâu và hoàn cọc theo điều kiện nào?</li>
+        <li>Giới hạn km/ngày hoặc km/tháng là bao nhiêu, vượt km tính thế nào?</li>
+        <li>Xe có bảo hiểm gì, va quệt hoặc hư hỏng xử lý theo quy trình nào?</li>
+        <li>Phạt nguội, phí cầu đường, gửi xe và rửa xe sau chuyến được tính ra sao?</li>
+        <li>Biên bản bàn giao có ghi ảnh/video ngoại thất, nội thất, xăng/pin và đồng hồ km không?</li>
+        <li>Nếu cần đổi giờ nhận/trả xe, chính sách thay đổi hoặc hủy lịch là gì?</li>
+      </ol>
+      <h2>Gợi ý theo khu vực và nhu cầu</h2>
+      <p>Nếu bạn ở phía Đông Hà Nội, hãy đọc thêm bài <a href="/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh">thuê xe tự lái Vinhomes Ocean Park giao tận sảnh</a>. Nếu cần xem toàn bộ dịch vụ theo ngày, trang <a href="/thue-xe-tu-lai-ha-noi">thuê xe tự lái Hà Nội</a> giải thích giá, giấy tờ và quy trình. Khách muốn xem mẫu xe có thể vào <a href="/xe">danh sách xe</a>; khách dùng xe đều nên xem <a href="/thue-xe-thang">thuê xe theo tháng</a>; khách chỉ cần đi sân bay nên tách riêng nhu cầu tại <a href="/xe-san-bay-noi-bai">xe sân bay Nội Bài</a>.</p>
+      <h2>Câu hỏi thường gặp</h2>
+      <h3>Đơn vị thuê xe tự lái Hà Nội nào tốt nhất?</h3>
+      <p>Không có một câu trả lời đúng cho mọi người. Nếu bạn cần nhiều lựa chọn và thích tự so sánh, hãy bắt đầu từ app/nền tảng. Nếu muốn một đầu mối giao xe tận nơi tại Hà Nội, Car Match phù hợp hơn với nhóm khách ở chung cư/khu đô thị.</p>
+      <h3>Car Match khác app thuê xe tự lái ở điểm nào?</h3>
+      <p>Car Match không định vị như một marketplace toàn quốc. Điểm khác biệt là tư vấn qua Zalo, kiểm tra lịch xe thực tế và ưu tiên giao xe tận sảnh hoặc điểm hẹn tại Hà Nội sau khi hai bên xác nhận rõ lịch thuê.</p>
+      <h3>Ở chung cư/khu đô thị có nên chọn dịch vụ giao tận sảnh không?</h3>
+      <p>Có, nếu bạn muốn giảm thời gian đi lấy xe và cần bàn giao tại nơi quen thuộc. Tuy nhiên vẫn nên xác nhận sảnh/tòa, giờ giao, phí giao nhận, chỗ đỗ xe tạm và người phụ trách bàn giao.</p>
+      <h3>Nên hỏi gì trước khi chuyển cọc thuê xe?</h3>
+      <p>Hãy hỏi giá cuối, tiền cọc, giới hạn km, bảo hiểm, phí giao nhận, chính sách đổi/hủy, cách xử lý phạt nguội và biên bản bàn giao. Không nên chuyển cọc chỉ vì thấy giá ngày rẻ hơn vài chục nghìn.</p>`,
+    seoTitle: 'Đơn Vị Thuê Xe Tự Lái Hà Nội Nên Chọn Bên Nào?',
+    seoDescription:
+      'So sánh app, công ty truyền thống và dịch vụ giao tận sảnh khi thuê xe tự lái Hà Nội; khi nào nên chọn Car Match.',
+    canonicalUrl: `${siteUrl}/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần chọn xe phù hợp tại Hà Nội?',
+    ctaDescription:
+      'Gửi khu vực nhận xe, ngày thuê, số người và hành lý để Car Match kiểm tra mẫu xe, giá thuê và điểm giao nhận phù hợp.',
+    ctaPrimaryLabel: 'Xem danh sách xe',
+    ctaPrimaryUrl: '/xe',
+    ctaZaloLabel: 'Nhắn Zalo chọn xe',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: [
+      'kinh-nghiem-thue-xe-tu-lai-ha-noi',
+      'thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh',
+    ],
+  },
+  {
+    _id: 'static-hanoi-rental-price-guide',
+    title: 'Thuê xe tự lái Hà Nội giá bao nhiêu? Cách tính chi phí trước khi đặt',
+    slug: { current: 'thue-xe-tu-lai-ha-noi-gia-bao-nhieu' },
+    publishedAt: '2026-06-21T09:50:00+07:00',
+    excerpt:
+      'Giá thuê xe tự lái Hà Nội không chỉ là tiền thuê ngày. Khách nên tính thêm cọc, giao nhận, xăng/sạc, phí đường, gửi xe và phí phát sinh.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Giá thuê xe'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Khi hỏi "thuê xe tự lái Hà Nội giá bao nhiêu", bạn không nên nhìn mỗi giá thuê theo ngày. Chi phí thực tế của một chuyến gồm giá xe, tiền cọc, phí giao nhận nếu có, xăng/sạc, phí cao tốc/VETC, gửi xe, rửa xe và các khoản phát sinh nếu trả muộn, vượt km hoặc có hư hỏng.</p>
+      <p>Tại Car Match, giá thuê tham khảo từ 600.000đ/ngày tùy mẫu xe, ngày thuê, khu vực giao nhận và lịch xe thực tế. Xe rộng hơn, xe mới hơn, xe điện hoặc lịch cuối tuần/ngày lễ có thể cần báo lại theo thời điểm.</p>
+      <h2>Bảng chi phí cần tính trước khi thuê</h2>
+      <div class="table-wrap"><table><thead><tr><th>Khoản chi</th><th>Khi nào phát sinh</th><th>Cần hỏi gì?</th></tr></thead><tbody>
+        <tr><td>Giá thuê ngày</td><td>Luôn có khi thuê xe</td><td>Giá theo 24 giờ hay theo khung giờ, cuối tuần/lễ có đổi không?</td></tr>
+        <tr><td>Tiền cọc</td><td>Khi giữ xe và nhận xe</td><td>Cọc bao nhiêu, hoàn lúc nào, giữ cọc để kiểm tra phạt nguội không?</td></tr>
+        <tr><td>Giao nhận xe</td><td>Khi nhận xe tại sảnh hoặc điểm hẹn</td><td>Khu vực của bạn có phí giao nhận không, tính một lượt hay hai lượt?</td></tr>
+        <tr><td>Xăng/sạc và VETC</td><td>Trong thời gian sử dụng</td><td>Nhận xe với mức xăng/pin nào, phí cầu đường tính theo thực tế ra sao?</td></tr>
+        <tr><td>Phát sinh</td><td>Trả muộn, vượt km, va quệt, vệ sinh</td><td>Cách tính phí và biên bản bàn giao có ghi rõ không?</td></tr>
+      </tbody></table></div>
+      <h2>Ví dụ cách tự ước tính nhanh</h2>
+      <p>Nếu thuê xe 1 ngày để đi quanh Hà Nội hoặc đi tỉnh gần, bạn nên cộng ba nhóm chi phí: giá thuê xe, chi phí di chuyển và khoản dự phòng. Ví dụ, giá thuê ngày là phần cố định ban đầu; xăng/sạc, phí cầu đường và gửi xe phụ thuộc lịch trình; khoản dự phòng giúp bạn không bị bất ngờ nếu đổi giờ trả xe hoặc đi xa hơn dự kiến.</p>
+      <h2>Vì sao cùng một xe nhưng giá có thể khác?</h2>
+      <p>Giá thay đổi theo mẫu xe, số chỗ, đời xe, nhiên liệu, thời điểm thuê, số ngày thuê, khu vực nhận xe và lịch còn xe. Với lịch cao điểm, nên gửi yêu cầu sớm để có phương án phù hợp hơn thay vì chờ sát ngày mới hỏi giá.</p>
+      <h2>Hỏi giá thế nào để nhận báo giá sát nhất?</h2>
+      <p>Bạn nên gửi tin nhắn đủ 5 thông tin: ngày nhận/trả, khu vực nhận xe, số người đi, lịch trình dự kiến và mẫu xe hoặc số chỗ mong muốn. Nếu đi Hạ Long, Ninh Bình, Tam Đảo hoặc Nội Bài, hãy nói rõ quãng đường để được tư vấn xe xăng hay xe điện phù hợp.</p>
+      <h2>Liên kết hữu ích</h2>
+      <p>Xem trang <a href="/thue-xe-tu-lai-ha-noi">thuê xe tự lái Hà Nội</a> để nắm quy trình, hoặc vào <a href="/xe">danh sách xe</a> để tham khảo mẫu xe. Nếu vẫn đang so sánh các đơn vị, bài <a href="/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao">nên chọn đơn vị thuê xe tự lái Hà Nội nào</a> sẽ giúp bạn đặt câu hỏi đúng trước khi chuyển cọc.</p>`,
+    seoTitle: 'Thuê Xe Tự Lái Hà Nội Giá Bao Nhiêu?',
+    seoDescription:
+      'Cách tính giá thuê xe tự lái Hà Nội: giá ngày, cọc, giao nhận, xăng/sạc, VETC và phí phát sinh trước khi đặt.',
+    canonicalUrl: `${siteUrl}/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu`,
+    ctaEnabled: true,
+    ctaTitle: 'Muốn báo giá sát lịch thuê?',
+    ctaDescription: 'Gửi ngày thuê, khu vực nhận xe, số người và lịch trình để Car Match kiểm tra mẫu xe và chi phí phù hợp.',
+    ctaPrimaryLabel: 'Xem danh sách xe',
+    ctaPrimaryUrl: '/xe',
+    ctaZaloLabel: 'Nhắn Zalo hỏi giá',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao'],
+  },
+  {
+    _id: 'static-rental-documents-deposit-guide',
+    title: 'Thuê xe tự lái cần giấy tờ gì, đặt cọc bao nhiêu và nên kiểm tra gì?',
+    slug: { current: 'thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu' },
+    publishedAt: '2026-06-21T09:40:00+07:00',
+    excerpt:
+      'Checklist giấy tờ, đặt cọc và bàn giao xe trước khi thuê tự lái tại Hà Nội để hạn chế tranh chấp khi nhận và trả xe.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Thủ tục thuê xe'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Trước khi thuê xe tự lái, câu hỏi quan trọng nhất không chỉ là "giá bao nhiêu" mà là "cần giấy tờ gì, cọc thế nào và bàn giao ra sao". Chuẩn bị đúng từ đầu giúp việc nhận xe nhanh hơn và giảm rủi ro tranh chấp khi trả xe.</p>
+      <p>Với Car Match, khách cần chuẩn bị CCCD và GPLX hạng B còn hiệu lực. Tiền cọc, thời gian giữ cọc và các điều kiện hoàn cọc cần được xác nhận theo từng lịch thuê, mẫu xe và thỏa thuận bàn giao thực tế.</p>
+      <h2>Thuê xe tự lái cần giấy tờ gì?</h2>
+      <ul>
+        <li><strong>CCCD:</strong> dùng để xác nhận thông tin người thuê và lập hồ sơ thuê xe.</li>
+        <li><strong>GPLX hạng B còn hạn:</strong> phù hợp với nhóm xe du lịch phổ biến.</li>
+        <li><strong>Thông tin lịch trình:</strong> ngày nhận/trả, khu vực nhận xe, tuyến đi dự kiến và số người đi.</li>
+        <li><strong>Thông tin liên hệ:</strong> số điện thoại/Zalo để phối hợp giao nhận và xử lý phát sinh.</li>
+      </ul>
+      <h2>Đặt cọc thuê xe tự lái nên hỏi rõ gì?</h2>
+      <p>Tiền cọc giúp giữ xe và bảo đảm trách nhiệm trong thời gian thuê, nhưng mỗi đơn vị có quy định khác nhau. Trước khi chuyển cọc, hãy hỏi rõ số tiền cọc, tài khoản nhận cọc, nội dung chuyển khoản, điều kiện hoàn cọc, thời gian hoàn cọc và trường hợp nào có thể bị giữ lại một phần.</p>
+      <h2>Checklist bàn giao xe</h2>
+      <div class="table-wrap"><table><thead><tr><th>Hạng mục</th><th>Việc nên làm</th><th>Vì sao quan trọng?</th></tr></thead><tbody>
+        <tr><td>Ngoại thất</td><td>Quay video quanh xe, chụp vết xước có sẵn</td><td>Tránh nhầm lẫn vết cũ và vết mới khi trả xe.</td></tr>
+        <tr><td>Nội thất</td><td>Kiểm tra ghế, màn hình, điều hòa, phụ kiện</td><td>Ghi nhận đủ tình trạng trước khi nhận.</td></tr>
+        <tr><td>Xăng/pin và km</td><td>Chụp đồng hồ km, mức xăng/pin</td><td>Làm căn cứ tính chi phí khi trả xe.</td></tr>
+        <tr><td>Giấy tờ xe</td><td>Kiểm tra bản giấy tờ cần mang theo</td><td>Giúp chuyến đi không bị gián đoạn khi cần xuất trình.</td></tr>
+      </tbody></table></div>
+      <h2>Có nên thuê xe tự lái không cọc?</h2>
+      <p>Những lời mời "không cọc" hoặc "thủ tục quá đơn giản" cần được kiểm tra kỹ. Điều quan trọng không phải là cọc thấp nhất, mà là quy trình minh bạch: có thông tin xe, điều kiện thuê, biên bản bàn giao, trách nhiệm phát sinh và kênh liên hệ rõ ràng.</p>
+      <h2>Liên kết hữu ích</h2>
+      <p>Nếu cần hiểu thêm về trách nhiệm sau chuyến đi, đọc bài <a href="/blog/phat-nguoi-thue-xe-tu-lai-ai-tra">phạt nguội khi thuê xe tự lái ai trả</a>. Nếu muốn xem quy trình tổng quan, truy cập <a href="/thue-xe-tu-lai-ha-noi">thuê xe tự lái Hà Nội</a> hoặc <a href="/faq">câu hỏi thường gặp</a>.</p>`,
+    seoTitle: 'Thuê Xe Tự Lái Cần Giấy Tờ Gì?',
+    seoDescription:
+      'Checklist giấy tờ, đặt cọc, biên bản bàn giao và các câu hỏi cần xác nhận trước khi thuê xe tự lái.',
+    canonicalUrl: `${siteUrl}/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần kiểm tra thủ tục trước khi đặt?',
+    ctaDescription: 'Nhắn Car Match lịch thuê và khu vực nhận xe để được hướng dẫn giấy tờ, cọc và bàn giao.',
+    ctaPrimaryLabel: 'Xem quy trình thuê xe',
+    ctaPrimaryUrl: '/thue-xe-tu-lai-ha-noi',
+    ctaZaloLabel: 'Nhắn Zalo hỏi thủ tục',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['phat-nguoi-thue-xe-tu-lai-ai-tra'],
+  },
+  {
+    _id: 'static-self-drive-vs-driver-guide',
+    title: 'Nên thuê xe tự lái, xe có tài xế, taxi hay xe công nghệ?',
+    slug: { current: 'nen-thue-xe-tu-lai-hay-xe-co-tai-xe-taxi-xe-cong-nghe' },
+    publishedAt: '2026-06-21T09:30:00+07:00',
+    excerpt:
+      'So sánh xe tự lái, xe có tài xế, taxi và xe công nghệ theo lịch trình, quyền riêng tư, hành lý, chi phí và độ chủ động.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['So sánh đi lại'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Nếu chỉ đi một chặng ngắn trong nội đô, taxi hoặc xe công nghệ thường tiện hơn thuê xe tự lái. Nhưng nếu bạn cần xe cả ngày, đi nhiều điểm, có trẻ nhỏ, nhiều hành lý hoặc muốn chủ động lịch trình, thuê xe tự lái sẽ đáng cân nhắc hơn.</p>
+      <p>Không có phương án tốt nhất cho mọi chuyến đi. Hãy chọn theo mục tiêu: cần đi ngay, cần riêng tư, cần tiết kiệm công sức lái xe, hay cần chủ động cả ngày.</p>
+      <h2>So sánh nhanh các phương án</h2>
+      <div class="table-wrap"><table><thead><tr><th>Phương án</th><th>Phù hợp khi</th><th>Cần lưu ý</th></tr></thead><tbody>
+        <tr><td>Thuê xe tự lái</td><td>Đi nhiều điểm, đi tỉnh, gia đình cần riêng tư, muốn chủ động giờ giấc</td><td>Cần GPLX, cọc, tự chịu trách nhiệm lái xe và phát sinh trong thời gian thuê.</td></tr>
+        <tr><td>Xe có tài xế</td><td>Không muốn tự lái, đi công tác, tiếp khách, di chuyển đường dài mệt</td><td>Chi phí có thể cao hơn và cần thống nhất giờ chờ, lịch trình.</td></tr>
+        <tr><td>Taxi</td><td>Đi một chặng rõ ràng, cần xe nhanh</td><td>Khó chủ động nhiều điểm dừng hoặc giữ xe cả ngày.</td></tr>
+        <tr><td>Xe công nghệ</td><td>Đi ngắn, quen dùng app, không cần chọn xe cụ thể</td><td>Giờ cao điểm, thời tiết xấu hoặc nhiều hành lý có thể khó đoán.</td></tr>
+      </tbody></table></div>
+      <h2>Khi nào nên thuê xe tự lái?</h2>
+      <p>Thuê xe tự lái hợp với gia đình đi cuối tuần, nhóm bạn đi Hạ Long/Ninh Bình/Tam Đảo, cư dân chung cư cần xe trong 1-3 ngày hoặc khách muốn có xe riêng để tự sắp xếp lịch. Bạn có quyền chủ động điểm dừng, thời gian ăn nghỉ, hành lý và không gian riêng.</p>
+      <h2>Khi nào không nên thuê xe tự lái?</h2>
+      <p>Nếu bạn chỉ đi từ nhà ra sân bay, đi uống rượu, không quen đường, không có GPLX hợp lệ hoặc không muốn chịu trách nhiệm vận hành xe, hãy cân nhắc taxi, xe công nghệ hoặc xe có tài xế. Thuê tự lái chỉ hợp khi người lái đủ điều kiện và thoải mái với trách nhiệm lái xe.</p>
+      <h2>Car Match hỗ trợ phần nào?</h2>
+      <p>Car Match tập trung vào thuê xe tự lái tại Hà Nội, giao xe tận sảnh chung cư hoặc điểm hẹn theo lịch đã xác nhận. Nếu bạn chỉ cần xe sân bay một chiều, hãy xem <a href="/xe-san-bay-noi-bai">xe sân bay Nội Bài</a>. Nếu muốn tự lên lịch đi tỉnh, xem thêm <a href="/di-dau">gợi ý đi đâu gần Hà Nội</a> và <a href="/lap-ke-hoach-chuyen-di">lập kế hoạch chuyến đi</a>.</p>`,
+    seoTitle: 'Nên Thuê Xe Tự Lái Hay Xe Có Tài Xế?',
+    seoDescription:
+      'So sánh thuê xe tự lái, xe có tài xế, taxi và xe công nghệ để chọn phương án đi lại phù hợp tại Hà Nội.',
+    canonicalUrl: `${siteUrl}/blog/nen-thue-xe-tu-lai-hay-xe-co-tai-xe-taxi-xe-cong-nghe`,
+    ctaEnabled: true,
+    ctaTitle: 'Không chắc nên chọn phương án nào?',
+    ctaDescription: 'Gửi lịch trình, số người và điểm nhận xe để Car Match tư vấn nên thuê tự lái hay chọn phương án khác.',
+    ctaPrimaryLabel: 'Xem xe tự lái',
+    ctaPrimaryUrl: '/xe',
+    ctaZaloLabel: 'Nhắn Zalo tư vấn',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: ['ha-long', 'ninh-binh', 'tam-dao'],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['taxi-san-bay-noi-bai-gia-bao-nhieu'],
+  },
+  {
+    _id: 'static-electric-self-drive-guide',
+    title: 'Có nên thuê xe điện tự lái ở Hà Nội? Lưu ý khi chọn VinFast đi nội đô hoặc đi tỉnh',
+    slug: { current: 'co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast' },
+    publishedAt: '2026-06-21T09:20:00+07:00',
+    excerpt:
+      'Xe điện tự lái phù hợp nếu lịch trình có điểm sạc rõ, quãng đường vừa phải và khách muốn xe mới, êm. Cần hỏi kỹ pin, sạc và lịch trả xe.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Xe điện tự lái'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Xe điện tự lái rất hợp với khách đi nội đô, đi cuối tuần gần Hà Nội hoặc muốn trải nghiệm xe VinFast mới, êm và dễ lái. Nhưng nếu đi tỉnh xa, lịch trình gấp hoặc không chắc điểm sạc, bạn nên hỏi kỹ trước khi chốt xe.</p>
+      <p>Với Car Match, xe điện được tư vấn theo lịch trình thực tế: bạn đi đâu, bao nhiêu người, nhận/trả ở khu vực nào, có thời gian sạc giữa chuyến không và có quen dùng xe điện hay chưa.</p>
+      <h2>Khi nào nên chọn xe điện tự lái?</h2>
+      <ul>
+        <li>Đi nội đô, đi làm việc trong ngày hoặc đi gần Hà Nội.</li>
+        <li>Lịch trình có điểm sạc rõ hoặc có thời gian dừng đủ lâu.</li>
+        <li>Muốn xe êm, mới, chi phí năng lượng dễ kiểm soát.</li>
+        <li>Đi cùng gia đình nhỏ, ít hành lý hoặc nhóm 4-5 người tùy mẫu xe.</li>
+      </ul>
+      <h2>Khi nào nên cân nhắc xe xăng?</h2>
+      <p>Nếu đi đường dài, lịch trình nhiều điểm không chắc trạm sạc, đi vùng núi hoặc cần trả xe sát giờ, xe xăng có thể linh hoạt hơn. Chọn xe điện không chỉ là chọn mẫu xe, mà là chọn cả kế hoạch sạc phù hợp với chuyến đi.</p>
+      <h2>Cần hỏi gì trước khi thuê xe điện?</h2>
+      <div class="table-wrap"><table><thead><tr><th>Câu hỏi</th><th>Vì sao cần hỏi?</th></tr></thead><tbody>
+        <tr><td>Pin lúc nhận xe khoảng bao nhiêu?</td><td>Giúp bạn tính quãng đường và điểm sạc đầu tiên.</td></tr>
+        <tr><td>Trả xe với mức pin nào?</td><td>Tránh phát sinh do trả xe dưới mức đã thỏa thuận.</td></tr>
+        <tr><td>Tuyến đi có phù hợp xe điện không?</td><td>Quan trọng nếu đi Hạ Long, Ninh Bình, Tam Đảo hoặc sân bay.</td></tr>
+        <tr><td>Phí sạc và thời gian sạc tính thế nào?</td><td>Ảnh hưởng trực tiếp đến chi phí và lịch trình.</td></tr>
+      </tbody></table></div>
+      <h2>Car Match tư vấn xe điện ra sao?</h2>
+      <p>Khách gửi lịch trình, số người, hành lý và khu vực nhận xe. Car Match kiểm tra mẫu xe phù hợp, tư vấn xe điện nếu lịch trình đủ an toàn về sạc; nếu không, đội vận hành sẽ gợi ý xe xăng hoặc xe 7 chỗ rộng hơn. Bạn có thể xem <a href="/xe?category=electric">nhóm xe điện VinFast</a>, trang <a href="/xe">danh sách xe</a> hoặc <a href="/di-dau">gợi ý tuyến đi gần Hà Nội</a> trước khi hỏi lịch.</p>`,
+    seoTitle: 'Có Nên Thuê Xe Điện Tự Lái Hà Nội?',
+    seoDescription:
+      'Khi nào nên thuê xe điện tự lái VinFast tại Hà Nội, cần hỏi gì về pin, sạc, lịch trình và điểm nhận trả xe.',
+    canonicalUrl: `${siteUrl}/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast`,
+    ctaEnabled: true,
+    ctaTitle: 'Muốn kiểm tra lịch xe điện?',
+    ctaDescription: 'Gửi tuyến đi, ngày thuê và số người để Car Match tư vấn xe điện hay xe xăng phù hợp hơn.',
+    ctaPrimaryLabel: 'Xem xe điện',
+    ctaPrimaryUrl: '/xe?category=electric',
+    ctaZaloLabel: 'Nhắn Zalo kiểm tra xe',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: ['ha-long', 'ninh-binh', 'noi-bai'],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['thue-xe-tu-lai-ha-noi-gia-bao-nhieu'],
+  },
+  {
+    _id: 'static-rental-scratch-dispute-guide',
+    title: 'Tránh tranh chấp vết xước khi thuê xe tự lái: cần chụp gì lúc nhận và trả xe?',
+    slug: { current: 'tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi' },
+    publishedAt: '2026-06-21T09:10:00+07:00',
+    excerpt:
+      'Checklist ảnh, video, biên bản bàn giao, xăng/pin và số km để hạn chế bị tính phí oan vì vết xước khi thuê xe tự lái.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Rủi ro thuê xe'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Tranh chấp vết xước là một trong những nỗi sợ lớn nhất khi thuê xe tự lái. Cách giảm rủi ro không phải là tin miệng, mà là có ảnh, video và biên bản bàn giao đủ rõ trước khi xe rời điểm nhận.</p>
+      <p>Khi nhận xe, khách nên quay một vòng 360 độ quanh xe, chụp cận cảnh các vết xước/cấn/móp có sẵn, ghi nhận nội thất, lốp, kính, gương, cản trước/sau, đồng hồ km và mức xăng hoặc pin. Khi trả xe, nên lặp lại các bước này trước khi hai bên xác nhận kết thúc thuê.</p>
+      <h2>Những vị trí dễ bị tranh chấp nhất</h2>
+      <div class="table-wrap"><table><thead><tr><th>Vị trí</th><th>Nên ghi lại thế nào?</th><th>Lý do</th></tr></thead><tbody>
+        <tr><td>Cản trước/sau</td><td>Quay chậm ngang tầm cản, chụp cận từng vết cấn</td><td>Dễ va chạm khi đỗ xe hoặc lên xuống hầm.</td></tr>
+        <tr><td>Gương, cửa, tay nắm</td><td>Chụp hai bên hông xe dưới ánh sáng đủ</td><td>Vết xước nhỏ dễ bị bỏ sót lúc nhận xe.</td></tr>
+        <tr><td>Mâm, lốp</td><td>Chụp từng bánh xe, ghi tình trạng lốp</td><td>Dễ phát sinh khi leo vỉa, đi đường xấu hoặc cán vật nhọn.</td></tr>
+        <tr><td>Nội thất</td><td>Quay ghế, màn hình, điều hòa, cốp và phụ kiện</td><td>Tránh nhầm hư hỏng có sẵn với phát sinh trong chuyến.</td></tr>
+      </tbody></table></div>
+      <h2>Biên bản bàn giao nên có gì?</h2>
+      <p>Biên bản nên ghi ngày giờ nhận/trả, biển số, số km, mức xăng/pin, phụ kiện đi kèm, tình trạng ngoại thất/nội thất và chữ ký hoặc xác nhận của hai bên. Nếu đơn vị có quy định về ngưỡng vết xước, phí vệ sinh hoặc phí sửa chữa, hãy yêu cầu ghi rõ bằng văn bản hoặc tin nhắn trước khi nhận xe.</p>
+      <h2>Nếu phát hiện vết xước khi đang thuê thì làm gì?</h2>
+      <p>Không nên đợi đến lúc trả xe mới nói. Hãy chụp ảnh, quay video, ghi thời điểm phát hiện và nhắn ngay cho đầu mối hỗ trợ. Nếu vết xước xảy ra do va chạm, cần giữ lại thông tin hiện trường, bên liên quan và mọi chứng từ sửa chữa/biên bản nếu có.</p>
+      <h2>Car Match xử lý bàn giao theo hướng nào?</h2>
+      <p>Car Match khuyến nghị kiểm tra xe cùng khách khi bàn giao, ghi nhận ảnh/video và thống nhất tình trạng xe trước khi lăn bánh. Nếu bạn thuê xe lần đầu, có thể yêu cầu đội giao xe hướng dẫn các vị trí cần kiểm tra để tránh bỏ sót vết cũ, mức xăng/pin hoặc phụ kiện.</p>
+      <h2>Liên kết hữu ích</h2>
+      <p>Đọc thêm <a href="/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu">giấy tờ, cọc và biên bản khi thuê xe tự lái</a>, <a href="/blog/phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc">các loại phí phát sinh cần hỏi trước</a> và <a href="/blog/xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi">cách xử lý khi xe thuê gặp sự cố</a>.</p>`,
+    seoTitle: 'Tránh Tranh Chấp Vết Xước Khi Thuê Xe',
+    seoDescription:
+      'Checklist ảnh, video, biên bản, xăng/pin và số km để tránh tranh chấp vết xước khi thuê xe tự lái.',
+    canonicalUrl: `${siteUrl}/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi`,
+    ctaEnabled: true,
+    ctaTitle: 'Muốn nhận xe rõ ràng hơn?',
+    ctaDescription: 'Nhắn Car Match lịch thuê và điểm nhận xe để được hướng dẫn kiểm tra xe, giấy tờ và bàn giao.',
+    ctaPrimaryLabel: 'Xem quy trình thuê xe',
+    ctaPrimaryUrl: '/thue-xe-tu-lai-ha-noi',
+    ctaZaloLabel: 'Nhắn Zalo hỏi xe',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu'],
+  },
+  {
+    _id: 'static-hidden-fees-guide',
+    title: 'Phí ẩn khi thuê xe tự lái: hỏi gì trước khi chuyển cọc?',
+    slug: { current: 'phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc' },
+    publishedAt: '2026-06-21T09:00:00+07:00',
+    excerpt:
+      'Các khoản dễ bị quên khi thuê xe tự lái: quá giờ, vệ sinh, giao nhận, vượt km, xăng/pin, VETC, gửi xe và chính sách nửa ngày.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Giá thuê xe'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Phí ẩn thường không nằm ở giá thuê ngày, mà nằm ở những điều chưa hỏi kỹ: quá giờ tính thế nào, có gói nửa ngày không, phí vệ sinh ra sao, giao nhận tính một lượt hay hai lượt, vượt km tính bao nhiêu và xăng/pin khi trả xe phải ở mức nào.</p>
+      <p>Trước khi chuyển cọc, hãy yêu cầu bên cho thuê gửi lại giá cuối cùng bằng tin nhắn hoặc hợp đồng: tiền thuê, tiền cọc, phí giao nhận, chính sách quá giờ, phí vệ sinh, VETC/cao tốc, giới hạn km và điều kiện hoàn cọc.</p>
+      <h2>Những khoản cần hỏi trước</h2>
+      <div class="table-wrap"><table><thead><tr><th>Khoản phí</th><th>Câu hỏi nên gửi</th><th>Vì sao cần hỏi?</th></tr></thead><tbody>
+        <tr><td>Quá giờ</td><td>Trả muộn 1-2 giờ tính theo giờ hay nguyên ngày?</td><td>Đây là khoản dễ lệch kỳ vọng nhất khi lịch thay đổi.</td></tr>
+        <tr><td>Giao nhận</td><td>Phí giao xe và lấy xe tính thế nào, khu vực nào được hỗ trợ?</td><td>Giá ngày thấp nhưng phí giao nhận cao vẫn làm tổng chi phí tăng.</td></tr>
+        <tr><td>Vệ sinh</td><td>Khi nào bị tính phí vệ sinh, mức phí được báo trước không?</td><td>Gia đình có trẻ nhỏ, đi biển hoặc đi đường bụi nên hỏi kỹ.</td></tr>
+        <tr><td>Vượt km</td><td>Có giới hạn km/ngày không, vượt km tính bao nhiêu?</td><td>Quan trọng với chuyến đi tỉnh hoặc nhiều điểm dừng.</td></tr>
+        <tr><td>Xăng/pin</td><td>Nhận xe mức nào thì trả xe mức đó ra sao?</td><td>Tránh tranh cãi khi trả xe thiếu xăng/pin.</td></tr>
+      </tbody></table></div>
+      <h2>Hợp đồng minh bạch nên có gì?</h2>
+      <p>Hợp đồng hoặc xác nhận đặt xe nên thể hiện xe thuê, ngày giờ nhận/trả, giá thuê, cọc, phí phát sinh, trách nhiệm khi va chạm/hỏng xe, quy định phạt nguội và điều kiện hoàn cọc. Khách nên giữ một bản hoặc ít nhất lưu toàn bộ tin nhắn xác nhận.</p>
+      <h2>Có nên chọn nơi báo giá rẻ nhất?</h2>
+      <p>Không nên chọn chỉ vì giá ngày thấp hơn. Hãy so tổng chi phí sau khi cộng cọc, giao nhận, VETC, xăng/sạc, phí quá giờ và phí phát sinh có thể xảy ra. Một báo giá minh bạch, có quy trình bàn giao rõ, thường an toàn hơn một giá rẻ nhưng điều kiện mập mờ.</p>
+      <h2>Car Match tư vấn giá như thế nào?</h2>
+      <p>Car Match nhận lịch thuê, khu vực nhận xe, số người, lịch trình và mẫu xe mong muốn qua Zalo. Giá cuối cùng vẫn cần xác nhận theo xe còn lịch, ngày thuê và điểm giao nhận thực tế; khách nên hỏi rõ mọi khoản trước khi chuyển cọc giữ xe.</p>
+      <h2>Liên kết hữu ích</h2>
+      <p>Xem thêm <a href="/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu">cách tính giá thuê xe tự lái Hà Nội</a>, <a href="/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi">cách tránh tranh chấp vết xước</a> và <a href="/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai">cách tránh lừa đảo cọc online</a>.</p>`,
+    seoTitle: 'Phí Ẩn Khi Thuê Xe Tự Lái Cần Hỏi Gì?',
+    seoDescription:
+      'Checklist phí ẩn khi thuê xe tự lái: quá giờ, giao nhận, vệ sinh, vượt km, xăng/pin, VETC và hoàn cọc.',
+    canonicalUrl: `${siteUrl}/blog/phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần hỏi giá rõ trước khi cọc?',
+    ctaDescription: 'Gửi lịch thuê và khu vực nhận xe để Car Match kiểm tra xe, giá thuê và các khoản cần xác nhận.',
+    ctaPrimaryLabel: 'Xem cách tính giá',
+    ctaPrimaryUrl: '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu',
+    ctaZaloLabel: 'Nhắn Zalo hỏi giá',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['thue-xe-tu-lai-ha-noi-gia-bao-nhieu'],
+  },
+  {
+    _id: 'static-deposit-scam-prevention-guide',
+    title: 'Tránh lừa đảo cọc online khi thuê xe tự lái: 9 dấu hiệu cần kiểm tra',
+    slug: { current: 'tranh-lua-dao-coc-online-khi-thue-xe-tu-lai' },
+    publishedAt: '2026-06-21T08:50:00+07:00',
+    excerpt:
+      'Cách nhận biết website, fanpage hoặc người nhận cọc thuê xe tự lái không đáng tin trước khi chuyển khoản giữ xe.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['An toàn khi đặt xe'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Lừa đảo cọc online thường xảy ra khi khách cần xe gấp, đặc biệt dịp lễ Tết hoặc cuối tuần. Dấu hiệu hay gặp là giá quá rẻ, ảnh xe không rõ nguồn, thúc chuyển khoản nhanh, không có hợp đồng/điều kiện thuê và không xác minh được đơn vị nhận cọc.</p>
+      <p>Trước khi chuyển cọc thuê xe tự lái, hãy kiểm tra đơn vị đó có website/fanpage nhất quán, số điện thoại/Zalo hoạt động, thông tin xe rõ, điều kiện cọc-hoàn cọc cụ thể và có thể gửi xác nhận đặt xe bằng văn bản hay không.</p>
+      <h2>9 dấu hiệu cần kiểm tra</h2>
+      <ol>
+        <li>Giá thấp bất thường so với mặt bằng và yêu cầu chuyển cọc ngay.</li>
+        <li>Không gửi được thông tin xe, biển số hoặc ảnh xe thực tế.</li>
+        <li>Không có điều kiện thuê, cọc, hoàn cọc và hủy lịch bằng văn bản.</li>
+        <li>Tài khoản nhận tiền không khớp với tên đơn vị/người phụ trách đã trao đổi.</li>
+        <li>Website sơ sài, mới tạo, thiếu số điện thoại hoặc thông tin liên hệ nhất quán.</li>
+        <li>Fanpage ít lịch sử, ít tương tác thật hoặc đổi tên nhiều lần.</li>
+        <li>Không nói rõ điểm nhận xe, giờ bàn giao và người phụ trách bàn giao.</li>
+        <li>Từ chối cho khách giữ bản hợp đồng hoặc xác nhận đặt xe.</li>
+        <li>Chỉ trả lời chung chung khi hỏi phí phát sinh, bảo hiểm hoặc xử lý sự cố.</li>
+      </ol>
+      <h2>Nên chuyển cọc thế nào cho an toàn hơn?</h2>
+      <p>Chỉ chuyển cọc sau khi đã thống nhất xe, lịch thuê, điểm nhận/trả, giá cuối, điều kiện hoàn cọc và người phụ trách. Nội dung chuyển khoản nên ghi rõ mục đích giữ xe, ngày thuê và số điện thoại liên hệ. Hãy lưu lại tin nhắn, ảnh xe, hợp đồng hoặc xác nhận đặt xe.</p>
+      <h2>Car Match nên được kiểm tra ở đâu?</h2>
+      <p>Khách nên truy cập trực tiếp website <a href="/">carmatch.vn</a>, xem <a href="/xe">danh sách xe</a>, đọc <a href="/thue-xe-tu-lai-ha-noi">quy trình thuê xe tự lái Hà Nội</a> và liên hệ Zalo 0975 563 290. Nếu thấy trang, số điện thoại hoặc tài khoản lạ tự nhận là Car Match, hãy kiểm tra lại qua kênh chính thức trước khi chuyển tiền.</p>
+      <h2>Liên kết hữu ích</h2>
+      <p>Nên đọc thêm <a href="/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao">cách chọn đơn vị thuê xe tự lái Hà Nội</a>, <a href="/blog/phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc">các phí cần hỏi trước khi cọc</a> và <a href="/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu">giấy tờ/cọc khi thuê xe</a>.</p>`,
+    seoTitle: 'Tránh Lừa Đảo Cọc Online Khi Thuê Xe',
+    seoDescription:
+      '9 dấu hiệu cần kiểm tra để tránh lừa đảo cọc online khi thuê xe tự lái: giá rẻ bất thường, thiếu hợp đồng, thiếu kênh xác minh.',
+    canonicalUrl: `${siteUrl}/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần xác minh kênh đặt xe Car Match?',
+    ctaDescription: 'Dùng website carmatch.vn và Zalo 0975 563 290 để kiểm tra thông tin trước khi đặt cọc.',
+    ctaPrimaryLabel: 'Xem danh sách xe',
+    ctaPrimaryUrl: '/xe',
+    ctaZaloLabel: 'Nhắn Zalo chính thức',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao'],
+  },
+  {
+    _id: 'static-rental-incident-guide',
+    title: 'Xe thuê tự lái gặp sự cố, tai nạn hoặc hỏng xe thì xử lý thế nào?',
+    slug: { current: 'xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi' },
+    publishedAt: '2026-06-21T08:40:00+07:00',
+    excerpt:
+      'Các bước cần làm khi xe thuê tự lái hỏng máy, va chạm, thủng lốp hoặc gặp tai nạn giữa đường.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Xử lý sự cố'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Khi xe thuê tự lái gặp sự cố, việc đầu tiên không phải là tự sửa ngay, mà là bảo đảm an toàn, ghi nhận hiện trường và liên hệ đầu mối hỗ trợ. Cách xử lý đúng từ đầu giúp giảm rủi ro tranh chấp về chi phí, bảo hiểm và trách nhiệm sau chuyến đi.</p>
+      <p>Nếu có tai nạn hoặc nguy cơ mất an toàn, hãy đưa người ra vị trí an toàn, bật cảnh báo, gọi cơ quan chức năng/cấp cứu khi cần, rồi liên hệ ngay đơn vị cho thuê. Không tự ý sửa xe, kéo xe hoặc thỏa thuận bồi thường nếu chưa được hướng dẫn.</p>
+      <h2>Quy trình 5 bước khi có sự cố</h2>
+      <ol>
+        <li>Dừng xe ở vị trí an toàn, bật đèn cảnh báo và đặt cảnh báo nếu có.</li>
+        <li>Kiểm tra người trên xe; nếu có thương tích, ưu tiên gọi cấp cứu hoặc cơ quan chức năng.</li>
+        <li>Chụp ảnh/quay video hiện trường, vị trí xe, biển số, vết va chạm, đồng hồ taplo nếu có cảnh báo.</li>
+        <li>Liên hệ ngay đầu mối cho thuê để được hướng dẫn bước tiếp theo.</li>
+        <li>Giữ lại hóa đơn, biên bản, thông tin bên liên quan và mọi tin nhắn trao đổi.</li>
+      </ol>
+      <h2>Hỏng xe giữa đường thì làm gì?</h2>
+      <p>Nếu xe có đèn cảnh báo, tiếng lạ, mất điều hòa, thủng lốp hoặc dấu hiệu không an toàn, hãy dừng lại khi có thể, chụp ảnh/quay video và báo ngay cho đầu mối hỗ trợ. Không nên cố chạy tiếp nếu xe có dấu hiệu quá nhiệt, mất phanh, lốp hỏng nặng hoặc cảnh báo nguy hiểm.</p>
+      <h2>Bảo hiểm có chi trả hết không?</h2>
+      <p>Không nên mặc định bảo hiểm sẽ chi trả toàn bộ. Mỗi xe và mỗi hợp đồng có điều kiện khác nhau về bảo hiểm, mức miễn thường, hồ sơ tai nạn, lỗi vi phạm và chi phí nằm ngoài phạm vi bảo hiểm. Trước khi thuê, hãy hỏi rõ xe có loại bảo hiểm nào và quy trình khi xảy ra sự cố.</p>
+      <h2>Car Match hướng dẫn khách thế nào?</h2>
+      <p>Khách thuê qua Car Match nên liên hệ ngay số/Zalo đã đặt xe khi có sự cố. Đội vận hành sẽ hướng dẫn theo tình huống thực tế, nhưng khách vẫn cần ưu tiên an toàn, ghi nhận hiện trường và không tự ý xử lý ngoài thỏa thuận thuê xe.</p>
+      <h2>Liên kết hữu ích</h2>
+      <p>Trước chuyến đi, nên đọc <a href="/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi">cách ghi nhận vết xước khi nhận xe</a>, <a href="/blog/phat-nguoi-thue-xe-tu-lai-ai-tra">phạt nguội khi thuê xe ai trả</a> và <a href="/faq">câu hỏi thường gặp khi thuê xe</a>.</p>`,
+    seoTitle: 'Xe Thuê Tự Lái Gặp Sự Cố Thì Làm Gì?',
+    seoDescription:
+      'Quy trình xử lý khi xe thuê tự lái hỏng xe, thủng lốp, va chạm hoặc tai nạn: an toàn, ghi nhận, liên hệ hỗ trợ.',
+    canonicalUrl: `${siteUrl}/blog/xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần hỏi quy trình hỗ trợ trước khi thuê?',
+    ctaDescription: 'Gửi lịch trình và mẫu xe muốn thuê để Car Match tư vấn giấy tờ, bàn giao và lưu ý xử lý phát sinh.',
+    ctaPrimaryLabel: 'Xem câu hỏi thường gặp',
+    ctaPrimaryUrl: '/faq',
+    ctaZaloLabel: 'Nhắn Zalo tư vấn',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi'],
+  },
+  {
+    _id: 'static-new-driver-rental-guide',
+    title: 'Mới có bằng lái có thuê xe tự lái được không? Cách chuẩn bị để dễ được duyệt hơn',
+    slug: { current: 'moi-co-bang-lai-co-thue-xe-tu-lai-duoc-khong' },
+    publishedAt: '2026-06-21T08:30:00+07:00',
+    excerpt:
+      'Người mới có bằng lái nên chuẩn bị gì khi hỏi thuê xe tự lái: giấy tờ, lịch trình, mẫu xe dễ lái và cách giảm rủi ro bị từ chối.',
+    mainImageUrl: hanoiProviderGuideImage,
+    categories: ['Thủ tục thuê xe'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p>Mới có bằng lái vẫn có thể hỏi thuê xe tự lái, nhưng không phải đơn vị nào cũng duyệt mọi trường hợp. Bên cho thuê thường cân nhắc GPLX còn hạn, lịch trình, loại xe, kinh nghiệm lái thực tế, tuyến đi và mức rủi ro của chuyến thuê.</p>
+      <p>Nếu bạn là tài mới, hãy nói thật ngay từ đầu để được tư vấn mẫu xe, tuyến đi và cách bàn giao phù hợp. Việc giấu kinh nghiệm lái có thể làm tăng rủi ro khi gặp đường khó, hầm chung cư, cao tốc hoặc tình huống va chạm nhỏ.</p>
+      <h2>Tài mới nên chuẩn bị gì?</h2>
+      <ul>
+        <li>CCCD và GPLX hạng B còn hiệu lực.</li>
+        <li>Lịch trình rõ: đi đâu, ngày nhận/trả, có đi cao tốc hay đường núi không.</li>
+        <li>Số người, hành lý và khu vực nhận xe để chọn mẫu xe vừa tầm.</li>
+        <li>Ưu tiên xe dễ lái, kích thước gọn, camera/cảm biến hỗ trợ nếu có.</li>
+        <li>Nhận xe ban ngày, ở nơi rộng và có thời gian kiểm tra kỹ.</li>
+      </ul>
+      <h2>Nên tránh lịch trình nào nếu mới lái?</h2>
+      <p>Tài mới nên cân nhắc kỹ các chuyến đi đêm, đường đèo, lịch gấp, mưa lớn, phố cổ đông hoặc hầm chung cư quá hẹp. Nếu chưa quen cao tốc, hãy chọn tuyến ngắn trước hoặc đi cùng người có kinh nghiệm.</p>
+      <h2>Vì sao có nơi từ chối tài mới?</h2>
+      <p>Xe tự lái là tài sản có giá trị lớn, nên một số đơn vị đặt tiêu chí riêng về kinh nghiệm lái, loại xe được thuê hoặc tuyến đi. Việc bị hỏi kỹ không hẳn là làm khó khách, mà là để giảm rủi ro cho cả người thuê và bên cho thuê.</p>
+      <h2>Car Match tư vấn tài mới như thế nào?</h2>
+      <p>Car Match sẽ kiểm tra theo lịch thuê, mẫu xe, khu vực nhận xe và nhu cầu thực tế. Nếu bạn mới có bằng, hãy gửi trước thông tin này qua Zalo để được tư vấn xe phù hợp hơn, thay vì đặt một mẫu xe lớn hoặc chuyến đi khó ngay lần đầu.</p>
+      <h2>Liên kết hữu ích</h2>
+      <p>Đọc thêm <a href="/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu">giấy tờ cần chuẩn bị khi thuê xe tự lái</a>, <a href="/blog/nen-thue-xe-tu-lai-hay-xe-co-tai-xe-taxi-xe-cong-nghe">nên thuê tự lái hay xe có tài xế</a> và <a href="/xe">danh sách xe Car Match</a>.</p>`,
+    seoTitle: 'Mới Có Bằng Lái Có Thuê Xe Tự Lái Được Không?',
+    seoDescription:
+      'Tài mới thuê xe tự lái cần chuẩn bị gì: giấy tờ, lịch trình, loại xe dễ lái và cách giảm rủi ro bị từ chối.',
+    canonicalUrl: `${siteUrl}/blog/moi-co-bang-lai-co-thue-xe-tu-lai-duoc-khong`,
+    ctaEnabled: true,
+    ctaTitle: 'Mới có bằng và muốn hỏi xe?',
+    ctaDescription: 'Gửi lịch trình, số người và khu vực nhận xe để Car Match tư vấn mẫu xe vừa tầm hơn.',
+    ctaPrimaryLabel: 'Xem danh sách xe',
+    ctaPrimaryUrl: '/xe',
+    ctaZaloLabel: 'Nhắn Zalo tư vấn',
+    ctaZaloUrl: 'https://zalo.me/0975563290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: ['thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu'],
+  },
+];
 
 const staticAirportBlogPosts = [
   {
@@ -948,11 +1503,13 @@ const staticAirportBlogPosts = [
   },
 ];
 
+const staticBlogPosts = [...staticGeoBlogPosts, ...staticAirportBlogPosts];
+
 function mergeStaticBlogPosts(posts) {
   const existingSlugs = new Set(posts.map((post) => post.slug?.current).filter(Boolean));
   return [
     ...posts,
-    ...staticAirportBlogPosts.filter((post) => !existingSlugs.has(post.slug.current)),
+    ...staticBlogPosts.filter((post) => !existingSlugs.has(post.slug.current)),
   ].sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime());
 }
 
@@ -4531,6 +5088,52 @@ function renderCmsLandingPage(page) {
     faqItems: [],
     ...(page.page_content || {}),
   };
+
+  if (page.slug === 'thue-xe-tu-lai-ha-noi') {
+    const geoGuideLinks = [
+      [
+        'Thuê xe tự lái Hà Nội giá bao nhiêu?',
+        '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu',
+      ],
+      [
+        'Giấy tờ và cọc khi thuê xe tự lái',
+        '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu',
+      ],
+      [
+        'So sánh đơn vị thuê xe tự lái Hà Nội',
+        '/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao',
+      ],
+      [
+        'Nên thuê tự lái hay xe có tài xế?',
+        '/blog/nen-thue-xe-tu-lai-hay-xe-co-tai-xe-taxi-xe-cong-nghe',
+      ],
+      [
+        'Có nên thuê xe điện tự lái?',
+        '/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast',
+      ],
+      [
+        'Tránh tranh chấp vết xước khi thuê xe',
+        '/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi',
+      ],
+      [
+        'Tránh lừa đảo cọc online',
+        '/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai',
+      ],
+      [
+        'Xử lý sự cố khi xe thuê gặp vấn đề',
+        '/blog/xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi',
+      ],
+      [
+        'Thuê xe Vinhomes Ocean Park giao tận sảnh',
+        '/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh',
+      ],
+    ];
+    const geoGuideHrefs = new Set(geoGuideLinks.map(([, href]) => href));
+    c.blogLinks = [
+      ...geoGuideLinks,
+      ...c.blogLinks.filter(([, href]) => !geoGuideHrefs.has(href)),
+    ];
+  }
 
   const ctaPrimary = page.cta_primary_label && page.cta_primary_url
     ? `<a class="btn primary" href="${escapeHtml(page.cta_primary_url)}">${escapeHtml(page.cta_primary_label)}</a>`

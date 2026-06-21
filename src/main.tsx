@@ -53,23 +53,22 @@ async function bootApp() {
   if (root.dataset.staticPage || root.dataset.staticFallback) return
 
   const hadStaticShell = Boolean(root.dataset.staticShell)
-  const shouldHydratePrerendered = Boolean(root.dataset.prerendered)
+  const hadPrerenderedShell = Boolean(root.dataset.prerendered)
 
-  if (shouldHydratePrerendered) {
+  if (hadPrerenderedShell) {
     await preloadPrerenderedRoute()
   }
 
-  const [{ StrictMode, createElement }, { createRoot, hydrateRoot }, { default: App }] = await Promise.all([
+  const [{ StrictMode, createElement }, { createRoot }, { default: App }] = await Promise.all([
     import('react'),
     import('react-dom/client'),
     import('./app/App'),
   ])
   const app = createElement(StrictMode, null, createElement(App))
 
-  if (shouldHydratePrerendered) {
+  if (hadPrerenderedShell) {
+    root.replaceChildren()
     delete root.dataset.prerendered
-    hydrateRoot(root, app)
-    return
   }
 
   if (root.dataset.staticShell) {
@@ -87,6 +86,35 @@ async function bootApp() {
       root.style.opacity = '1'
     })
   }
+}
+
+function schedulePrerenderedBoot() {
+  const root = document.getElementById('root')
+  if (!root?.dataset.prerendered) return false
+
+  let booted = false
+  let armed = false
+  const events = ['click'] as const
+  window.setTimeout(() => {
+    armed = true
+  }, 1500)
+
+  function cleanup() {
+    events.forEach((eventName) => window.removeEventListener(eventName, boot))
+  }
+
+  function boot() {
+    if (booted || !armed) return
+    booted = true
+    cleanup()
+    void bootApp()
+  }
+
+  events.forEach((eventName) => {
+    window.addEventListener(eventName, boot, { passive: true })
+  })
+
+  return true
 }
 
 function scheduleHomeBoot() {
@@ -127,9 +155,20 @@ function discardWrongHomePrerender() {
   delete root.dataset.prerendered
 }
 
-if (window.location.pathname === '/' || window.location.pathname === '') {
-  scheduleHomeBoot()
-} else {
+function startApp() {
+  if (window.location.pathname === '/' || window.location.pathname === '') {
+    scheduleHomeBoot()
+    return
+  }
+
   discardWrongHomePrerender()
-  void bootApp()
+  if (!schedulePrerenderedBoot()) {
+    void bootApp()
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp, { once: true })
+} else {
+  startApp()
 }
