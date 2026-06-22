@@ -258,6 +258,13 @@ export default function Account() {
     if (!session || !phone) return
     loadBookings()
     loadDocs()
+    if (!customerInfo) {
+      supabase.rpc('get_customer_by_phone', { p_phone: phone }).then(({ data }) => {
+        if (data && (data as CustomerInfo[]).length > 0) {
+          setCustomerInfo((data as CustomerInfo[])[0])
+        }
+      })
+    }
   }, [session, phone])
 
   // ── Data loaders ─────────────────────────────────────────────────────────
