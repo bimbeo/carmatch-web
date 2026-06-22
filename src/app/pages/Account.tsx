@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone } from 'lucide-react'
+import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -15,6 +15,9 @@ type Booking = {
   requested_vehicle_text: string | null
   pickup_location_text: string | null
   created_at: string
+  billing_days: number | null
+  daily_rate: number | null
+  itinerary: string | null
 }
 
 type CustomerDoc = {
@@ -31,6 +34,9 @@ type CustomerInfo = {
   customer_id: string
   full_name: string
   loyalty_tier: string
+  referral_code: string | null
+  first_seen_at: string | null
+  last_rental_at: string | null
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -102,6 +108,16 @@ function formatDateShort(d: string | null): string {
   return `${day}/${m}`
 }
 
+function formatCurrency(n: number | null): string {
+  if (!n) return '—'
+  return new Intl.NumberFormat('vi-VN').format(n) + 'đ'
+}
+
+function getJoinYear(d: string | null): string {
+  if (!d) return ''
+  return d.split('-')[0]
+}
+
 // ─── Google SVG ──────────────────────────────────────────────────────────────
 
 function GoogleIcon() {
@@ -121,10 +137,12 @@ function BookingCard({ b }: { b: Booking }) {
   const colorClass = STATUS_COLOR[b.status] ?? 'bg-slate-50 text-slate-500 border-slate-200'
   const dotClass = STATUS_DOT[b.status] ?? 'bg-slate-400'
   const label = STATUS_LABEL[b.status] ?? b.status
+  const total = b.billing_days && b.daily_rate ? b.billing_days * b.daily_rate : null
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="p-4">
+        {/* Header row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <p className="font-bold text-gray-900 text-base leading-tight">
             {b.requested_vehicle_text ?? 'Xe Car Match'}
@@ -135,24 +153,47 @@ function BookingCard({ b }: { b: Booking }) {
           </span>
         </div>
 
-        <div className="flex items-center gap-4 text-[13px] text-gray-500">
+        {/* Date + location */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-500 mb-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-gray-300">📅</span>
-            <span>
-              {formatDateShort(b.pickup_date)} → {formatDate(b.return_date)}
-            </span>
+            <span>📅</span>
+            <span>{formatDateShort(b.pickup_date)} → {formatDate(b.return_date)}</span>
           </div>
           {b.pickup_location_text && (
-            <div className="flex items-center gap-1 truncate">
-              <span className="text-gray-300">📍</span>
+            <div className="flex items-center gap-1 truncate max-w-[180px]">
+              <span>📍</span>
               <span className="truncate">{b.pickup_location_text}</span>
             </div>
           )}
         </div>
+
+        {/* Pricing row */}
+        {(b.billing_days || b.daily_rate || b.itinerary) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] border-t border-gray-50 pt-3">
+            {b.billing_days != null && (
+              <span className="text-gray-500">
+                <span className="font-medium text-gray-700">{b.billing_days}</span> ngày
+              </span>
+            )}
+            {b.daily_rate != null && (
+              <span className="text-gray-500">
+                <span className="font-medium text-gray-700">{formatCurrency(b.daily_rate)}</span>/ngày
+              </span>
+            )}
+            {total != null && (
+              <span className="ml-auto font-bold text-gray-900 text-[13px]">
+                {formatCurrency(total)}
+              </span>
+            )}
+            {b.itinerary && (
+              <span className="w-full text-gray-400 truncate">🗺 {b.itinerary}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {b.booking_code && (
-        <div className="border-t border-gray-50 px-4 py-2.5 bg-gray-50/50">
+        <div className="border-t border-gray-50 px-4 py-2 bg-gray-50/50">
           <p className="font-mono text-[10px] text-gray-400 tracking-wide">{b.booking_code}</p>
         </div>
       )}
@@ -457,17 +498,46 @@ export default function Account() {
   const tier = customerInfo?.loyalty_tier
   const tierInfo = tier ? TIER_LABEL[tier] : null
   const docsComplete = uploadedTypes.size === UPLOAD_SLOTS.length
+  const joinYear = getJoinYear(customerInfo?.first_seen_at ?? null)
+
+  const [copied, setCopied] = useState(false)
+  const handleCopyCode = useCallback(() => {
+    const code = customerInfo?.referral_code
+    if (!code) return
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [customerInfo?.referral_code])
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+        {/* Greeting header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Xin chào, {displayName.split(' ').pop()}!
+          </h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            {joinYear ? `Khách CarMatch từ năm ${joinYear}` : 'Chào mừng đến với CarMatch'}
+            {tierInfo && (
+              <span className={`ml-2 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full align-middle ${tierInfo.color}`}>
+                {tierInfo.label}
+              </span>
+            )}
+          </p>
+        </div>
+
         <div className="flex flex-col md:flex-row gap-6 items-start">
 
           {/* ── Left Sidebar ── */}
-          <aside className="w-full md:w-64 shrink-0">
+          <aside className="w-full md:w-64 shrink-0 space-y-3">
+
+            {/* Profile + nav card */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
-              {/* Profile card */}
+              {/* Profile */}
               <div className="px-5 py-6 border-b border-gray-50 text-center">
                 {avatarUrl ? (
                   <img
@@ -482,11 +552,6 @@ export default function Account() {
                 )}
                 <h2 className="font-bold text-gray-900 leading-tight">{displayName}</h2>
                 <p className="text-sm text-gray-400 mt-0.5">{phone}</p>
-                {tierInfo && (
-                  <span className={`mt-2 inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${tierInfo.color}`}>
-                    {tierInfo.label}
-                  </span>
-                )}
 
                 {/* Mini stats */}
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -565,6 +630,48 @@ export default function Account() {
                 </div>
               </nav>
             </div>
+
+            {/* Loyalty & Referral card */}
+            {(tierInfo || customerInfo?.referral_code) && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gift className="w-4 h-4 text-amber-500" />
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Loyalty & Giới thiệu</p>
+                </div>
+
+                {tierInfo && (
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-500">Hạng khách</span>
+                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${tierInfo.color}`}>
+                      {tierInfo.label}
+                    </span>
+                  </div>
+                )}
+
+                {customerInfo?.referral_code && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1.5">Mã giới thiệu của bạn</p>
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="w-full flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 hover:bg-amber-100 transition-colors group"
+                    >
+                      <span className="font-mono font-bold text-amber-800 text-sm tracking-widest">
+                        {customerInfo.referral_code}
+                      </span>
+                      {copied ? (
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-amber-400 shrink-0 group-hover:text-amber-600" />
+                      )}
+                    </button>
+                    <p className="text-[10px] text-gray-400 mt-1.5 text-center">
+                      {copied ? 'Đã sao chép!' : 'Chia sẻ mã để nhận ưu đãi'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </aside>
 
           {/* ── Main Content ── */}
