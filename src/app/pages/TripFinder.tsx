@@ -661,22 +661,32 @@ export default function TripFinder() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-sm font-semibold text-gray-700">Ngày đi</span>
-                  <input
-                    type="date"
-                    value={pickupDate}
-                    onChange={(event) => handlePickupDateChange(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-                  />
+                  <div className="mt-1 relative w-full">
+                    <div className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-gray-900 bg-white pointer-events-none">
+                      {pickupDate ? pickupDate.split('-').reverse().join('/') : 'dd/mm/yyyy'}
+                    </div>
+                    <input
+                      type="date"
+                      value={pickupDate}
+                      onChange={(event) => handlePickupDateChange(event.target.value)}
+                      className="absolute inset-0 opacity-0 w-full cursor-pointer"
+                    />
+                  </div>
                 </label>
                 <label className="block">
                   <span className="text-sm font-semibold text-gray-700">Ngày về</span>
-                  <input
-                    type="date"
-                    value={returnDate}
-                    min={pickupDate}
-                    onChange={(event) => setReturnDate(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-                  />
+                  <div className="mt-1 relative w-full">
+                    <div className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-gray-900 bg-white pointer-events-none">
+                      {returnDate ? returnDate.split('-').reverse().join('/') : 'dd/mm/yyyy'}
+                    </div>
+                    <input
+                      type="date"
+                      value={returnDate}
+                      min={pickupDate}
+                      onChange={(event) => setReturnDate(event.target.value)}
+                      className="absolute inset-0 opacity-0 w-full cursor-pointer"
+                    />
+                  </div>
                 </label>
               </div>
 

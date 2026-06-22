@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, UserCircle } from 'lucide-react';
 import { trackZaloClick } from '@/lib/analytics';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import AuthModal from './AuthModal';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
@@ -14,17 +17,26 @@ const navLinks = [
   { href: '/gioi-thieu', label: 'Giới thiệu' },
   { href: '/lien-he', label: 'Liên hệ' },
   { href: '/blog', label: 'Blog', staticPage: true },
+  { href: '/tai-khoan', label: 'Tài khoản của tôi' },
 ];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   return (
@@ -52,7 +64,7 @@ export default function Navbar() {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => {
+            {navLinks.filter(l => l.href !== '/tai-khoan').map((link) => {
               const className = `text-sm font-medium transition-colors ${
                 location.pathname === link.href
                   ? 'text-brand-600'
@@ -72,7 +84,37 @@ export default function Navbar() {
           </div>
 
           {/* CTA */}
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-3">
+            {session ? (
+              <Link
+                to="/tai-khoan"
+                aria-label="Tài khoản"
+                className={`p-1 rounded-full transition-colors ${
+                  location.pathname === '/tai-khoan' ? 'ring-2 ring-brand-600' : ''
+                }`}
+              >
+                {session.user.user_metadata?.avatar_url ? (
+                  <img
+                    src={session.user.user_metadata.avatar_url as string}
+                    alt="Tài khoản"
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold">
+                    {((session.user.user_metadata?.full_name as string) ?? session.user.email ?? 'U')[0].toUpperCase()}
+                  </div>
+                )}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(true)}
+                aria-label="Đăng nhập"
+                className="p-2 rounded-full transition-colors text-gray-500 hover:text-gray-800"
+              >
+                <UserCircle className="w-5 h-5" />
+              </button>
+            )}
             <a
               href={ZALO_LINK}
               target="_blank"
@@ -103,7 +145,7 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div id="mobile-navigation" className="md:hidden bg-white border-t border-gray-100">
           <div className="px-4 py-3 space-y-1">
-            {navLinks.map((link) => {
+            {navLinks.filter(l => l.href !== '/tai-khoan').map((link) => {
               const className = `block px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${
                 location.pathname === link.href
                   ? 'text-brand-600 bg-brand-50'
@@ -125,6 +167,28 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {/* Account link mobile */}
+            {session ? (
+              <Link
+                to="/tai-khoan"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${
+                  location.pathname === '/tai-khoan' ? 'text-brand-600 bg-brand-50' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Tài khoản của tôi
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setMobileMenuOpen(false); setShowAuthModal(true); }}
+                className="block w-full text-left px-3 py-2.5 text-sm rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Đăng nhập
+              </button>
+            )}
+
             <div className="pt-3 pb-1">
               <a
                 href={ZALO_LINK}
@@ -139,6 +203,9 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Auth Modal */}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </nav>
   );
 }

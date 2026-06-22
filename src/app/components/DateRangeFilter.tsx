@@ -71,31 +71,41 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         <div className="flex-1">
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Ngày nhận xe</label>
-          <input
-            type="date"
-            min={todayStr}
-            value={pickupDate}
-            onChange={event => {
-              const nextPickup = event.target.value;
-              setPickupDate(nextPickup);
-              if (nextPickup >= returnDate) {
-                setReturnDate(toDateStr(addDays(new Date(nextPickup), 1)));
-              }
-            }}
-            onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
+          <div className="relative w-full">
+            <div className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
+              {pickupDate ? pickupDate.split('-').reverse().join('/') : ''}
+            </div>
+            <input
+              type="date"
+              min={todayStr}
+              value={pickupDate}
+              onChange={event => {
+                const nextPickup = event.target.value;
+                setPickupDate(nextPickup);
+                if (nextPickup >= returnDate) {
+                  setReturnDate(toDateStr(addDays(new Date(nextPickup), 1)));
+                }
+              }}
+              onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
+              className="absolute inset-0 opacity-0 w-full cursor-pointer"
+            />
+          </div>
         </div>
         <div className="flex-1">
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Ngày trả xe</label>
-          <input
-            type="date"
-            min={pickupDate}
-            value={returnDate}
-            onChange={event => setReturnDate(event.target.value)}
-            onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
+          <div className="relative w-full">
+            <div className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
+              {returnDate ? returnDate.split('-').reverse().join('/') : ''}
+            </div>
+            <input
+              type="date"
+              min={pickupDate}
+              value={returnDate}
+              onChange={event => setReturnDate(event.target.value)}
+              onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
+              className="absolute inset-0 opacity-0 w-full cursor-pointer"
+            />
+          </div>
         </div>
         <div className="flex gap-2">
           <button

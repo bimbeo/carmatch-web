@@ -724,13 +724,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             Ngày nhận xe
           </label>
           <div className="grid grid-cols-5 gap-2">
-            <input
-              type="date"
-              value={pickupDate}
-              min={todayStr}
-              onChange={e => handlePickupDate(e.target.value)}
-              className="col-span-3 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 transition-colors"
-            />
+            <div className="col-span-3 relative">
+              <div className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
+                {displayDateSlash(pickupDate)}
+              </div>
+              <input
+                type="date"
+                value={pickupDate}
+                min={todayStr}
+                onChange={e => handlePickupDate(e.target.value)}
+                className="absolute inset-0 opacity-0 w-full cursor-pointer"
+              />
+            </div>
             <div className="relative col-span-2">
               <select
                 value={pickupHour}
@@ -752,13 +757,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             Ngày trả xe
           </label>
           <div className="grid grid-cols-5 gap-2">
-            <input
-              type="date"
-              value={returnDate}
-              min={pickupDate}
-              onChange={e => setReturnDate(e.target.value)}
-              className="col-span-3 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 transition-colors"
-            />
+            <div className="col-span-3 relative">
+              <div className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
+                {displayDateSlash(returnDate)}
+              </div>
+              <input
+                type="date"
+                value={returnDate}
+                min={pickupDate}
+                onChange={e => setReturnDate(e.target.value)}
+                className="absolute inset-0 opacity-0 w-full cursor-pointer"
+              />
+            </div>
             <div className="relative col-span-2">
               <select
                 value={returnHour}

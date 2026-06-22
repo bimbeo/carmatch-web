@@ -566,13 +566,18 @@ export default function Fleet() {
               </label>
               <label className="block">
                 <span className="sr-only">Ngày nhận xe dự kiến</span>
-                <input
-                  type="date"
-                  value={leadDate}
-                  onChange={(event) => setLeadDate(event.target.value)}
-                  onClick={(event) => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
-                  className="h-10 w-full rounded-xl border border-gray-200 bg-slate-50 px-3 text-sm text-gray-800 outline-none transition-colors focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
-                />
+                <div className="relative h-10 w-full">
+                  <div className="h-10 w-full rounded-xl border border-gray-200 bg-slate-50 px-3 text-sm text-gray-800 flex items-center pointer-events-none">
+                    {leadDate ? leadDate.split('-').reverse().join('/') : 'Ngày nhận xe'}
+                  </div>
+                  <input
+                    type="date"
+                    value={leadDate}
+                    onChange={(event) => setLeadDate(event.target.value)}
+                    onClick={(event) => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
+                    className="absolute inset-0 opacity-0 w-full cursor-pointer"
+                  />
+                </div>
               </label>
               <label className="block">
                 <span className="sr-only">Số người và hành lý</span>

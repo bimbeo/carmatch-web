@@ -626,12 +626,17 @@ export default function GoWhereDetail() {
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-bold text-slate-700">Ngày đi dự kiến</span>
-                  <input
-                    type="date"
-                    value={travelDate}
-                    onChange={(event) => setTravelDate(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-                  />
+                  <div className="relative w-full">
+                    <div className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold text-gray-900 bg-white pointer-events-none">
+                      {travelDate ? travelDate.split('-').reverse().join('/') : 'dd/mm/yyyy'}
+                    </div>
+                    <input
+                      type="date"
+                      value={travelDate}
+                      onChange={(event) => setTravelDate(event.target.value)}
+                      className="absolute inset-0 opacity-0 w-full cursor-pointer"
+                    />
+                  </div>
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-bold text-slate-700">Nhu cầu</span>
