@@ -460,249 +460,285 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
-      {/* Profile header */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-        <div className="max-w-lg mx-auto px-5 pt-8 pb-10">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  className="w-14 h-14 rounded-full ring-2 ring-white/20 shrink-0"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white font-bold text-xl shrink-0">
-                  {displayName[0].toUpperCase()}
-                </div>
-              )}
-              <div>
-                <h1 className="font-bold text-lg leading-tight">{displayName}</h1>
-                <p className="text-white/60 text-sm mt-0.5">{phone}</p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+
+          {/* ── Left Sidebar ── */}
+          <aside className="w-full md:w-64 shrink-0">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+
+              {/* Profile card */}
+              <div className="px-5 py-6 border-b border-gray-50 text-center">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="w-16 h-16 rounded-full mx-auto mb-3 ring-4 ring-gray-50 object-cover"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-brand-600 flex items-center justify-center mx-auto mb-3 text-white font-bold text-2xl ring-4 ring-gray-50">
+                    {displayName[0].toUpperCase()}
+                  </div>
+                )}
+                <h2 className="font-bold text-gray-900 leading-tight">{displayName}</h2>
+                <p className="text-sm text-gray-400 mt-0.5">{phone}</p>
                 {tierInfo && (
-                  <span className={`mt-2 inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full ${tierInfo.color}`}>
+                  <span className={`mt-2 inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${tierInfo.color}`}>
                     {tierInfo.label}
                   </span>
                 )}
+
+                {/* Mini stats */}
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="bg-gray-50 rounded-xl py-2.5">
+                    <p className="font-bold text-gray-900 text-lg leading-none">
+                      {loadingBookings ? '—' : bookings.length}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Chuyến đi</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl py-2.5">
+                    <p className={`font-bold text-lg leading-none ${docsComplete ? 'text-emerald-600' : 'text-gray-900'}`}>
+                      {uploadedTypes.size}/{UPLOAD_SLOTS.length}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Giấy tờ</p>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                supabase.auth.signOut()
-                setPhone('')
-                setCustomerInfo(null)
-              }}
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
-              aria-label="Đăng xuất"
-            >
-              <LogOut className="w-4 h-4 text-white/70" />
-            </button>
-          </div>
+              {/* Nav */}
+              <nav className="p-2">
+                <button
+                  type="button"
+                  onClick={() => setTab('bookings')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    tab === 'bookings'
+                      ? 'bg-brand-50 text-brand-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Car className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 text-left">Chuyến đi của tôi</span>
+                  {!loadingBookings && bookings.length > 0 && (
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      tab === 'bookings' ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {bookings.length}
+                    </span>
+                  )}
+                </button>
 
-          {/* Stats row */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <div className="bg-white/10 rounded-2xl px-4 py-3 border border-white/10">
-              <p className="text-2xl font-bold">{bookings.length}</p>
-              <p className="text-white/60 text-xs mt-0.5">Chuyến đã đặt</p>
+                <button
+                  type="button"
+                  onClick={() => setTab('docs')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    tab === 'docs'
+                      ? 'bg-brand-50 text-brand-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 text-left">Giấy tờ</span>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                    docsComplete
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : tab === 'docs'
+                        ? 'bg-brand-100 text-brand-600'
+                        : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {uploadedTypes.size}/{UPLOAD_SLOTS.length}
+                  </span>
+                </button>
+
+                <div className="border-t border-gray-100 mt-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      supabase.auth.signOut()
+                      setPhone('')
+                      setCustomerInfo(null)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 shrink-0" />
+                    Đăng xuất
+                  </button>
+                </div>
+              </nav>
             </div>
-            <div className={`rounded-2xl px-4 py-3 border ${docsComplete ? 'bg-emerald-500/20 border-emerald-400/30' : 'bg-white/10 border-white/10'}`}>
-              <p className="text-2xl font-bold">{uploadedTypes.size}/{UPLOAD_SLOTS.length}</p>
-              <p className={`text-xs mt-0.5 ${docsComplete ? 'text-emerald-300' : 'text-white/60'}`}>
-                {docsComplete ? 'Giấy tờ đầy đủ ✓' : 'Giấy tờ đã có'}
+          </aside>
+
+          {/* ── Main Content ── */}
+          <main className="flex-1 min-w-0">
+
+            {/* Section heading */}
+            <div className="mb-5">
+              <h1 className="text-xl font-bold text-gray-900">
+                {tab === 'bookings' ? 'Chuyến đi của tôi' : 'Giấy tờ của tôi'}
+              </h1>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {tab === 'bookings'
+                  ? 'Toàn bộ lịch sử đặt xe với CarMatch'
+                  : 'Lưu một lần, dùng cho mọi lần thuê sau'}
               </p>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-10 shadow-sm">
-        <div className="max-w-lg mx-auto px-5">
-          <div className="flex">
-            {[
-              { key: 'bookings' as const, label: 'Chuyến đi của tôi' },
-              { key: 'docs' as const, label: `Giấy tờ ${uploadedTypes.size > 0 ? `(${uploadedTypes.size}/${UPLOAD_SLOTS.length})` : ''}` },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                className={`flex-1 py-3.5 text-sm font-semibold border-b-2 transition-colors ${
-                  tab === key
-                    ? 'border-brand-600 text-brand-600'
-                    : 'border-transparent text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-lg mx-auto px-5 py-5 pb-20">
-
-        {/* ── Tab: Bookings ── */}
-        {tab === 'bookings' && (
-          <div>
-            {loadingBookings ? (
-              <div className="flex justify-center py-16">
-                <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : bookings.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Car className="w-7 h-7 text-gray-300" />
-                </div>
-                <p className="font-semibold text-gray-900 mb-1">Chưa có chuyến nào</p>
-                <p className="text-gray-400 text-sm mb-5">Hãy đặt xe đầu tiên của bạn với CarMatch</p>
-                <a
-                  href="/xe"
-                  className="inline-flex items-center gap-1.5 bg-brand-600 text-white font-semibold text-sm px-5 py-2.5 rounded-full hover:bg-brand-700 transition-colors"
-                >
-                  Xem xe ngay <ChevronRight className="w-4 h-4" />
-                </a>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {bookings.map((b) => <BookingCard key={b.booking_id} b={b} />)}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Tab: Documents ── */}
-        {tab === 'docs' && (
-          <div>
-            {/* Nudge banner */}
-            {!docsComplete && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3.5 mb-5 flex items-start gap-3">
-                <span className="text-amber-500 text-lg shrink-0 mt-0.5">💡</span>
-                <p className="text-amber-800 text-sm leading-relaxed">
-                  Upload GPLX và CCCD một lần — CarMatch lưu lại cho tất cả các lần thuê sau.
-                  Bạn không cần gửi lại qua Zalo nữa.
-                </p>
-              </div>
-            )}
-
-            {docsComplete && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3.5 mb-5 flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-                <p className="text-emerald-800 text-sm font-medium">
-                  Giấy tờ của bạn đã đầy đủ. CarMatch sẽ dùng lại cho các lần thuê tiếp theo.
-                </p>
-              </div>
-            )}
-
-            {uploadError && (
-              <div className="bg-red-50 border border-red-100 rounded-2xl px-4 py-3 flex items-start gap-2 mb-4">
-                <X className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                <p className="text-red-600 text-sm">{uploadError}</p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {UPLOAD_SLOTS.map((slot) => {
-                const existing = docs.find((d) => d.document_type === slot.type)
-                const isUploading = uploadingType === slot.type
-                const uploaded = !!existing
-
-                return (
-                  <div key={slot.type} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Card header */}
-                    <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg ${
-                          uploaded ? 'bg-emerald-50' : 'bg-gray-50'
-                        }`}>
-                          {slot.icon}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 text-[14px]">{slot.label}</p>
-                          <p className="text-[11px] text-gray-400">{slot.hint}</p>
-                        </div>
-                      </div>
-
-                      {uploaded ? (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
-                          <CheckCircle className="w-3.5 h-3.5" /> Đã có
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-amber-500">
-                          <Clock className="w-3.5 h-3.5" /> Chưa có
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Image preview */}
-                    {existing && (
-                      <div className="mx-4 mb-3 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 relative">
-                        {existing.file_url.match(/\.(jpg|jpeg|png|webp|heic)$/i) ? (
-                          <img
-                            src={existing.file_url}
-                            alt={slot.label}
-                            className="w-full max-h-44 object-cover"
-                          />
-                        ) : (
-                          <a
-                            href={existing.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-4 py-4 text-sm text-brand-600 font-medium hover:underline"
-                          >
-                            <FileText className="w-4 h-4" />
-                            {existing.file_name ?? 'Xem file'}
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Upload button */}
-                    <div className="px-4 pb-4">
-                      <button
-                        type="button"
-                        onClick={() => fileRefs.current[slot.type]?.click()}
-                        disabled={isUploading}
-                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold transition-all ${
-                          uploaded
-                            ? 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-200'
-                            : 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm'
-                        } disabled:opacity-40`}
-                      >
-                        {isUploading ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : uploaded ? (
-                          <Camera className="w-4 h-4" />
-                        ) : (
-                          <Upload className="w-4 h-4" />
-                        )}
-                        {isUploading ? 'Đang upload...' : uploaded ? 'Cập nhật ảnh' : 'Upload ảnh'}
-                      </button>
-                    </div>
-
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      capture="environment"
-                      className="sr-only"
-                      ref={(el) => { fileRefs.current[slot.type] = el }}
-                      onChange={(e) => handleFileChange(e, slot.type)}
-                    />
+            {/* ── Tab: Bookings ── */}
+            {tab === 'bookings' && (
+              <div>
+                {loadingBookings ? (
+                  <div className="flex justify-center py-16">
+                    <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
                   </div>
-                )
-              })}
-            </div>
-
-            {loadingDocs && (
-              <div className="flex justify-center py-4">
-                <div className="w-6 h-6 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                ) : bookings.length === 0 ? (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Car className="w-7 h-7 text-gray-300" />
+                    </div>
+                    <p className="font-semibold text-gray-900 mb-1">Chưa có chuyến nào</p>
+                    <p className="text-gray-400 text-sm mb-5">Hãy đặt xe đầu tiên của bạn với CarMatch</p>
+                    <a
+                      href="/xe"
+                      className="inline-flex items-center gap-1.5 bg-brand-600 text-white font-semibold text-sm px-5 py-2.5 rounded-full hover:bg-brand-700 transition-colors"
+                    >
+                      Xem xe ngay <ChevronRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {bookings.map((b) => <BookingCard key={b.booking_id} b={b} />)}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
+
+            {/* ── Tab: Documents ── */}
+            {tab === 'docs' && (
+              <div>
+                {/* Status banner */}
+                {!docsComplete && !loadingDocs && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3.5 mb-5 flex items-start gap-3">
+                    <span className="text-amber-500 text-lg shrink-0 mt-0.5">💡</span>
+                    <p className="text-amber-800 text-sm leading-relaxed">
+                      Upload GPLX và CCCD một lần — CarMatch lưu lại, bạn không cần gửi lại qua Zalo mỗi lần thuê.
+                    </p>
+                  </div>
+                )}
+
+                {docsComplete && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3.5 mb-5 flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <p className="text-emerald-800 text-sm font-medium">
+                      Giấy tờ đầy đủ — CarMatch sẽ dùng lại cho các lần thuê tiếp theo.
+                    </p>
+                  </div>
+                )}
+
+                {uploadError && (
+                  <div className="bg-red-50 border border-red-100 rounded-2xl px-4 py-3 flex items-start gap-2 mb-4">
+                    <X className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-red-600 text-sm">{uploadError}</p>
+                  </div>
+                )}
+
+                {loadingDocs ? (
+                  <div className="flex justify-center py-16">
+                    <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {UPLOAD_SLOTS.map((slot) => {
+                      const existing = docs.find((d) => d.document_type === slot.type)
+                      const isUploading = uploadingType === slot.type
+                      const uploaded = !!existing
+
+                      return (
+                        <div key={slot.type} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                          <div className="p-5">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
+                                  uploaded ? 'bg-emerald-50' : 'bg-gray-50'
+                                }`}>
+                                  {slot.icon}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900 text-sm">{slot.label}</p>
+                                  <p className="text-[11px] text-gray-400 mt-0.5">{slot.hint}</p>
+                                </div>
+                              </div>
+
+                              {uploaded ? (
+                                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                                  <CheckCircle className="w-3 h-3" /> Đã xác thực
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+                                  <Clock className="w-3 h-3" /> Chưa có
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Image preview */}
+                            {existing && (
+                              <div className="mb-4 rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+                                {existing.file_url.match(/\.(jpg|jpeg|png|webp|heic)$/i) ? (
+                                  <img
+                                    src={existing.file_url}
+                                    alt={slot.label}
+                                    className="w-full max-h-48 object-cover"
+                                  />
+                                ) : (
+                                  <a
+                                    href={existing.file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-4 text-sm text-brand-600 font-medium hover:underline"
+                                  >
+                                    <FileText className="w-4 h-4" />
+                                    {existing.file_name ?? 'Xem file'}
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => fileRefs.current[slot.type]?.click()}
+                              disabled={isUploading}
+                              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 ${
+                                uploaded
+                                  ? 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                  : 'bg-brand-600 text-white hover:bg-brand-700'
+                              }`}
+                            >
+                              {isUploading ? (
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              ) : uploaded ? (
+                                <Camera className="w-4 h-4" />
+                              ) : (
+                                <Upload className="w-4 h-4" />
+                              )}
+                              {isUploading ? 'Đang upload...' : uploaded ? 'Cập nhật ảnh' : 'Upload ảnh'}
+                            </button>
+                          </div>
+
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            capture="environment"
+                            className="sr-only"
+                            ref={(el) => { fileRefs.current[slot.type] = el }}
+                            onChange={(e) => handleFileChange(e, slot.type)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   )
