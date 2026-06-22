@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift, Tag, Star, Award, Pencil } from 'lucide-react'
+import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift, Tag, Star, Award, Pencil, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Navbar from '../components/Navbar'
 
@@ -174,11 +174,16 @@ function GoogleIcon() {
 
 // ─── BookingCard ──────────────────────────────────────────────────────────────
 
+const ZALO_NUMBER = '0975563290'
+
 function BookingCard({ b }: { b: Booking }) {
   const colorClass = STATUS_COLOR[b.status] ?? 'bg-slate-50 text-slate-500 border-slate-200'
   const dotClass = STATUS_DOT[b.status] ?? 'bg-slate-400'
   const label = STATUS_LABEL[b.status] ?? b.status
   const total = b.billing_days && b.daily_rate ? b.billing_days * b.daily_rate : null
+  const zaloMsg = `Chào CarMatch, tôi muốn hỏi về chuyến xe mã ${b.booking_code ?? b.booking_id}`
+  const zaloUrl = `https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(zaloMsg)}`
+  const isCompleted = b.status === 'completed'
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -231,6 +236,27 @@ function BookingCard({ b }: { b: Booking }) {
             )}
           </div>
         )}
+
+        {/* Action buttons */}
+        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+          <a
+            href={zaloUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#0068FF] text-white text-[13px] font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            Nhắn Zalo
+          </a>
+          {isCompleted && (
+            <a
+              href="/xe"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-brand-200 text-brand-700 text-[13px] font-semibold hover:bg-brand-50 transition-colors"
+            >
+              Đặt lại ↗
+            </a>
+          )}
+        </div>
       </div>
 
       {b.booking_code && (
@@ -249,17 +275,50 @@ function WebLeadCard({ w }: { w: WebLead }) {
   const dotClass = STATUS_DOT[w.status] ?? 'bg-amber-400'
   const label = STATUS_LABEL[w.status] ?? 'Chờ xác nhận'
 
+  const [localProofUrl, setLocalProofUrl] = useState<string | null>(w.payment_proof_url ?? null)
+  const [uploadingProof, setUploadingProof] = useState(false)
+  const [proofError, setProofError] = useState('')
+  const proofFileRef = useRef<HTMLInputElement | null>(null)
+
   // duration format: "2026-06-23 20:00:00 → 2026-06-24 20:00:00"
   let dateText = w.duration ?? '—'
   const parts = w.duration?.split(' → ')
   if (parts && parts.length === 2) {
     const fmt = (s: string) => {
-      const d = s.trim().split(' ')[0] // "2026-06-23"
+      const d = s.trim().split(' ')[0]
       const [y, m, day] = d.split('-')
       return `${day}/${m}/${y}`
     }
     dateText = `${fmt(parts[0])} → ${fmt(parts[1])}`
   }
+
+  const handleProofUpload = async (file: File) => {
+    setUploadingProof(true)
+    setProofError('')
+    try {
+      const reader = new FileReader()
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      const res = await fetch('/api/bookings?action=upload-proof', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_ref: w.booking_ref, file_base64: base64, file_name: file.name }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Upload thất bại')
+      setLocalProofUrl(json.url)
+    } catch (e: unknown) {
+      setProofError((e as Error).message || 'Lỗi upload, thử lại sau')
+    } finally {
+      setUploadingProof(false)
+    }
+  }
+
+  const zaloMsg = `Chào CarMatch, tôi muốn hỏi về đơn đặt xe mã ${w.booking_ref}`
+  const zaloUrl = `https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(zaloMsg)}`
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -291,23 +350,70 @@ function WebLeadCard({ w }: { w: WebLead }) {
             <span className="font-bold text-brand-600">
               {new Intl.NumberFormat('vi-VN').format(w.deposit_amount)}đ
             </span>
-            <span className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${w.payment_proof_url ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-              {w.payment_proof_url ? '✓ Đã gửi ảnh TT' : 'Chưa gửi ảnh TT'}
+            <span className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${localProofUrl ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+              {localProofUrl ? '✓ Đã gửi ảnh TT' : 'Chưa gửi ảnh TT'}
             </span>
           </div>
         )}
-        {w.payment_proof_url && (
-          <div className="mt-2.5 border-t border-gray-50 pt-3">
-            <a href={w.payment_proof_url} target="_blank" rel="noopener noreferrer" className="block">
-              <img
-                src={w.payment_proof_url}
-                alt="Ảnh thanh toán"
-                className="w-full max-h-36 object-contain rounded-xl border border-gray-100 bg-gray-50"
-              />
-              <p className="text-center text-[10px] text-brand-500 mt-1 hover:underline">Xem ảnh đầy đủ ↗</p>
-            </a>
-          </div>
-        )}
+
+        {/* Payment proof image / upload */}
+        <div className="mt-3 border-t border-gray-50 pt-3">
+          {localProofUrl ? (
+            <div>
+              <a href={localProofUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                <img
+                  src={localProofUrl}
+                  alt="Ảnh thanh toán"
+                  className="w-full max-h-36 object-contain rounded-xl border border-gray-100 bg-gray-50"
+                />
+                <p className="text-center text-[10px] text-brand-500 mt-1 hover:underline">Xem ảnh đầy đủ ↗</p>
+              </a>
+              <button
+                onClick={() => proofFileRef.current?.click()}
+                disabled={uploadingProof}
+                className="w-full text-[12px] text-gray-400 hover:text-gray-600 py-1 text-center disabled:opacity-50"
+              >
+                {uploadingProof ? 'Đang tải...' : '↺ Đổi ảnh'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => proofFileRef.current?.click()}
+              disabled={uploadingProof}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 text-brand-600 text-[13px] font-semibold hover:bg-brand-50 transition-colors disabled:opacity-50"
+            >
+              {uploadingProof ? (
+                <span className="text-gray-400">Đang tải lên...</span>
+              ) : (
+                <>
+                  <Camera className="w-3.5 h-3.5" />
+                  Gửi ảnh xác nhận thanh toán
+                </>
+              )}
+            </button>
+          )}
+          {proofError && <p className="text-[11px] text-red-500 mt-1 text-center">{proofError}</p>}
+          <input
+            ref={proofFileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) void handleProofUpload(f) }}
+          />
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-2 mt-3">
+          <a
+            href={zaloUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#0068FF] text-white text-[13px] font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            Nhắn Zalo
+          </a>
+        </div>
       </div>
       <div className="border-t border-gray-50 px-4 py-2 bg-gray-50/50">
         <p className="font-mono text-[10px] text-gray-400 tracking-wide">{w.booking_ref}</p>
@@ -939,9 +1045,25 @@ export default function Account() {
                         <Copy className="w-4 h-4 text-amber-400 shrink-0 group-hover:text-amber-600" />
                       )}
                     </button>
-                    <p className="text-[10px] text-gray-400 mt-1.5 text-center">
-                      {copied ? 'Đã sao chép!' : 'Chia sẻ mã để nhận ưu đãi'}
-                    </p>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyCode}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-amber-200 bg-white text-amber-700 text-[12px] font-semibold hover:bg-amber-50 transition-colors"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? 'Đã sao chép' : 'Sao chép'}
+                      </button>
+                      <a
+                        href={`https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(`Dùng mã ${customerInfo.referral_code} để đặt xe CarMatch — carmatch.vn/?ref=${customerInfo.referral_code}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-[#0068FF] text-white text-[12px] font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        Chia sẻ Zalo
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -988,6 +1110,21 @@ export default function Account() {
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    {/* Nudge: upload docs if not complete */}
+                    {!docsComplete && !loadingDocs && (
+                      <button
+                        type="button"
+                        onClick={() => setTab('docs')}
+                        className="w-full flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-left hover:bg-amber-100 transition-colors"
+                      >
+                        <FileText className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-amber-800">Upload giấy tờ để CarMatch chuẩn bị sẵn</p>
+                          <p className="text-[12px] text-amber-600 mt-0.5">GPLX + CCCD — lưu 1 lần, dùng mọi chuyến</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-amber-400 shrink-0" />
+                      </button>
+                    )}
                     {webLeads.map((w) => <WebLeadCard key={w.booking_ref} w={w} />)}
                     {bookings.map((b) => <BookingCard key={b.booking_id} b={b} />)}
                   </div>
