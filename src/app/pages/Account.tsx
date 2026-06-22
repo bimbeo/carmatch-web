@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import Navbar from '../components/Navbar'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -370,9 +371,12 @@ export default function Account() {
 
   if (loadingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <>
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </>
     )
   }
 
@@ -381,6 +385,7 @@ export default function Account() {
   if (!session) {
     return (
       <div className="min-h-screen flex flex-col bg-white pt-16">
+        <Navbar />
         {/* Hero banner */}
         <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-800 px-6 pt-12 pb-16 text-white">
           <div className="max-w-sm mx-auto">
@@ -449,6 +454,7 @@ export default function Account() {
 
     return (
       <div className="min-h-screen bg-gray-50 pt-16">
+        <Navbar />
         <div className="max-w-sm mx-auto px-5 py-10">
           {/* Avatar */}
           <div className="text-center mb-8">
@@ -527,6 +533,7 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
+      <Navbar />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
         {/* Greeting header */}
