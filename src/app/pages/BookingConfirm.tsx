@@ -15,6 +15,7 @@ interface BookingData {
   status: string;
   building: string | null;
   created_at: string;
+  payment_proof_url: string | null;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -142,6 +143,24 @@ export default function BookingConfirm() {
                   <p className="font-semibold text-cyan-600">{Number(data.deposit_amount).toLocaleString('vi-VN')}đ</p>
                 </div>
               </div>
+
+              {data.payment_proof_url ? (
+                <div>
+                  <p className="text-gray-400 text-xs mb-1.5">Ảnh xác nhận thanh toán</p>
+                  <a href={data.payment_proof_url} target="_blank" rel="noopener noreferrer" className="block">
+                    <img
+                      src={data.payment_proof_url}
+                      alt="Ảnh thanh toán"
+                      className="w-full max-h-48 object-contain rounded-xl border border-gray-100 bg-gray-50"
+                    />
+                    <p className="text-center text-[11px] text-cyan-600 mt-1 hover:underline">Xem ảnh đầy đủ ↗</p>
+                  </a>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3 text-center text-xs text-gray-400">
+                  Chưa có ảnh xác nhận thanh toán
+                </div>
+              )}
 
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
                 <strong>Chính sách hủy:</strong> Hủy trước 24h — hoàn 100% cọc. Hủy trong 24h — mất cọc.

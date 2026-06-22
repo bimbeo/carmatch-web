@@ -28,6 +28,7 @@ type WebLead = {
   building: string | null
   duration: string | null
   deposit_amount: number | null
+  payment_proof_url: string | null
   created_at: string
 }
 
@@ -290,6 +291,21 @@ function WebLeadCard({ w }: { w: WebLead }) {
             <span className="font-bold text-brand-600">
               {new Intl.NumberFormat('vi-VN').format(w.deposit_amount)}đ
             </span>
+            <span className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${w.payment_proof_url ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+              {w.payment_proof_url ? '✓ Đã gửi ảnh TT' : 'Chưa gửi ảnh TT'}
+            </span>
+          </div>
+        )}
+        {w.payment_proof_url && (
+          <div className="mt-2.5 border-t border-gray-50 pt-3">
+            <a href={w.payment_proof_url} target="_blank" rel="noopener noreferrer" className="block">
+              <img
+                src={w.payment_proof_url}
+                alt="Ảnh thanh toán"
+                className="w-full max-h-36 object-contain rounded-xl border border-gray-100 bg-gray-50"
+              />
+              <p className="text-center text-[10px] text-brand-500 mt-1 hover:underline">Xem ảnh đầy đủ ↗</p>
+            </a>
           </div>
         )}
       </div>

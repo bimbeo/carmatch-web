@@ -186,7 +186,7 @@ export default async function handler(req, res) {
     });
     const { data, error } = await supabase
       .from('website_leads')
-      .select('booking_ref, name, phone, car_model, duration, deposit_amount, note, status, created_at, building')
+      .select('booking_ref, name, phone, car_model, duration, deposit_amount, note, status, created_at, building, payment_proof_url')
       .eq('booking_ref', ref.trim().toUpperCase())
       .eq('form_type', 'booking')
       .maybeSingle();
