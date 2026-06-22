@@ -47,7 +47,6 @@ export default function MobileConversionBar({
           {zaloLabel}
         </a>
       </div>
-      <p className="mt-1 text-center text-[11px] font-semibold text-slate-500">{note}</p>
     </div>
   );
 }
