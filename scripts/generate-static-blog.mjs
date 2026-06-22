@@ -4157,6 +4157,15 @@ function layout({ title, description, canonical, image, type = 'article', body, 
       .navlinks a:hover, .navlinks a.active { color: #11163e; }
       .nav-cta { background: #11163e; border-radius: 999px; color: #fff; display: inline-flex; font-size: 14px; font-weight: 700; padding: 10px 20px; transition: background .16s ease; white-space: nowrap; }
       .nav-cta:hover { background: #0d1130; color: #fff; }
+      .nav-account { align-items: center; border-radius: 50%; color: #6b7280; display: inline-flex; justify-content: center; padding: 6px; transition: color .16s ease; }
+      .nav-account:hover { color: #11163e; }
+      .site-footer { background: #0f172a; color: #fff; margin-top: 64px; padding: 48px 20px 32px; }
+      .site-footer-inner { margin: 0 auto; max-width: 1280px; }
+      .footer-brand img { display: block; height: 36px; width: auto; }
+      .footer-links { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 24px 0; }
+      .footer-links a { color: rgba(255,255,255,.65); font-size: 14px; font-weight: 500; transition: color .16s ease; }
+      .footer-links a:hover { color: #fff; }
+      .site-footer p { color: rgba(255,255,255,.4); font-size: 13px; line-height: 1.7; margin: 0; }
       main { margin: 0 auto; max-width: 1040px; padding: 88px 20px 80px; }
       .eyebrow { color: #11163e; font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
       h1 { color: #101827; font-size: clamp(34px, 6vw, 62px); line-height: 1.02; margin: 14px 0 18px; }
@@ -4254,11 +4263,34 @@ function layout({ title, description, canonical, image, type = 'article', body, 
             <a href="/lien-he">Liên hệ</a>
             <a class="active" href="/blog">Blog</a>
           </div>
+          <a class="nav-account" href="/tai-khoan" aria-label="Tài khoản của tôi">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          </a>
           <a class="nav-cta" href="https://zalo.me/0975563290" rel="me noopener noreferrer">Đặt xe qua Zalo</a>
         </div>
       </nav>
     </header>
     ${normalizeBrandText(body)}
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <a class="footer-brand" href="/" aria-label="Car Match">
+          <img src="/brand/carmatch-lockup-white.png" alt="Car Match logo màu trắng" width="288" height="66" decoding="async" />
+        </a>
+        <nav class="footer-links" aria-label="Điều hướng footer">
+          <a href="/xe">Thuê xe tự lái</a>
+          <a href="/thue-xe-thang">Thuê xe tháng</a>
+          <a href="/di-dau">Đi đâu</a>
+          <a href="/hop-tac">Hợp tác chủ xe</a>
+          <a href="/gioi-thieu">Giới thiệu</a>
+          <a href="/blog">Blog</a>
+          <a href="/chinh-sach">Chính sách</a>
+          <a href="/faq">FAQ</a>
+          <a href="/tai-khoan">Tài khoản</a>
+        </nav>
+        <p>© 2025 Car Match · Thuê xe tự lái Hà Nội · Giao xe tận sảnh chung cư</p>
+        <p>Hotline: <a href="tel:0975563290" style="color:rgba(255,255,255,.5)">0975 563 290</a> · Email: <a href="mailto:info@carmatch.vn" style="color:rgba(255,255,255,.5)">info@carmatch.vn</a></p>
+      </div>
+    </footer>
     ${staticMobileConversionBar(type === 'website' ? 'blog_index' : 'blog_post', 'Hỏi thuê xe')}
     <script>
       document.addEventListener('click', function (event) {
