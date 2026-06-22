@@ -238,14 +238,14 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Không thể tạo đơn đặt xe, vui lòng thử lại' });
   }
 
-  // Track promo/referral code usage (fire-and-forget, không block response)
+  // Track promo/referral code usage (awaited — Vercel freezes Lambda after res.json, fire-and-forget gets cut off)
   const promoCode = body.promo_code ? String(body.promo_code).trim().toUpperCase() : null;
   if (promoCode) {
-    (async () => {
+    await (async () => {
       try {
         // Lấy company_id
         const { data: company } = await supabase
-          .from('companies').select('id').limit(1).single();
+          .from('companies').select('id').limit(1).maybeSingle();
         const companyId = company?.id || null;
 
         // Kiểm tra đây là promo_code hay referral_code
@@ -277,7 +277,7 @@ export default async function handler(req, res) {
             .maybeSingle();
 
           if (referrer) {
-            // Tìm hoặc tạo referred customer theo phone
+            // Tìm referred customer theo phone
             const phone = body.customer_phone?.trim();
             let referredCustomerId = null;
             if (phone) {
@@ -289,22 +289,21 @@ export default async function handler(req, res) {
               referredCustomerId = referred?.id || null;
             }
 
-            // Chống duplicate: nếu đã có reward cho referred customer này thì bỏ qua
+            // Chặn self-referral
+            if (referrer.id === referredCustomerId) {
+              return;
+            }
+
+            // Chỉ tính referral cho khách mới (chưa có hồ sơ trong hệ thống)
             if (referredCustomerId) {
-              const { count: existingCount } = await supabase
-                .from('referral_rewards')
-                .select('id', { count: 'exact', head: true })
-                .eq('referred_customer_id', referredCustomerId);
-              if (existingCount && existingCount > 0) {
-                return; // reward đã tồn tại
-              }
+              return;
             }
 
             // Ghi referral_rewards
             await supabase.from('referral_rewards').insert({
               company_id: companyId,
               referrer_customer_id: referrer.id,
-              referred_customer_id: referredCustomerId,
+              referred_customer_id: null,
               status: 'pending',
               reward_type: 'discount',
               reward_value: Number(process.env.REFERRAL_REWARD_AMOUNT || process.env.REFERRAL_DISCOUNT_AMOUNT || 100000),

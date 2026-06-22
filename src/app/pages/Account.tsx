@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift } from 'lucide-react'
+import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift, Tag, Star, Award } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Navbar from '../components/Navbar'
 
@@ -19,6 +19,16 @@ type Booking = {
   billing_days: number | null
   daily_rate: number | null
   itinerary: string | null
+}
+
+type WebLead = {
+  booking_ref: string
+  status: string
+  car_model: string | null
+  building: string | null
+  duration: string | null
+  deposit_amount: number | null
+  created_at: string
 }
 
 type CustomerDoc = {
@@ -40,6 +50,32 @@ type CustomerInfo = {
   last_rental_at: string | null
 }
 
+type PromoCode = {
+  code: string
+  description: string | null
+  discount_type: string
+  discount_value: number
+  max_discount: number | null
+  min_order: number | null
+  expires_at: string | null
+  first_time_only: boolean
+  weekends_only: boolean
+}
+
+type ReferralReward = {
+  reward_id: string
+  status: string
+  reward_value: number
+  reward_note: string | null
+  created_at: string
+  paid_at: string | null
+}
+
+type LoyaltyDiscount = {
+  discount_amount: number
+  enabled: boolean
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
@@ -49,6 +85,7 @@ const STATUS_LABEL: Record<string, string> = {
   completed: 'Hoàn thành',
   cancelled: 'Đã hủy',
   pending: 'Chờ xử lý',
+  new: 'Chờ xác nhận',
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -58,6 +95,7 @@ const STATUS_COLOR: Record<string, string> = {
   completed: 'bg-slate-50 text-slate-600 border-slate-200',
   cancelled: 'bg-red-50 text-red-600 border-red-200',
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
+  new: 'bg-amber-50 text-amber-700 border-amber-200',
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -67,6 +105,7 @@ const STATUS_DOT: Record<string, string> = {
   completed: 'bg-slate-400',
   cancelled: 'bg-red-400',
   pending: 'bg-amber-400',
+  new: 'bg-amber-400',
 }
 
 const DOC_LABELS: Record<string, string> = {
@@ -202,6 +241,65 @@ function BookingCard({ b }: { b: Booking }) {
   )
 }
 
+// ─── WebLeadCard ─────────────────────────────────────────────────────────────
+
+function WebLeadCard({ w }: { w: WebLead }) {
+  const colorClass = STATUS_COLOR[w.status] ?? 'bg-amber-50 text-amber-700 border-amber-200'
+  const dotClass = STATUS_DOT[w.status] ?? 'bg-amber-400'
+  const label = STATUS_LABEL[w.status] ?? 'Chờ xác nhận'
+
+  // duration format: "2026-06-23 20:00:00 → 2026-06-24 20:00:00"
+  let dateText = w.duration ?? '—'
+  const parts = w.duration?.split(' → ')
+  if (parts && parts.length === 2) {
+    const fmt = (s: string) => {
+      const d = s.trim().split(' ')[0] // "2026-06-23"
+      const [y, m, day] = d.split('-')
+      return `${day}/${m}/${y}`
+    }
+    dateText = `${fmt(parts[0])} → ${fmt(parts[1])}`
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <p className="font-bold text-gray-900 text-base leading-tight">
+            {w.car_model ?? 'Xe Car Match'}
+          </p>
+          <span className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold border ${colorClass}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+            {label}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-500 mb-3">
+          <div className="flex items-center gap-1.5">
+            <span>📅</span>
+            <span>{dateText}</span>
+          </div>
+          {w.building && (
+            <div className="flex items-center gap-1 truncate max-w-[180px]">
+              <span>📍</span>
+              <span className="truncate">{w.building}</span>
+            </div>
+          )}
+        </div>
+        {w.deposit_amount != null && (
+          <div className="flex items-center gap-1.5 text-[12px] border-t border-gray-50 pt-3">
+            <span className="text-gray-500">Tiền cọc:</span>
+            <span className="font-bold text-brand-600">
+              {new Intl.NumberFormat('vi-VN').format(w.deposit_amount)}đ
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="border-t border-gray-50 px-4 py-2 bg-gray-50/50">
+        <p className="font-mono text-[10px] text-gray-400 tracking-wide">{w.booking_ref}</p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Account() {
@@ -214,13 +312,20 @@ export default function Account() {
   const [phoneError, setPhoneError] = useState('')
   const [linkingPhone, setLinkingPhone] = useState(false)
 
-  const [tab, setTab] = useState<'bookings' | 'docs'>('bookings')
+  const [tab, setTab] = useState<'bookings' | 'docs' | 'benefits'>('bookings')
 
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [webLeads, setWebLeads] = useState<WebLead[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
 
   const [docs, setDocs] = useState<CustomerDoc[]>([])
   const [loadingDocs, setLoadingDocs] = useState(false)
+
+  const [promos, setPromos] = useState<PromoCode[]>([])
+  const [referralRewards, setReferralRewards] = useState<ReferralReward[]>([])
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState<LoyaltyDiscount | null>(null)
+  const [loadingBenefits, setLoadingBenefits] = useState(false)
+  const [copiedPromo, setCopiedPromo] = useState<string | null>(null)
   const [uploadingType, setUploadingType] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState('')
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
@@ -272,8 +377,12 @@ export default function Account() {
 
   async function loadBookings() {
     setLoadingBookings(true)
-    const { data } = await supabase.rpc('get_customer_bookings_by_phone', { p_phone: phone })
-    setBookings((data as Booking[]) ?? [])
+    const [crmResult, webResult] = await Promise.all([
+      supabase.rpc('get_customer_bookings_by_phone', { p_phone: phone }),
+      supabase.rpc('get_my_website_leads', { p_phone: phone }),
+    ])
+    setBookings((crmResult.data as Booking[]) ?? [])
+    setWebLeads((webResult.data as WebLead[]) ?? [])
     setLoadingBookings(false)
   }
 
@@ -282,6 +391,22 @@ export default function Account() {
     const { data } = await supabase.rpc('get_customer_docs_by_phone', { p_phone: phone })
     setDocs((data as CustomerDoc[]) ?? [])
     setLoadingDocs(false)
+  }
+
+  async function loadBenefits() {
+    setLoadingBenefits(true)
+    const [promosResult, rewardsResult] = await Promise.all([
+      supabase.rpc('get_active_promos'),
+      supabase.rpc('get_my_referral_rewards', { p_phone: phone }),
+    ])
+    setPromos((promosResult.data as PromoCode[]) ?? [])
+    setReferralRewards((rewardsResult.data as ReferralReward[]) ?? [])
+
+    if (customerInfo?.loyalty_tier && customerInfo.loyalty_tier !== 'new') {
+      const { data } = await supabase.rpc('get_loyalty_discount', { p_tier: customerInfo.loyalty_tier })
+      setLoyaltyDiscount((data as LoyaltyDiscount[])?.[0] ?? null)
+    }
+    setLoadingBenefits(false)
   }
 
   // ── Phone linking ─────────────────────────────────────────────────────────
@@ -579,7 +704,7 @@ export default function Account() {
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <div className="bg-gray-50 rounded-xl py-2.5">
                     <p className="font-bold text-gray-900 text-lg leading-none">
-                      {loadingBookings ? '—' : bookings.length}
+                      {loadingBookings ? '—' : bookings.length + webLeads.length}
                     </p>
                     <p className="text-[10px] text-gray-400 mt-0.5">Chuyến đi</p>
                   </div>
@@ -605,11 +730,11 @@ export default function Account() {
                 >
                   <Car className="w-4 h-4 shrink-0" />
                   <span className="flex-1 text-left">Chuyến đi của tôi</span>
-                  {!loadingBookings && bookings.length > 0 && (
+                  {!loadingBookings && (bookings.length + webLeads.length) > 0 && (
                     <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                       tab === 'bookings' ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'
                     }`}>
-                      {bookings.length}
+                      {bookings.length + webLeads.length}
                     </span>
                   )}
                 </button>
@@ -634,6 +759,26 @@ export default function Account() {
                   }`}>
                     {uploadedTypes.size}/{UPLOAD_SLOTS.length}
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setTab('benefits'); loadBenefits(); }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    tab === 'benefits'
+                      ? 'bg-brand-50 text-brand-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Tag className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 text-left">Ưu đãi</span>
+                  {(promos.length > 0 || referralRewards.length > 0) && (
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      tab === 'benefits' ? 'bg-brand-100 text-brand-600' : 'bg-amber-100 text-amber-600'
+                    }`}>
+                      {promos.length + referralRewards.length}
+                    </span>
+                  )}
                 </button>
 
                 <div className="border-t border-gray-100 mt-2 pt-2">
@@ -702,12 +847,14 @@ export default function Account() {
             {/* Section heading */}
             <div className="mb-5">
               <h1 className="text-xl font-bold text-gray-900">
-                {tab === 'bookings' ? 'Chuyến đi của tôi' : 'Giấy tờ của tôi'}
+                {tab === 'bookings' ? 'Chuyến đi của tôi' : tab === 'docs' ? 'Giấy tờ của tôi' : 'Ưu đãi & Khuyến mãi'}
               </h1>
               <p className="text-sm text-gray-400 mt-0.5">
                 {tab === 'bookings'
                   ? 'Toàn bộ lịch sử đặt xe với CarMatch'
-                  : 'Lưu một lần, dùng cho mọi lần thuê sau'}
+                  : tab === 'docs'
+                    ? 'Lưu một lần, dùng cho mọi lần thuê sau'
+                    : 'Mã giảm giá, ưu đãi thành viên và thưởng giới thiệu của bạn'}
               </p>
             </div>
 
@@ -718,7 +865,7 @@ export default function Account() {
                   <div className="flex justify-center py-16">
                     <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
                   </div>
-                ) : bookings.length === 0 ? (
+                ) : bookings.length === 0 && webLeads.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
                     <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Car className="w-7 h-7 text-gray-300" />
@@ -734,6 +881,7 @@ export default function Account() {
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    {webLeads.map((w) => <WebLeadCard key={w.booking_ref} w={w} />)}
                     {bookings.map((b) => <BookingCard key={b.booking_id} b={b} />)}
                   </div>
                 )}
@@ -863,6 +1011,135 @@ export default function Account() {
                       )
                     })}
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Tab: Benefits ── */}
+            {tab === 'benefits' && (
+              <div className="space-y-5">
+                {loadingBenefits ? (
+                  <div className="flex justify-center py-16">
+                    <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Loyalty discount card */}
+                    {loyaltyDiscount && (
+                      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Award className="w-5 h-5 text-amber-600" />
+                          <h2 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Ưu đãi thành viên</h2>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-2xl font-bold text-amber-700">
+                              -{loyaltyDiscount.discount_amount.toLocaleString('vi-VN')}đ
+                            </p>
+                            <p className="text-sm text-amber-600 mt-0.5">mỗi lần thuê xe</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-amber-500">Hạng của bạn</p>
+                            <p className="text-sm font-bold text-amber-800 capitalize mt-0.5">
+                              {customerInfo?.loyalty_tier === 'vip' ? 'VIP' : 'Khách quen'}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-amber-500 mt-3">
+                          Ưu đãi được áp dụng tự động khi nhân viên lập hợp đồng
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Referral rewards */}
+                    {referralRewards.length > 0 && (
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Star className="w-5 h-5 text-brand-600" />
+                          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Thưởng giới thiệu</h2>
+                        </div>
+                        <div className="space-y-3">
+                          {referralRewards.map((r) => (
+                            <div key={r.reward_id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                              <div>
+                                <p className="text-sm font-semibold text-gray-800">
+                                  +{r.reward_value.toLocaleString('vi-VN')}đ
+                                </p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {new Date(r.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </p>
+                              </div>
+                              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                                r.status === 'paid'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
+                                {r.status === 'paid' ? 'Đã nhận' : 'Chờ xác nhận'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Public promo codes */}
+                    {promos.length > 0 && (
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Tag className="w-5 h-5 text-brand-600" />
+                          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Mã khuyến mãi</h2>
+                        </div>
+                        <div className="space-y-3">
+                          {promos.map((p) => (
+                            <div key={p.code} className="border border-dashed border-brand-200 rounded-xl p-3.5 bg-brand-50/40">
+                              <div className="flex items-center justify-between mb-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(p.code)
+                                    setCopiedPromo(p.code)
+                                    setTimeout(() => setCopiedPromo(null), 2000)
+                                  }}
+                                  className="flex items-center gap-2 bg-white border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-50 transition-colors group"
+                                >
+                                  <span className="font-mono font-bold text-brand-700 text-sm tracking-widest">{p.code}</span>
+                                  {copiedPromo === p.code ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5 text-brand-400 group-hover:text-brand-600" />
+                                  )}
+                                </button>
+                                <span className="text-sm font-bold text-brand-700">
+                                  {p.discount_type === 'percent'
+                                    ? `-${p.discount_value}%`
+                                    : `-${p.discount_value.toLocaleString('vi-VN')}đ`}
+                                </span>
+                              </div>
+                              {p.description && (
+                                <p className="text-xs text-gray-500">{p.description}</p>
+                              )}
+                              {p.expires_at && (
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                  HSD: {new Date(p.expires_at).toLocaleDateString('vi-VN')}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!loyaltyDiscount && referralRewards.length === 0 && promos.length === 0 && (
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+                        <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                          <Gift className="w-7 h-7 text-amber-300" />
+                        </div>
+                        <p className="font-semibold text-gray-900 mb-1">Chưa có ưu đãi nào</p>
+                        <p className="text-gray-400 text-sm">Giới thiệu bạn bè để nhận thưởng, hoặc hỏi nhân viên về mã khuyến mãi</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

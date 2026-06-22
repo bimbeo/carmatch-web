@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
-import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag } from 'lucide-react';
+import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag, ImageIcon, Upload } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
@@ -321,6 +321,48 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [bookingError, setBookingError] = useState('');
   const [bookingRef, setBookingRef] = useState('');
   const [depositAmount, setDepositAmount] = useState(0);
+  const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError('');
+    setPaymentProofFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setPaymentProofPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function handleConfirmPayment() {
+    setUploadingProof(true);
+    setUploadError('');
+    try {
+      if (paymentProofFile && bookingRef) {
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onload = (ev) => resolve(ev.target?.result as string);
+          reader.readAsDataURL(paymentProofFile);
+        });
+        const res = await fetch('/api/upload-proof', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ booking_ref: bookingRef, file_base64: base64, file_name: paymentProofFile.name }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          throw new Error(d.error || 'Upload thất bại');
+        }
+      }
+      setBookingStep(3);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Không thể tải ảnh lên, vui lòng thử lại');
+    } finally {
+      setUploadingProof(false);
+    }
+  }
 
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
@@ -1688,6 +1730,71 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                         </a>
                       </span>
                     </div>
+
+                    {/* Upload ảnh chuyển khoản */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-2">
+                        Tải ảnh chuyển khoản <span className="text-gray-400 font-normal">(tuỳ chọn — giúp xác nhận nhanh hơn)</span>
+                      </p>
+                      <label className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-colors overflow-hidden ${
+                        paymentProofPreview
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-gray-200 bg-gray-50 hover:border-brand-300 hover:bg-brand-50'
+                      }`}>
+                        {paymentProofPreview ? (
+                          <img src={paymentProofPreview} alt="Ảnh chuyển khoản" className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-gray-400 pointer-events-none">
+                            <ImageIcon className="w-8 h-8" />
+                            <span className="text-xs text-center px-4">Nhấn để chọn ảnh bill chuyển khoản</span>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleProofSelect}
+                        />
+                      </label>
+                      {paymentProofPreview && (
+                        <button
+                          type="button"
+                          onClick={() => { setPaymentProofPreview(null); setPaymentProofFile(null); }}
+                          className="mt-1.5 text-xs text-red-500 hover:text-red-700"
+                        >
+                          Xóa ảnh
+                        </button>
+                      )}
+                    </div>
+
+                    {uploadError && (
+                      <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{uploadError}</p>
+                    )}
+
+                    {/* Tư vấn trước */}
+                    <div className="border-t border-gray-100 pt-3">
+                      <p className="text-xs text-center text-gray-400 mb-2">Chưa muốn chuyển khoản ngay?</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <a
+                          href={`https://zalo.me/${ZALO_NUMBER}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => trackZaloClick('booking_step2_consult')}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          Nhắn Zalo tư vấn
+                        </a>
+                        <a
+                          href={`tel:${ZALO_NUMBER}`}
+                          onClick={() => trackPhoneClick('booking_step2_consult')}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-xs font-semibold hover:bg-gray-100 transition-colors"
+                        >
+                          <Phone className="w-3.5 h-3.5 shrink-0" />
+                          Gọi hỏi trước
+                        </a>
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
@@ -1845,14 +1952,28 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             {bookingStep === 2 && (
               <>
                 <button
-                  onClick={() => setBookingStep(3)}
-                  className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 active:scale-[0.98] transition-all"
+                  onClick={handleConfirmPayment}
+                  disabled={uploadingProof}
+                  className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Tôi đã chuyển khoản xong ✓
+                  {uploadingProof ? (
+                    <>
+                      <span className="animate-spin text-base">⟳</span>
+                      Đang tải ảnh lên…
+                    </>
+                  ) : paymentProofFile ? (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Gửi ảnh & xác nhận ✓
+                    </>
+                  ) : (
+                    'Tôi đã chuyển khoản xong ✓'
+                  )}
                 </button>
                 <button
                   onClick={() => setBookingStep(1)}
-                  className="w-full py-2.5 border border-gray-200 text-gray-500 font-medium rounded-xl text-sm hover:bg-gray-50 transition-colors"
+                  disabled={uploadingProof}
+                  className="w-full py-2.5 border border-gray-200 text-gray-500 font-medium rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-40"
                 >
                   Quay lại
                 </button>
