@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift, Tag, Star, Award } from 'lucide-react'
+import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift, Tag, Star, Award, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Navbar from '../components/Navbar'
 
@@ -348,6 +348,11 @@ export default function Account() {
 
   const [copied, setCopied] = useState(false)
 
+  const [changingPhone, setChangingPhone] = useState(false)
+  const [changePhoneInput, setChangePhoneInput] = useState('')
+  const [changePhoneError, setChangePhoneError] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+
   const handleCopyCode = useCallback(() => {
     if (!customerInfo?.referral_code) return
     navigator.clipboard.writeText(customerInfo.referral_code).then(() => {
@@ -456,6 +461,46 @@ export default function Account() {
         p_email: session.user.email,
       }).then(() => {/* silent */}, () => {/* silent */})
     }
+  }
+
+  // ── Change phone ─────────────────────────────────────────────────────────
+
+  async function handleChangePhone() {
+    const normalized = normalizePhone(changePhoneInput.trim())
+    if (!normalized || normalized.length < 9) {
+      setChangePhoneError('Số điện thoại không hợp lệ')
+      return
+    }
+    if (normalized === phone) {
+      setChangePhoneError('Đây là số điện thoại bạn đang dùng')
+      return
+    }
+    setSavingPhone(true)
+    setChangePhoneError('')
+
+    const { data, error } = await supabase.rpc('get_customer_by_phone', { p_phone: normalized })
+    if (error || !data || (data as CustomerInfo[]).length === 0) {
+      setChangePhoneError('Không tìm thấy số này trong hệ thống. Liên hệ Zalo nếu cần hỗ trợ.')
+      setSavingPhone(false)
+      return
+    }
+
+    const info = (data as CustomerInfo[])[0]
+    await supabase.auth.updateUser({ data: { customer_phone: normalized } })
+    setPhone(normalized)
+    setCustomerInfo(info)
+    setBookings([])
+    setWebLeads([])
+    setDocs([])
+    setChangingPhone(false)
+    setChangePhoneInput('')
+    setSavingPhone(false)
+
+    void Promise.all([
+      supabase.rpc('get_customer_bookings_by_phone', { p_phone: normalized }).then(({ data: d }) => setBookings((d as Booking[]) ?? [])),
+      supabase.rpc('get_my_website_leads', { p_phone: normalized }).then(({ data: d }) => setWebLeads((d as WebLead[]) ?? [])),
+      supabase.rpc('get_customer_docs_by_phone', { p_phone: normalized }).then(({ data: d }) => setDocs((d as CustomerDoc[]) ?? [])),
+    ])
   }
 
   // ── Document upload ───────────────────────────────────────────────────────
@@ -714,7 +759,53 @@ export default function Account() {
                   </div>
                 )}
                 <h2 className="font-bold text-gray-900 leading-tight">{displayName}</h2>
-                <p className="text-sm text-gray-400 mt-0.5">{phone}</p>
+
+                {/* Phone + đổi số */}
+                {changingPhone ? (
+                  <div className="mt-2 text-left space-y-2">
+                    <input
+                      type="tel"
+                      value={changePhoneInput}
+                      onChange={(e) => setChangePhoneInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && void handleChangePhone()}
+                      placeholder="Nhập SĐT mới..."
+                      autoFocus
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-center tracking-wide focus:outline-none focus:border-brand-400"
+                    />
+                    {changePhoneError && (
+                      <p className="text-[11px] text-red-500 text-center leading-snug">{changePhoneError}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setChangingPhone(false); setChangePhoneInput(''); setChangePhoneError('') }}
+                        className="flex-1 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                      >
+                        Hủy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleChangePhone()}
+                        disabled={savingPhone || !changePhoneInput.trim()}
+                        className="flex-1 py-1.5 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-700 disabled:opacity-40"
+                      >
+                        {savingPhone ? 'Đang lưu...' : 'Xác nhận'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                    <p className="text-sm text-gray-400">{phone}</p>
+                    <button
+                      type="button"
+                      onClick={() => { setChangingPhone(true); setChangePhoneInput('') }}
+                      title="Đổi số điện thoại"
+                      className="p-1 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Mini stats */}
                 <div className="mt-4 grid grid-cols-2 gap-2">
