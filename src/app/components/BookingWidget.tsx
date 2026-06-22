@@ -346,7 +346,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           reader.onload = (ev) => resolve(ev.target?.result as string);
           reader.readAsDataURL(paymentProofFile);
         });
-        const res = await fetch('/api/upload-proof', {
+        const res = await fetch('/api/bookings?action=upload-proof', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ booking_ref: bookingRef, file_base64: base64, file_name: paymentProofFile.name }),

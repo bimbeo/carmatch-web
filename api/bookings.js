@@ -153,6 +153,29 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // POST /api/bookings?action=upload-proof — payment proof image upload
+  if (req.method === 'POST' && req.query.action === 'upload-proof') {
+    let body2;
+    try { body2 = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; } catch { return res.status(400).json({ error: 'Invalid JSON' }); }
+    const { booking_ref, file_base64, file_name } = body2 || {};
+    if (!booking_ref || !file_base64) return res.status(400).json({ error: 'Missing booking_ref or file_base64' });
+    if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Service unavailable' });
+    const supabaseUp = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    const base64Clean = file_base64.replace(/^data:image\/[a-z+]+;base64,/i, '');
+    const buffer = Buffer.from(base64Clean, 'base64');
+    const ext = (file_name?.split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');
+    const safeName = booking_ref.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const path = `${safeName}.${ext}`;
+    const mimeMap = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic' };
+    const contentType = mimeMap[ext] || 'image/jpeg';
+    const { error: uploadError } = await supabaseUp.storage.from('payment-proofs').upload(path, buffer, { contentType, upsert: true });
+    if (uploadError) { console.error('[bookings] upload-proof error:', uploadError.message); return res.status(500).json({ error: 'Upload thất bại, vui lòng thử lại' }); }
+    const { data: { publicUrl } } = supabaseUp.storage.from('payment-proofs').getPublicUrl(path);
+    await supabaseUp.from('website_leads').update({ payment_proof_url: publicUrl }).eq('booking_ref', booking_ref.trim().toUpperCase());
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ url: publicUrl });
+  }
+
   // GET /api/bookings?ref=XXXX — booking lookup
   if (req.method === 'GET') {
     const { ref } = req.query;
