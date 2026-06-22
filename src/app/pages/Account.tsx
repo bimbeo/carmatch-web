@@ -224,6 +224,8 @@ export default function Account() {
   const [uploadError, setUploadError] = useState('')
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
+  const [copied, setCopied] = useState(false)
+
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -500,7 +502,6 @@ export default function Account() {
   const docsComplete = uploadedTypes.size === UPLOAD_SLOTS.length
   const joinYear = getJoinYear(customerInfo?.first_seen_at ?? null)
 
-  const [copied, setCopied] = useState(false)
   const handleCopyCode = useCallback(() => {
     const code = customerInfo?.referral_code
     if (!code) return
