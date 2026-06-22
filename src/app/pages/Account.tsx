@@ -226,6 +226,14 @@ export default function Account() {
 
   const [copied, setCopied] = useState(false)
 
+  const handleCopyCode = useCallback(() => {
+    if (!customerInfo?.referral_code) return
+    navigator.clipboard.writeText(customerInfo.referral_code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [customerInfo?.referral_code])
+
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -291,6 +299,14 @@ export default function Account() {
     await supabase.auth.updateUser({ data: { customer_phone: normalized } })
     setPhone(normalized)
     setLinkingPhone(false)
+
+    // Lưu Gmail vào hồ sơ khách hàng (fire-and-forget)
+    if (session?.user?.email) {
+      supabase.rpc('update_customer_email', {
+        p_phone: normalized,
+        p_email: session.user.email,
+      }).then(() => {/* silent */}, () => {/* silent */})
+    }
   }
 
   // ── Document upload ───────────────────────────────────────────────────────
@@ -501,15 +517,6 @@ export default function Account() {
   const tierInfo = tier ? TIER_LABEL[tier] : null
   const docsComplete = uploadedTypes.size === UPLOAD_SLOTS.length
   const joinYear = getJoinYear(customerInfo?.first_seen_at ?? null)
-
-  const handleCopyCode = useCallback(() => {
-    const code = customerInfo?.referral_code
-    if (!code) return
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }, [customerInfo?.referral_code])
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
