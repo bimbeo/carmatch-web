@@ -688,7 +688,7 @@ export default function Account() {
     setRedeemError('')
     setRedeemResult(null)
     try {
-      const res = await fetch('/api/customer-points-redeem', {
+      const res = await fetch('/api/customer-discount', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
