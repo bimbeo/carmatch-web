@@ -8,11 +8,89 @@ const TIER_DISCOUNTS_FALLBACK = {
   returning: Number(process.env.RETURNING_DISCOUNT_AMOUNT || 50000),
 };
 
-function generateCode() {
+function generateCode(prefix = 'PTS') {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = 'PTS-';
+  let code = prefix + '-';
   for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
+}
+
+async function handleRedeemReferral(req, res) {
+  const { phone } = req.body || {};
+  if (!phone) return res.status(400).json({ error: 'Thiếu số điện thoại' });
+  if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Service unavailable' });
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const normalized = String(phone).replace(/^0/, '84');
+
+  const { data: customer, error: custErr } = await supabase
+    .from('customers')
+    .select('id, full_name, company_id')
+    .or(`phone.eq.${phone},phone.eq.${normalized},normalized_phone.eq.${normalized}`)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (custErr || !customer) return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
+
+  const { data: rewards, error: rwErr } = await supabase
+    .from('referral_rewards')
+    .select('id, reward_value')
+    .eq('referrer_customer_id', customer.id)
+    .eq('status', 'paid')
+    .is('used_at', null);
+
+  if (rwErr) return res.status(500).json({ error: 'Lỗi hệ thống' });
+  if (!rewards || rewards.length === 0) return res.status(400).json({ error: 'Không có thưởng giới thiệu để đổi' });
+
+  const total = rewards.reduce((s, r) => s + Number(r.reward_value || 0), 0);
+  if (total <= 0) return res.status(400).json({ error: 'Không có thưởng giới thiệu để đổi' });
+
+  let code = generateCode('REF');
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: existing } = await supabase.from('promo_codes').select('code').eq('code', code).maybeSingle();
+    if (!existing) break;
+    code = generateCode('REF');
+  }
+
+  const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { error: promoErr } = await supabase.from('promo_codes').insert({
+    code,
+    description: `Thưởng giới thiệu - ${customer.full_name || phone}`,
+    discount_type: 'fixed',
+    discount_value: total,
+    uses_limit: 1,
+    uses_count: 0,
+    active: true,
+    secret_only: true,
+    phone_restriction: String(phone),
+    expires_at: expiresAt,
+  });
+
+  if (promoErr) {
+    console.error('[customer-discount:redeem-referral] promo insert error:', promoErr.message);
+    return res.status(500).json({ error: 'Lỗi tạo mã giảm giá, thử lại sau' });
+  }
+
+  const rewardIds = rewards.map(r => r.id);
+  const { error: markErr } = await supabase
+    .from('referral_rewards')
+    .update({ used_at: new Date().toISOString() })
+    .in('id', rewardIds);
+
+  if (markErr) {
+    console.error('[customer-discount:redeem-referral] mark used error:', markErr.message);
+  }
+
+  return res.status(200).json({
+    code,
+    discount_value: total,
+    expires_at: expiresAt,
+    rewards_redeemed: rewards.length,
+  });
 }
 
 async function handleRedeem(req, res) {
@@ -124,7 +202,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (req.method === 'POST') return handleRedeem(req, res);
+  if (req.method === 'POST') {
+    const action = (req.body || {}).action;
+    if (action === 'redeem-referral') return handleRedeemReferral(req, res);
+    return handleRedeem(req, res);
+  }
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -207,27 +289,55 @@ export default async function handler(req, res) {
     points_settings: ps,
   };
 
-  if (req.query.include_ledger === '1') {
+  if (req.query.include_ledger === '1' || req.query.include_referral_codes === '1') {
     const now = new Date().toISOString();
-    const [{ data: ledgerRows }, { data: activeCodes }] = await Promise.all([
-      supabase
-        .from('customer_points_ledger')
-        .select('id, points, type, description, created_at')
-        .eq('customer_id', customer.id)
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabase
-        .from('promo_codes')
-        .select('code, discount_value, expires_at')
-        .eq('phone_restriction', phone)
-        .eq('active', true)
-        .eq('uses_count', 0)
-        .gt('expires_at', now)
-        .order('created_at', { ascending: false })
-        .limit(5),
-    ]);
-    response.ledger = ledgerRows || [];
-    response.active_codes = activeCodes || [];
+    const queries = [];
+
+    if (req.query.include_ledger === '1') {
+      queries.push(
+        supabase
+          .from('customer_points_ledger')
+          .select('id, points, type, description, created_at')
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        supabase
+          .from('promo_codes')
+          .select('code, discount_value, expires_at')
+          .eq('phone_restriction', phone)
+          .eq('active', true)
+          .eq('uses_count', 0)
+          .like('code', 'PTS-%')
+          .gt('expires_at', now)
+          .order('created_at', { ascending: false })
+          .limit(5),
+      );
+    }
+
+    if (req.query.include_referral_codes === '1') {
+      queries.push(
+        supabase
+          .from('promo_codes')
+          .select('code, discount_value, expires_at')
+          .eq('phone_restriction', phone)
+          .eq('active', true)
+          .eq('uses_count', 0)
+          .like('code', 'REF-%')
+          .gt('expires_at', now)
+          .order('created_at', { ascending: false })
+          .limit(5),
+      );
+    }
+
+    const results = await Promise.all(queries);
+    let idx = 0;
+    if (req.query.include_ledger === '1') {
+      response.ledger = results[idx++]?.data || [];
+      response.active_codes = results[idx++]?.data || [];
+    }
+    if (req.query.include_referral_codes === '1') {
+      response.active_referral_codes = results[idx]?.data || [];
+    }
   }
 
   return res.status(200).json(response);

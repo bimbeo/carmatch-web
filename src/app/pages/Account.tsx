@@ -544,6 +544,12 @@ export default function Account() {
 
   const [promos, setPromos] = useState<PromoCode[]>([])
   const [referralRewards, setReferralRewards] = useState<ReferralReward[]>([])
+  const [referralCredit, setReferralCredit] = useState(0)
+  const [referralActiveCodes, setReferralActiveCodes] = useState<Array<{ code: string; discount_value: number; expires_at: string }>>([])
+  const [referralRedeemLoading, setReferralRedeemLoading] = useState(false)
+  const [referralRedeemResult, setReferralRedeemResult] = useState<{ code: string; discount_value: number; expires_at: string } | null>(null)
+  const [referralRedeemError, setReferralRedeemError] = useState('')
+  const [copiedReferralCode, setCopiedReferralCode] = useState(false)
   const [loyaltyDiscount, setLoyaltyDiscount] = useState<LoyaltyDiscount | null>(null)
   const [loadingBenefits, setLoadingBenefits] = useState(false)
   const [benefitsError, setBenefitsError] = useState('')
@@ -641,14 +647,21 @@ export default function Account() {
     setLoadingBenefits(true)
     setBenefitsError('')
     try {
-      const [promosResult, rewardsResult] = await Promise.all([
+      const [promosResult, rewardsResult, discountRes] = await Promise.all([
         supabase.rpc('get_active_promos'),
         supabase.rpc('get_my_referral_rewards', { p_phone: phone }),
+        phone ? fetch(`/api/customer-discount?phone=${encodeURIComponent(phone)}&include_referral_codes=1`) : Promise.resolve(null),
       ])
       if (promosResult.error) throw promosResult.error
       if (rewardsResult.error) throw rewardsResult.error
       setPromos((promosResult.data as PromoCode[]) ?? [])
       setReferralRewards((rewardsResult.data as ReferralReward[]) ?? [])
+
+      if (discountRes?.ok) {
+        const discountJson = await discountRes.json()
+        setReferralCredit(discountJson.referral_credit ?? 0)
+        setReferralActiveCodes(discountJson.active_referral_codes ?? [])
+      }
 
       if (customerInfo?.loyalty_tier && customerInfo.loyalty_tier !== 'new') {
         const { data, error } = await supabase.rpc('get_loyalty_discount', { p_tier: customerInfo.loyalty_tier })
@@ -706,6 +719,32 @@ export default function Account() {
       setRedeemError('Lỗi kết nối, thử lại sau')
     } finally {
       setRedeemLoading(false)
+    }
+  }
+
+  async function redeemReferralCredit() {
+    if (!phone) return
+    setReferralRedeemLoading(true)
+    setReferralRedeemError('')
+    setReferralRedeemResult(null)
+    try {
+      const res = await fetch('/api/customer-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, action: 'redeem-referral' }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setReferralRedeemError(json.error || 'Đổi thưởng thất bại, thử lại sau')
+      } else {
+        setReferralRedeemResult({ code: json.code, discount_value: json.discount_value, expires_at: json.expires_at })
+        setReferralCredit(0)
+        setReferralActiveCodes(prev => [{ code: json.code, discount_value: json.discount_value, expires_at: json.expires_at }, ...prev])
+      }
+    } catch {
+      setReferralRedeemError('Lỗi kết nối, thử lại sau')
+    } finally {
+      setReferralRedeemLoading(false)
     }
   }
 
@@ -1707,6 +1746,67 @@ export default function Account() {
                             </div>
                           ))}
                         </div>
+
+                        {/* Redeem referral credit → promo code */}
+                        {referralCredit > 0 && !referralRedeemResult && (
+                          <div className="mt-4 pt-4 border-t border-slate-100">
+                            {referralRedeemError && (
+                              <p className="text-xs text-red-500 mb-2">{referralRedeemError}</p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => void redeemReferralCredit()}
+                              disabled={referralRedeemLoading}
+                              className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+                            >
+                              {referralRedeemLoading ? 'Đang tạo mã...' : `Đổi ${referralCredit.toLocaleString('vi-VN')}đ thưởng → mã giảm giá`}
+                            </button>
+                          </div>
+                        )}
+
+                        {referralRedeemResult && (
+                          <div className="mt-4 pt-4 border-t border-slate-100">
+                            <p className="text-xs text-emerald-700 font-semibold mb-2">Mã giảm giá của bạn:</p>
+                            <div className="flex items-center gap-2">
+                              <span className="flex-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 font-mono text-base font-bold tracking-widest text-emerald-800">
+                                {referralRedeemResult.code}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(referralRedeemResult.code).then(() => {
+                                    setCopiedReferralCode(true)
+                                    setTimeout(() => setCopiedReferralCode(false), 2000)
+                                  })
+                                }}
+                                className="rounded-md border border-emerald-200 bg-white p-2 hover:bg-emerald-50"
+                              >
+                                {copiedReferralCode ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-emerald-600" />}
+                              </button>
+                            </div>
+                            <p className="mt-1.5 text-xs text-gray-400">
+                              Giảm {referralRedeemResult.discount_value.toLocaleString('vi-VN')}đ · Dùng 1 lần · Hết hạn {new Date(referralRedeemResult.expires_at).toLocaleDateString('vi-VN')}
+                            </p>
+                          </div>
+                        )}
+
+                        {referralActiveCodes.length > 0 && !referralRedeemResult && (
+                          <div className="mt-4 pt-4 border-t border-slate-100">
+                            <p className="text-xs text-gray-500 font-semibold mb-2">Mã thưởng chưa dùng:</p>
+                            <div className="space-y-2">
+                              {referralActiveCodes.map(c => (
+                                <div key={c.code} className="flex items-center gap-2">
+                                  <span className="flex-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-mono text-sm font-bold tracking-widest text-emerald-800">
+                                    {c.code}
+                                  </span>
+                                  <span className="text-xs text-gray-400 shrink-0">
+                                    -{c.discount_value.toLocaleString('vi-VN')}đ
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
