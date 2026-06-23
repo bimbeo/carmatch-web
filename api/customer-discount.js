@@ -28,7 +28,7 @@ async function handleRedeem(req, res) {
 
   const { data: customer, error: custErr } = await supabase
     .from('customers')
-    .select('id, full_name')
+    .select('id, full_name, company_id')
     .or(`phone.eq.${phone},phone.eq.${normalized},normalized_phone.eq.${normalized}`)
     .eq('status', 'active')
     .maybeSingle();
@@ -71,6 +71,7 @@ async function handleRedeem(req, res) {
 
   const { error: deductErr } = await supabase.from('customer_points_ledger').insert({
     customer_id: customer.id,
+    company_id: customer.company_id,
     points: -pointsToRedeem,
     type: 'redeem',
     description: `Đổi ${pointsToRedeem} điểm lấy mã giảm giá ${code}`,
@@ -98,6 +99,7 @@ async function handleRedeem(req, res) {
     console.error('[customer-discount:redeem] promo insert error:', promoErr.message);
     await supabase.from('customer_points_ledger').insert({
       customer_id: customer.id,
+      company_id: customer.company_id,
       points: pointsToRedeem,
       type: 'earn',
       description: `Hoàn điểm do lỗi tạo mã giảm giá`,
