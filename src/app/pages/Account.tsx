@@ -1,8 +1,36 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { LogOut, Upload, CheckCircle, Clock, Car, FileText, ChevronRight, X, Camera, Shield, History, Phone, Copy, Check, Gift, Tag, Star, Award, Pencil, MessageCircle } from 'lucide-react'
+import {
+  LogOut,
+  Upload,
+  CheckCircle,
+  Clock,
+  Car,
+  FileText,
+  ChevronRight,
+  X,
+  Camera,
+  Shield,
+  History,
+  Phone,
+  Copy,
+  Check,
+  Gift,
+  Tag,
+  Star,
+  Award,
+  Pencil,
+  MessageCircle,
+  CalendarDays,
+  MapPin,
+  WalletCards,
+  IdCard,
+  ArrowUpRight,
+  RotateCcw,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useSEO } from '@/hooks/useSEO'
 import Navbar from '../components/Navbar'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -124,10 +152,15 @@ const TIER_LABEL: Record<string, { label: string; color: string }> = {
 }
 
 const UPLOAD_SLOTS = [
-  { type: 'gplx', label: 'GPLX', hint: 'Giấy phép lái xe', icon: '🪪' },
-  { type: 'cccd_front', label: 'CCCD mặt trước', hint: 'Căn cước công dân', icon: '📋' },
-  { type: 'cccd_back', label: 'CCCD mặt sau', hint: 'Căn cước công dân mặt sau', icon: '📋' },
+  { type: 'gplx', label: 'GPLX', hint: 'Giấy phép lái xe' },
+  { type: 'cccd_front', label: 'CCCD mặt trước', hint: 'Căn cước công dân' },
+  { type: 'cccd_back', label: 'CCCD mặt sau', hint: 'Căn cước công dân mặt sau' },
 ]
+
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+const DOC_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'])
+const PROOF_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
+const SIGNED_DOC_URL_TTL_SECONDS = 30 * 60
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -150,13 +183,46 @@ function formatDateShort(d: string | null): string {
 }
 
 function formatCurrency(n: number | null): string {
-  if (!n) return '—'
+  if (n === null || n === undefined) return '—'
   return new Intl.NumberFormat('vi-VN').format(n) + 'đ'
 }
 
 function getJoinYear(d: string | null): string {
   if (!d) return ''
   return d.split('-')[0]
+}
+
+function validateUploadFile(file: File, allowedTypes: Set<string>): string | null {
+  if (file.size > MAX_UPLOAD_BYTES) return 'File quá lớn, vui lòng chọn file dưới 8MB'
+  if (file.type && !allowedTypes.has(file.type)) {
+    return allowedTypes.has('application/pdf')
+      ? 'Chỉ hỗ trợ ảnh JPG, PNG, WEBP, HEIC hoặc PDF'
+      : 'Chỉ hỗ trợ ảnh JPG, PNG, WEBP hoặc HEIC'
+  }
+  return null
+}
+
+function isHttpUrl(value: string | null | undefined): boolean {
+  return !!value && /^https?:\/\//i.test(value)
+}
+
+function isImageFile(value: string | null | undefined): boolean {
+  return !!value && /\.(jpg|jpeg|png|webp|heic)(\?.*)?$/i.test(value)
+}
+
+function parseTimestamp(value: string | null | undefined): number {
+  if (!value) return 0
+  const ts = new Date(value).getTime()
+  return Number.isNaN(ts) ? 0 : ts
+}
+
+function getWebLeadSortTime(w: WebLead): number {
+  const pickup = w.duration?.split(' → ')[0]?.trim()
+  return parseTimestamp(pickup) || parseTimestamp(w.created_at)
+}
+
+function getBookingSortTime(b: Booking): number {
+  return parseTimestamp(b.pickup_date) || parseTimestamp(b.created_at)
 }
 
 // ─── Google SVG ──────────────────────────────────────────────────────────────
@@ -186,91 +252,91 @@ function BookingCard({ b }: { b: Booking }) {
   const isCompleted = b.status === 'completed'
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="p-4">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <p className="font-bold text-gray-900 text-base leading-tight">
+    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-colors hover:border-slate-300">
+      <header className="flex items-start justify-between gap-4 px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-base font-bold leading-tight text-slate-950 sm:text-[17px]">
             {b.requested_vehicle_text ?? 'Xe Car Match'}
           </p>
-          <span className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold border ${colorClass}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-            {label}
-          </span>
+          {b.itinerary && <p className="mt-1 truncate text-xs text-slate-500">{b.itinerary}</p>}
         </div>
+        <span className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-bold ${colorClass}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+          {label}
+        </span>
+      </header>
 
-        {/* Date + location */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-500 mb-3">
-          <div className="flex items-center gap-1.5">
-            <span>📅</span>
-            <span>{formatDateShort(b.pickup_date)} → {formatDate(b.return_date)}</span>
+      <div className="grid border-y border-slate-100 sm:grid-cols-2">
+        <div className="space-y-3 px-4 py-4 sm:px-5">
+          <div className="flex items-start gap-2.5 text-[13px] text-slate-600">
+            <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+            <span className="font-medium">{formatDateShort(b.pickup_date)} → {formatDate(b.return_date)}</span>
           </div>
           {b.pickup_location_text && (
-            <div className="flex items-center gap-1 truncate max-w-[180px]">
-              <span>📍</span>
-              <span className="truncate">{b.pickup_location_text}</span>
+            <div className="flex items-start gap-2.5 text-[13px] text-slate-600">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              <span>{b.pickup_location_text}</span>
             </div>
           )}
         </div>
 
-        {/* Pricing row */}
-        {(b.billing_days || b.daily_rate || b.itinerary) && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] border-t border-gray-50 pt-3">
+        {(b.billing_days || b.daily_rate || total) && (
+          <div className="border-t border-slate-100 px-4 py-4 sm:border-l sm:border-t-0 sm:px-5">
+            <div className="flex items-start gap-2.5">
+              <WalletCards className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
             {b.billing_days != null && (
-              <span className="text-gray-500">
-                <span className="font-medium text-gray-700">{b.billing_days}</span> ngày
+                  <span>
+                    <span className="font-semibold text-slate-800">{b.billing_days}</span> ngày
               </span>
             )}
             {b.daily_rate != null && (
-              <span className="text-gray-500">
-                <span className="font-medium text-gray-700">{formatCurrency(b.daily_rate)}</span>/ngày
+                  <span>
+                    <span className="font-semibold text-slate-800">{formatCurrency(b.daily_rate)}</span>/ngày
               </span>
             )}
             {total != null && (
-              <span className="ml-auto font-bold text-gray-900 text-[13px]">
-                {formatCurrency(total)}
+                  <span className="w-full pt-1 text-sm font-bold text-slate-950">
+                    Tổng dự kiến {formatCurrency(total)}
               </span>
             )}
-            {b.itinerary && (
-              <span className="w-full text-gray-400 truncate">🗺 {b.itinerary}</span>
-            )}
+              </div>
+            </div>
           </div>
         )}
+      </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+      <footer className="flex items-center justify-between gap-3 bg-slate-50/60 px-4 py-3 sm:px-5">
+        <p className="truncate font-mono text-[10px] tracking-wide text-slate-400">
+          {b.booking_code ?? b.booking_id}
+        </p>
+        <div className="flex shrink-0 gap-2">
           <a
             href={zaloUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#0068FF] text-white text-[13px] font-semibold hover:bg-blue-700 transition-colors"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[#0068FF] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
+            <MessageCircle className="h-3.5 w-3.5" />
             Nhắn Zalo
           </a>
           {isCompleted && (
             <a
               href="/xe"
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-brand-200 text-brand-700 text-[13px] font-semibold hover:bg-brand-50 transition-colors"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
             >
-              Đặt lại ↗
+              Đặt lại <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
           )}
         </div>
-      </div>
-
-      {b.booking_code && (
-        <div className="border-t border-gray-50 px-4 py-2 bg-gray-50/50">
-          <p className="font-mono text-[10px] text-gray-400 tracking-wide">{b.booking_code}</p>
-        </div>
-      )}
-    </div>
+      </footer>
+    </article>
   )
 }
 
 // ─── WebLeadCard ─────────────────────────────────────────────────────────────
 
-function WebLeadCard({ w }: { w: WebLead }) {
+function WebLeadCard({ w, phone }: { w: WebLead; phone: string }) {
   const colorClass = STATUS_COLOR[w.status] ?? 'bg-amber-50 text-amber-700 border-amber-200'
   const dotClass = STATUS_DOT[w.status] ?? 'bg-amber-400'
   const label = STATUS_LABEL[w.status] ?? 'Chờ xác nhận'
@@ -293,6 +359,12 @@ function WebLeadCard({ w }: { w: WebLead }) {
   }
 
   const handleProofUpload = async (file: File) => {
+    const validationError = validateUploadFile(file, PROOF_UPLOAD_TYPES)
+    if (validationError) {
+      setProofError(validationError)
+      return
+    }
+
     setUploadingProof(true)
     setProofError('')
     try {
@@ -305,7 +377,7 @@ function WebLeadCard({ w }: { w: WebLead }) {
       const res = await fetch('/api/bookings?action=upload-proof', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking_ref: w.booking_ref, file_base64: base64, file_name: file.name }),
+        body: JSON.stringify({ booking_ref: w.booking_ref, phone, file_base64: base64, file_name: file.name }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Upload thất bại')
@@ -321,78 +393,93 @@ function WebLeadCard({ w }: { w: WebLead }) {
   const zaloUrl = `https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(zaloMsg)}`
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <p className="font-bold text-gray-900 text-base leading-tight">
+    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-colors hover:border-slate-300">
+      <header className="flex items-start justify-between gap-4 px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-base font-bold leading-tight text-slate-950 sm:text-[17px]">
             {w.car_model ?? 'Xe Car Match'}
           </p>
-          <span className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold border ${colorClass}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-            {label}
-          </span>
+          <p className="mt-1 font-mono text-[10px] tracking-wide text-slate-400">{w.booking_ref}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-500 mb-3">
-          <div className="flex items-center gap-1.5">
-            <span>📅</span>
-            <span>{dateText}</span>
-          </div>
-          {w.building && (
-            <div className="flex items-center gap-1 truncate max-w-[180px]">
-              <span>📍</span>
-              <span className="truncate">{w.building}</span>
-            </div>
-          )}
-        </div>
-        {w.deposit_amount != null && (
-          <div className="flex items-center gap-1.5 text-[12px] border-t border-gray-50 pt-3">
-            <span className="text-gray-500">Tiền cọc:</span>
-            <span className="font-bold text-brand-600">
-              {new Intl.NumberFormat('vi-VN').format(w.deposit_amount)}đ
-            </span>
-            <span className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${localProofUrl ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-              {localProofUrl ? '✓ Đã gửi ảnh TT' : 'Chưa gửi ảnh TT'}
-            </span>
-          </div>
-        )}
+        <span className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-bold ${colorClass}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+          {label}
+        </span>
+      </header>
 
-        {/* Payment proof image / upload */}
-        <div className="mt-3 border-t border-gray-50 pt-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_124px] border-y border-slate-100 min-[420px]:grid-cols-[minmax(0,1fr)_150px] md:grid-cols-[minmax(0,1fr)_188px]">
+        <div className="grid gap-4 px-4 py-4 sm:grid-cols-2 sm:px-5">
+          <div className="space-y-3">
+            <div className="flex items-start gap-2.5 text-[13px] text-slate-600">
+              <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              <span className="font-medium leading-relaxed">{dateText}</span>
+            </div>
+            {w.building && (
+              <div className="flex items-start gap-2.5 text-[13px] text-slate-600">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                <span>{w.building}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-100 pt-4 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+            <div className="flex items-start gap-2.5">
+              <WalletCards className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              <div>
+                <p className="text-xs text-slate-500">Tiền cọc</p>
+                <p className="mt-0.5 text-sm font-bold text-slate-950">
+                  {w.deposit_amount != null ? new Intl.NumberFormat('vi-VN').format(w.deposit_amount) + 'đ' : 'Chưa cập nhật'}
+                </p>
+              </div>
+            </div>
+            <span className={`mt-3 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold ${localProofUrl ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+              {localProofUrl ? <Check className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+              {localProofUrl ? 'Đã gửi ảnh TT' : 'Chưa gửi ảnh TT'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-col justify-center border-l border-slate-100 bg-slate-50/60 p-2.5 md:p-3">
           {localProofUrl ? (
-            <div>
-              <a href={localProofUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
+            <div className="min-w-0">
+              <a href={localProofUrl} target="_blank" rel="noopener noreferrer" className="group block">
                 <img
                   src={localProofUrl}
                   alt="Ảnh thanh toán"
-                  className="w-full max-h-36 object-contain rounded-xl border border-gray-100 bg-gray-50"
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[3/2] w-full rounded-md border border-slate-200 bg-white object-cover transition-opacity group-hover:opacity-90"
                 />
-                <p className="text-center text-[10px] text-brand-500 mt-1 hover:underline">Xem ảnh đầy đủ ↗</p>
+                <p className="mt-1.5 flex items-center justify-center gap-1 text-center text-[10px] font-medium text-brand-600">
+                  Xem đầy đủ <ArrowUpRight className="h-3 w-3" />
+                </p>
               </a>
               <button
                 onClick={() => proofFileRef.current?.click()}
                 disabled={uploadingProof}
-                className="w-full text-[12px] text-gray-400 hover:text-gray-600 py-1 text-center disabled:opacity-50"
+                className="mt-1 flex w-full items-center justify-center gap-1 py-1 text-[10px] text-slate-400 transition-colors hover:text-slate-700 disabled:opacity-50"
               >
-                {uploadingProof ? 'Đang tải...' : '↺ Đổi ảnh'}
+                <RotateCcw className="h-3 w-3" />
+                {uploadingProof ? 'Đang tải...' : 'Đổi ảnh'}
               </button>
             </div>
           ) : (
             <button
               onClick={() => proofFileRef.current?.click()}
               disabled={uploadingProof}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 text-brand-600 text-[13px] font-semibold hover:bg-brand-50 transition-colors disabled:opacity-50"
+              className="flex aspect-[3/2] w-full flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 bg-white px-2 text-center text-[10px] font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700 disabled:opacity-50"
             >
               {uploadingProof ? (
-                <span className="text-gray-400">Đang tải lên...</span>
+                <span className="text-slate-400">Đang tải...</span>
               ) : (
                 <>
-                  <Camera className="w-3.5 h-3.5" />
-                  Gửi ảnh xác nhận thanh toán
+                  <Camera className="h-4 w-4" />
+                  Gửi ảnh TT
                 </>
               )}
             </button>
           )}
-          {proofError && <p className="text-[11px] text-red-500 mt-1 text-center">{proofError}</p>}
+          {proofError && <p className="mt-1 text-center text-[10px] text-red-500">{proofError}</p>}
           <input
             ref={proofFileRef}
             type="file"
@@ -401,30 +488,33 @@ function WebLeadCard({ w }: { w: WebLead }) {
             onChange={e => { const f = e.target.files?.[0]; if (f) void handleProofUpload(f) }}
           />
         </div>
+      </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2 mt-3">
+      <footer className="flex items-center justify-end bg-slate-50/60 px-4 py-3 sm:px-5">
           <a
             href={zaloUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#0068FF] text-white text-[13px] font-semibold hover:bg-blue-700 transition-colors"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[#0068FF] px-4 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
+          <MessageCircle className="h-3.5 w-3.5" />
             Nhắn Zalo
           </a>
-        </div>
-      </div>
-      <div className="border-t border-gray-50 px-4 py-2 bg-gray-50/50">
-        <p className="font-mono text-[10px] text-gray-400 tracking-wide">{w.booking_ref}</p>
-      </div>
-    </div>
+      </footer>
+    </article>
   )
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Account() {
+  useSEO({
+    title: 'Tài khoản của tôi',
+    description: 'Trang tài khoản cá nhân Car Match để khách hàng xem chuyến đi, giấy tờ và ưu đãi.',
+    canonical: 'https://www.carmatch.vn/tai-khoan',
+    noIndex: true,
+  })
+
   const [session, setSession] = useState<Session | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
 
@@ -439,14 +529,18 @@ export default function Account() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [webLeads, setWebLeads] = useState<WebLead[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
+  const [bookingsError, setBookingsError] = useState('')
 
   const [docs, setDocs] = useState<CustomerDoc[]>([])
   const [loadingDocs, setLoadingDocs] = useState(false)
+  const [docsError, setDocsError] = useState('')
+  const [docPreviewUrls, setDocPreviewUrls] = useState<Record<string, string>>({})
 
   const [promos, setPromos] = useState<PromoCode[]>([])
   const [referralRewards, setReferralRewards] = useState<ReferralReward[]>([])
   const [loyaltyDiscount, setLoyaltyDiscount] = useState<LoyaltyDiscount | null>(null)
   const [loadingBenefits, setLoadingBenefits] = useState(false)
+  const [benefitsError, setBenefitsError] = useState('')
   const [copiedPromo, setCopiedPromo] = useState<string | null>(null)
   const [uploadingType, setUploadingType] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState('')
@@ -483,7 +577,7 @@ export default function Account() {
 
   useEffect(() => {
     if (!session) return
-    const saved = session.user.user_metadata?.customer_phone as string | undefined
+    const saved = session.user.app_metadata?.customer_phone as string | undefined
     if (saved) setPhone(saved)
   }, [session])
 
@@ -504,39 +598,84 @@ export default function Account() {
 
   async function loadBookings() {
     setLoadingBookings(true)
-    const [crmResult, webResult] = await Promise.all([
-      supabase.rpc('get_customer_bookings_by_phone', { p_phone: phone }),
-      supabase.rpc('get_my_website_leads', { p_phone: phone }),
-    ])
-    setBookings((crmResult.data as Booking[]) ?? [])
-    setWebLeads((webResult.data as WebLead[]) ?? [])
-    setLoadingBookings(false)
+    setBookingsError('')
+    try {
+      const [crmResult, webResult] = await Promise.all([
+        supabase.rpc('get_customer_bookings_by_phone', { p_phone: phone }),
+        supabase.rpc('get_my_website_leads', { p_phone: phone }),
+      ])
+      if (crmResult.error) throw crmResult.error
+      if (webResult.error) throw webResult.error
+      setBookings((crmResult.data as Booking[]) ?? [])
+      setWebLeads((webResult.data as WebLead[]) ?? [])
+    } catch (err) {
+      console.error('[account] loadBookings error:', err)
+      setBookingsError('Chưa tải được danh sách chuyến đi. Vui lòng thử lại.')
+    } finally {
+      setLoadingBookings(false)
+    }
   }
 
   async function loadDocs() {
     setLoadingDocs(true)
-    const { data } = await supabase.rpc('get_customer_docs_by_phone', { p_phone: phone })
-    setDocs((data as CustomerDoc[]) ?? [])
-    setLoadingDocs(false)
+    setDocsError('')
+    try {
+      const { data, error } = await supabase.rpc('get_customer_docs_by_phone', { p_phone: phone })
+      if (error) throw error
+      setDocs((data as CustomerDoc[]) ?? [])
+    } catch (err) {
+      console.error('[account] loadDocs error:', err)
+      setDocsError('Chưa tải được giấy tờ. Vui lòng thử lại.')
+    } finally {
+      setLoadingDocs(false)
+    }
   }
 
   async function loadBenefits() {
     setLoadingBenefits(true)
-    const [promosResult, rewardsResult] = await Promise.all([
-      supabase.rpc('get_active_promos'),
-      supabase.rpc('get_my_referral_rewards', { p_phone: phone }),
-    ])
-    setPromos((promosResult.data as PromoCode[]) ?? [])
-    setReferralRewards((rewardsResult.data as ReferralReward[]) ?? [])
+    setBenefitsError('')
+    try {
+      const [promosResult, rewardsResult] = await Promise.all([
+        supabase.rpc('get_active_promos'),
+        supabase.rpc('get_my_referral_rewards', { p_phone: phone }),
+      ])
+      if (promosResult.error) throw promosResult.error
+      if (rewardsResult.error) throw rewardsResult.error
+      setPromos((promosResult.data as PromoCode[]) ?? [])
+      setReferralRewards((rewardsResult.data as ReferralReward[]) ?? [])
 
-    if (customerInfo?.loyalty_tier && customerInfo.loyalty_tier !== 'new') {
-      const { data } = await supabase.rpc('get_loyalty_discount', { p_tier: customerInfo.loyalty_tier })
-      setLoyaltyDiscount((data as LoyaltyDiscount[])?.[0] ?? null)
+      if (customerInfo?.loyalty_tier && customerInfo.loyalty_tier !== 'new') {
+        const { data, error } = await supabase.rpc('get_loyalty_discount', { p_tier: customerInfo.loyalty_tier })
+        if (error) throw error
+        setLoyaltyDiscount((data as LoyaltyDiscount[])?.[0] ?? null)
+      }
+    } catch (err) {
+      console.error('[account] loadBenefits error:', err)
+      setBenefitsError('Chưa tải được ưu đãi. Vui lòng thử lại.')
+    } finally {
+      setLoadingBenefits(false)
     }
-    setLoadingBenefits(false)
   }
 
   // ── Phone linking ─────────────────────────────────────────────────────────
+
+  async function linkPhoneOnServer(normalizedPhone: string) {
+    if (!session?.access_token) throw new Error('Bạn cần đăng nhập lại')
+
+    const res = await fetch('/api/bookings?action=link-phone', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ phone: normalizedPhone }),
+    })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || 'Chưa liên kết được số điện thoại')
+
+    await supabase.auth.refreshSession()
+    return json as { phone: string; customer: CustomerInfo }
+  }
 
   async function handleLinkPhone() {
     const normalized = normalizePhone(phoneInput.trim())
@@ -547,25 +686,14 @@ export default function Account() {
     setLinkingPhone(true)
     setPhoneError('')
 
-    const { data, error } = await supabase.rpc('get_customer_by_phone', { p_phone: normalized })
-    if (error || !data || (data as CustomerInfo[]).length === 0) {
-      setPhoneError('Không tìm thấy số này trong hệ thống. Liên hệ Zalo để được hỗ trợ.')
+    try {
+      const linked = await linkPhoneOnServer(normalized)
+      setCustomerInfo(linked.customer)
+      setPhone(linked.phone)
+    } catch (error) {
+      setPhoneError(error instanceof Error ? error.message : 'Chưa liên kết được số điện thoại')
+    } finally {
       setLinkingPhone(false)
-      return
-    }
-
-    const info = (data as CustomerInfo[])[0]
-    setCustomerInfo(info)
-    await supabase.auth.updateUser({ data: { customer_phone: normalized } })
-    setPhone(normalized)
-    setLinkingPhone(false)
-
-    // Lưu Gmail vào hồ sơ khách hàng (fire-and-forget)
-    if (session?.user?.email) {
-      supabase.rpc('update_customer_email', {
-        p_phone: normalized,
-        p_email: session.user.email,
-      }).then(() => {/* silent */}, () => {/* silent */})
     }
   }
 
@@ -584,29 +712,20 @@ export default function Account() {
     setSavingPhone(true)
     setChangePhoneError('')
 
-    const { data, error } = await supabase.rpc('get_customer_by_phone', { p_phone: normalized })
-    if (error || !data || (data as CustomerInfo[]).length === 0) {
-      setChangePhoneError('Không tìm thấy số này trong hệ thống. Liên hệ Zalo nếu cần hỗ trợ.')
+    try {
+      const linked = await linkPhoneOnServer(normalized)
+      setPhone(linked.phone)
+      setCustomerInfo(linked.customer)
+      setBookings([])
+      setWebLeads([])
+      setDocs([])
+      setChangingPhone(false)
+      setChangePhoneInput('')
+    } catch (error) {
+      setChangePhoneError(error instanceof Error ? error.message : 'Chưa đổi được số điện thoại')
+    } finally {
       setSavingPhone(false)
-      return
     }
-
-    const info = (data as CustomerInfo[])[0]
-    await supabase.auth.updateUser({ data: { customer_phone: normalized } })
-    setPhone(normalized)
-    setCustomerInfo(info)
-    setBookings([])
-    setWebLeads([])
-    setDocs([])
-    setChangingPhone(false)
-    setChangePhoneInput('')
-    setSavingPhone(false)
-
-    void Promise.all([
-      supabase.rpc('get_customer_bookings_by_phone', { p_phone: normalized }).then(({ data: d }) => setBookings((d as Booking[]) ?? [])),
-      supabase.rpc('get_my_website_leads', { p_phone: normalized }).then(({ data: d }) => setWebLeads((d as WebLead[]) ?? [])),
-      supabase.rpc('get_customer_docs_by_phone', { p_phone: normalized }).then(({ data: d }) => setDocs((d as CustomerDoc[]) ?? [])),
-    ])
   }
 
   // ── Document upload ───────────────────────────────────────────────────────
@@ -614,6 +733,13 @@ export default function Account() {
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>, docType: string) {
     const file = e.target.files?.[0]
     if (!file || !session) return
+
+    const validationError = validateUploadFile(file, DOC_UPLOAD_TYPES)
+    if (validationError) {
+      setUploadError(validationError)
+      e.target.value = ''
+      return
+    }
 
     setUploadingType(docType)
     setUploadError('')
@@ -624,19 +750,13 @@ export default function Account() {
 
       const { error: uploadErr } = await supabase.storage
         .from('customer-documents')
-        .upload(path, file, { upsert: true })
+        .upload(path, file, { contentType: file.type || undefined, upsert: true })
 
       if (uploadErr) throw uploadErr
 
-      const { data: urlData } = supabase.storage
-        .from('customer-documents')
-        .getPublicUrl(path)
-
-      const fileUrl = urlData?.publicUrl ?? path
-
       const { error: rpcErr } = await supabase.rpc('submit_customer_document', {
         p_phone: phone,
-        p_file_url: fileUrl,
+        p_file_url: path,
         p_file_name: file.name,
         p_doc_type: docType,
         p_title: DOC_LABELS[docType] ?? 'Giấy tờ',
@@ -655,9 +775,72 @@ export default function Account() {
     }
   }
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function resolveDocUrls() {
+      if (docs.length === 0) {
+        setDocPreviewUrls({})
+        return
+      }
+
+      const entries = await Promise.all(docs.map(async (doc) => {
+        if (isHttpUrl(doc.file_url)) return [doc.doc_id, doc.file_url] as const
+
+        const { data, error } = await supabase.storage
+          .from('customer-documents')
+          .createSignedUrl(doc.file_url, SIGNED_DOC_URL_TTL_SECONDS)
+
+        if (error) {
+          console.error('[account] signed document url error:', error.message)
+          return [doc.doc_id, ''] as const
+        }
+        return [doc.doc_id, data?.signedUrl ?? ''] as const
+      }))
+
+      if (!cancelled) {
+        setDocPreviewUrls(Object.fromEntries(entries.filter(([, url]) => Boolean(url))))
+      }
+    }
+
+    void resolveDocUrls()
+
+    return () => {
+      cancelled = true
+    }
+  }, [docs])
+
   // ── Derived ───────────────────────────────────────────────────────────────
 
   const uploadedTypes = new Set(docs.map((d) => d.document_type))
+  const requiredDocCount = UPLOAD_SLOTS.length
+  const uploadedRequiredDocCount = UPLOAD_SLOTS.filter((slot) => uploadedTypes.has(slot.type)).length
+  const docsComplete = UPLOAD_SLOTS.every((slot) => uploadedTypes.has(slot.type))
+  const tripItems = useMemo(() => {
+    const bookingCodes = new Set(
+      bookings
+        .map((booking) => booking.booking_code?.trim().toUpperCase())
+        .filter(Boolean) as string[],
+    )
+
+    const webItems = webLeads
+      .filter((lead) => !bookingCodes.has(lead.booking_ref.trim().toUpperCase()))
+      .map((lead) => ({
+        type: 'web' as const,
+        key: `web-${lead.booking_ref}`,
+        sortTime: getWebLeadSortTime(lead),
+        lead,
+      }))
+
+    const bookingItems = bookings.map((booking) => ({
+      type: 'booking' as const,
+      key: `booking-${booking.booking_id}`,
+      sortTime: getBookingSortTime(booking),
+      booking,
+    }))
+
+    return [...webItems, ...bookingItems].sort((a, b) => b.sortTime - a.sortTime)
+  }, [bookings, webLeads])
 
   // ── Loading ───────────────────────────────────────────────────────────────
 
@@ -665,9 +848,9 @@ export default function Account() {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen flex items-center justify-center">
+        <main id="main-content" className="min-h-screen flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-        </div>
+        </main>
       </>
     )
   }
@@ -678,8 +861,9 @@ export default function Account() {
     return (
       <div className="min-h-screen flex flex-col bg-white pt-16">
         <Navbar />
-        {/* Hero banner */}
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-800 px-6 pt-12 pb-16 text-white">
+        <main id="main-content">
+          {/* Hero banner */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-800 px-6 pt-12 pb-16 text-white">
           <div className="max-w-sm mx-auto">
             <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mb-6 border border-white/10">
               <Car className="w-7 h-7 text-white" />
@@ -702,10 +886,10 @@ export default function Account() {
               ))}
             </div>
           </div>
-        </div>
+          </div>
 
-        {/* Login card */}
-        <div className="flex-1 px-6 -mt-6">
+          {/* Login card */}
+          <div className="flex-1 px-6 -mt-6">
           <div className="max-w-sm mx-auto">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6">
               <p className="text-center text-sm text-gray-500 mb-5 font-medium">
@@ -733,7 +917,8 @@ export default function Account() {
               </p>
             </div>
           </div>
-        </div>
+          </div>
+        </main>
       </div>
     )
   }
@@ -747,7 +932,7 @@ export default function Account() {
     return (
       <div className="min-h-screen bg-gray-50 pt-16">
         <Navbar />
-        <div className="max-w-sm mx-auto px-5 py-10">
+        <main id="main-content" className="max-w-sm mx-auto px-5 py-10">
           {/* Avatar */}
           <div className="text-center mb-8">
             {avatarUrl ? (
@@ -768,7 +953,7 @@ export default function Account() {
               </div>
               <h2 className="font-bold text-gray-900 text-lg mb-1">Liên kết số điện thoại</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Nhập SĐT bạn đã dùng khi đặt xe với CarMatch để xem lịch sử và giấy tờ.
+                Nhập SĐT đã đặt xe. Car Match chỉ mở dữ liệu khi email Google khớp hồ sơ khách hàng.
               </p>
             </div>
 
@@ -783,7 +968,17 @@ export default function Account() {
                   className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-[15px] font-medium focus:outline-none focus:border-brand-500 transition-colors text-center tracking-wide"
                 />
                 {phoneError && (
-                  <p className="text-red-500 text-sm mt-2 text-center leading-relaxed">{phoneError}</p>
+                  <div className="mt-2 text-center">
+                    <p className="text-sm leading-relaxed text-red-500">{phoneError}</p>
+                    <a
+                      href={`https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(`Chào Car Match, tôi muốn xác minh số ${normalizePhone(phoneInput)} cho tài khoản ${session.user.email ?? ''}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex text-xs font-semibold text-brand-700 underline underline-offset-2"
+                    >
+                      Nhắn Zalo để xác minh
+                    </a>
+                  </div>
                 )}
               </div>
 
@@ -805,7 +1000,7 @@ export default function Account() {
           >
             Đăng xuất
           </button>
-        </div>
+        </main>
       </div>
     )
   }
@@ -820,55 +1015,56 @@ export default function Account() {
   const avatarUrl = session.user.user_metadata?.avatar_url as string | undefined
   const tier = customerInfo?.loyalty_tier
   const tierInfo = tier ? TIER_LABEL[tier] : null
-  const docsComplete = uploadedTypes.size === UPLOAD_SLOTS.length
   const joinYear = getJoinYear(customerInfo?.first_seen_at ?? null)
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-[#f5f7fa] pt-16">
       <Navbar />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6 sm:py-9 lg:px-8">
 
         {/* Greeting header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+        <div className="mb-6 lg:hidden">
+          <h1 className="text-2xl font-bold text-slate-950 sm:text-[28px]">
             Xin chào, {displayName.split(' ').pop()}!
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <p className="mt-1 text-sm text-slate-500">
             {joinYear ? `Khách CarMatch từ năm ${joinYear}` : 'Chào mừng đến với CarMatch'}
             {tierInfo && (
-              <span className={`ml-2 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full align-middle ${tierInfo.color}`}>
+              <span className={`ml-2 inline-block rounded-md px-2 py-0.5 align-middle text-[10px] font-bold ${tierInfo.color}`}>
                 {tierInfo.label}
               </span>
             )}
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 items-start">
+        <div className="flex flex-col items-start gap-6 lg:flex-row lg:gap-8">
 
           {/* ── Left Sidebar ── */}
-          <aside className="w-full md:w-64 shrink-0 space-y-3">
+          <aside className="w-full shrink-0 space-y-4 lg:sticky lg:top-24 lg:w-[272px]">
 
             {/* Profile + nav card */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
 
               {/* Profile */}
-              <div className="px-5 py-6 border-b border-gray-50 text-center">
+              <div className="border-b border-slate-100 px-4 py-4 sm:px-5 lg:py-6 lg:text-center">
+                <div className="flex items-center gap-3 lg:block">
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
                     alt={displayName}
-                    className="w-16 h-16 rounded-full mx-auto mb-3 ring-4 ring-gray-50 object-cover"
+                      className="h-14 w-14 shrink-0 rounded-full object-cover ring-4 ring-slate-50 lg:mx-auto lg:mb-3 lg:h-16 lg:w-16"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-brand-600 flex items-center justify-center mx-auto mb-3 text-white font-bold text-2xl ring-4 ring-gray-50">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xl font-bold text-white ring-4 ring-slate-50 lg:mx-auto lg:mb-3 lg:h-16 lg:w-16 lg:text-2xl">
                     {displayName[0].toUpperCase()}
                   </div>
                 )}
-                <h2 className="font-bold text-gray-900 leading-tight">{displayName}</h2>
+                  <div className="min-w-0 flex-1 text-left lg:text-center">
+                    <h2 className="truncate font-bold leading-tight text-slate-950">{displayName}</h2>
 
                 {/* Phone + đổi số */}
                 {changingPhone ? (
-                  <div className="mt-2 text-left space-y-2">
+                      <div className="mt-2 space-y-2 text-left">
                     <input
                       type="tel"
                       value={changePhoneInput}
@@ -876,7 +1072,7 @@ export default function Account() {
                       onKeyDown={(e) => e.key === 'Enter' && void handleChangePhone()}
                       placeholder="Nhập SĐT mới..."
                       autoFocus
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-center tracking-wide focus:outline-none focus:border-brand-400"
+                          className="w-full rounded-md border border-slate-200 px-3 py-2 text-center text-sm tracking-wide focus:border-brand-400 focus:outline-none"
                     />
                     {changePhoneError && (
                       <p className="text-[11px] text-red-500 text-center leading-snug">{changePhoneError}</p>
@@ -885,7 +1081,7 @@ export default function Account() {
                       <button
                         type="button"
                         onClick={() => { setChangingPhone(false); setChangePhoneInput(''); setChangePhoneError('') }}
-                        className="flex-1 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                            className="flex-1 rounded-md border border-slate-200 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50"
                       >
                         Hủy
                       </button>
@@ -893,100 +1089,129 @@ export default function Account() {
                         type="button"
                         onClick={() => void handleChangePhone()}
                         disabled={savingPhone || !changePhoneInput.trim()}
-                        className="flex-1 py-1.5 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-700 disabled:opacity-40"
+                            className="flex-1 rounded-md bg-brand-700 py-1.5 text-xs font-bold text-white hover:bg-brand-800 disabled:opacity-40"
                       >
                         {savingPhone ? 'Đang lưu...' : 'Xác nhận'}
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-1.5 mt-0.5">
-                    <p className="text-sm text-gray-400">{phone}</p>
+                      <div className="mt-1 flex items-center gap-1.5 lg:justify-center">
+                        <p className="text-sm text-slate-500">{phone}</p>
                     <button
                       type="button"
                       onClick={() => { setChangingPhone(true); setChangePhoneInput('') }}
                       title="Đổi số điện thoại"
-                      className="p-1 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+                          className="rounded-md p-1 text-slate-300 transition-colors hover:bg-slate-50 hover:text-slate-600"
                     >
                       <Pencil className="w-3 h-3" />
                     </button>
                   </div>
                 )}
+                  </div>
+                </div>
 
                 {/* Mini stats */}
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <div className="bg-gray-50 rounded-xl py-2.5">
-                    <p className="font-bold text-gray-900 text-lg leading-none">
-                      {loadingBookings ? '—' : bookings.length + webLeads.length}
+                  <div className="rounded-md border border-slate-100 bg-slate-50 py-2.5 text-center">
+                    <p className="text-lg font-bold leading-none text-slate-950">
+                      {loadingBookings ? '—' : tripItems.length}
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Chuyến đi</p>
+                    <p className="mt-1 text-[10px] text-slate-500">Chuyến đi</p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl py-2.5">
-                    <p className={`font-bold text-lg leading-none ${docsComplete ? 'text-emerald-600' : 'text-gray-900'}`}>
-                      {uploadedTypes.size}/{UPLOAD_SLOTS.length}
+                  <div className="rounded-md border border-slate-100 bg-slate-50 py-2.5 text-center">
+                    <p className={`text-lg font-bold leading-none ${docsComplete ? 'text-emerald-600' : 'text-slate-950'}`}>
+                      {uploadedRequiredDocCount}/{requiredDocCount}
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Giấy tờ</p>
+                    <p className="mt-1 text-[10px] text-slate-500">Giấy tờ</p>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    supabase.auth.signOut()
+                    setPhone('')
+                    setCustomerInfo(null)
+                  }}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 lg:hidden"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Đăng xuất
+                </button>
               </div>
 
               {/* Nav */}
-              <nav className="p-2">
+              <nav className="grid grid-cols-3 lg:block lg:p-2" role="tablist" aria-label="Khu vực tài khoản">
                 <button
                   type="button"
+                  id="account-tab-bookings"
+                  role="tab"
+                  aria-selected={tab === 'bookings'}
+                  aria-controls="account-panel-bookings"
                   onClick={() => setTab('bookings')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
                     tab === 'bookings'
-                      ? 'bg-brand-50 text-brand-700'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
                   <Car className="w-4 h-4 shrink-0" />
-                  <span className="flex-1 text-left">Chuyến đi của tôi</span>
-                  {!loadingBookings && (bookings.length + webLeads.length) > 0 && (
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                      tab === 'bookings' ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'
+                  <span className="lg:flex-1 lg:text-left">
+                    <span className="lg:hidden">Chuyến đi</span>
+                    <span className="hidden lg:inline">Chuyến đi của tôi</span>
+                  </span>
+                  {!loadingBookings && tripItems.length > 0 && (
+                    <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold lg:px-2 lg:text-[11px] ${
+                      tab === 'bookings' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'
                     }`}>
-                      {bookings.length + webLeads.length}
+                      {tripItems.length}
                     </span>
                   )}
                 </button>
 
                 <button
                   type="button"
+                  id="account-tab-docs"
+                  role="tab"
+                  aria-selected={tab === 'docs'}
+                  aria-controls="account-panel-docs"
                   onClick={() => setTab('docs')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
                     tab === 'docs'
-                      ? 'bg-brand-50 text-brand-700'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
                   <FileText className="w-4 h-4 shrink-0" />
-                  <span className="flex-1 text-left">Giấy tờ</span>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  <span className="lg:flex-1 lg:text-left">Giấy tờ</span>
+                  <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold lg:px-2 lg:text-[11px] ${
                     docsComplete
                       ? 'bg-emerald-100 text-emerald-700'
                       : tab === 'docs'
                         ? 'bg-brand-100 text-brand-600'
-                        : 'bg-gray-100 text-gray-500'
+                        : 'bg-slate-100 text-slate-500'
                   }`}>
-                    {uploadedTypes.size}/{UPLOAD_SLOTS.length}
+                    {uploadedRequiredDocCount}/{requiredDocCount}
                   </span>
                 </button>
 
                 <button
                   type="button"
+                  id="account-tab-benefits"
+                  role="tab"
+                  aria-selected={tab === 'benefits'}
+                  aria-controls="account-panel-benefits"
                   onClick={() => { setTab('benefits'); loadBenefits(); }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
                     tab === 'benefits'
-                      ? 'bg-brand-50 text-brand-700'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
                   <Tag className="w-4 h-4 shrink-0" />
-                  <span className="flex-1 text-left">Ưu đãi</span>
+                  <span className="lg:flex-1 lg:text-left">Ưu đãi</span>
                   {(promos.length > 0 || referralRewards.length > 0) && (
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                    <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold lg:px-2 lg:text-[11px] ${
                       tab === 'benefits' ? 'bg-brand-100 text-brand-600' : 'bg-amber-100 text-amber-600'
                     }`}>
                       {promos.length + referralRewards.length}
@@ -994,7 +1219,7 @@ export default function Account() {
                   )}
                 </button>
 
-                <div className="border-t border-gray-100 mt-2 pt-2">
+                <div className="mt-2 hidden border-t border-slate-100 pt-2 lg:block">
                   <button
                     type="button"
                     onClick={() => {
@@ -1002,7 +1227,7 @@ export default function Account() {
                       setPhone('')
                       setCustomerInfo(null)
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                   >
                     <LogOut className="w-4 h-4 shrink-0" />
                     Đăng xuất
@@ -1013,16 +1238,16 @@ export default function Account() {
 
             {/* Loyalty & Referral card */}
             {(tierInfo || customerInfo?.referral_code) && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div className="hidden rounded-lg border border-slate-200 bg-white p-4 lg:block">
                 <div className="flex items-center gap-2 mb-3">
                   <Gift className="w-4 h-4 text-amber-500" />
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Loyalty & Giới thiệu</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Loyalty & Giới thiệu</p>
                 </div>
 
                 {tierInfo && (
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-gray-500">Hạng khách</span>
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${tierInfo.color}`}>
+                    <span className="text-sm text-slate-500">Hạng khách</span>
+                    <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${tierInfo.color}`}>
                       {tierInfo.label}
                     </span>
                   </div>
@@ -1030,11 +1255,11 @@ export default function Account() {
 
                 {customerInfo?.referral_code && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-1.5">Mã giới thiệu của bạn</p>
+                    <p className="mb-1.5 text-xs text-slate-400">Mã giới thiệu của bạn</p>
                     <button
                       type="button"
                       onClick={handleCopyCode}
-                      className="w-full flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 hover:bg-amber-100 transition-colors group"
+                      className="group flex w-full items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 transition-colors hover:bg-amber-100"
                     >
                       <span className="font-mono font-bold text-amber-800 text-sm tracking-widest">
                         {customerInfo.referral_code}
@@ -1049,7 +1274,7 @@ export default function Account() {
                       <button
                         type="button"
                         onClick={handleCopyCode}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-amber-200 bg-white text-amber-700 text-[12px] font-semibold hover:bg-amber-50 transition-colors"
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-amber-200 bg-white py-1.5 text-[12px] font-semibold text-amber-700 transition-colors hover:bg-amber-50"
                       >
                         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {copied ? 'Đã sao chép' : 'Sao chép'}
@@ -1058,7 +1283,7 @@ export default function Account() {
                         href={`https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(`Dùng mã ${customerInfo.referral_code} để đặt xe CarMatch — carmatch.vn/?ref=${customerInfo.referral_code}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-[#0068FF] text-white text-[12px] font-semibold hover:bg-blue-700 transition-colors"
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[#0068FF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-blue-700"
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
                         Chia sẻ Zalo
@@ -1071,14 +1296,27 @@ export default function Account() {
           </aside>
 
           {/* ── Main Content ── */}
-          <main className="flex-1 min-w-0">
+          <main id="main-content" className="min-w-0 flex-1">
+            <div className="mb-7 hidden lg:block">
+              <h1 className="text-[28px] font-bold text-slate-950">
+                Xin chào, {displayName.split(' ').pop()}!
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                {joinYear ? `Khách CarMatch từ năm ${joinYear}` : 'Chào mừng đến với CarMatch'}
+                {tierInfo && (
+                  <span className={`ml-2 inline-block rounded-md px-2 py-0.5 align-middle text-[10px] font-bold ${tierInfo.color}`}>
+                    {tierInfo.label}
+                  </span>
+                )}
+              </p>
+            </div>
 
             {/* Section heading */}
-            <div className="mb-5">
-              <h1 className="text-xl font-bold text-gray-900">
+            <div className="mb-4 border-b border-slate-200 pb-4">
+              <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">
                 {tab === 'bookings' ? 'Chuyến đi của tôi' : tab === 'docs' ? 'Giấy tờ của tôi' : 'Ưu đãi & Khuyến mãi'}
-              </h1>
-              <p className="text-sm text-gray-400 mt-0.5">
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
                 {tab === 'bookings'
                   ? 'Toàn bộ lịch sử đặt xe với CarMatch'
                   : tab === 'docs'
@@ -1089,44 +1327,63 @@ export default function Account() {
 
             {/* ── Tab: Bookings ── */}
             {tab === 'bookings' && (
-              <div>
+              <div id="account-panel-bookings" role="tabpanel" aria-labelledby="account-tab-bookings">
+                {bookingsError && !loadingBookings && (
+                  <div className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
+                    <div className="flex items-start gap-2">
+                      <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                      <p className="text-sm text-red-700">{bookingsError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void loadBookings()}
+                      className="shrink-0 rounded-md bg-white px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100 hover:bg-red-100"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                )}
                 {loadingBookings ? (
                   <div className="flex justify-center py-16">
                     <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
                   </div>
-                ) : bookings.length === 0 && webLeads.length === 0 ? (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Car className="w-7 h-7 text-gray-300" />
+                ) : tripItems.length === 0 ? (
+                  <div className="rounded-lg border border-slate-200 bg-white p-10 text-center">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-slate-50">
+                      <Car className="h-7 w-7 text-slate-300" />
                     </div>
-                    <p className="font-semibold text-gray-900 mb-1">Chưa có chuyến nào</p>
-                    <p className="text-gray-400 text-sm mb-5">Hãy đặt xe đầu tiên của bạn với CarMatch</p>
+                    <p className="mb-1 font-semibold text-slate-950">Chưa có chuyến nào</p>
+                    <p className="mb-5 text-sm text-slate-500">Hãy đặt xe đầu tiên của bạn với CarMatch</p>
                     <a
                       href="/xe"
-                      className="inline-flex items-center gap-1.5 bg-brand-600 text-white font-semibold text-sm px-5 py-2.5 rounded-full hover:bg-brand-700 transition-colors"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-md bg-brand-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
                     >
                       Xem xe ngay <ChevronRight className="w-4 h-4" />
                     </a>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Nudge: upload docs if not complete */}
                     {!docsComplete && !loadingDocs && (
                       <button
                         type="button"
                         onClick={() => setTab('docs')}
-                        className="w-full flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-left hover:bg-amber-100 transition-colors"
+                        className="flex w-full items-center gap-3 border-y border-amber-200 bg-white px-1 py-3 text-left transition-colors hover:bg-amber-50/40 sm:px-3"
                       >
                         <FileText className="w-4 h-4 text-amber-500 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-amber-800">Upload giấy tờ để CarMatch chuẩn bị sẵn</p>
-                          <p className="text-[12px] text-amber-600 mt-0.5">GPLX + CCCD — lưu 1 lần, dùng mọi chuyến</p>
+                          <p className="mt-0.5 text-[12px] text-slate-500">GPLX + CCCD — lưu 1 lần, dùng mọi chuyến</p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span className="hidden text-xs font-semibold text-amber-700 sm:inline">Upload ngay</span>
+                        <ChevronRight className="w-4 h-4 text-amber-500 shrink-0" />
                       </button>
                     )}
-                    {webLeads.map((w) => <WebLeadCard key={w.booking_ref} w={w} />)}
-                    {bookings.map((b) => <BookingCard key={b.booking_id} b={b} />)}
+                    {tripItems.map((item) => (
+                      item.type === 'web'
+                        ? <WebLeadCard key={item.key} w={item.lead} phone={phone} />
+                        : <BookingCard key={item.key} b={item.booking} />
+                    ))}
                   </div>
                 )}
               </div>
@@ -1134,11 +1391,11 @@ export default function Account() {
 
             {/* ── Tab: Documents ── */}
             {tab === 'docs' && (
-              <div>
+              <div id="account-panel-docs" role="tabpanel" aria-labelledby="account-tab-docs">
                 {/* Status banner */}
                 {!docsComplete && !loadingDocs && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3.5 mb-5 flex items-start gap-3">
-                    <span className="text-amber-500 text-lg shrink-0 mt-0.5">💡</span>
+                  <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3.5">
+                    <IdCard className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                     <p className="text-amber-800 text-sm leading-relaxed">
                       Upload GPLX và CCCD một lần — CarMatch lưu lại, bạn không cần gửi lại qua Zalo mỗi lần thuê.
                     </p>
@@ -1146,7 +1403,7 @@ export default function Account() {
                 )}
 
                 {docsComplete && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3.5 mb-5 flex items-center gap-3">
+                  <div className="mb-5 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3.5">
                     <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
                     <p className="text-emerald-800 text-sm font-medium">
                       Giấy tờ đầy đủ — CarMatch sẽ dùng lại cho các lần thuê tiếp theo.
@@ -1155,9 +1412,25 @@ export default function Account() {
                 )}
 
                 {uploadError && (
-                  <div className="bg-red-50 border border-red-100 rounded-2xl px-4 py-3 flex items-start gap-2 mb-4">
+                  <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
                     <X className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                     <p className="text-red-600 text-sm">{uploadError}</p>
+                  </div>
+                )}
+
+                {docsError && !loadingDocs && (
+                  <div className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
+                    <div className="flex items-start gap-2">
+                      <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                      <p className="text-sm text-red-700">{docsError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void loadDocs()}
+                      className="shrink-0 rounded-md bg-white px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100 hover:bg-red-100"
+                    >
+                      Thử lại
+                    </button>
                   </div>
                 )}
 
@@ -1166,34 +1439,37 @@ export default function Account() {
                     <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="grid items-start gap-4 md:grid-cols-3">
                     {UPLOAD_SLOTS.map((slot) => {
                       const existing = docs.find((d) => d.document_type === slot.type)
                       const isUploading = uploadingType === slot.type
                       const uploaded = !!existing
+                      const SlotIcon = slot.type === 'gplx' ? IdCard : FileText
+                      const previewUrl = existing ? docPreviewUrls[existing.doc_id] ?? '' : ''
+                      const previewIsImage = isImageFile(existing?.file_name) || isImageFile(existing?.file_url)
 
                       return (
-                        <div key={slot.type} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                          <div className="p-5">
-                            <div className="flex items-center justify-between mb-4">
+                        <div key={slot.type} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                          <div className="flex h-full flex-col p-4">
+                            <div className="mb-4 flex items-start justify-between gap-2">
                               <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
-                                  uploaded ? 'bg-emerald-50' : 'bg-gray-50'
+                                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
+                                  uploaded ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-500'
                                 }`}>
-                                  {slot.icon}
+                                  <SlotIcon className="h-4.5 w-4.5" />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-gray-900 text-sm">{slot.label}</p>
-                                  <p className="text-[11px] text-gray-400 mt-0.5">{slot.hint}</p>
+                                  <p className="text-sm font-semibold text-slate-950">{slot.label}</p>
+                                  <p className="mt-0.5 text-[11px] text-slate-400">{slot.hint}</p>
                                 </div>
                               </div>
 
                               {uploaded ? (
-                                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
-                                  <CheckCircle className="w-3 h-3" /> Đã xác thực
+                                <span className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">
+                                  <CheckCircle className="h-3 w-3" /> Đã có
                                 </span>
                               ) : (
-                                <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+                                <span className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700">
                                   <Clock className="w-3 h-3" /> Chưa có
                                 </span>
                               )}
@@ -1201,23 +1477,29 @@ export default function Account() {
 
                             {/* Image preview */}
                             {existing && (
-                              <div className="mb-4 rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
-                                {existing.file_url.match(/\.(jpg|jpeg|png|webp|heic)$/i) ? (
+                              <div className="mb-4 overflow-hidden rounded-md border border-slate-100 bg-slate-50">
+                                {previewUrl && previewIsImage ? (
                                   <img
-                                    src={existing.file_url}
+                                    src={previewUrl}
                                     alt={slot.label}
-                                    className="w-full max-h-48 object-cover"
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="aspect-[4/3] w-full object-cover"
                                   />
-                                ) : (
+                                ) : previewUrl ? (
                                   <a
-                                    href={existing.file_url}
+                                    href={previewUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-4 py-4 text-sm text-brand-600 font-medium hover:underline"
+                                    className="flex aspect-[4/3] items-center justify-center gap-2 px-4 py-4 text-sm font-medium text-brand-700 hover:underline"
                                   >
                                     <FileText className="w-4 h-4" />
                                     {existing.file_name ?? 'Xem file'}
                                   </a>
+                                ) : (
+                                  <div className="flex aspect-[4/3] items-center justify-center px-4 py-4 text-center text-sm text-slate-400">
+                                    Chưa tạo được link xem tạm thời
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -1226,10 +1508,10 @@ export default function Account() {
                               type="button"
                               onClick={() => fileRefs.current[slot.type]?.click()}
                               disabled={isUploading}
-                              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 ${
+                              className={`mt-auto flex w-full items-center justify-center gap-2 rounded-md py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 ${
                                 uploaded
-                                  ? 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                                  : 'bg-brand-600 text-white hover:bg-brand-700'
+                                  ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                  : 'bg-brand-700 text-white hover:bg-brand-800'
                               }`}
                             >
                               {isUploading ? (
@@ -1261,7 +1543,43 @@ export default function Account() {
 
             {/* ── Tab: Benefits ── */}
             {tab === 'benefits' && (
-              <div className="space-y-5">
+              <div id="account-panel-benefits" role="tabpanel" aria-labelledby="account-tab-benefits" className="space-y-5">
+                {customerInfo?.referral_code && (
+                  <div className="rounded-lg border border-amber-200 bg-white p-4 lg:hidden">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Gift className="h-4 w-4 text-amber-600" />
+                        <p className="text-sm font-bold text-slate-800">Mã giới thiệu của bạn</p>
+                      </div>
+                      {tierInfo && (
+                        <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${tierInfo.color}`}>{tierInfo.label}</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="flex w-full items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5"
+                    >
+                      <span className="font-mono text-sm font-bold tracking-widest text-amber-800">{customerInfo.referral_code}</span>
+                      {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-amber-600" />}
+                    </button>
+                  </div>
+                )}
+                {benefitsError && !loadingBenefits && (
+                  <div className="flex items-start justify-between gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
+                    <div className="flex items-start gap-2">
+                      <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                      <p className="text-sm text-red-700">{benefitsError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void loadBenefits()}
+                      className="shrink-0 rounded-md bg-white px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100 hover:bg-red-100"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                )}
                 {loadingBenefits ? (
                   <div className="flex justify-center py-16">
                     <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
@@ -1270,7 +1588,7 @@ export default function Account() {
                   <>
                     {/* Loyalty discount card */}
                     {loyaltyDiscount && (
-                      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5">
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
                         <div className="flex items-center gap-2 mb-3">
                           <Award className="w-5 h-5 text-amber-600" />
                           <h2 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Ưu đãi thành viên</h2>
@@ -1297,14 +1615,14 @@ export default function Account() {
 
                     {/* Referral rewards */}
                     {referralRewards.length > 0 && (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="rounded-lg border border-slate-200 bg-white p-5">
                         <div className="flex items-center gap-2 mb-4">
                           <Star className="w-5 h-5 text-brand-600" />
                           <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Thưởng giới thiệu</h2>
                         </div>
                         <div className="space-y-3">
                           {referralRewards.map((r) => (
-                            <div key={r.reward_id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                            <div key={r.reward_id} className="flex items-center justify-between border-b border-slate-100 py-2.5 last:border-0">
                               <div>
                                 <p className="text-sm font-semibold text-gray-800">
                                   +{r.reward_value.toLocaleString('vi-VN')}đ
@@ -1313,7 +1631,7 @@ export default function Account() {
                                   {new Date(r.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                 </p>
                               </div>
-                              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                              <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${
                                 r.status === 'paid'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : 'bg-amber-50 text-amber-700 border border-amber-200'
@@ -1328,14 +1646,14 @@ export default function Account() {
 
                     {/* Public promo codes */}
                     {promos.length > 0 && (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="rounded-lg border border-slate-200 bg-white p-5">
                         <div className="flex items-center gap-2 mb-4">
                           <Tag className="w-5 h-5 text-brand-600" />
                           <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Mã khuyến mãi</h2>
                         </div>
                         <div className="space-y-3">
                           {promos.map((p) => (
-                            <div key={p.code} className="border border-dashed border-brand-200 rounded-xl p-3.5 bg-brand-50/40">
+                            <div key={p.code} className="rounded-md border border-dashed border-brand-200 bg-brand-50/40 p-3.5">
                               <div className="flex items-center justify-between mb-2">
                                 <button
                                   type="button"
@@ -1344,7 +1662,7 @@ export default function Account() {
                                     setCopiedPromo(p.code)
                                     setTimeout(() => setCopiedPromo(null), 2000)
                                   }}
-                                  className="flex items-center gap-2 bg-white border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-50 transition-colors group"
+                                  className="group flex items-center gap-2 rounded-md border border-brand-200 bg-white px-3 py-1.5 transition-colors hover:bg-brand-50"
                                 >
                                   <span className="font-mono font-bold text-brand-700 text-sm tracking-widest">{p.code}</span>
                                   {copiedPromo === p.code ? (
@@ -1375,8 +1693,8 @@ export default function Account() {
 
                     {/* Empty state */}
                     {!loyaltyDiscount && referralRewards.length === 0 && promos.length === 0 && (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-                        <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <div className="rounded-lg border border-slate-200 bg-white p-10 text-center">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-amber-50">
                           <Gift className="w-7 h-7 text-amber-300" />
                         </div>
                         <p className="font-semibold text-gray-900 mb-1">Chưa có ưu đãi nào</p>

@@ -52,6 +52,21 @@
       "headers": { "Location": "https://www.carmatch.vn/blog" }
     },
     {
+      "src": "/car-list/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/sample-page/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
+      "src": "/author/([^/]+)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
       "src": "/blog/hello-world/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/blog" }
@@ -60,6 +75,26 @@
       "src": "/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi-tranh-lua-dao/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi" }
+    },
+    {
+      "src": "/blog/thue-xe-tu-lai-500k-o-ha-noi/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu" }
+    },
+    {
+      "src": "/thue-xe-tu-lai-500k-o-ha-noi/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu" }
+    },
+    {
+      "src": "/blog/gia-thue-xe-tu-lai-ha-noi-hop-li/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu" }
+    },
+    {
+      "src": "/blog/thue-xe-tu-lai-vinfast-ha-noi/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast" }
     },
     {
       "src": "/guilde/?",
@@ -80,6 +115,11 @@
       "src": "/car/([^/]+)/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/xe/vinfast-vf5-2025-xam/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf5-2025-30b-25908" }
     },
     {
       "src": "/lien-he/?",
@@ -106,7 +146,7 @@
     {
       "src": "/blog/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/blog" }
+      "headers": { "Location": "https://www.carmatch.vn/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu" }
     },
     {
       "src": "/blog/([^/]+)/?",

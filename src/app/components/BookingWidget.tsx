@@ -9,6 +9,8 @@ import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } fr
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
+const MAX_PAYMENT_PROOF_BYTES = 8 * 1024 * 1024;
+const PAYMENT_PROOF_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
 
 // ─── Availability types ────────────────────────────────────────────────────────
 
@@ -58,6 +60,14 @@ function categorizeConflicts(
 function fmtDateShort(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+function validatePaymentProof(file: File): string | null {
+  if (file.size > MAX_PAYMENT_PROOF_BYTES) return 'Ảnh quá lớn, vui lòng chọn ảnh dưới 8MB';
+  if (file.type && !PAYMENT_PROOF_TYPES.has(file.type)) {
+    return 'Chỉ hỗ trợ ảnh JPG, PNG, WEBP hoặc HEIC';
+  }
+  return null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -330,6 +340,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError('');
+    const validationError = validatePaymentProof(file);
+    if (validationError) {
+      setUploadError(validationError);
+      e.target.value = '';
+      return;
+    }
     setPaymentProofFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setPaymentProofPreview(ev.target?.result as string);
@@ -349,7 +365,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         const res = await fetch('/api/bookings?action=upload-proof', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ booking_ref: bookingRef, file_base64: base64, file_name: paymentProofFile.name }),
+          body: JSON.stringify({
+            booking_ref: bookingRef,
+            phone: customerPhone.trim().replace(/\s/g, ''),
+            file_base64: base64,
+            file_name: paymentProofFile.name,
+          }),
         });
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
@@ -1909,7 +1930,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 </button>
 
                 <Link
-                  to={`/dat-xe?ref=${bookingRef}`}
+                  to={`/dat-xe?ref=${bookingRef}&phone=${encodeURIComponent(customerPhone.trim().replace(/\s/g, ''))}`}
                   className="flex items-center justify-center gap-2 w-full rounded-2xl border border-cyan-200 bg-cyan-50 py-2.5 text-sm font-semibold text-cyan-700 hover:bg-cyan-100 transition-colors"
                 >
                   🔍 Xem & lưu trang xác nhận

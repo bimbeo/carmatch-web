@@ -7,7 +7,7 @@ import { useSEO } from '@/hooks/useSEO';
 interface BookingData {
   booking_ref: string;
   name: string;
-  phone: string;
+  phone_masked: string;
   car_model: string;
   duration: string;
   deposit_amount: number;
@@ -37,27 +37,37 @@ function StatusBadge({ status }: { status: string }) {
 export default function BookingConfirm() {
   useSEO({
     title: 'Tra cứu đặt xe — Car Match',
-    description: 'Tra cứu thông tin đặt xe Car Match bằng mã booking.',
+    description: 'Tra cứu thông tin đặt xe Car Match bằng mã booking và số điện thoại đã đặt.',
     noIndex: true,
   });
   const [params] = useSearchParams();
   const refParam = params.get('ref') || '';
+  const phoneParam = params.get('phone') || '';
 
   const [inputRef, setInputRef] = useState(refParam.toUpperCase());
+  const [inputPhone, setInputPhone] = useState(phoneParam);
   const [data, setData] = useState<BookingData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const lookup = async (ref: string) => {
+  const lookup = async (ref: string, phone: string) => {
     if (!ref.trim()) {
       setError('Vui lòng nhập mã booking');
+      return;
+    }
+    if (!phone.trim()) {
+      setError('Vui lòng nhập số điện thoại đã đặt xe');
       return;
     }
     setLoading(true);
     setError('');
     setData(null);
     try {
-      const res = await fetch(`/api/bookings?ref=${encodeURIComponent(ref.trim())}`);
+      const qs = new URLSearchParams({
+        ref: ref.trim().toUpperCase(),
+        phone: phone.trim(),
+      });
+      const res = await fetch(`/api/bookings?${qs.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Không tìm thấy');
       setData(json);
@@ -69,7 +79,7 @@ export default function BookingConfirm() {
   };
 
   useEffect(() => {
-    if (refParam) void lookup(refParam);
+    if (refParam && phoneParam) void lookup(refParam, phoneParam);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -79,25 +89,33 @@ export default function BookingConfirm() {
         <div className="max-w-lg mx-auto px-4">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-slate-900">Tra cứu đơn đặt xe</h1>
-            <p className="text-sm text-gray-500 mt-1">Nhập mã booking để xem thông tin chuyến thuê</p>
+            <p className="text-sm text-gray-500 mt-1">Nhập mã booking và số điện thoại đã đặt để xem thông tin chuyến thuê</p>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Mã booking
             </label>
-            <div className="flex gap-2">
+            <div className="space-y-3">
               <input
                 value={inputRef}
                 onChange={e => setInputRef(e.target.value.toUpperCase())}
-                onKeyDown={e => e.key === 'Enter' && void lookup(inputRef)}
+                onKeyDown={e => e.key === 'Enter' && void lookup(inputRef, inputPhone)}
                 placeholder="CMOTTL250523-BW001"
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+              />
+              <input
+                type="tel"
+                value={inputPhone}
+                onChange={e => setInputPhone(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && void lookup(inputRef, inputPhone)}
+                placeholder="Số điện thoại đã đặt xe"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
               />
               <button
-                onClick={() => void lookup(inputRef)}
+                onClick={() => void lookup(inputRef, inputPhone)}
                 disabled={loading}
-                className="px-4 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-semibold hover:bg-cyan-600 transition-colors disabled:opacity-50"
+                className="w-full px-4 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-semibold hover:bg-cyan-600 transition-colors disabled:opacity-50"
               >
                 {loading ? '...' : 'Tra cứu'}
               </button>
@@ -122,7 +140,7 @@ export default function BookingConfirm() {
                 </div>
                 <div>
                   <p className="text-gray-400 text-xs mb-0.5">Số điện thoại</p>
-                  <p className="font-semibold text-slate-900">{data.phone}</p>
+                  <p className="font-semibold text-slate-900">{data.phone_masked}</p>
                 </div>
                 <div>
                   <p className="text-gray-400 text-xs mb-0.5">Tên xe</p>
