@@ -28,8 +28,8 @@ export default async function handler(req, res) {
 
   const normalized = phone.replace(/^0/, '84');
 
-  // Fetch customer + discount settings in parallel
-  const [{ data: customer, error }, { data: settings }] = await Promise.all([
+  // Fetch customer + discount settings + points settings in parallel
+  const [{ data: customer, error }, { data: settings }, { data: pointsSettings }] = await Promise.all([
     supabase
       .from('customers')
       .select('id, full_name, loyalty_tier, referral_code, status')
@@ -39,6 +39,11 @@ export default async function handler(req, res) {
     supabase
       .from('loyalty_discount_settings')
       .select('tier, discount_amount, enabled'),
+    supabase
+      .from('points_settings')
+      .select('points_per_10k, redeem_points, redeem_value, referral_bonus_points, enabled')
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (error) {
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
   }
 
   if (!customer) {
-    return res.status(200).json({ tier: 'lead', discount_amount: 0, eligible: false });
+    return res.status(200).json({ tier: 'lead', discount_amount: 0, eligible: false, referral_credit: 0, points_balance: 0, points_value: 0 });
   }
 
   // Build tier → amount map from DB; fallback to env var if missing
@@ -62,11 +67,36 @@ export default async function handler(req, res) {
   const tier = customer.loyalty_tier || 'lead';
   const discountAmount = tierDiscounts[tier] ?? 0;
 
+  // Referral credit: sum of paid rewards not yet used
+  const [{ data: rewards }, { data: pointsLedger }] = await Promise.all([
+    supabase
+      .from('referral_rewards')
+      .select('reward_value')
+      .eq('referrer_customer_id', customer.id)
+      .eq('status', 'paid')
+      .is('used_at', null),
+    supabase
+      .from('customer_points_ledger')
+      .select('points')
+      .eq('customer_id', customer.id),
+  ]);
+
+  const referralCredit = (rewards || []).reduce((s, r) => s + Number(r.reward_value || 0), 0);
+  const pointsBalance = (pointsLedger || []).reduce((s, r) => s + Number(r.points || 0), 0);
+  const ps = pointsSettings || { redeem_points: 200, redeem_value: 50000 };
+  const pointsValue = pointsBalance >= ps.redeem_points
+    ? Math.floor(pointsBalance / ps.redeem_points) * ps.redeem_value
+    : 0;
+
   return res.status(200).json({
     tier,
     eligible: discountAmount > 0,
     discount_amount: discountAmount,
     customer_name: customer.full_name,
     referral_code: customer.referral_code || null,
+    referral_credit: referralCredit,
+    points_balance: pointsBalance,
+    points_value: pointsValue,
+    points_settings: ps,
   });
 }

@@ -524,7 +524,9 @@ export default function Account() {
   const [phoneError, setPhoneError] = useState('')
   const [linkingPhone, setLinkingPhone] = useState(false)
 
-  const [tab, setTab] = useState<'bookings' | 'docs' | 'benefits'>('bookings')
+  const [tab, setTab] = useState<'bookings' | 'docs' | 'benefits' | 'points'>('bookings')
+  const [pointsData, setPointsData] = useState<{ balance: number; redeemable_value: number; settings: { redeem_points: number; redeem_value: number; points_per_10k: number }; ledger: Array<{ id: string; points: number; type: string; description: string; created_at: string }> } | null>(null)
+  const [loadingPoints, setLoadingPoints] = useState(false)
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [webLeads, setWebLeads] = useState<WebLead[]>([])
@@ -654,6 +656,25 @@ export default function Account() {
       setBenefitsError('Chưa tải được ưu đãi. Vui lòng thử lại.')
     } finally {
       setLoadingBenefits(false)
+    }
+  }
+
+  async function loadPoints() {
+    if (!phone) return
+    setLoadingPoints(true)
+    try {
+      const res = await fetch(`/api/customer-discount?phone=${encodeURIComponent(phone)}`)
+      const json = await res.json()
+      if (res.ok) {
+        setPointsData({
+          balance: json.points_balance || 0,
+          redeemable_value: json.points_value || 0,
+          settings: json.points_settings || { redeem_points: 200, redeem_value: 50000, points_per_10k: 1 },
+          ledger: [],
+        })
+      }
+    } catch { /* silent */ } finally {
+      setLoadingPoints(false)
     }
   }
 
@@ -1131,7 +1152,7 @@ export default function Account() {
               </div>
 
               {/* Nav */}
-              <nav className="grid grid-cols-3 lg:block lg:p-2" role="tablist" aria-label="Khu vực tài khoản">
+              <nav className="grid grid-cols-4 lg:block lg:p-2" role="tablist" aria-label="Khu vực tài khoản">
                 <button
                   type="button"
                   id="account-tab-bookings"
@@ -1205,6 +1226,30 @@ export default function Account() {
                       tab === 'benefits' ? 'bg-brand-100 text-brand-600' : 'bg-amber-100 text-amber-600'
                     }`}>
                       {promos.length + referralRewards.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  id="account-tab-points"
+                  role="tab"
+                  aria-selected={tab === 'points'}
+                  aria-controls="account-panel-points"
+                  onClick={() => { setTab('points'); void loadPoints(); }}
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
+                    tab === 'points'
+                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  <Star className="w-4 h-4 shrink-0" />
+                  <span className="lg:flex-1 lg:text-left">Điểm</span>
+                  {pointsData && pointsData.balance > 0 && (
+                    <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold lg:px-2 lg:text-[11px] ${
+                      tab === 'points' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-600'
+                    }`}>
+                      {pointsData.balance}
                     </span>
                   )}
                 </button>
@@ -1689,6 +1734,80 @@ export default function Account() {
                         </div>
                         <p className="font-semibold text-gray-900 mb-1">Chưa có ưu đãi nào</p>
                         <p className="text-gray-400 text-sm">Giới thiệu bạn bè để nhận thưởng, hoặc hỏi nhân viên về mã khuyến mãi</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── Points tab ── */}
+            {tab === 'points' && (
+              <div id="account-panel-points" role="tabpanel" aria-labelledby="account-tab-points" className="space-y-5">
+                {loadingPoints ? (
+                  <div className="flex justify-center py-16">
+                    <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Balance card */}
+                    <div className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Star className="w-5 h-5 text-blue-600" />
+                        <h2 className="text-sm font-bold text-blue-800 uppercase tracking-wider">Điểm tích lũy</h2>
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-4xl font-black text-blue-700">{(pointsData?.balance ?? 0).toLocaleString('vi-VN')}</p>
+                          <p className="text-sm text-blue-500 mt-1">điểm</p>
+                        </div>
+                        {(pointsData?.redeemable_value ?? 0) > 0 && (
+                          <div className="text-right">
+                            <p className="text-xs text-blue-500">Có thể quy đổi</p>
+                            <p className="text-xl font-black text-blue-700 mt-0.5">
+                              {(pointsData?.redeemable_value ?? 0).toLocaleString('vi-VN')}đ
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {(pointsData?.balance ?? 0) > 0 && (pointsData?.redeemable_value ?? 0) === 0 && pointsData?.settings && (
+                        <p className="text-xs text-blue-400 mt-3">
+                          Cần thêm {Math.max(0, pointsData.settings.redeem_points - (pointsData.balance ?? 0)).toLocaleString('vi-VN')} điểm nữa để đổi {pointsData.settings.redeem_value.toLocaleString('vi-VN')}đ
+                        </p>
+                      )}
+                    </div>
+
+                    {/* How it works */}
+                    <div className="rounded-lg border border-slate-200 bg-white p-5">
+                      <h3 className="text-sm font-bold text-slate-700 mb-3">Cách tích & dùng điểm</h3>
+                      <div className="space-y-2.5 text-sm text-slate-600">
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">1</span>
+                          <p>Mỗi <strong>10.000đ</strong> chi tiêu = <strong>{pointsData?.settings?.points_per_10k ?? 1} điểm</strong></p>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">2</span>
+                          <p><strong>{pointsData?.settings?.redeem_points ?? 200} điểm</strong> = <strong>{(pointsData?.settings?.redeem_value ?? 50000).toLocaleString('vi-VN')}đ</strong> giảm giá</p>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-700">+</span>
+                          <p>Nhận thêm <strong>100 điểm</strong> khi giới thiệu bạn bè đặt xe thành công</p>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">i</span>
+                          <p className="text-slate-400">Điểm được cộng sau khi bạn hoàn trả xe. Liên hệ nhân viên để sử dụng điểm.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Empty state */}
+                    {(pointsData?.balance ?? 0) === 0 && (
+                      <div className="rounded-lg border border-slate-200 bg-white p-10 text-center">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-blue-50">
+                          <Star className="w-7 h-7 text-blue-300" />
+                        </div>
+                        <p className="font-semibold text-gray-900 mb-1">Chưa có điểm tích lũy</p>
+                        <p className="text-gray-400 text-sm">Điểm được tích sau mỗi chuyến xe hoàn thành</p>
                       </div>
                     )}
                   </>

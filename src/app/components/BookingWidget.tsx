@@ -314,6 +314,9 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [promoListLoading, setPromoListLoading] = useState(false);
 
   // ── Loyalty auto-discount ─────────────────────────────────────────────────
+  const [referralCredit, setReferralCredit] = useState(0);
+  const [pointsBalance, setPointsBalance] = useState(0);
+  const [pointsValue, setPointsValue] = useState(0);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState<{
     tier: string;
     discount_amount: number;
@@ -541,7 +544,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       } else {
         setLoyaltyDiscount(null);
       }
-    } catch { setLoyaltyDiscount(null); }
+      setReferralCredit(json.referral_credit || 0);
+      setPointsBalance(json.points_balance || 0);
+      setPointsValue(json.points_value || 0);
+    } catch { setLoyaltyDiscount(null); setReferralCredit(0); setPointsBalance(0); setPointsValue(0); }
   };
 
   const applyLoyaltyDiscount = () => {
@@ -1573,7 +1579,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   </label>
                   <input
                     value={customerPhone}
-                    onChange={e => { setCustomerPhone(e.target.value); setBookingError(''); setLoyaltyDiscount(null); }}
+                    onChange={e => { setCustomerPhone(e.target.value); setBookingError(''); setLoyaltyDiscount(null); setReferralCredit(0); setPointsBalance(0); setPointsValue(0); }}
                     onBlur={e => void checkLoyaltyDiscount(e.target.value)}
                     placeholder="0912 345 678"
                     type="tel"
@@ -1596,6 +1602,28 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                       >
                         Áp dụng
                       </button>
+                    </div>
+                  )}
+                  {referralCredit > 0 && (
+                    <div className="mt-2 flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
+                      <span className="text-base">🎁</span>
+                      <div>
+                        <p className="text-xs font-black text-amber-800">Thưởng giới thiệu</p>
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          Bạn có <strong>{referralCredit.toLocaleString('vi-VN')}đ</strong> — nhân viên sẽ tự động áp dụng khi lập hợp đồng
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {pointsValue > 0 && (
+                    <div className="mt-2 flex items-center gap-3 rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5">
+                      <span className="text-base">⭐</span>
+                      <div>
+                        <p className="text-xs font-black text-blue-800">{pointsBalance.toLocaleString('vi-VN')} điểm tích lũy</p>
+                        <p className="text-xs text-blue-700 mt-0.5">
+                          Quy đổi được <strong>{pointsValue.toLocaleString('vi-VN')}đ</strong> — liên hệ nhân viên để sử dụng
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
