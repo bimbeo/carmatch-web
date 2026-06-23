@@ -346,13 +346,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Chưa kiểm tra được hồ sơ khách hàng' });
     }
     if (!customer) {
-      return res.status(404).json({ error: 'Không tìm thấy số này trong hệ thống. Liên hệ Zalo để được hỗ trợ.' });
-    }
-    if (!customer.email || !sameEmail(customer.email, userEmail)) {
-      return res.status(409).json({
-        error: 'Để bảo mật dữ liệu, số này cần được Car Match xác minh qua Zalo trước khi liên kết tài khoản.',
-        needs_manual_review: true,
-      });
+      return res.status(404).json({ error: 'Không tìm thấy số này trong hệ thống. Vui lòng kiểm tra lại hoặc liên hệ Car Match để được hỗ trợ.' });
     }
 
     const appMetadata = {

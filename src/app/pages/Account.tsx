@@ -953,7 +953,7 @@ export default function Account() {
               </div>
               <h2 className="font-bold text-gray-900 text-lg mb-1">Liên kết số điện thoại</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Nhập SĐT đã đặt xe. Car Match chỉ mở dữ liệu khi email Google khớp hồ sơ khách hàng.
+                Nhập số điện thoại bạn đã dùng để đặt xe với Car Match.
               </p>
             </div>
 
@@ -968,17 +968,7 @@ export default function Account() {
                   className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-[15px] font-medium focus:outline-none focus:border-brand-500 transition-colors text-center tracking-wide"
                 />
                 {phoneError && (
-                  <div className="mt-2 text-center">
-                    <p className="text-sm leading-relaxed text-red-500">{phoneError}</p>
-                    <a
-                      href={`https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(`Chào Car Match, tôi muốn xác minh số ${normalizePhone(phoneInput)} cho tài khoản ${session.user.email ?? ''}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1 inline-flex text-xs font-semibold text-brand-700 underline underline-offset-2"
-                    >
-                      Nhắn Zalo để xác minh
-                    </a>
-                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-red-500 text-center">{phoneError}</p>
                 )}
               </div>
 
