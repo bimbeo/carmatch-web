@@ -195,7 +195,7 @@ export default async function handler(req, res) {
     ? Math.floor(pointsBalance / ps.redeem_points) * ps.redeem_value
     : 0;
 
-  return res.status(200).json({
+  const response = {
     tier,
     eligible: discountAmount > 0,
     discount_amount: discountAmount,
@@ -205,5 +205,30 @@ export default async function handler(req, res) {
     points_balance: pointsBalance,
     points_value: pointsValue,
     points_settings: ps,
-  });
+  };
+
+  if (req.query.include_ledger === '1') {
+    const now = new Date().toISOString();
+    const [{ data: ledgerRows }, { data: activeCodes }] = await Promise.all([
+      supabase
+        .from('customer_points_ledger')
+        .select('id, points, type, description, created_at')
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('promo_codes')
+        .select('code, discount_value, expires_at')
+        .eq('phone_restriction', phone)
+        .eq('active', true)
+        .eq('uses_count', 0)
+        .gt('expires_at', now)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ]);
+    response.ledger = ledgerRows || [];
+    response.active_codes = activeCodes || [];
+  }
+
+  return res.status(200).json(response);
 }

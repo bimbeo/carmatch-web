@@ -525,7 +525,7 @@ export default function Account() {
   const [linkingPhone, setLinkingPhone] = useState(false)
 
   const [tab, setTab] = useState<'bookings' | 'docs' | 'benefits' | 'points'>('bookings')
-  const [pointsData, setPointsData] = useState<{ balance: number; redeemable_value: number; settings: { redeem_points: number; redeem_value: number; points_per_10k: number }; ledger: Array<{ id: string; points: number; type: string; description: string; created_at: string }> } | null>(null)
+  const [pointsData, setPointsData] = useState<{ balance: number; redeemable_value: number; settings: { redeem_points: number; redeem_value: number; points_per_10k: number }; ledger: Array<{ id: string; points: number; type: string; description: string; created_at: string }>; active_codes: Array<{ code: string; discount_value: number; expires_at: string }> } | null>(null)
   const [loadingPoints, setLoadingPoints] = useState(false)
   const [redeemLoading, setRedeemLoading] = useState(false)
   const [redeemResult, setRedeemResult] = useState<{ code: string; discount_value: number; expires_at: string } | null>(null)
@@ -667,14 +667,15 @@ export default function Account() {
     if (!phone) return
     setLoadingPoints(true)
     try {
-      const res = await fetch(`/api/customer-discount?phone=${encodeURIComponent(phone)}`)
+      const res = await fetch(`/api/customer-discount?phone=${encodeURIComponent(phone)}&include_ledger=1`)
       const json = await res.json()
       if (res.ok) {
         setPointsData({
           balance: json.points_balance || 0,
           redeemable_value: json.points_value || 0,
           settings: json.points_settings || { redeem_points: 200, redeem_value: 50000, points_per_10k: 1 },
-          ledger: [],
+          ledger: json.ledger || [],
+          active_codes: json.active_codes || [],
         })
       }
     } catch { /* silent */ } finally {
@@ -1875,6 +1876,56 @@ export default function Account() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Active promo codes from point redemption */}
+                    {(pointsData?.active_codes?.length ?? 0) > 0 && !redeemResult && (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                        <p className="text-xs font-bold text-emerald-700 mb-2">Mã giảm giá chưa dùng</p>
+                        <div className="space-y-2">
+                          {pointsData!.active_codes.map(c => (
+                            <div key={c.code} className="flex items-center gap-2 bg-white rounded-md px-3 py-2 border border-emerald-100">
+                              <span className="flex-1 font-mono text-sm font-black text-emerald-800 tracking-widest">{c.code}</span>
+                              <span className="text-xs text-emerald-600 font-semibold">{c.discount_value.toLocaleString('vi-VN')}đ</span>
+                              <button
+                                onClick={() => navigator.clipboard.writeText(c.code)}
+                                className="text-emerald-400 hover:text-emerald-700"
+                                title="Sao chép"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-emerald-500 mt-2">Nhập mã vào form đặt xe trên trang chủ để áp dụng</p>
+                      </div>
+                    )}
+
+                    {/* Transaction history */}
+                    {(pointsData?.ledger?.length ?? 0) > 0 && (
+                      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+                        <p className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-100">Lịch sử giao dịch</p>
+                        <div className="divide-y divide-slate-100">
+                          {pointsData!.ledger.map(row => (
+                            <div key={row.id} className="flex items-center justify-between px-4 py-3">
+                              <div>
+                                <p className="text-xs font-semibold text-slate-700">
+                                  {row.type === 'earn' ? '🎟 Tích điểm'
+                                    : row.type === 'redeem' ? '🔄 Quy đổi'
+                                    : row.type === 'referral_bonus' ? '🎁 Thưởng giới thiệu'
+                                    : row.type === 'manual_adjust' ? '✏️ Điều chỉnh'
+                                    : row.type}
+                                </p>
+                                {row.description && <p className="text-[11px] text-slate-400 mt-0.5">{row.description}</p>}
+                                <p className="text-[11px] text-slate-300">{new Date(row.created_at).toLocaleDateString('vi-VN')}</p>
+                              </div>
+                              <span className={`text-sm font-black ${row.points >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                {row.points >= 0 ? '+' : ''}{row.points.toLocaleString('vi-VN')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Empty state */}
                     {(pointsData?.balance ?? 0) === 0 && (
