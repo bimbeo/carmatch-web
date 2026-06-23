@@ -527,6 +527,10 @@ export default function Account() {
   const [tab, setTab] = useState<'bookings' | 'docs' | 'benefits' | 'points'>('bookings')
   const [pointsData, setPointsData] = useState<{ balance: number; redeemable_value: number; settings: { redeem_points: number; redeem_value: number; points_per_10k: number }; ledger: Array<{ id: string; points: number; type: string; description: string; created_at: string }> } | null>(null)
   const [loadingPoints, setLoadingPoints] = useState(false)
+  const [redeemLoading, setRedeemLoading] = useState(false)
+  const [redeemResult, setRedeemResult] = useState<{ code: string; discount_value: number; expires_at: string } | null>(null)
+  const [redeemError, setRedeemError] = useState('')
+  const [copiedRedeemCode, setCopiedRedeemCode] = useState(false)
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [webLeads, setWebLeads] = useState<WebLead[]>([])
@@ -675,6 +679,32 @@ export default function Account() {
       }
     } catch { /* silent */ } finally {
       setLoadingPoints(false)
+    }
+  }
+
+  async function redeemPoints() {
+    if (!phone) return
+    setRedeemLoading(true)
+    setRedeemError('')
+    setRedeemResult(null)
+    try {
+      const res = await fetch('/api/customer-points-redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setRedeemError(json.error || 'Đổi điểm thất bại, thử lại sau')
+      } else {
+        setRedeemResult({ code: json.code, discount_value: json.discount_value, expires_at: json.expires_at })
+        // Refresh balance
+        void loadPoints()
+      }
+    } catch {
+      setRedeemError('Lỗi kết nối, thử lại sau')
+    } finally {
+      setRedeemLoading(false)
     }
   }
 
@@ -1775,6 +1805,52 @@ export default function Account() {
                           Cần thêm {Math.max(0, pointsData.settings.redeem_points - (pointsData.balance ?? 0)).toLocaleString('vi-VN')} điểm nữa để đổi {pointsData.settings.redeem_value.toLocaleString('vi-VN')}đ
                         </p>
                       )}
+
+                      {/* Redeem button — only when balance meets threshold */}
+                      {(pointsData?.redeemable_value ?? 0) > 0 && !redeemResult && (
+                        <div className="mt-4 pt-4 border-t border-blue-100">
+                          {redeemError && (
+                            <p className="text-xs text-red-500 mb-2">{redeemError}</p>
+                          )}
+                          <button
+                            onClick={() => void redeemPoints()}
+                            disabled={redeemLoading}
+                            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 transition-colors"
+                          >
+                            {redeemLoading
+                              ? 'Đang tạo mã...'
+                              : `Đổi điểm lấy mã giảm ${(pointsData?.redeemable_value ?? 0).toLocaleString('vi-VN')}đ`}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Redeem success */}
+                      {redeemResult && (
+                        <div className="mt-4 pt-4 border-t border-blue-100">
+                          <p className="text-xs font-semibold text-emerald-700 mb-2">Mã giảm giá của bạn:</p>
+                          <div className="flex items-center gap-2">
+                            <span className="flex-1 rounded-md bg-white border border-blue-200 px-3 py-2 font-mono text-base font-black text-blue-800 tracking-widest text-center">
+                              {redeemResult.code}
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(redeemResult.code).then(() => {
+                                  setCopiedRedeemCode(true)
+                                  setTimeout(() => setCopiedRedeemCode(false), 2000)
+                                })
+                              }}
+                              className="shrink-0 rounded-md border border-blue-200 bg-white p-2 text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Sao chép mã"
+                            >
+                              {copiedRedeemCode ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          <p className="text-xs text-blue-400 mt-2">
+                            Giảm {redeemResult.discount_value.toLocaleString('vi-VN')}đ · Dùng 1 lần · Hết hạn {new Date(redeemResult.expires_at).toLocaleDateString('vi-VN')}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">Nhập mã này vào form đặt xe trên trang chủ để áp dụng</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* How it works */}
@@ -1795,7 +1871,7 @@ export default function Account() {
                         </div>
                         <div className="flex items-start gap-2.5">
                           <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">i</span>
-                          <p className="text-slate-400">Điểm được cộng sau khi bạn hoàn trả xe. Liên hệ nhân viên để sử dụng điểm.</p>
+                          <p className="text-slate-400">Điểm được cộng sau khi bạn hoàn trả xe. Nhấn "Đổi điểm" để tạo mã giảm giá tự động.</p>
                         </div>
                       </div>
                     </div>

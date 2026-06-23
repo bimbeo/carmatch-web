@@ -103,7 +103,7 @@ async function validatePromo(req, res) {
   const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('promo_codes')
-    .select('code, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, first_time_only, weekends_only')
+    .select('code, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, first_time_only, weekends_only, phone_restriction')
     .eq('code', code)
     .eq('active', true)
     .maybeSingle();
@@ -149,6 +149,15 @@ async function validatePromo(req, res) {
   const usesCount = Number(data.uses_count || 0);
   if (usesLimit !== null && usesLimit !== undefined && usesCount >= Number(usesLimit)) {
     return res.status(400).json({ error: 'Mã đã hết lượt sử dụng' });
+  }
+
+  if (data.phone_restriction) {
+    if (!customerPhone) return res.status(400).json({ error: 'Mã này chỉ dành riêng cho một khách hàng cụ thể' });
+    const normalizedRestriction = data.phone_restriction.replace(/^0/, '84');
+    const normalizedCustomer = customerPhone.replace(/[\s\-().+]/g, '').replace(/^0/, '84');
+    if (normalizedRestriction !== normalizedCustomer && data.phone_restriction !== customerPhone) {
+      return res.status(400).json({ error: 'Mã này không áp dụng được cho số điện thoại của bạn' });
+    }
   }
 
   const minOrder = data.min_order === null || data.min_order === undefined ? null : Number(data.min_order);
