@@ -260,6 +260,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
   const [reviewError, setReviewError] = useState('')
   const [reviewDone, setReviewDone] = useState(false)
   const [reviewStatus, setReviewStatus] = useState<string | null>(null)
+  const [reviewData, setReviewData] = useState<{ rating: number; comment: string | null } | null>(null)
 
   const tripEnded = !!(b.return_date && b.return_date < new Date().toISOString().slice(0, 10))
 
@@ -269,7 +270,13 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
     if (!ref) return
     fetch(`/api/reviews?booking_ref=${encodeURIComponent(ref)}`)
       .then(r => r.json())
-      .then(d => { if (d.reviewed) { setReviewDone(true); setReviewStatus(d.status ?? null) } })
+      .then(d => {
+        if (d.reviewed) {
+          setReviewDone(true)
+          setReviewStatus(d.status ?? null)
+          if (d.rating) setReviewData({ rating: d.rating, comment: d.comment ?? null })
+        }
+      })
       .catch(() => {})
   }, [tripEnded, b.booking_code, b.booking_id])
 
@@ -366,10 +373,22 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
             </button>
           )}
           {reviewDone && (
-            <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
-              <Check className="h-3.5 w-3.5" />
-              {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
-            </span>
+            <div className="flex flex-col gap-1">
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
+                <Check className="h-3.5 w-3.5" />
+                {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
+              </span>
+              {reviewData && (
+                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
+                  <div className="flex gap-0.5 shrink-0 mt-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} className={`h-3 w-3 ${s <= reviewData.rating ? 'text-amber-400 fill-current' : 'text-slate-200'}`} />
+                    ))}
+                  </div>
+                  {reviewData.comment && <p className="text-xs text-slate-600">{reviewData.comment}</p>}
+                </div>
+              )}
+            </div>
           )}
           {!tripEnded && !reviewDone && (
             <p className="truncate font-mono text-[10px] tracking-wide text-slate-400">
@@ -487,6 +506,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
   const [reviewError, setReviewError] = useState('')
   const [reviewDone, setReviewDone] = useState(false)
   const [reviewStatus, setReviewStatus] = useState<string | null>(null)
+  const [reviewData, setReviewData] = useState<{ rating: number; comment: string | null } | null>(null)
 
   // Check if trip has ended (return date < today)
   const tripEnded = (() => {
@@ -499,7 +519,13 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
     if (!tripEnded || !w.booking_ref) return
     fetch(`/api/reviews?booking_ref=${encodeURIComponent(w.booking_ref)}`)
       .then(r => r.json())
-      .then(d => { if (d.reviewed) { setReviewDone(true); setReviewStatus(d.status ?? null) } })
+      .then(d => {
+        if (d.reviewed) {
+          setReviewDone(true)
+          setReviewStatus(d.status ?? null)
+          if (d.rating) setReviewData({ rating: d.rating, comment: d.comment ?? null })
+        }
+      })
       .catch(() => {})
   }, [tripEnded, w.booking_ref])
 
@@ -685,10 +711,22 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
             </button>
           )}
           {reviewDone && (
-            <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
-              <Check className="h-3.5 w-3.5" />
-              {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
-            </span>
+            <div className="flex flex-col gap-1">
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
+                <Check className="h-3.5 w-3.5" />
+                {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
+              </span>
+              {reviewData && (
+                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
+                  <div className="flex gap-0.5 shrink-0 mt-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} className={`h-3 w-3 ${s <= reviewData.rating ? 'text-amber-400 fill-current' : 'text-slate-200'}`} />
+                    ))}
+                  </div>
+                  {reviewData.comment && <p className="text-xs text-slate-600">{reviewData.comment}</p>}
+                </div>
+              )}
+            </div>
           )}
         </div>
         <a
