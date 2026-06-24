@@ -93,7 +93,6 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
             height={960}
             loading="eager"
             decoding="async"
-            fetchPriority="high"
           />
           {/* Gradient overlay bottom */}
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-b-2xl" />

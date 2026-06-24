@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag, ImageIcon, Upload, Copy, Check } from 'lucide-react';
@@ -112,6 +112,11 @@ function parseDateStr(str: string): Date {
 
 function displayDateSlash(dateStr: string): string {
   return dateStr.split('-').reverse().join('/');
+}
+
+function getInitialPromoCodeFromUrl(): string {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('promo')?.trim().toUpperCase() || '';
 }
 
 // ─── Pricing engine ───────────────────────────────────────────────────────────
@@ -293,6 +298,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('times-city');
   const [showModal, setShowModal] = useState(false);
+  const initialPromoCode = useMemo(() => getInitialPromoCodeFromUrl(), []);
 
   // ── Availability ──────────────────────────────────────────────────────────
   const [blockedRanges, setBlockedRanges] = useState<BlockedRange[]>([]);
@@ -300,7 +306,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [showCalModal, setShowCalModal] = useState(false);
 
   // ── Promo code ────────────────────────────────────────────────────────────
-  const [promoCode, setPromoCode] = useState('');
+  const [promoCode, setPromoCode] = useState(initialPromoCode);
   const [promoResult, setPromoResult] = useState<{
     code: string;
     discount_amount: number;
@@ -321,6 +327,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     expires_warning: string | null;
   }>>([]);
   const [promoListLoading, setPromoListLoading] = useState(false);
+  const promoAutoAppliedRef = useRef(false);
 
   // ── Loyalty auto-discount ─────────────────────────────────────────────────
   const [referralCredit, setReferralCredit] = useState(0);
@@ -646,6 +653,14 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       setPromoLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!initialPromoCode || promoAutoAppliedRef.current || totalAmount <= 0) return;
+    promoAutoAppliedRef.current = true;
+    void applyPromoFromList(initialPromoCode);
+    // Run once when the calculator has a valid amount; `applyPromoFromList` reads the latest booking state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPromoCode, totalAmount]);
 
   const handleBookingSubmit = async () => {
     if (!customerName.trim()) { setBookingError('Vui lòng nhập họ tên'); return; }
@@ -2216,7 +2231,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     <button
                       type="button"
                       onClick={() => {
-                        const msg = `Thuê xe tự lái tại CarMatch — chất lượng, giao tận nơi!\nDùng mã giới thiệu của mình: ${customerReferralCode}\ncarmatch.vn/?ref=${customerReferralCode}`;
+                        const msg = `Thuê xe tự lái tại Car Match — chất lượng, giao tận nơi!\nDùng mã giới thiệu của mình: ${customerReferralCode}\ncarmatch.vn/?ref=${customerReferralCode}`;
                         navigator.clipboard.writeText(msg).catch(() => {});
                       }}
                       className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 hover:bg-amber-100 transition-colors"

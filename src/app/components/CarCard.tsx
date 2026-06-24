@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { Users, Zap, Fuel, CalendarDays } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
 import { trackVehicleClick } from '@/lib/analytics';
@@ -26,9 +26,25 @@ interface CarCardProps {
   source?: string;
 }
 
+const PRESERVED_QUERY_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'promo'];
+
+function withPreservedCampaign(path: string, search: string, hash = '') {
+  const current = new URLSearchParams(search);
+  const next = new URLSearchParams();
+  PRESERVED_QUERY_KEYS.forEach((key) => {
+    const value = current.get(key);
+    if (value) next.set(key, value);
+  });
+  const query = next.toString();
+  return `${path}${query ? `?${query}` : ''}${hash}`;
+}
+
 export default function CarCard({ car, compact = false, source = 'vehicle_card' }: CarCardProps) {
+  const location = useLocation();
   const badge = fuelBadge[car.fuel];
   const vehicleLinkLabel = [car.name, car.description, car.plateNumber].filter(Boolean).join(' - ');
+  const detailHref = withPreservedCampaign(`/xe/${car.slug}`, location.search);
+  const bookingHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '#booking');
   const trackCar = (action: string) => trackVehicleClick(action, {
     source,
     vehicle_id: car.id,
@@ -41,7 +57,7 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:border-gray-200 transition-all group">
       {/* Image */}
       <Link
-        to={`/xe/${car.slug}`}
+        to={detailHref}
         onClick={() => trackCar('image_click')}
         className="relative block overflow-hidden aspect-video bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
       >
@@ -111,14 +127,14 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
         {/* CTAs */}
         <div className="flex gap-2">
           <Link
-            to={`/xe/${car.slug}`}
+            to={detailHref}
             onClick={() => trackCar('detail_click')}
             className="flex-1 py-2.5 text-center text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all"
           >
             Chi tiết<span className="sr-only"> {vehicleLinkLabel}</span>
           </Link>
           <Link
-            to={`/xe/${car.slug}#booking`}
+            to={bookingHref}
             onClick={() => trackCar('book_click')}
             className="flex-1 py-2.5 text-center text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors flex items-center justify-center gap-1.5"
           >

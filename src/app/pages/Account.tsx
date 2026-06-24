@@ -307,7 +307,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
   }
 
   return (
-    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-colors hover:border-slate-300">
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_38px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
       <header className="flex items-start justify-between gap-4 px-4 py-4 sm:px-5">
         <div className="min-w-0">
           <p className="text-base font-bold leading-tight text-slate-950 sm:text-[17px]">
@@ -361,7 +361,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
         )}
       </div>
 
-      <footer className="flex items-center justify-between gap-2 bg-slate-50/60 px-4 py-3 sm:px-5">
+      <footer className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {tripEnded && !reviewDone && (
             <button
@@ -602,7 +602,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
   const zaloUrl = `https://zalo.me/${ZALO_NUMBER}?text=${encodeURIComponent(zaloMsg)}`
 
   return (
-    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-colors hover:border-slate-300">
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_38px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
       <header className="flex items-start justify-between gap-4 px-4 py-4 sm:px-5">
         <div className="min-w-0">
           <p className="text-base font-bold leading-tight text-slate-950 sm:text-[17px]">
@@ -699,7 +699,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
         </div>
       </div>
 
-      <footer className="flex items-center justify-between gap-2 bg-slate-50/60 px-4 py-3 sm:px-5">
+      <footer className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
         <div>
           {tripEnded && !reviewDone && (
             <button
@@ -1265,64 +1265,93 @@ export default function Account() {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex flex-col bg-white pt-16">
+      <div className="min-h-screen bg-slate-50 pt-16">
         <Navbar />
-        <main id="main-content">
-          {/* Hero banner */}
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-800 px-6 pt-12 pb-16 text-white">
-          <div className="max-w-sm mx-auto">
-            <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mb-6 border border-white/10">
-              <Car className="w-7 h-7 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Tài khoản CarMatch</h1>
-            <p className="text-white/70 text-[15px] leading-relaxed">
-              Quản lý chuyến đi và giấy tờ của bạn — không cần gửi lại qua Zalo mỗi lần thuê.
-            </p>
+        <main id="main-content" className="mx-auto w-full max-w-[1180px] px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+          <div className="grid overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)] lg:grid-cols-[minmax(0,1.05fr)_420px]">
+            <section className="bg-slate-950 px-6 py-8 text-white sm:px-10 sm:py-12 lg:px-12 lg:py-14">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold text-white/80">
+                <Car className="h-4 w-4" />
+                Tài khoản khách thuê xe
+              </div>
 
-            <div className="mt-8 space-y-3">
-              {[
-                { icon: <History className="w-4 h-4" />, text: 'Xem toàn bộ lịch sử đặt xe' },
-                { icon: <Shield className="w-4 h-4" />, text: 'Lưu GPLX & CCCD một lần dùng mãi' },
-                { icon: <Phone className="w-4 h-4" />, text: 'Không cần mật khẩu — đăng nhập bằng Google' },
-              ].map((item) => (
-                <div key={item.text} className="flex items-center gap-3 text-white/80 text-sm">
-                  <span className="text-white/50">{item.icon}</span>
-                  {item.text}
+              <h1 className="mt-6 max-w-2xl text-3xl font-black leading-tight tracking-normal text-white sm:text-5xl">
+                Quản lý chuyến đi, giấy tờ và ưu đãi Car Match
+              </h1>
+              <p className="mt-4 max-w-xl text-[15px] leading-7 text-slate-300 sm:text-base">
+                Đăng nhập bằng Google để xem lịch sử đặt xe, lưu GPLX/CCCD một lần và theo dõi ưu đãi thành viên mà không phải gửi lại qua Zalo mỗi lần thuê.
+              </p>
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {[
+                  { icon: <History className="h-4 w-4" />, title: 'Lịch sử', text: 'Xem lại từng chuyến' },
+                  { icon: <Shield className="h-4 w-4" />, title: 'Giấy tờ', text: 'Lưu lại bảo mật' },
+                  { icon: <Tag className="h-4 w-4" />, title: 'Ưu đãi', text: 'Mã giảm giá riêng' },
+                ].map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.08] p-4">
+                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
+                      {item.icon}
+                    </div>
+                    <p className="text-sm font-bold text-white">{item.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.08] p-4">
+                <p className="text-sm font-semibold text-white">Dành cho khách đã từng đặt xe với Car Match</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Sau khi đăng nhập, bạn chỉ cần liên kết số điện thoại từng đặt xe để hệ thống tự nhận lịch sử và hồ sơ.
+                </p>
+              </div>
+            </section>
+
+            <section className="flex items-center px-6 py-8 sm:px-10 lg:px-8">
+              <div className="w-full">
+                <div className="mb-6 text-center lg:text-left">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 lg:mx-0">
+                    <Shield className="h-6 w-6 text-brand-700" />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-950">Đăng nhập để tiếp tục</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Không cần mật khẩu. Car Match chỉ dùng tài khoản để nhận diện hồ sơ của bạn.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </div>
-          </div>
 
-          {/* Login card */}
-          <div className="flex-1 px-6 -mt-6">
-          <div className="max-w-sm mx-auto">
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6">
-              <p className="text-center text-sm text-gray-500 mb-5 font-medium">
-                Đăng nhập để tiếp tục
-              </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: { redirectTo: `${window.location.origin}/tai-khoan` },
+                    })
+                  }
+                  className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 text-[15px] font-bold text-slate-800 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
+                >
+                  <GoogleIcon />
+                  Đăng nhập bằng Google
+                </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: `${window.location.origin}/tai-khoan` },
-                  })
-                }
-                className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-white border-2 border-gray-200 rounded-2xl font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm text-[15px]"
-              >
-                <GoogleIcon />
-                Đăng nhập bằng Google
-              </button>
+                <div className="mt-5 space-y-3 rounded-2xl bg-slate-50 p-4">
+                  {[
+                    'Xem chuyến đã đặt và trạng thái xác nhận',
+                    'Upload GPLX, CCCD và ảnh thanh toán',
+                    'Theo dõi điểm, mã giảm giá và giới thiệu bạn bè',
+                  ].map((text) => (
+                    <div key={text} className="flex items-start gap-2.5 text-sm text-slate-600">
+                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <span>{text}</span>
+                    </div>
+                  ))}
+                </div>
 
-              <p className="mt-4 text-center text-[11px] text-gray-400 leading-relaxed">
-                Bằng cách đăng nhập, bạn đồng ý với{' '}
-                <a href="/chinh-sach" className="underline hover:text-gray-600">điều khoản sử dụng</a>{' '}
-                của CarMatch.
-              </p>
-            </div>
-          </div>
+                <p className="mt-4 text-center text-[11px] leading-relaxed text-slate-400">
+                  Bằng cách đăng nhập, bạn đồng ý với{' '}
+                  <a href="/chinh-sach" className="font-medium text-slate-500 underline underline-offset-2 hover:text-slate-700">điều khoản sử dụng</a>{' '}
+                  của Car Match.
+                </p>
+              </div>
+            </section>
           </div>
         </main>
       </div>
@@ -1336,66 +1365,96 @@ export default function Account() {
     const name = session.user.user_metadata?.full_name as string | undefined
 
     return (
-      <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="min-h-screen bg-slate-50 pt-16">
         <Navbar />
-        <main id="main-content" className="max-w-sm mx-auto px-5 py-10">
-          {/* Avatar */}
-          <div className="text-center mb-8">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={name} className="w-16 h-16 rounded-full mx-auto mb-3 ring-4 ring-white shadow-md" />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-brand-600 flex items-center justify-center mx-auto mb-3 text-white font-bold text-2xl ring-4 ring-white shadow-md">
-                {(name ?? session.user.email ?? 'U')[0].toUpperCase()}
-              </div>
-            )}
-            <p className="font-semibold text-gray-900">{name ?? session.user.email}</p>
-            <p className="text-sm text-gray-400">{session.user.email}</p>
-          </div>
+        <main id="main-content" className="mx-auto w-full max-w-[980px] px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_70px_rgba(15,23,42,0.08)]">
+            <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
+              <section className="border-b border-slate-200 bg-slate-950 px-6 py-8 text-white sm:px-8 lg:border-b-0 lg:border-r lg:border-slate-800">
+                <div className="flex items-center gap-4 lg:block">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={name ?? 'Khách Car Match'} className="h-16 w-16 rounded-2xl object-cover ring-4 ring-white/10 lg:mb-6 lg:h-20 lg:w-20" />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-2xl font-black text-slate-950 ring-4 ring-white/10 lg:mb-6 lg:h-20 lg:w-20">
+                      {(name ?? session.user.email ?? 'U')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Đã đăng nhập Google</p>
+                    <p className="mt-1 break-all text-lg font-bold text-white">{name ?? session.user.email}</p>
+                    <p className="mt-1 break-all text-xs text-slate-400">{session.user.email}</p>
+                  </div>
+                </div>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-            <div className="text-center mb-6">
-              <div className="w-11 h-11 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Phone className="w-5 h-5 text-brand-600" />
-              </div>
-              <h2 className="font-bold text-gray-900 text-lg mb-1">Liên kết số điện thoại</h2>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Nhập số điện thoại bạn đã dùng để đặt xe với Car Match.
-              </p>
+                <div className="mt-8 space-y-3">
+                  {[
+                    { icon: <Phone className="h-4 w-4" />, text: 'Liên kết số từng đặt xe' },
+                    { icon: <History className="h-4 w-4" />, text: 'Tự nhận lịch sử chuyến đi' },
+                    { icon: <FileText className="h-4 w-4" />, text: 'Đồng bộ giấy tờ đã gửi' },
+                  ].map((item) => (
+                    <div key={item.text} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm text-slate-200">
+                      <span className="text-slate-400">{item.icon}</span>
+                      {item.text}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="px-6 py-8 sm:px-10 sm:py-10">
+                <div className="max-w-xl">
+                  <div className="mb-7">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    <h1 className="text-2xl font-black text-slate-950 sm:text-3xl">Liên kết số điện thoại</h1>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      Nhập đúng số điện thoại bạn đã dùng khi đặt xe với Car Match. Hệ thống sẽ tìm hồ sơ khách hàng, chuyến đi và giấy tờ đã lưu.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                    <label htmlFor="account-phone" className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                      Số điện thoại đặt xe
+                    </label>
+                    <input
+                      id="account-phone"
+                      type="tel"
+                      value={phoneInput}
+                      onChange={(e) => setPhoneInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleLinkPhone()}
+                      placeholder="09xx xxx xxx"
+                      className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-center text-lg font-bold tracking-wide text-slate-950 outline-none transition-colors focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                    />
+                    {phoneError && (
+                      <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-center text-sm leading-relaxed text-red-600">{phoneError}</p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleLinkPhone}
+                    disabled={linkingPhone || !phoneInput.trim()}
+                    className="mt-4 flex h-14 w-full items-center justify-center rounded-2xl bg-brand-700 px-5 text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-brand-800 disabled:opacity-40"
+                  >
+                    {linkingPhone ? 'Đang xác nhận...' : 'Xác nhận và mở tài khoản'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => supabase.auth.signOut()}
+                    className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Đăng xuất
+                  </button>
+
+                  <p className="mt-5 text-xs leading-5 text-slate-400">
+                    Nếu bạn đổi số hoặc chưa tìm thấy hồ sơ, hãy nhắn Zalo để Car Match kiểm tra và liên kết thủ công.
+                  </p>
+                </div>
+              </section>
             </div>
-
-            <div className="space-y-3">
-              <div>
-                <input
-                  type="tel"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleLinkPhone()}
-                  placeholder="09xx xxx xxx"
-                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-[15px] font-medium focus:outline-none focus:border-brand-500 transition-colors text-center tracking-wide"
-                />
-                {phoneError && (
-                  <p className="mt-2 text-sm leading-relaxed text-red-500 text-center">{phoneError}</p>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleLinkPhone}
-                disabled={linkingPhone || !phoneInput.trim()}
-                className="w-full py-3.5 rounded-2xl bg-brand-600 text-white font-bold text-[15px] hover:bg-brand-700 transition-colors disabled:opacity-40 shadow-sm"
-              >
-                {linkingPhone ? 'Đang xác nhận...' : 'Xác nhận'}
-              </button>
-            </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => supabase.auth.signOut()}
-            className="w-full mt-4 text-center text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
-          >
-            Đăng xuất
-          </button>
         </main>
       </div>
     )
@@ -1412,34 +1471,100 @@ export default function Account() {
   const tier = customerInfo?.loyalty_tier
   const tierInfo = tier ? TIER_LABEL[tier] : null
   const joinYear = getJoinYear(customerInfo?.first_seen_at ?? null)
+  const firstName = displayName.split(' ').filter(Boolean).pop() ?? displayName
+  const docsPercent = Math.round((uploadedRequiredDocCount / requiredDocCount) * 100)
+  const pointsBalance = pointsData?.balance ?? 0
+  const redeemThreshold = pointsData?.settings?.redeem_points ?? 200
+  const pointsProgress = Math.min(100, Math.round((pointsBalance / Math.max(1, redeemThreshold)) * 100))
+  const currentTabTitle =
+    tab === 'bookings' ? 'Chuyến đi của tôi'
+      : tab === 'docs' ? 'Giấy tờ của tôi'
+        : tab === 'benefits' ? 'Ưu đãi & Khuyến mãi'
+          : 'Điểm tích lũy'
+  const currentTabDescription =
+    tab === 'bookings' ? 'Theo dõi lịch sử đặt xe, ảnh thanh toán và đánh giá sau chuyến đi.'
+      : tab === 'docs' ? 'Lưu GPLX và CCCD một lần để Car Match chuẩn bị hồ sơ nhanh hơn.'
+        : tab === 'benefits' ? 'Mã giảm giá, ưu đãi thành viên và thưởng giới thiệu của bạn.'
+          : 'Quản lý điểm, mã quy đổi và lịch sử giao dịch trong tài khoản.'
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] pt-16">
+    <div className="min-h-screen bg-slate-50 pt-16">
       <Navbar />
-      <div className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6 sm:py-9 lg:px-8">
+      <div className="mx-auto max-w-[1320px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
 
-        {/* Greeting header */}
-        <div className="mb-6 lg:hidden">
-          <h1 className="text-2xl font-bold text-slate-950 sm:text-[28px]">
-            Xin chào, {displayName.split(' ').pop()}!
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {joinYear ? `Khách CarMatch từ năm ${joinYear}` : 'Chào mừng đến với CarMatch'}
-            {tierInfo && (
-              <span className={`ml-2 inline-block rounded-md px-2 py-0.5 align-middle text-[10px] font-bold ${tierInfo.color}`}>
-                {tierInfo.label}
-              </span>
-            )}
-          </p>
-        </div>
+        <section className="mb-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_430px]">
+            <div className="px-5 py-6 sm:px-7 lg:px-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                  Tài khoản khách hàng
+                </span>
+                {tierInfo && (
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${tierInfo.color}`}>
+                    {tierInfo.label}
+                  </span>
+                )}
+              </div>
+              <h1 className="mt-4 text-3xl font-black leading-tight text-slate-950 sm:text-4xl">
+                Xin chào, {firstName}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                {joinYear ? `Khách Car Match từ năm ${joinYear}. ` : ''}
+                Đây là nơi bạn kiểm tra chuyến đi, giấy tờ, ưu đãi và điểm tích lũy sau mỗi lần thuê xe.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 border-t border-slate-200 bg-slate-50/70 lg:border-l lg:border-t-0">
+              <div className="px-4 py-5 text-center">
+                <p className="text-2xl font-black text-slate-950">{loadingBookings ? '—' : tripItems.length}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Chuyến</p>
+              </div>
+              <div className="border-x border-slate-200 px-4 py-5 text-center">
+                <p className={`text-2xl font-black ${docsComplete ? 'text-emerald-600' : 'text-slate-950'}`}>
+                  {uploadedRequiredDocCount}/{requiredDocCount}
+                </p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Giấy tờ</p>
+              </div>
+              <div className="px-4 py-5 text-center">
+                <p className="text-2xl font-black text-slate-950">{pointsData ? pointsBalance.toLocaleString('vi-VN') : '—'}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Điểm</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200 px-5 py-4 sm:px-7 lg:px-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <p className="text-sm font-bold text-slate-800">
+                    Hồ sơ thuê xe hoàn thiện {docsPercent}%
+                  </p>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${docsPercent}%` }} />
+                </div>
+              </div>
+              {!docsComplete && (
+                <button
+                  type="button"
+                  onClick={() => setTab('docs')}
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                >
+                  Hoàn thiện giấy tờ <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
 
         <div className="flex flex-col items-start gap-6 lg:flex-row lg:gap-8">
 
           {/* ── Left Sidebar ── */}
-          <aside className="w-full shrink-0 space-y-4 lg:sticky lg:top-24 lg:w-[272px]">
+          <aside className="w-full shrink-0 space-y-4 lg:sticky lg:top-24 lg:w-[300px]">
 
             {/* Profile + nav card */}
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_42px_rgba(15,23,42,0.06)]">
 
               {/* Profile */}
               <div className="border-b border-slate-100 px-4 py-4 sm:px-5 lg:py-6 lg:text-center">
@@ -1545,9 +1670,9 @@ export default function Account() {
                   aria-selected={tab === 'bookings'}
                   aria-controls="account-panel-bookings"
                   onClick={() => setTab('bookings')}
-                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-xl lg:border-b-0 lg:px-3 lg:py-3 lg:text-sm ${
                     tab === 'bookings'
-                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      ? 'border-slate-950 bg-slate-950 text-white lg:border-transparent'
                       : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
@@ -1558,7 +1683,7 @@ export default function Account() {
                   </span>
                   {!loadingBookings && tripItems.length > 0 && (
                     <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold lg:px-2 lg:text-[11px] ${
-                      tab === 'bookings' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'
+                      tab === 'bookings' ? 'bg-white/[0.15] text-white' : 'bg-slate-100 text-slate-500'
                     }`}>
                       {tripItems.length}
                     </span>
@@ -1572,9 +1697,9 @@ export default function Account() {
                   aria-selected={tab === 'docs'}
                   aria-controls="account-panel-docs"
                   onClick={() => setTab('docs')}
-                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-xl lg:border-b-0 lg:px-3 lg:py-3 lg:text-sm ${
                     tab === 'docs'
-                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      ? 'border-slate-950 bg-slate-950 text-white lg:border-transparent'
                       : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
@@ -1584,7 +1709,7 @@ export default function Account() {
                     docsComplete
                       ? 'bg-emerald-100 text-emerald-700'
                       : tab === 'docs'
-                        ? 'bg-brand-100 text-brand-600'
+                        ? 'bg-white/[0.15] text-white'
                         : 'bg-slate-100 text-slate-500'
                   }`}>
                     {uploadedRequiredDocCount}/{requiredDocCount}
@@ -1598,9 +1723,9 @@ export default function Account() {
                   aria-selected={tab === 'benefits'}
                   aria-controls="account-panel-benefits"
                   onClick={() => { setTab('benefits'); loadBenefits(); }}
-                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-xl lg:border-b-0 lg:px-3 lg:py-3 lg:text-sm ${
                     tab === 'benefits'
-                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      ? 'border-slate-950 bg-slate-950 text-white lg:border-transparent'
                       : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
@@ -1608,7 +1733,7 @@ export default function Account() {
                   <span className="lg:flex-1 lg:text-left">Ưu đãi</span>
                   {(promos.length > 0 || referralRewards.length > 0) && (
                     <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold lg:px-2 lg:text-[11px] ${
-                      tab === 'benefits' ? 'bg-brand-100 text-brand-600' : 'bg-amber-100 text-amber-600'
+                      tab === 'benefits' ? 'bg-white/[0.15] text-white' : 'bg-amber-100 text-amber-600'
                     }`}>
                       {promos.length + referralRewards.length}
                     </span>
@@ -1622,9 +1747,9 @@ export default function Account() {
                   aria-selected={tab === 'points'}
                   aria-controls="account-panel-points"
                   onClick={() => { setTab('points'); void loadPoints(); }}
-                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-md lg:border-b-0 lg:px-3 lg:py-2.5 lg:text-sm ${
+                  className={`flex w-full flex-col items-center justify-center gap-1.5 border-b-2 px-2 py-3 text-xs font-semibold transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:rounded-xl lg:border-b-0 lg:px-3 lg:py-3 lg:text-sm ${
                     tab === 'points'
-                      ? 'border-brand-700 bg-brand-50 text-brand-800 lg:border-transparent'
+                      ? 'border-slate-950 bg-slate-950 text-white lg:border-transparent'
                       : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
@@ -1632,7 +1757,7 @@ export default function Account() {
                   <span className="lg:flex-1 lg:text-left">Điểm</span>
                   {pointsData && pointsData.balance > 0 && (
                     <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold lg:px-2 lg:text-[11px] ${
-                      tab === 'points' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-600'
+                      tab === 'points' ? 'bg-white/[0.15] text-white' : 'bg-amber-100 text-amber-600'
                     }`}>
                       {pointsData.balance}
                     </span>
@@ -1658,7 +1783,7 @@ export default function Account() {
 
             {/* Loyalty & Referral card */}
             {(tierInfo || customerInfo?.referral_code) && (
-              <div className="hidden rounded-lg border border-slate-200 bg-white p-4 lg:block">
+              <div className="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_14px_42px_rgba(15,23,42,0.05)] lg:block">
                 <div className="flex items-center gap-2 mb-3">
                   <Gift className="w-4 h-4 text-amber-500" />
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Loyalty & Giới thiệu</p>
@@ -1717,32 +1842,26 @@ export default function Account() {
 
           {/* ── Main Content ── */}
           <main id="main-content" className="min-w-0 flex-1">
-            <div className="mb-7 hidden lg:block">
-              <h1 className="text-[28px] font-bold text-slate-950">
-                Xin chào, {displayName.split(' ').pop()}!
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                {joinYear ? `Khách CarMatch từ năm ${joinYear}` : 'Chào mừng đến với CarMatch'}
-                {tierInfo && (
-                  <span className={`ml-2 inline-block rounded-md px-2 py-0.5 align-middle text-[10px] font-bold ${tierInfo.color}`}>
-                    {tierInfo.label}
-                  </span>
+            <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-700">Car Match account</p>
+                  <h2 className="mt-2 text-2xl font-black leading-tight text-slate-950 sm:text-3xl">
+                    {currentTabTitle}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                    {currentTabDescription}
+                  </p>
+                </div>
+                {tab === 'bookings' && (
+                  <a
+                    href="/xe"
+                    className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition-colors hover:bg-slate-800"
+                  >
+                    Đặt xe mới <ChevronRight className="h-4 w-4" />
+                  </a>
                 )}
-              </p>
-            </div>
-
-            {/* Section heading */}
-            <div className="mb-4 border-b border-slate-200 pb-4">
-              <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">
-                {tab === 'bookings' ? 'Chuyến đi của tôi' : tab === 'docs' ? 'Giấy tờ của tôi' : 'Ưu đãi & Khuyến mãi'}
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {tab === 'bookings'
-                  ? 'Toàn bộ lịch sử đặt xe với CarMatch'
-                  : tab === 'docs'
-                    ? 'Lưu một lần, dùng cho mọi lần thuê sau'
-                    : 'Mã giảm giá, ưu đãi thành viên và thưởng giới thiệu của bạn'}
-              </p>
+              </div>
             </div>
 
             {/* ── Tab: Bookings ── */}
@@ -1788,14 +1907,16 @@ export default function Account() {
                       <button
                         type="button"
                         onClick={() => setTab('docs')}
-                        className="flex w-full items-center gap-3 border-y border-amber-200 bg-white px-1 py-3 text-left transition-colors hover:bg-amber-50/40 sm:px-3"
+                        className="flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-left shadow-[0_10px_28px_rgba(245,158,11,0.08)] transition-colors hover:bg-amber-100/70 sm:px-5"
                       >
-                        <FileText className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-amber-600 shadow-sm">
+                          <FileText className="h-5 w-5" />
+                        </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-amber-800">Upload giấy tờ để CarMatch chuẩn bị sẵn</p>
-                          <p className="mt-0.5 text-[12px] text-slate-500">GPLX + CCCD — lưu 1 lần, dùng mọi chuyến</p>
+                          <p className="text-sm font-black text-amber-900">Hoàn thiện hồ sơ để nhận xe nhanh hơn</p>
+                          <p className="mt-0.5 text-[12px] leading-5 text-amber-800/75">GPLX + CCCD được lưu một lần, nhân viên không phải xin lại qua Zalo.</p>
                         </div>
-                        <span className="hidden text-xs font-semibold text-amber-700 sm:inline">Upload ngay</span>
+                        <span className="hidden rounded-full bg-white px-3 py-1 text-xs font-bold text-amber-800 sm:inline">Upload ngay</span>
                         <ChevronRight className="w-4 h-4 text-amber-500 shrink-0" />
                       </button>
                     )}
@@ -1814,7 +1935,7 @@ export default function Account() {
               <div id="account-panel-docs" role="tabpanel" aria-labelledby="account-tab-docs">
                 {/* Status banner */}
                 {!docsComplete && !loadingDocs && (
-                  <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3.5">
+                  <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 shadow-[0_10px_28px_rgba(245,158,11,0.08)]">
                     <IdCard className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                     <p className="text-amber-800 text-sm leading-relaxed">
                       Upload GPLX và CCCD một lần — CarMatch lưu lại, bạn không cần gửi lại qua Zalo mỗi lần thuê.
@@ -1823,7 +1944,7 @@ export default function Account() {
                 )}
 
                 {docsComplete && (
-                  <div className="mb-5 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+                  <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 shadow-[0_10px_28px_rgba(16,185,129,0.08)]">
                     <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
                     <p className="text-emerald-800 text-sm font-medium">
                       Giấy tờ đầy đủ — CarMatch sẽ dùng lại cho các lần thuê tiếp theo.
@@ -1859,7 +1980,7 @@ export default function Account() {
                     <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <div className="grid items-start gap-4 md:grid-cols-3">
+                  <div className="grid items-start gap-5 md:grid-cols-3">
                     {UPLOAD_SLOTS.map((slot) => {
                       const existing = docs.find((d) => d.document_type === slot.type)
                       const isUploading = uploadingType === slot.type
@@ -1869,14 +1990,14 @@ export default function Account() {
                       const previewIsImage = isImageFile(existing?.file_name) || isImageFile(existing?.file_url)
 
                       return (
-                        <div key={slot.type} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                        <div key={slot.type} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_38px_rgba(15,23,42,0.05)]">
                           <div className="flex h-full flex-col p-4">
                             <div className="mb-4 flex items-start justify-between gap-2">
                               <div className="flex items-center gap-3">
                                 <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
                                   uploaded ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-500'
                                 }`}>
-                                  <SlotIcon className="h-4.5 w-4.5" />
+                                  <SlotIcon className="h-4 w-4" />
                                 </div>
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">{slot.label}</p>
@@ -1897,7 +2018,7 @@ export default function Account() {
 
                             {/* Image preview */}
                             {existing && (
-                              <div className="mb-4 overflow-hidden rounded-md border border-slate-100 bg-slate-50">
+                              <div className="mb-4 overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
                                 {previewUrl && previewIsImage ? (
                                   <img
                                     src={previewUrl}
@@ -1928,7 +2049,7 @@ export default function Account() {
                               type="button"
                               onClick={() => fileRefs.current[slot.type]?.click()}
                               disabled={isUploading}
-                              className={`mt-auto flex w-full items-center justify-center gap-2 rounded-md py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 ${
+                              className={`mt-auto flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 ${
                                 uploaded
                                   ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                                   : 'bg-brand-700 text-white hover:bg-brand-800'
@@ -1965,7 +2086,7 @@ export default function Account() {
             {tab === 'benefits' && (
               <div id="account-panel-benefits" role="tabpanel" aria-labelledby="account-tab-benefits" className="space-y-5">
                 {customerInfo?.referral_code && (
-                  <div className="rounded-lg border border-amber-200 bg-white p-4 lg:hidden">
+                  <div className="rounded-2xl border border-amber-200 bg-white p-4 shadow-[0_12px_34px_rgba(15,23,42,0.05)] lg:hidden">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <Gift className="h-4 w-4 text-amber-600" />
@@ -2008,7 +2129,7 @@ export default function Account() {
                   <>
                     {/* Loyalty discount card */}
                     {loyaltyDiscount && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+                      <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-[0_14px_38px_rgba(245,158,11,0.08)]">
                         <div className="flex items-center gap-2 mb-3">
                           <Award className="w-5 h-5 text-amber-600" />
                           <h2 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Ưu đãi thành viên</h2>
@@ -2035,7 +2156,7 @@ export default function Account() {
 
                     {/* Referral rewards */}
                     {referralRewards.length > 0 && (
-                      <div className="rounded-lg border border-slate-200 bg-white p-5">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_38px_rgba(15,23,42,0.05)]">
                         <div className="flex items-center gap-2 mb-4">
                           <Star className="w-5 h-5 text-brand-600" />
                           <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Thưởng giới thiệu</h2>
@@ -2127,14 +2248,14 @@ export default function Account() {
 
                     {/* Public promo codes */}
                     {promos.length > 0 && (
-                      <div className="rounded-lg border border-slate-200 bg-white p-5">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_38px_rgba(15,23,42,0.05)]">
                         <div className="flex items-center gap-2 mb-4">
                           <Tag className="w-5 h-5 text-brand-600" />
                           <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Mã khuyến mãi</h2>
                         </div>
                         <div className="space-y-3">
                           {promos.map((p) => (
-                            <div key={p.code} className="rounded-md border border-dashed border-brand-200 bg-brand-50/40 p-3.5">
+                            <div key={p.code} className="rounded-2xl border border-dashed border-brand-200 bg-brand-50/40 p-3.5">
                               <div className="flex items-center justify-between mb-2">
                                 <button
                                   type="button"
@@ -2174,7 +2295,7 @@ export default function Account() {
 
                     {/* Empty state */}
                     {!loyaltyDiscount && referralRewards.length === 0 && promos.length === 0 && (
-                      <div className="rounded-lg border border-slate-200 bg-white p-10 text-center">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-[0_14px_38px_rgba(15,23,42,0.05)]">
                         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-amber-50">
                           <Gift className="w-7 h-7 text-amber-300" />
                         </div>
@@ -2197,41 +2318,51 @@ export default function Account() {
                 ) : (
                   <>
                     {/* Balance card */}
-                    <div className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Star className="w-5 h-5 text-blue-600" />
-                        <h2 className="text-sm font-bold text-blue-800 uppercase tracking-wider">Điểm tích lũy</h2>
-                      </div>
-                      <div className="flex items-end justify-between">
+                    <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-[0_14px_38px_rgba(37,99,235,0.08)]">
+                      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_280px]">
                         <div>
-                          <p className="text-4xl font-black text-blue-700">{(pointsData?.balance ?? 0).toLocaleString('vi-VN')}</p>
-                          <p className="text-sm text-blue-500 mt-1">điểm</p>
-                        </div>
-                        {(pointsData?.redeemable_value ?? 0) > 0 && (
-                          <div className="text-right">
-                            <p className="text-xs text-blue-500">Có thể quy đổi</p>
-                            <p className="text-xl font-black text-blue-700 mt-0.5">
-                              {(pointsData?.redeemable_value ?? 0).toLocaleString('vi-VN')}đ
-                            </p>
+                          <div className="mb-4 flex items-center gap-2">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                              <Star className="h-5 w-5" />
+                            </span>
+                            <div>
+                              <h2 className="text-sm font-black uppercase tracking-[0.14em] text-blue-800">Điểm tích lũy</h2>
+                              <p className="mt-0.5 text-xs text-slate-400">Cộng sau khi hoàn tất chuyến đi</p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      {(pointsData?.balance ?? 0) > 0 && (pointsData?.redeemable_value ?? 0) === 0 && pointsData?.settings && (
-                        <p className="text-xs text-blue-400 mt-3">
-                          Cần thêm {Math.max(0, pointsData.settings.redeem_points - (pointsData.balance ?? 0)).toLocaleString('vi-VN')} điểm nữa để đổi {pointsData.settings.redeem_value.toLocaleString('vi-VN')}đ
-                        </p>
-                      )}
+                          <p className="text-5xl font-black leading-none text-blue-700">{pointsBalance.toLocaleString('vi-VN')}</p>
+                          <p className="mt-1 text-sm font-semibold text-blue-500">điểm hiện có</p>
+                        </div>
 
-                      {/* Redeem button — only when balance meets threshold */}
+                        <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-blue-500">Mốc đổi điểm</p>
+                            <p className="text-sm font-black text-blue-800">{redeemThreshold.toLocaleString('vi-VN')} điểm</p>
+                          </div>
+                          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white">
+                            <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${pointsProgress}%` }} />
+                          </div>
+                          {(pointsData?.redeemable_value ?? 0) > 0 ? (
+                            <p className="mt-3 text-sm font-bold text-blue-800">
+                              Có thể đổi {(pointsData?.redeemable_value ?? 0).toLocaleString('vi-VN')}đ giảm giá
+                            </p>
+                          ) : (
+                            <p className="mt-3 text-sm text-blue-700">
+                              Cần thêm {Math.max(0, redeemThreshold - pointsBalance).toLocaleString('vi-VN')} điểm để tạo mã giảm {(pointsData?.settings?.redeem_value ?? 50000).toLocaleString('vi-VN')}đ.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
                       {(pointsData?.redeemable_value ?? 0) > 0 && !redeemResult && (
-                        <div className="mt-4 pt-4 border-t border-blue-100">
+                        <div className="mt-5 border-t border-blue-100 pt-4">
                           {redeemError && (
-                            <p className="text-xs text-red-500 mb-2">{redeemError}</p>
+                            <p className="mb-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{redeemError}</p>
                           )}
                           <button
                             onClick={() => void redeemPoints()}
                             disabled={redeemLoading}
-                            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 transition-colors"
+                            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60"
                           >
                             {redeemLoading
                               ? 'Đang tạo mã...'
@@ -2240,12 +2371,11 @@ export default function Account() {
                         </div>
                       )}
 
-                      {/* Redeem success */}
                       {redeemResult && (
-                        <div className="mt-4 pt-4 border-t border-blue-100">
-                          <p className="text-xs font-semibold text-emerald-700 mb-2">Mã giảm giá của bạn:</p>
+                        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">Mã giảm giá vừa tạo</p>
                           <div className="flex items-center gap-2">
-                            <span className="flex-1 rounded-md bg-white border border-blue-200 px-3 py-2 font-mono text-base font-black text-blue-800 tracking-widest text-center">
+                            <span className="flex-1 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-center font-mono text-base font-black tracking-widest text-emerald-800">
                               {redeemResult.code}
                             </span>
                             <button
@@ -2255,22 +2385,22 @@ export default function Account() {
                                   setTimeout(() => setCopiedRedeemCode(false), 2000)
                                 })
                               }}
-                              className="shrink-0 rounded-md border border-blue-200 bg-white p-2 text-blue-600 hover:bg-blue-50 transition-colors"
+                              className="shrink-0 rounded-xl border border-emerald-200 bg-white p-2 text-emerald-600 transition-colors hover:bg-emerald-100"
                               title="Sao chép mã"
                             >
-                              {copiedRedeemCode ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                              {copiedRedeemCode ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                             </button>
                           </div>
-                          <p className="text-xs text-blue-400 mt-2">
+                          <p className="mt-2 text-xs text-emerald-700">
                             Giảm {redeemResult.discount_value.toLocaleString('vi-VN')}đ · Dùng 1 lần · Hết hạn {new Date(redeemResult.expires_at).toLocaleDateString('vi-VN')}
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">Nhập mã này vào form đặt xe trên trang chủ để áp dụng</p>
+                          <p className="mt-1 text-xs text-slate-500">Nhập mã này vào form đặt xe trên trang chủ để áp dụng.</p>
                         </div>
                       )}
                     </div>
 
                     {/* How it works */}
-                    <div className="rounded-lg border border-slate-200 bg-white p-5">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_38px_rgba(15,23,42,0.05)]">
                       <h3 className="text-sm font-bold text-slate-700 mb-3">Cách tích & dùng điểm</h3>
                       <div className="space-y-2.5 text-sm text-slate-600">
                         <div className="flex items-start gap-2.5">
@@ -2294,7 +2424,7 @@ export default function Account() {
 
                     {/* Active promo codes from point redemption */}
                     {(pointsData?.active_codes?.length ?? 0) > 0 && !redeemResult && (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-[0_12px_32px_rgba(16,185,129,0.08)]">
                         <p className="text-xs font-bold text-emerald-700 mb-2">Mã giảm giá chưa dùng</p>
                         <div className="space-y-2">
                           {pointsData!.active_codes.map(c => (
@@ -2317,7 +2447,7 @@ export default function Account() {
 
                     {/* Transaction history */}
                     {(pointsData?.ledger?.length ?? 0) > 0 && (
-                      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_38px_rgba(15,23,42,0.05)]">
                         <p className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-100">Lịch sử giao dịch</p>
                         <div className="divide-y divide-slate-100">
                           {pointsData!.ledger.map(row => (
@@ -2344,7 +2474,7 @@ export default function Account() {
 
                     {/* Empty state */}
                     {(pointsData?.balance ?? 0) === 0 && (
-                      <div className="rounded-lg border border-slate-200 bg-white p-10 text-center">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-[0_14px_38px_rgba(15,23,42,0.05)]">
                         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-blue-50">
                           <Star className="w-7 h-7 text-blue-300" />
                         </div>
