@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
-import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag, ImageIcon, Upload } from 'lucide-react';
+import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag, ImageIcon, Upload, Copy, Check } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
@@ -338,6 +338,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [customerReferralCode, setCustomerReferralCode] = useState('');
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -547,7 +549,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       setReferralCredit(json.referral_credit || 0);
       setPointsBalance(json.points_balance || 0);
       setPointsValue(json.points_value || 0);
-    } catch { setLoyaltyDiscount(null); setReferralCredit(0); setPointsBalance(0); setPointsValue(0); }
+      setCustomerReferralCode(json.referral_code || '');
+    } catch { setLoyaltyDiscount(null); setReferralCredit(0); setPointsBalance(0); setPointsValue(0); setCustomerReferralCode(''); }
   };
 
   const applyLoyaltyDiscount = () => {
@@ -1716,6 +1719,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 <div className="text-center">
                   <div className="font-bold text-gray-900 text-base">Đặt cọc để giữ xe</div>
                   <p className="text-sm text-gray-500 mt-1">Chuyển khoản <strong className="text-brand-600">{fmtVND(depositAmount)}</strong> để xác nhận đơn</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Cọc trừ vào tổng tiền khi nhận xe · Hủy trước 24h hoàn 100%</p>
                   {promoResult && (
                     <p className="text-xs font-semibold text-green-600 mt-1">
                       Đã áp dụng mã {promoResult.code} — giảm {fmtVND(promoResult.discount_amount)}
@@ -1759,9 +1763,24 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                         <span className="text-gray-500">Số tiền</span>
                         <span className="font-bold text-brand-600 text-base">{fmtVND(depositAmount)}</span>
                       </div>
-                      <div className="flex justify-between items-start pt-1 border-t border-brand-200">
+                      <div className="flex justify-between items-center pt-1 border-t border-brand-200">
                         <span className="text-gray-500 shrink-0">Nội dung CK</span>
-                        <span className="font-bold text-gray-900 font-mono bg-white px-2 py-0.5 rounded-lg border border-brand-200 text-xs tracking-wider">{`DATXE ${bookingRef}`}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-gray-900 font-mono bg-white px-2 py-0.5 rounded-lg border border-brand-200 text-xs tracking-wider">{`DATXE ${bookingRef}`}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`DATXE ${bookingRef}`).then(() => {
+                                setCopiedRef(true);
+                                setTimeout(() => setCopiedRef(false), 2000);
+                              });
+                            }}
+                            className="p-1 rounded-md border border-brand-200 bg-white hover:bg-brand-50 text-brand-500 transition-colors"
+                            title="Copy nội dung chuyển khoản"
+                          >
+                            {copiedRef ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1918,10 +1937,6 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                         <span className="font-semibold text-slate-900">{deliveryFee.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Bảo hiểm chuyến đi</span>
-                      <span className="text-slate-400">0đ</span>
-                    </div>
                     <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1">
                       <span className="font-bold text-slate-900">Thanh toán khi nhận xe</span>
                       <span className="font-black text-red-600 text-base">{remainingAmount.toLocaleString('vi-VN')}đ</span>
@@ -1949,12 +1964,20 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   </div>
                 </div>
 
+                {/* Bước tiếp theo */}
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800 space-y-1.5">
+                  <p className="font-bold text-blue-900 text-sm">Bước tiếp theo</p>
+                  <p>1️⃣ Nhân viên gọi xác nhận trong <strong>30 phút</strong> (giờ hành chính)</p>
+                  <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
+                  <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
+                </div>
+
                 {/* Nút copy */}
                 <button
                   onClick={() => void copyBookingConfirmation()}
                   className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  📋 Copy xác nhận
+                  📋 Copy tóm tắt để chia sẻ
                 </button>
 
                 <Link
@@ -1963,6 +1986,25 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 >
                   🔍 Xem & lưu trang xác nhận
                 </Link>
+
+                {/* Refer friend CTA */}
+                {customerReferralCode && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                    <p className="font-bold text-amber-900 text-sm mb-1">🎁 Chia sẻ để nhận thêm ưu đãi</p>
+                    <p className="mb-2">Bạn bè dùng mã của bạn đặt xe → bạn nhận thưởng giới thiệu</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const msg = `Thuê xe tự lái tại CarMatch — chất lượng, giao tận nơi!\nDùng mã giới thiệu của mình: ${customerReferralCode}\ncarmatch.vn/?ref=${customerReferralCode}`;
+                        navigator.clipboard.writeText(msg).catch(() => {});
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy mã {customerReferralCode}
+                    </button>
+                  </div>
+                )}
 
                 <button
                   onClick={() => {
