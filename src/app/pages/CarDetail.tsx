@@ -315,8 +315,8 @@ export default function CarDetail() {
   useEffect(() => {
     fetch('/api/promo-list')
       .then(r => r.json())
-      .then((data: { code: string; description: string }[]) => {
-        setActivePromoCodes(Array.isArray(data) ? data.slice(0, 2) : []);
+      .then((data: { promos?: { code: string; description: string }[] }) => {
+        setActivePromoCodes(Array.isArray(data.promos) ? data.promos.slice(0, 2) : []);
       })
       .catch(() => {});
   }, []);
