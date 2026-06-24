@@ -352,6 +352,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [activeSuggestedCodes, setActiveSuggestedCodes] = useState<Array<{ code: string; discount_value: number; expires_at: string }>>([]);
   const [recentBookingsCount, setRecentBookingsCount] = useState(0);
   const [insuranceAddon, setInsuranceAddon] = useState(false);
+  const [showInsuranceDetail, setShowInsuranceDetail] = useState(false);
   const [confirmTransfer, setConfirmTransfer] = useState(false);
   const [pointsPerTenK, setPointsPerTenK] = useState(1); // default 1 pt per 10k VND (overridden by DB setting)
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
@@ -1794,21 +1795,82 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   )}
                 </div>
                 {/* Add-on bảo hiểm */}
-                <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={insuranceAddon}
-                    onChange={e => setInsuranceAddon(e.target.checked)}
-                    className="mt-0.5 accent-brand-600 w-4 h-4 shrink-0"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-800">🛡️ Bảo hiểm chuyến đi</span>
-                      <span className="text-xs font-bold text-brand-600">+{fmtVND(INSURANCE_FEE)}</span>
+                <div className={`rounded-xl border transition-colors overflow-hidden ${insuranceAddon ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                  {/* Hàng chọn bảo hiểm */}
+                  <label className="flex items-start gap-3 p-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={insuranceAddon}
+                      onChange={e => setInsuranceAddon(e.target.checked)}
+                      className="mt-0.5 accent-green-600 w-4 h-4 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-gray-800">🛡️ Bảo hiểm chuyến đi</span>
+                        <span className="text-xs font-bold text-green-700 shrink-0">+{fmtVND(INSURANCE_FEE)}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Tai nạn đâm va, cháy nổ, ngập nước · Cứu hộ miễn phí 70 km
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">Bồi thường tối đa 30 triệu khi có tai nạn trong chuyến thuê</p>
-                  </div>
-                </label>
+                  </label>
+
+                  {/* Toggle chi tiết */}
+                  <button
+                    type="button"
+                    onClick={() => setShowInsuranceDetail(v => !v)}
+                    className="w-full flex items-center justify-between px-3 pb-2.5 text-xs text-brand-600 font-medium hover:text-brand-700 transition-colors"
+                  >
+                    <span>{showInsuranceDetail ? 'Ẩn chi tiết' : 'Xem chi tiết bảo hiểm'}</span>
+                    {showInsuranceDetail ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {/* Chi tiết mở rộng */}
+                  {showInsuranceDetail && (
+                    <div className="border-t border-gray-100 bg-white px-4 py-3 space-y-3 text-xs">
+                      {/* Được bảo hiểm */}
+                      <div>
+                        <p className="font-semibold text-gray-800 mb-1.5">✅ Được bảo hiểm</p>
+                        <ul className="space-y-1 text-gray-600">
+                          <li>• Tai nạn đâm va, cháy nổ, lật đổ xe</li>
+                          <li>• Trầy xước, bóp mép dù nhẹ hay nặng</li>
+                          <li>• Thiệt hại do hành động ác ý từ bên thứ ba</li>
+                          <li>• Tổn thất động cơ do ngập nước (khấu trừ 20%)</li>
+                          <li>• Mất nguyên chiếc xe</li>
+                          <li>• Cứu hộ kéo xe miễn phí tối đa 70 km/vụ</li>
+                        </ul>
+                      </div>
+
+                      {/* Không được bảo hiểm */}
+                      <div>
+                        <p className="font-semibold text-gray-800 mb-1.5">❌ Không được bảo hiểm</p>
+                        <ul className="space-y-1 text-gray-600">
+                          <li>• Cố ý gây thiệt hại hoặc vi phạm pháp luật</li>
+                          <li>• Sử dụng sai mục đích (đua xe, chạy hàng cấm...)</li>
+                          <li>• Mất cắp phụ kiện, lốp xe riêng lẻ</li>
+                          <li>• Hao mòn tự nhiên (lốp mòn, kính mờ...)</li>
+                          <li>• Lái xe ra ngoài lãnh thổ Việt Nam</li>
+                        </ul>
+                      </div>
+
+                      {/* Mức khấu trừ — quan trọng nhất */}
+                      <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+                        <p className="font-semibold text-amber-800 mb-1">⚠️ Mức khấu trừ khi có sự cố</p>
+                        <p className="text-amber-700 leading-relaxed">
+                          Khách chịu tối đa <strong>2.000.000đ</strong> tiền sửa xe + chi phí thuê xe trong những ngày xe nằm gara. Phần thiệt hại vượt quá do bảo hiểm chi trả.
+                        </p>
+                      </div>
+
+                      {/* Không mua bảo hiểm */}
+                      <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
+                        <p className="font-semibold text-red-800 mb-1">⛔ Nếu không mua bảo hiểm</p>
+                        <p className="text-red-700 leading-relaxed">
+                          Khách chịu <strong>100% chi phí</strong> sửa chữa khi có va chạm, trầy xước hoặc hư hỏng trong thời gian thuê.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
