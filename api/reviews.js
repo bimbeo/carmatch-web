@@ -27,10 +27,10 @@ async function handleGet(req, res) {
       });
       const { data } = await supabase
         .from('vehicle_reviews')
-        .select('id')
+        .select('id, status')
         .eq('booking_ref', booking_ref.trim().toUpperCase())
         .maybeSingle();
-      return res.status(200).json({ reviewed: !!data });
+      return res.status(200).json({ reviewed: !!data, status: data?.status ?? null });
     } catch {
       return res.status(200).json({ reviewed: false });
     }

@@ -259,6 +259,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewError, setReviewError] = useState('')
   const [reviewDone, setReviewDone] = useState(false)
+  const [reviewStatus, setReviewStatus] = useState<string | null>(null)
 
   const tripEnded = !!(b.return_date && b.return_date < new Date().toISOString().slice(0, 10))
 
@@ -268,7 +269,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
     if (!ref) return
     fetch(`/api/reviews?booking_ref=${encodeURIComponent(ref)}`)
       .then(r => r.json())
-      .then(d => { if (d.reviewed) setReviewDone(true) })
+      .then(d => { if (d.reviewed) { setReviewDone(true); setReviewStatus(d.status ?? null) } })
       .catch(() => {})
   }, [tripEnded, b.booking_code, b.booking_id])
 
@@ -366,7 +367,8 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
           )}
           {reviewDone && (
             <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
-              <Check className="h-3.5 w-3.5" /> Đã gửi đánh giá — đang chờ duyệt
+              <Check className="h-3.5 w-3.5" />
+              {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
             </span>
           )}
           {!tripEnded && !reviewDone && (
@@ -484,6 +486,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewError, setReviewError] = useState('')
   const [reviewDone, setReviewDone] = useState(false)
+  const [reviewStatus, setReviewStatus] = useState<string | null>(null)
 
   // Check if trip has ended (return date < today)
   const tripEnded = (() => {
@@ -496,7 +499,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
     if (!tripEnded || !w.booking_ref) return
     fetch(`/api/reviews?booking_ref=${encodeURIComponent(w.booking_ref)}`)
       .then(r => r.json())
-      .then(d => { if (d.reviewed) setReviewDone(true) })
+      .then(d => { if (d.reviewed) { setReviewDone(true); setReviewStatus(d.status ?? null) } })
       .catch(() => {})
   }, [tripEnded, w.booking_ref])
 
@@ -683,7 +686,8 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
           )}
           {reviewDone && (
             <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
-              <Check className="h-3.5 w-3.5" /> Đã gửi đánh giá — đang chờ duyệt
+              <Check className="h-3.5 w-3.5" />
+              {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
             </span>
           )}
         </div>
