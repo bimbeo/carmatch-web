@@ -711,7 +711,7 @@ export default function Account() {
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s)
-      setLoadingSession(false)
+      // Không set loadingSession ở đây — getSession() là nguồn chính xác nhất cho trạng thái khởi tạo
     })
     return () => listener.subscription.unsubscribe()
   }, [])

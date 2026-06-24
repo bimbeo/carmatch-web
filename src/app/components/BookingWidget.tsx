@@ -477,9 +477,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     [pickupDate, pickupHour, returnDate, returnHour, basePrice],
   );
 
-  const INSURANCE_FEE = 50_000;
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
-  const insuranceFee = insuranceAddon ? INSURANCE_FEE : 0;
+  // 10% tổng giá thuê xe, làm tròn đến 1.000đ
+  const insuranceFeeAmount = rentalResult.valid ? Math.round(rentalResult.total * 0.1 / 1000) * 1000 : 0;
+  const insuranceFee = insuranceAddon ? insuranceFeeAmount : 0;
   const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee + insuranceFee : 0;
   const totalAmount = orderTotalBeforePromo;
   const loyaltyDiscountAmount = loyaltyDiscount?.discount_amount ?? 0;
@@ -490,7 +491,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       ? [{ label: 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
       : [];
     const insuranceFees: Fee[] = insuranceAddon
-      ? [{ label: 'Bảo hiểm chuyến đi', amount: INSURANCE_FEE }]
+      ? [{ label: 'Bảo hiểm chuyến đi', amount: insuranceFee }]
       : [];
     const loyaltyFee: Fee[] = loyaltyDiscount
       ? [{ label: loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết', amount: -loyaltyDiscountAmount, highlight: true }]
@@ -1807,7 +1808,9 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-semibold text-gray-800">🛡️ Bảo hiểm chuyến đi</span>
-                        <span className="text-xs font-bold text-green-700 shrink-0">+{fmtVND(INSURANCE_FEE)}</span>
+                        <span className="text-xs font-bold text-green-700 shrink-0">
+                          {rentalResult.valid ? `+${fmtVND(insuranceFeeAmount)}` : '+10% giá thuê'}
+                        </span>
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">
                         Tai nạn đâm va, cháy nổ, ngập nước · Cứu hộ miễn phí 70 km
@@ -1867,6 +1870,19 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                         <p className="text-red-700 leading-relaxed">
                           Khách chịu <strong>100% chi phí</strong> sửa chữa khi có va chạm, trầy xước hoặc hư hỏng trong thời gian thuê.
                         </p>
+                      </div>
+
+                      {/* Quy trình xử lý sự cố */}
+                      <div>
+                        <p className="font-semibold text-gray-800 mb-1.5">🚨 Quy trình xử lý khi xảy ra sự cố</p>
+                        <ol className="space-y-1.5 text-gray-600">
+                          <li className="flex gap-2"><span className="font-bold shrink-0">1.</span><span><strong>Giữ nguyên hiện trường</strong> và chụp ảnh xe đang bị sự cố.</span></li>
+                          <li className="flex gap-2"><span className="font-bold shrink-0">2.</span><span>Gọi cho nhân viên Car Match để được hướng dẫn liên hệ trung tâm bồi thường của nhà bảo hiểm.</span></li>
+                          <li className="flex gap-2"><span className="font-bold shrink-0">3.</span><span>Giám định viên bảo hiểm liên hệ hướng dẫn xử lý, xác minh thông tin và hiện trường.</span></li>
+                          <li className="flex gap-2"><span className="font-bold shrink-0">4.</span><span>Giám định viên và chủ xe/khách thuê cùng đưa xe ra Garage để <strong>giám định thiệt hại và ra báo giá sửa chữa</strong>.</span></li>
+                          <li className="flex gap-2"><span className="font-bold shrink-0">5.</span><span>Trung tâm bồi thường ra <strong>Biên bản giám định</strong> thiệt hại.</span></li>
+                          <li className="flex gap-2"><span className="font-bold shrink-0">6.</span><span>Garage tiến hành sửa chữa theo báo giá đã được xác nhận.</span></li>
+                        </ol>
                       </div>
                     </div>
                   )}
