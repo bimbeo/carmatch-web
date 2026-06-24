@@ -1637,7 +1637,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <input
                     value={customerEmail}
                     onChange={e => setCustomerEmail(e.target.value)}
-                    placeholder="email@example.com"
+                    placeholder="email@example.com — nhận xác nhận đặt xe"
                     type="email"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
                   />
@@ -1657,16 +1657,21 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                       onKeyDown={e => e.key === 'Enter' && void validatePromo()}
                       placeholder="SUMMER10"
                       type="text"
-                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                      disabled={Boolean(promoResult)}
+                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-gray-50 disabled:text-gray-400"
                       autoCapitalize="characters"
                     />
                     <button
                       type="button"
                       onClick={() => void validatePromo()}
                       disabled={promoLoading || Boolean(promoResult)}
-                      className="px-3 py-2 rounded-xl bg-cyan-500 text-white text-sm font-semibold hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                        promoResult
+                          ? 'bg-green-100 text-green-700 border border-green-200 cursor-default'
+                          : 'bg-cyan-500 text-white hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed'
+                      }`}
                     >
-                      {promoLoading ? '...' : 'Áp dụng'}
+                      {promoLoading ? '...' : promoResult ? '✓ Đã áp dụng' : 'Áp dụng'}
                     </button>
                   </div>
                   {promoResult && (
@@ -1952,7 +1957,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
                     <p className="font-semibold text-slate-700">Thủ tục thuê xe</p>
                     <p className="text-slate-500">• Căn cước, bằng lái (xác minh, không giữ lại)</p>
-                    <p className="text-slate-500">• Tài sản thế chấp (giữ lại): Theo thoả thuận</p>
+                    <p className="text-slate-500">• Tài sản thế chấp (giữ lại): Từ 15 triệu hoặc xe máy có giá trị tương đương</p>
                   </div>
 
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
