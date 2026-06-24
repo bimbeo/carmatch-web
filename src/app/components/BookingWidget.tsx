@@ -6,6 +6,7 @@ import { DayPicker } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { supabase } from '@/lib/supabase';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -340,6 +341,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [uploadError, setUploadError] = useState('');
   const [copiedRef, setCopiedRef] = useState(false);
   const [customerReferralCode, setCustomerReferralCode] = useState('');
+  const [activeSuggestedCodes, setActiveSuggestedCodes] = useState<Array<{ code: string; discount_value: number; expires_at: string }>>([]);
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -410,6 +412,17 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   useEffect(() => {
     void fetchAvailability();
   }, [fetchAvailability]);
+
+  // Auto-fill phone+name from logged-in session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const phone = session?.user?.app_metadata?.customer_phone as string | undefined;
+      if (phone) {
+        setCustomerPhone(prev => prev || phone);
+        void checkLoyaltyDiscount(phone, true);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -535,11 +548,11 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     setPromoError('');
   };
 
-  const checkLoyaltyDiscount = async (phone: string) => {
+  const checkLoyaltyDiscount = async (phone: string, autoFillName = false) => {
     const clean = phone.trim().replace(/\s/g, '');
     if (!/^(0[3-9]\d{8})$/.test(clean)) return;
     try {
-      const res = await fetch(`/api/customer-discount?phone=${encodeURIComponent(clean)}`);
+      const res = await fetch(`/api/customer-discount?phone=${encodeURIComponent(clean)}&include_ledger=1&include_referral_codes=1`);
       const json = await res.json();
       if (res.ok && json.eligible && json.discount_amount > 0) {
         setLoyaltyDiscount({ tier: json.tier, discount_amount: json.discount_amount, customer_name: json.customer_name || '' });
@@ -550,7 +563,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       setPointsBalance(json.points_balance || 0);
       setPointsValue(json.points_value || 0);
       setCustomerReferralCode(json.referral_code || '');
-    } catch { setLoyaltyDiscount(null); setReferralCredit(0); setPointsBalance(0); setPointsValue(0); setCustomerReferralCode(''); }
+      const codes = [...(json.active_codes || []), ...(json.active_referral_codes || [])];
+      setActiveSuggestedCodes(codes);
+      if (autoFillName && json.customer_name) {
+        setCustomerName(prev => prev || json.customer_name);
+      }
+    } catch { setLoyaltyDiscount(null); setReferralCredit(0); setPointsBalance(0); setPointsValue(0); setCustomerReferralCode(''); setActiveSuggestedCodes([]); }
   };
 
   const applyLoyaltyDiscount = () => {
@@ -1690,6 +1708,22 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   {promoError && (
                     <p className="text-xs text-red-500 font-medium mt-1">{promoError}</p>
                   )}
+                  {!promoResult && activeSuggestedCodes.length > 0 && (
+                    <div className="mt-2 space-y-1.5">
+                      <p className="text-xs text-gray-400 font-medium">Mã của bạn:</p>
+                      {activeSuggestedCodes.map(c => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => void applyPromoFromList(c.code)}
+                          className="w-full flex items-center justify-between rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs hover:bg-cyan-100 transition-colors"
+                        >
+                          <span className="font-mono font-bold text-cyan-800">{c.code}</span>
+                          <span className="text-cyan-600 font-semibold">Giảm {c.discount_value.toLocaleString('vi-VN')}đ · Áp dụng →</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -1976,6 +2010,26 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
                   <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
                 </div>
+
+                {/* Google Calendar */}
+                {(() => {
+                  const fmt = (dateStr: string, hour: number) => `${dateStr.replace(/-/g, '')}T${String(hour).padStart(2, '0')}0000`;
+                  const loc = deliveryMode === 'self'
+                    ? (LOCATIONS.find(l => l.id === selectedLocation)?.name || '')
+                    : (deliveryAddress || 'Giao tận nơi');
+                  const details = `Mã đặt xe: ${bookingRef}\nXe: ${carName}\nLiên hệ Car Match: 0975563290`;
+                  const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Nhận xe ${carName}`)}&dates=${fmt(pickupDate, pickupHour)}/${fmt(returnDate, returnHour)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(loc)}`;
+                  return (
+                    <a
+                      href={calUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full rounded-2xl border border-green-200 bg-green-50 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors"
+                    >
+                      📅 Thêm vào Google Calendar
+                    </a>
+                  );
+                })()}
 
                 {/* Nút copy */}
                 <button
