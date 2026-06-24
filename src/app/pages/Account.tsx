@@ -346,6 +346,49 @@ function WebLeadCard({ w, phone }: { w: WebLead; phone: string }) {
   const [proofError, setProofError] = useState('')
   const proofFileRef = useRef<HTMLInputElement | null>(null)
 
+  // ── Review state ──
+  const [showReview, setShowReview] = useState(false)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewHover, setReviewHover] = useState(0)
+  const [reviewName, setReviewName] = useState('')
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+  const [reviewDone, setReviewDone] = useState(false)
+
+  // Check if trip has ended (return date < today)
+  const tripEnded = (() => {
+    const returnPart = w.duration?.split(' → ')[1]?.trim().split(' ')[0]
+    if (!returnPart) return false
+    return returnPart < new Date().toISOString().slice(0, 10)
+  })()
+
+  const submitReview = async () => {
+    if (!reviewName.trim()) { setReviewError('Vui lòng nhập tên'); return }
+    setReviewLoading(true)
+    setReviewError('')
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_ref: w.booking_ref,
+          phone,
+          rating: reviewRating,
+          reviewer_name: reviewName.trim(),
+          comment: reviewComment.trim() || null,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Lỗi gửi đánh giá')
+      setReviewDone(true)
+    } catch (e: unknown) {
+      setReviewError((e as Error).message)
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+
   // duration format: "2026-06-23 20:00:00 → 2026-06-24 20:00:00"
   let dateText = w.duration ?? '—'
   const parts = w.duration?.split(' → ')
@@ -490,17 +533,103 @@ function WebLeadCard({ w, phone }: { w: WebLead; phone: string }) {
         </div>
       </div>
 
-      <footer className="flex items-center justify-end bg-slate-50/60 px-4 py-3 sm:px-5">
-          <a
-            href={zaloUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+      <footer className="flex items-center justify-between gap-2 bg-slate-50/60 px-4 py-3 sm:px-5">
+        <div>
+          {tripEnded && !reviewDone && (
+            <button
+              onClick={() => setShowReview(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+            >
+              <Star className="h-3.5 w-3.5" />
+              Đánh giá chuyến đi
+            </button>
+          )}
+          {reviewDone && (
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
+              <Check className="h-3.5 w-3.5" /> Đã gửi đánh giá — đang chờ duyệt
+            </span>
+          )}
+        </div>
+        <a
+          href={zaloUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[#0068FF] px-4 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
-          >
+        >
           <MessageCircle className="h-3.5 w-3.5" />
-            Nhắn Zalo
-          </a>
+          Nhắn Zalo
+        </a>
       </footer>
+
+      {/* Review modal */}
+      {showReview && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={() => !reviewLoading && setShowReview(false)}>
+          <div className="w-full max-w-md rounded-t-2xl bg-white p-6 sm:rounded-2xl" onClick={e => e.stopPropagation()}>
+            {reviewDone ? (
+              <div className="py-6 text-center">
+                <div className="mb-3 text-4xl">🎉</div>
+                <p className="text-base font-bold text-slate-900">Cảm ơn đánh giá của bạn!</p>
+                <p className="mt-1 text-sm text-slate-500">Đánh giá đang chờ kiểm duyệt và sẽ hiển thị trên website sớm.</p>
+                <button onClick={() => setShowReview(false)} className="mt-5 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-700">Đóng</button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4 flex items-start justify-between">
+                  <div>
+                    <p className="text-base font-bold text-slate-900">Đánh giá chuyến thuê xe</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{w.car_model} · {w.booking_ref}</p>
+                  </div>
+                  <button onClick={() => setShowReview(false)} className="rounded-full p-1 hover:bg-slate-100"><X className="h-4 w-4 text-slate-400" /></button>
+                </div>
+
+                {/* Stars */}
+                <div className="mb-4 flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setReviewRating(s)}
+                      onMouseEnter={() => setReviewHover(s)}
+                      onMouseLeave={() => setReviewHover(0)}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Star className={`h-9 w-9 ${s <= (reviewHover || reviewRating) ? 'text-amber-400 fill-current' : 'text-gray-200'}`} />
+                    </button>
+                  ))}
+                </div>
+                <p className="mb-4 text-center text-xs text-slate-400">
+                  {['', 'Rất tệ', 'Tệ', 'Trung bình', 'Tốt', 'Rất tuyệt!'][reviewRating]}
+                </p>
+
+                <div className="space-y-3">
+                  <input
+                    value={reviewName}
+                    onChange={e => setReviewName(e.target.value)}
+                    placeholder="Tên của bạn *"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                  <textarea
+                    value={reviewComment}
+                    onChange={e => setReviewComment(e.target.value)}
+                    placeholder="Nhận xét về xe, dịch vụ... (tuỳ chọn)"
+                    rows={3}
+                    maxLength={500}
+                    className="w-full resize-none rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                  {reviewError && <p className="text-xs font-medium text-red-500">{reviewError}</p>}
+                  <button
+                    onClick={() => void submitReview()}
+                    disabled={reviewLoading}
+                    className="w-full rounded-xl bg-brand-600 py-3 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    {reviewLoading ? 'Đang gửi...' : 'Gửi đánh giá'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </article>
   )
 }

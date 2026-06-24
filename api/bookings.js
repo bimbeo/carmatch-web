@@ -441,6 +441,7 @@ export default async function handler(req, res) {
     locationName ? `Địa điểm: ${locationName}` : '',
     `Tổng dự kiến: ${Number(body.total_amount || 0).toLocaleString('vi-VN')}đ`,
     `Cọc VietQR: ${depositAmount.toLocaleString('vi-VN')}đ`,
+    body.loyalty_discount > 0 ? `Ưu đãi ${body.loyalty_tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${Number(body.loyalty_discount).toLocaleString('vi-VN')}đ` : '',
     body.promo_code ? `Mã KM: ${body.promo_code} (-${Number(body.promo_discount || 0).toLocaleString('vi-VN')}đ)` : '',
     body.customer_note ? `Ghi chú khách: ${body.customer_note}` : '',
   ].filter(Boolean).join('\n');
@@ -456,6 +457,7 @@ export default async function handler(req, res) {
     quantity: '1 xe',
     duration: `${pickupText} → ${returnText}`,
     car_model: body.car_name,
+    car_slug: body.car_slug || null,
     building: locationName,
     note: noteLines,
     status: 'new',

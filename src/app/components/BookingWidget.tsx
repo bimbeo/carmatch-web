@@ -276,11 +276,12 @@ interface Props {
   carName: string;
   priceMonth?: number;
   vehicleId?: string;
+  carSlug?: string;
   kmPerDay?: number;
   relatedCars?: RelatedCar[];
 }
 
-export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, kmPerDay = 300, relatedCars = [] }: Props) {
+export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, carSlug, kmPerDay = 300, relatedCars = [] }: Props) {
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
@@ -658,6 +659,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vehicle_id: vehicleId || null,
+          car_slug: carSlug || null,
           car_name: carName,
           customer_name: customerName.trim(),
           customer_phone: phoneClean,

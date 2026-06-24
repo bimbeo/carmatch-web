@@ -564,6 +564,7 @@ export default function CarDetail() {
               <BookingWidget
                 basePrice={car.price}
                 carName={car.name}
+                carSlug={car.slug}
                 priceMonth={car.priceMonth}
                 vehicleId={car.id}
                 kmPerDay={car.kmPerDay}
