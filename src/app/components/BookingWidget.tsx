@@ -351,6 +351,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [activeSuggestedCodes, setActiveSuggestedCodes] = useState<Array<{ code: string; discount_value: number; expires_at: string }>>([]);
   const [recentBookingsCount, setRecentBookingsCount] = useState(0);
   const [insuranceAddon, setInsuranceAddon] = useState(false);
+  const [confirmTransfer, setConfirmTransfer] = useState(false);
   const [pointsPerTenK, setPointsPerTenK] = useState(10); // default 10 pts per 10k VND
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1162,6 +1163,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             setShowBookingModal(true);
             setBookingStep(1);
             setBookingError('');
+            setConfirmTransfer(false);
           }}
           disabled={!result.valid}
           className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1944,6 +1946,19 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                       <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{uploadError}</p>
                     )}
 
+                    {/* Xác nhận đã chuyển khoản */}
+                    <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={confirmTransfer}
+                        onChange={e => setConfirmTransfer(e.target.checked)}
+                        className="mt-0.5 accent-green-600 w-4 h-4 shrink-0"
+                      />
+                      <span className="text-xs text-gray-700 leading-relaxed">
+                        Tôi xác nhận đã chuyển khoản <strong className="text-gray-900">{fmtVND(depositAmount)}</strong> với nội dung <strong className="font-mono text-brand-700">DATXE {bookingRef}</strong>
+                      </span>
+                    </label>
+
                     {/* Tư vấn trước */}
                     <div className="border-t border-gray-100 pt-3">
                       <p className="text-xs text-center text-gray-400 mb-2">Chưa muốn chuyển khoản ngay?</p>
@@ -2115,8 +2130,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 {/* Refer friend CTA */}
                 {customerReferralCode && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                    <p className="font-bold text-amber-900 text-sm mb-1">🎁 Chia sẻ để nhận thêm ưu đãi</p>
-                    <p className="mb-2">Bạn bè dùng mã của bạn đặt xe → bạn nhận thưởng giới thiệu</p>
+                    <p className="font-bold text-amber-900 text-sm mb-1">🎁 Giới thiệu bạn bè — nhận tiền thưởng</p>
+                    <p className="mb-2">Bạn bè đặt xe thành công bằng mã của bạn → Car Match chuyển <strong>tiền thưởng giới thiệu</strong> vào tài khoản ngân hàng của bạn</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -2169,8 +2184,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
               <>
                 <button
                   onClick={handleConfirmPayment}
-                  disabled={uploadingProof}
-                  className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  disabled={uploadingProof || (!confirmTransfer && !paymentProofFile)}
+                  className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {uploadingProof ? (
                     <>
@@ -2180,12 +2195,15 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   ) : paymentProofFile ? (
                     <>
                       <Upload className="w-4 h-4" />
-                      Gửi ảnh & xác nhận ✓
+                      Gửi ảnh & xác nhận đã chuyển khoản ✓
                     </>
                   ) : (
-                    'Tôi đã chuyển khoản xong ✓'
+                    'Xác nhận đã chuyển khoản ✓'
                   )}
                 </button>
+                {!confirmTransfer && !paymentProofFile && (
+                  <p className="text-xs text-center text-gray-400">Tích chọn xác nhận phía trên để tiếp tục</p>
+                )}
                 <button
                   onClick={() => setBookingStep(1)}
                   disabled={uploadingProof}
