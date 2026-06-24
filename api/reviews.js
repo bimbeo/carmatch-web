@@ -77,29 +77,67 @@ async function handlePost(req, res) {
 
   const refClean = String(booking_ref).trim().toUpperCase();
   const phoneClean = String(phone).trim().replace(/\s/g, '');
+  const normalized = phoneClean.startsWith('0') ? '84' + phoneClean.slice(1) : phoneClean;
+  const today = new Date().toISOString().slice(0, 10);
 
-  // Verify booking exists and phone matches
-  const { data: lead } = await supabase
-    .from('website_leads')
-    .select('booking_ref, phone, car_slug, duration')
-    .eq('booking_ref', refClean)
-    .maybeSingle();
+  let carSlug = null;
+  let tripDate = null;
 
-  if (!lead) {
-    return res.status(404).json({ error: 'Không tìm thấy đơn đặt xe với mã này' });
-  }
+  if (refClean.startsWith('CRM-')) {
+    // CRM booking — verify in bookings table
+    const { data: crm } = await supabase
+      .from('bookings')
+      .select('id, return_date, status, customer_id')
+      .eq('booking_code', refClean)
+      .maybeSingle();
 
-  const leadPhone = String(lead.phone || '').trim().replace(/\s/g, '');
-  if (leadPhone !== phoneClean) {
-    return res.status(403).json({ error: 'Số điện thoại không khớp với đơn đặt xe' });
-  }
+    if (!crm || ['cancelled', 'rejected', 'draft'].includes(crm.status)) {
+      return res.status(404).json({ error: 'Không tìm thấy chuyến đi với mã này' });
+    }
 
-  // Check trip has ended (parse return date from duration "YYYY-MM-DD HH:MM → YYYY-MM-DD HH:MM")
-  if (lead.duration) {
-    const returnPart = lead.duration.split(' → ')[1]?.trim().split(' ')[0];
-    if (returnPart && returnPart > new Date().toISOString().slice(0, 10)) {
+    // Verify phone belongs to the customer
+    const { data: cust } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('id', crm.customer_id)
+      .or(`phone.eq.${phoneClean},phone.eq.${normalized},normalized_phone.eq.${normalized}`)
+      .maybeSingle();
+
+    if (!cust) {
+      return res.status(403).json({ error: 'Số điện thoại không khớp với chuyến đi' });
+    }
+
+    if (!crm.return_date || crm.return_date >= today) {
       return res.status(400).json({ error: 'Chuyến đi chưa kết thúc — hãy quay lại sau khi trả xe' });
     }
+
+    tripDate = crm.return_date;
+  } else {
+    // Website lead — verify in website_leads table
+    const { data: lead } = await supabase
+      .from('website_leads')
+      .select('booking_ref, phone, car_slug, duration')
+      .eq('booking_ref', refClean)
+      .maybeSingle();
+
+    if (!lead) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn đặt xe với mã này' });
+    }
+
+    const leadPhone = String(lead.phone || '').trim().replace(/\s/g, '');
+    if (leadPhone !== phoneClean) {
+      return res.status(403).json({ error: 'Số điện thoại không khớp với đơn đặt xe' });
+    }
+
+    if (lead.duration) {
+      const returnPart = lead.duration.split(' → ')[1]?.trim().split(' ')[0];
+      if (returnPart && returnPart > today) {
+        return res.status(400).json({ error: 'Chuyến đi chưa kết thúc — hãy quay lại sau khi trả xe' });
+      }
+      tripDate = returnPart || null;
+    }
+
+    carSlug = lead.car_slug || null;
   }
 
   // Check duplicate
@@ -114,13 +152,13 @@ async function handlePost(req, res) {
   }
 
   const { error: insertErr } = await supabase.from('vehicle_reviews').insert({
-    car_slug: lead.car_slug || null,
+    car_slug: carSlug,
     booking_ref: refClean,
     phone: phoneClean,
     reviewer_name: reviewer_name.trim(),
     rating: ratingNum,
     comment: comment?.trim() || null,
-    trip_date: lead.duration?.split(' → ')[0]?.trim().split(' ')[0] || null,
+    trip_date: tripDate,
     status: 'pending',
   });
 
