@@ -227,6 +227,7 @@
       "dest": "/api/promos?action=validate"
     },
     { "src": "/tai-khoan/?", "dest": "/index.html" },
+    { "src": "/chao-ban/?", "dest": "/index.html" },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "status": 404, "dest": "/404.html" }
