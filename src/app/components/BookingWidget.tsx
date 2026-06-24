@@ -265,15 +265,22 @@ const BANK_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || 'CONG TY TNHH CAR MA
 const BANK_QR_ENABLED = Boolean(BANK_ACCOUNT);
 
 // ─── Component ────────────────────────────────────────────────────────────────
+interface RelatedCar {
+  slug: string;
+  name: string;
+  price: number;
+}
+
 interface Props {
   basePrice: number;
   carName: string;
   priceMonth?: number;
   vehicleId?: string;
   kmPerDay?: number;
+  relatedCars?: RelatedCar[];
 }
 
-export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, kmPerDay = 300 }: Props) {
+export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, kmPerDay = 300, relatedCars = [] }: Props) {
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
@@ -342,6 +349,9 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [copiedRef, setCopiedRef] = useState(false);
   const [customerReferralCode, setCustomerReferralCode] = useState('');
   const [activeSuggestedCodes, setActiveSuggestedCodes] = useState<Array<{ code: string; discount_value: number; expires_at: string }>>([]);
+  const [recentBookingsCount, setRecentBookingsCount] = useState(0);
+  const [insuranceAddon, setInsuranceAddon] = useState(false);
+  const [pointsPerTenK, setPointsPerTenK] = useState(10); // default 10 pts per 10k VND
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -402,6 +412,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       if (!res.ok) return;
       const data = await res.json();
       setBlockedRanges(data.blockedRanges || []);
+      if (data.recent_bookings_count > 0) setRecentBookingsCount(data.recent_bookings_count);
     } catch {
       // graceful
     } finally {
@@ -448,8 +459,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     [pickupDate, pickupHour, returnDate, returnHour, basePrice],
   );
 
+  const INSURANCE_FEE = 50_000;
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
-  const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee : 0;
+  const insuranceFee = insuranceAddon ? INSURANCE_FEE : 0;
+  const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee + insuranceFee : 0;
   const totalAmount = orderTotalBeforePromo;
 
   const result = useMemo(() => {
@@ -457,15 +470,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     const extraFees: Fee[] = deliveryMode === 'delivery'
       ? [{ label: 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
       : [];
+    const insuranceFees: Fee[] = insuranceAddon
+      ? [{ label: 'Bảo hiểm chuyến đi', amount: INSURANCE_FEE }]
+      : [];
     const promoFee: Fee[] = promoResult
       ? [{ label: `Mã ${promoResult.code}`, amount: -promoResult.discount_amount, highlight: true }]
       : [];
     return {
       ...rentalResult,
-      fees: [...rentalResult.fees, ...extraFees, ...promoFee],
+      fees: [...rentalResult.fees, ...extraFees, ...insuranceFees, ...promoFee],
       total: Math.max(0, orderTotalBeforePromo - (promoResult?.discount_amount ?? 0)),
     };
-  }, [rentalResult, deliveryMode, deliveryFee, orderTotalBeforePromo, promoResult]);
+  }, [rentalResult, deliveryMode, deliveryFee, insuranceAddon, insuranceFee, orderTotalBeforePromo, promoResult]);
 
   const savings =
     priceMonth && basePrice > 0
@@ -565,6 +581,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       setCustomerReferralCode(json.referral_code || '');
       const codes = [...(json.active_codes || []), ...(json.active_referral_codes || [])];
       setActiveSuggestedCodes(codes);
+      if (json.points_settings?.points_per_10k) setPointsPerTenK(json.points_settings.points_per_10k);
       if (autoFillName && json.customer_name) {
         setCustomerName(prev => prev || json.customer_name);
       }
@@ -661,6 +678,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           location_name: deliveryMode === 'self' ? loc?.name : deliveryAddress.trim() || 'Giao tận nơi',
           base_amount: rentalResult.valid ? rentalResult.total : 0,
           delivery_fee: deliveryFee,
+          insurance_addon: insuranceAddon,
+          insurance_fee: insuranceFee,
           promo_code: promoResult?.code ?? null,
           promo_discount: promoResult?.discount_amount ?? 0,
           total_amount: result.valid ? result.total : 0,
@@ -889,20 +908,39 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
               </span>
             </button>
 
-            {/* Hard conflict — xe đang bận hẳn — cảnh báo đỏ */}
+            {/* Hard conflict — xe đang bận hẳn — cảnh báo đỏ + gợi xe khác */}
             {hardConflicts.length > 0 && (
-              <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-                <Info className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
-                <div>
-                  <div className="font-semibold mb-0.5">Xe đã có lịch trong khoảng này</div>
-                  {hardConflicts.map((r, i) => (
-                    <div key={i}>
-                      {fmtDateShort(r.from)} – {fmtDateShort(r.to)}
-                      {r.type === 'rental' ? ' (đang cho thuê)' : r.type === 'maintenance' ? ' (bảo dưỡng)' : ' (bận)'}
-                    </div>
-                  ))}
-                  <div className="mt-1 text-red-600">Liên hệ Car Match để xác nhận lịch trống ạ.</div>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+                  <Info className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
+                  <div>
+                    <div className="font-semibold mb-0.5">Xe đã có lịch trong khoảng này</div>
+                    {hardConflicts.map((r, i) => (
+                      <div key={i}>
+                        {fmtDateShort(r.from)} – {fmtDateShort(r.to)}
+                        {r.type === 'rental' ? ' (đang cho thuê)' : r.type === 'maintenance' ? ' (bảo dưỡng)' : ' (bận)'}
+                      </div>
+                    ))}
+                    <div className="mt-1 text-red-600">Liên hệ Car Match để xác nhận lịch trống ạ.</div>
+                  </div>
                 </div>
+                {relatedCars.length > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-xs font-bold text-amber-800 mb-2">Xe tương tự đang trống lịch</p>
+                    <div className="space-y-1.5">
+                      {relatedCars.map(c => (
+                        <a
+                          key={c.slug}
+                          href={`/xe/${c.slug}`}
+                          className="flex items-center justify-between rounded-lg bg-white border border-amber-100 px-3 py-2 text-xs hover:bg-amber-50 transition-colors"
+                        >
+                          <span className="font-semibold text-gray-800">{c.name}</span>
+                          <span className="text-amber-700 font-bold">{fmtVND(c.price)}/ngày →</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1107,6 +1145,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         )}
 
         {/* ── CTAs ── */}
+        {recentBookingsCount > 0 && (
+          <div className="flex items-center justify-center gap-1.5 text-xs text-green-600 font-semibold">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            {recentBookingsCount} người đặt xe này trong 7 ngày qua
+          </div>
+        )}
         <button
           onClick={() => {
             trackCtaClick('booking_widget_open_form', {
@@ -1580,6 +1624,11 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     <span className="font-bold text-gray-800">Tổng dự kiến</span>
                     <span className="font-bold text-brand-600 text-base">{result.valid ? fmtVND(result.total) : '—'}</span>
                   </div>
+                  {result.valid && result.total > 0 && (
+                    <div className="text-xs text-blue-600 font-medium text-right">
+                      ⭐ Tích được ~{Math.floor(result.total / 10000) * pointsPerTenK} điểm chuyến này
+                    </div>
+                  )}
                 </div>
 
                 {/* Customer form */}
@@ -1725,6 +1774,23 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     </div>
                   )}
                 </div>
+                {/* Add-on bảo hiểm */}
+                <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={insuranceAddon}
+                    onChange={e => setInsuranceAddon(e.target.checked)}
+                    className="mt-0.5 accent-brand-600 w-4 h-4 shrink-0"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-800">🛡️ Bảo hiểm chuyến đi</span>
+                      <span className="text-xs font-bold text-brand-600">+{fmtVND(INSURANCE_FEE)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">Bồi thường tối đa 30 triệu khi có tai nạn trong chuyến thuê</p>
+                  </div>
+                </label>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Ghi chú (tuỳ chọn)

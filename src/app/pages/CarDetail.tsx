@@ -567,6 +567,7 @@ export default function CarDetail() {
                 priceMonth={car.priceMonth}
                 vehicleId={car.id}
                 kmPerDay={car.kmPerDay}
+                relatedCars={displayRelated.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
               />
               </div>
 

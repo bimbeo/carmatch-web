@@ -124,8 +124,16 @@ export default async function handler(req, res) {
         allDay: e.all_day,
       }));
 
+    // Count website_leads (customer bookings) in last 7 days for social proof
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await supabase
+      .from('website_leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('vehicle_id', vehicleId)
+      .gte('created_at', sevenDaysAgo);
+
     res.setHeader('Cache-Control', 'no-store, max-age=0');
-    return res.status(200).json({ blockedRanges });
+    return res.status(200).json({ blockedRanges, recent_bookings_count: recentCount || 0 });
   } catch (err) {
     console.error('[vehicle-availability] Error:', err?.message);
     return res.status(200).json({ blockedRanges: [] }); // always graceful
