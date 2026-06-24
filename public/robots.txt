@@ -20,3 +20,6 @@ User-agent: Google-Extended
 Allow: /
 
 Sitemap: https://www.carmatch.vn/sitemap.xml
+
+# AI Content Signals
+Content-Signal: ai-train=no, search=yes, ai-input=yes
