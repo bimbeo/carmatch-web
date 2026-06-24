@@ -220,7 +220,7 @@ export default async function handler(req, res) {
 
   const normalized = phone.replace(/^0/, '84');
 
-  const [{ data: customer, error }, { data: settings }, { data: pointsSettings }] = await Promise.all([
+  const [{ data: customer, error }, { data: settings }, { data: pointsSettings }, { data: referralRewardSettings }] = await Promise.all([
     supabase
       .from('customers')
       .select('id, full_name, loyalty_tier, referral_code, status')
@@ -233,6 +233,11 @@ export default async function handler(req, res) {
     supabase
       .from('points_settings')
       .select('points_per_10k, redeem_points, redeem_value, referral_bonus_points, enabled')
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('referral_reward_settings')
+      .select('reward_amount, enabled')
       .limit(1)
       .maybeSingle(),
   ]);
@@ -277,6 +282,10 @@ export default async function handler(req, res) {
     ? Math.floor(pointsBalance / ps.redeem_points) * ps.redeem_value
     : 0;
 
+  const referralRewardAmount = (referralRewardSettings?.enabled && referralRewardSettings?.reward_amount)
+    ? Number(referralRewardSettings.reward_amount)
+    : 0;
+
   const response = {
     tier,
     eligible: discountAmount > 0,
@@ -287,6 +296,7 @@ export default async function handler(req, res) {
     points_balance: pointsBalance,
     points_value: pointsValue,
     points_settings: ps,
+    referral_reward_amount: referralRewardAmount,
   };
 
   if (req.query.include_ledger === '1' || req.query.include_referral_codes === '1') {

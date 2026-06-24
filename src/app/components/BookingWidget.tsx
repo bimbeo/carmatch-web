@@ -353,6 +353,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [insuranceAddon, setInsuranceAddon] = useState(false);
   const [confirmTransfer, setConfirmTransfer] = useState(false);
   const [pointsPerTenK, setPointsPerTenK] = useState(10); // default 10 pts per 10k VND
+  const [referralRewardAmount, setReferralRewardAmount] = useState(0);
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -465,6 +466,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const insuranceFee = insuranceAddon ? INSURANCE_FEE : 0;
   const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee + insuranceFee : 0;
   const totalAmount = orderTotalBeforePromo;
+  const loyaltyDiscountAmount = loyaltyDiscount?.discount_amount ?? 0;
 
   const result = useMemo(() => {
     if (!rentalResult.valid) return rentalResult;
@@ -474,15 +476,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     const insuranceFees: Fee[] = insuranceAddon
       ? [{ label: 'Bảo hiểm chuyến đi', amount: INSURANCE_FEE }]
       : [];
+    const loyaltyFee: Fee[] = loyaltyDiscount
+      ? [{ label: loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết', amount: -loyaltyDiscountAmount, highlight: true }]
+      : [];
     const promoFee: Fee[] = promoResult
       ? [{ label: `Mã ${promoResult.code}`, amount: -promoResult.discount_amount, highlight: true }]
       : [];
     return {
       ...rentalResult,
-      fees: [...rentalResult.fees, ...extraFees, ...insuranceFees, ...promoFee],
-      total: Math.max(0, orderTotalBeforePromo - (promoResult?.discount_amount ?? 0)),
+      fees: [...rentalResult.fees, ...extraFees, ...insuranceFees, ...loyaltyFee, ...promoFee],
+      total: Math.max(0, orderTotalBeforePromo - loyaltyDiscountAmount - (promoResult?.discount_amount ?? 0)),
     };
-  }, [rentalResult, deliveryMode, deliveryFee, insuranceAddon, insuranceFee, orderTotalBeforePromo, promoResult]);
+  }, [rentalResult, deliveryMode, deliveryFee, insuranceAddon, insuranceFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
 
   const savings =
     priceMonth && basePrice > 0
@@ -583,23 +588,11 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       const codes = [...(json.active_codes || []), ...(json.active_referral_codes || [])];
       setActiveSuggestedCodes(codes);
       if (json.points_settings?.points_per_10k) setPointsPerTenK(json.points_settings.points_per_10k);
+      if (json.referral_reward_amount) setReferralRewardAmount(Number(json.referral_reward_amount));
       if (autoFillName && json.customer_name) {
         setCustomerName(prev => prev || json.customer_name);
       }
     } catch { setLoyaltyDiscount(null); setReferralCredit(0); setPointsBalance(0); setPointsValue(0); setCustomerReferralCode(''); setActiveSuggestedCodes([]); }
-  };
-
-  const applyLoyaltyDiscount = () => {
-    if (!loyaltyDiscount) return;
-    const label = loyaltyDiscount.tier === 'vip' ? 'VIP' : 'KHACHQUEN';
-    setPromoResult({
-      code: label,
-      discount_amount: Math.min(loyaltyDiscount.discount_amount, totalAmount),
-      discount_type: 'fixed',
-      discount_value: loyaltyDiscount.discount_amount,
-    });
-    setPromoCode(label);
-    setPromoError('');
   };
 
   const fetchPromoList = useCallback(async () => {
@@ -681,6 +674,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           delivery_fee: deliveryFee,
           insurance_addon: insuranceAddon,
           insurance_fee: insuranceFee,
+          loyalty_tier: loyaltyDiscount?.tier ?? null,
+          loyalty_discount: loyaltyDiscountAmount,
           promo_code: promoResult?.code ?? null,
           promo_discount: promoResult?.discount_amount ?? 0,
           total_amount: result.valid ? result.total : 0,
@@ -783,6 +778,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       `Số ngày thuê: ${rentalDays} ngày`,
       '',
       `Tổng giá: ${finalTotal.toLocaleString('vi-VN')}đ`,
+      loyaltyDiscountAmount > 0 ? `Ưu đãi ${loyaltyDiscount?.tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${loyaltyDiscountAmount.toLocaleString('vi-VN')}đ` : null,
       promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
       `${BANK_QR_ENABLED ? 'Đã cọc' : 'Tiền cọc dự kiến'}: ${depositAmount.toLocaleString('vi-VN')}đ`,
       deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
@@ -1516,6 +1512,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             </div>
             {result.valid && (
               <>
+                {loyaltyDiscount && (
+                  <div className="flex justify-between text-sm text-violet-600">
+                    <span>{loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết'}</span>
+                    <span className="font-semibold">-{fmtVND(loyaltyDiscountAmount)}</span>
+                  </div>
+                )}
                 {promoResult && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Mã {promoResult.code}</span>
@@ -1616,6 +1618,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                       {deliveryMode === 'self' ? LOCATIONS.find(l => l.id === selectedLocation)?.name : 'Giao tận nơi'}
                     </span>
                   </div>
+                  {loyaltyDiscount && (
+                    <div className="flex justify-between text-violet-600">
+                      <span>{loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết'}</span>
+                      <span className="font-medium">-{fmtVND(loyaltyDiscountAmount)}</span>
+                    </div>
+                  )}
                   {promoResult && (
                     <div className="flex justify-between text-green-600">
                       <span>Mã {promoResult.code}</span>
@@ -1657,23 +1665,16 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     type="tel"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
                   />
-                  {loyaltyDiscount && !promoResult && (
+                  {loyaltyDiscount && (
                     <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-violet-50 border border-violet-100 px-3 py-2.5">
                       <div>
                         <p className="text-xs font-black text-violet-800">
                           {loyaltyDiscount.tier === 'vip' ? '⭐ Khách VIP' : '🔄 Khách thân thiết'} — Ưu đãi dành riêng
                         </p>
                         <p className="text-xs text-violet-600 mt-0.5">
-                          Giảm {loyaltyDiscount.discount_amount.toLocaleString('vi-VN')}đ cho đơn này
+                          Giảm {loyaltyDiscount.discount_amount.toLocaleString('vi-VN')}đ — tự động áp dụng ✓
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={applyLoyaltyDiscount}
-                        className="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-700"
-                      >
-                        Áp dụng
-                      </button>
                     </div>
                   )}
                   {referralCredit > 0 && (
@@ -2130,8 +2131,8 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 {/* Refer friend CTA */}
                 {customerReferralCode && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                    <p className="font-bold text-amber-900 text-sm mb-1">🎁 Giới thiệu bạn bè — nhận tiền thưởng</p>
-                    <p className="mb-2">Bạn bè đặt xe thành công bằng mã của bạn → Car Match chuyển <strong>tiền thưởng giới thiệu</strong> vào tài khoản ngân hàng của bạn</p>
+                    <p className="font-bold text-amber-900 text-sm mb-1">🎁 Giới thiệu bạn bè — nhận mã giảm giá</p>
+                    <p className="mb-2">Bạn bè đặt xe thành công bằng mã của bạn → nhận <strong>mã giảm giá {referralRewardAmount > 0 ? fmtVND(referralRewardAmount) : '100.000đ'}</strong> cho chuyến thuê tiếp theo</p>
                     <button
                       type="button"
                       onClick={() => {
