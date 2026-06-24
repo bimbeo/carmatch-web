@@ -19,6 +19,7 @@ const FAQ = lazy(() => import('./pages/FAQ'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Account = lazy(() => import('./pages/Account'));
+const ReEngagement = lazy(() => import('./pages/ReEngagement'));
 
 const chunkReloadKey = 'carmatch-chunk-reload-attempted';
 
@@ -142,6 +143,7 @@ export default function App() {
             <Route path="/lien-he" element={<Contact />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/tai-khoan" element={<Account />} />
+            <Route path="/chao-ban" element={<ReEngagement />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
