@@ -16,7 +16,26 @@ export default async function handler(req, res) {
 }
 
 async function handleGet(req, res) {
-  const { slug } = req.query;
+  const { slug, booking_ref } = req.query;
+
+  // Check if a specific booking already has a review
+  if (booking_ref && typeof booking_ref === 'string') {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return res.status(200).json({ reviewed: false });
+    try {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data } = await supabase
+        .from('vehicle_reviews')
+        .select('id')
+        .eq('booking_ref', booking_ref.trim().toUpperCase())
+        .maybeSingle();
+      return res.status(200).json({ reviewed: !!data });
+    } catch {
+      return res.status(200).json({ reviewed: false });
+    }
+  }
+
   if (!slug || typeof slug !== 'string') return res.status(400).json({ error: 'Missing slug' });
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {

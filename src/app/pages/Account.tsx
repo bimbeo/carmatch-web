@@ -262,6 +262,16 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
 
   const tripEnded = !!(b.return_date && b.return_date < new Date().toISOString().slice(0, 10))
 
+  useEffect(() => {
+    if (!tripEnded) return
+    const ref = b.booking_code ?? b.booking_id
+    if (!ref) return
+    fetch(`/api/reviews?booking_ref=${encodeURIComponent(ref)}`)
+      .then(r => r.json())
+      .then(d => { if (d.reviewed) setReviewDone(true) })
+      .catch(() => {})
+  }, [tripEnded, b.booking_code, b.booking_id])
+
   const submitReview = async () => {
     if (!reviewName.trim()) { setReviewError('Vui lòng nhập tên'); return }
     setReviewLoading(true)
@@ -481,6 +491,14 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
     if (!returnPart) return false
     return returnPart < new Date().toISOString().slice(0, 10)
   })()
+
+  useEffect(() => {
+    if (!tripEnded || !w.booking_ref) return
+    fetch(`/api/reviews?booking_ref=${encodeURIComponent(w.booking_ref)}`)
+      .then(r => r.json())
+      .then(d => { if (d.reviewed) setReviewDone(true) })
+      .catch(() => {})
+  }, [tripEnded, w.booking_ref])
 
   const submitReview = async () => {
     if (!reviewName.trim()) { setReviewError('Vui lòng nhập tên'); return }
