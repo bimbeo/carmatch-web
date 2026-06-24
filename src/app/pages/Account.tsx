@@ -242,7 +242,7 @@ function GoogleIcon() {
 
 const ZALO_NUMBER = '0975563290'
 
-function BookingCard({ b, phone }: { b: Booking; phone: string }) {
+function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; customerName?: string }) {
   const colorClass = STATUS_COLOR[b.status] ?? 'bg-slate-50 text-slate-500 border-slate-200'
   const dotClass = STATUS_DOT[b.status] ?? 'bg-slate-400'
   const label = STATUS_LABEL[b.status] ?? b.status
@@ -254,7 +254,7 @@ function BookingCard({ b, phone }: { b: Booking; phone: string }) {
   const [showReview, setShowReview] = useState(false)
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewHover, setReviewHover] = useState(0)
-  const [reviewName, setReviewName] = useState('')
+  const [reviewName, setReviewName] = useState(customerName || '')
   const [reviewComment, setReviewComment] = useState('')
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewError, setReviewError] = useState('')
@@ -414,13 +414,20 @@ function BookingCard({ b, phone }: { b: Booking; phone: string }) {
                   ))}
                 </div>
                 <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Tên của bạn *"
-                    value={reviewName}
-                    onChange={e => setReviewName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-                  />
+                  {customerName ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
+                      <span className="text-sm text-slate-500">Đánh giá với tên:</span>
+                      <span className="text-sm font-semibold text-slate-800">{customerName}</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Tên của bạn *"
+                      value={reviewName}
+                      onChange={e => setReviewName(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                    />
+                  )}
                   <textarea
                     placeholder="Chia sẻ trải nghiệm của bạn (không bắt buộc)"
                     value={reviewComment}
@@ -448,7 +455,7 @@ function BookingCard({ b, phone }: { b: Booking; phone: string }) {
 
 // ─── WebLeadCard ─────────────────────────────────────────────────────────────
 
-function WebLeadCard({ w, phone }: { w: WebLead; phone: string }) {
+function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; customerName?: string }) {
   const colorClass = STATUS_COLOR[w.status] ?? 'bg-amber-50 text-amber-700 border-amber-200'
   const dotClass = STATUS_DOT[w.status] ?? 'bg-amber-400'
   const label = STATUS_LABEL[w.status] ?? 'Chờ xác nhận'
@@ -462,7 +469,7 @@ function WebLeadCard({ w, phone }: { w: WebLead; phone: string }) {
   const [showReview, setShowReview] = useState(false)
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewHover, setReviewHover] = useState(0)
-  const [reviewName, setReviewName] = useState('')
+  const [reviewName, setReviewName] = useState(customerName || '')
   const [reviewComment, setReviewComment] = useState('')
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewError, setReviewError] = useState('')
@@ -714,12 +721,19 @@ function WebLeadCard({ w, phone }: { w: WebLead; phone: string }) {
                 </p>
 
                 <div className="space-y-3">
-                  <input
-                    value={reviewName}
-                    onChange={e => setReviewName(e.target.value)}
-                    placeholder="Tên của bạn *"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                  />
+                  {customerName ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
+                      <span className="text-sm text-slate-500">Đánh giá với tên:</span>
+                      <span className="text-sm font-semibold text-slate-800">{customerName}</span>
+                    </div>
+                  ) : (
+                    <input
+                      value={reviewName}
+                      onChange={e => setReviewName(e.target.value)}
+                      placeholder="Tên của bạn *"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    />
+                  )}
                   <textarea
                     value={reviewComment}
                     onChange={e => setReviewComment(e.target.value)}
@@ -1727,8 +1741,8 @@ export default function Account() {
                     )}
                     {tripItems.map((item) => (
                       item.type === 'web'
-                        ? <WebLeadCard key={item.key} w={item.lead} phone={phone} />
-                        : <BookingCard key={item.key} b={item.booking} phone={phone} />
+                        ? <WebLeadCard key={item.key} w={item.lead} phone={phone} customerName={customerInfo?.full_name} />
+                        : <BookingCard key={item.key} b={item.booking} phone={phone} customerName={customerInfo?.full_name} />
                     ))}
                   </div>
                 )}
