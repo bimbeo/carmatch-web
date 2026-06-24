@@ -810,9 +810,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       `Giờ trả xe: ${returnHour} giờ ngày ${displayDateSlash(returnDate)}`,
       `Số ngày thuê: ${rentalDays} ngày`,
       '',
-      `Tổng giá: ${finalTotal.toLocaleString('vi-VN')}đ`,
+      `Tổng giá: ${orderTotalBeforePromo.toLocaleString('vi-VN')}đ`,
       loyaltyDiscountAmount > 0 ? `Ưu đãi ${loyaltyDiscount?.tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${loyaltyDiscountAmount.toLocaleString('vi-VN')}đ` : null,
       promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
+      (loyaltyDiscountAmount > 0 || promoDiscount > 0) ? `Tổng sau ưu đãi: ${finalTotal.toLocaleString('vi-VN')}đ` : null,
       `${BANK_QR_ENABLED ? 'Đã cọc' : 'Tiền cọc dự kiến'}: ${depositAmount.toLocaleString('vi-VN')}đ`,
       deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
       'Điều kiện bảo hiểm: xác nhận theo hợp đồng và biên bản bàn giao',
@@ -2149,12 +2150,24 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <div className="border-t border-slate-200 pt-2 space-y-1">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Tổng giá</span>
-                      <span className="font-bold text-slate-900">{finalTotal.toLocaleString('vi-VN')}đ</span>
+                      <span className="font-bold text-slate-900">{orderTotalBeforePromo.toLocaleString('vi-VN')}đ</span>
                     </div>
+                    {loyaltyDiscountAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Ưu đãi {loyaltyDiscount?.tier === 'vip' ? 'VIP' : 'khách thân thiết'}</span>
+                        <span className="font-semibold text-purple-600">-{loyaltyDiscountAmount.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
                     {promoDiscount > 0 && (
                       <div className="flex justify-between">
                         <span className="text-slate-500">Giảm giá ({appliedPromo})</span>
                         <span className="font-semibold text-green-600">-{promoDiscount.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
+                    {(loyaltyDiscountAmount > 0 || promoDiscount > 0) && (
+                      <div className="flex justify-between border-t border-dashed border-slate-200 pt-1">
+                        <span className="text-slate-500 font-medium">Tổng sau ưu đãi</span>
+                        <span className="font-bold text-slate-900">{finalTotal.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
                     <div className="flex justify-between">
