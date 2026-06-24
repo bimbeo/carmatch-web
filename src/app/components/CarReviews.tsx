@@ -29,8 +29,11 @@ export default function CarReviews({ carSlug }: { carSlug: string }) {
   useEffect(() => {
     let active = true;
 
+    const timeout = setTimeout(() => {
+      if (active) setLoading(false);
+    }, 5000);
+
     async function loadReviews() {
-      setLoading(true);
       try {
         const res = await fetch(`/api/reviews?slug=${encodeURIComponent(carSlug)}`);
         const data = await res.json();
@@ -45,6 +48,7 @@ export default function CarReviews({ carSlug }: { carSlug: string }) {
     void loadReviews();
     return () => {
       active = false;
+      clearTimeout(timeout);
     };
   }, [carSlug]);
 
@@ -53,24 +57,7 @@ export default function CarReviews({ carSlug }: { carSlug: string }) {
     return reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
   }, [reviews]);
 
-  if (loading) {
-    return (
-      <section className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-        <div className="h-5 w-44 rounded-lg bg-gray-100 animate-pulse mb-4" />
-        <div className="space-y-3">
-          {[1, 2, 3].map(item => (
-            <div key={item} className="rounded-xl border border-gray-100 p-4">
-              <div className="h-4 w-32 rounded bg-gray-100 animate-pulse mb-3" />
-              <div className="h-3 w-full rounded bg-gray-100 animate-pulse mb-2" />
-              <div className="h-3 w-2/3 rounded bg-gray-100 animate-pulse" />
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  if (reviews.length === 0) return null;
+  if (loading || reviews.length === 0) return null;
 
   return (
     <section className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
