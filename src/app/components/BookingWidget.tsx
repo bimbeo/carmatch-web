@@ -355,6 +355,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [confirmTransfer, setConfirmTransfer] = useState(false);
   const [pointsPerTenK, setPointsPerTenK] = useState(1); // default 1 pt per 10k VND (overridden by DB setting)
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -442,6 +443,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   // Auto-fill phone+name from logged-in session
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setIsLoggedIn(true);
       const phone = session?.user?.app_metadata?.customer_phone as string | undefined;
       if (phone) {
         setCustomerPhone(prev => prev || phone);
@@ -2107,42 +2109,28 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
                 </div>
 
-                {/* Google Calendar */}
-                {(() => {
-                  const fmt = (dateStr: string, hour: number) => `${dateStr.replace(/-/g, '')}T${String(hour).padStart(2, '0')}0000`;
-                  const loc = deliveryMode === 'self'
-                    ? (LOCATIONS.find(l => l.id === selectedLocation)?.name || '')
-                    : (deliveryAddress || 'Giao tận nơi');
-                  const details = `Mã đặt xe: ${bookingRef}\nXe: ${carName}\nLiên hệ Car Match: 0975563290`;
-                  const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Nhận xe ${carName}`)}&dates=${fmt(pickupDate, pickupHour)}/${fmt(returnDate, returnHour)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(loc)}`;
-                  return (
-                    <a
-                      href={calUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full rounded-2xl border border-green-200 bg-green-50 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors"
+                {/* CTA đăng ký tài khoản — chỉ hiện khi chưa đăng nhập */}
+                {!isLoggedIn && (
+                  <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 px-4 py-3.5">
+                    <p className="font-bold text-violet-900 text-sm mb-2">✨ Tạo tài khoản — theo dõi & quản lý đơn hàng</p>
+                    <ul className="space-y-1 text-xs text-violet-800 mb-3">
+                      <li>⭐ Tích điểm mỗi chuyến, đổi ưu đãi độc quyền</li>
+                      <li>📋 Xem lịch sử đặt xe, tải xác nhận bất cứ lúc nào</li>
+                      <li>⚡ Đặt xe lại nhanh — thông tin tự điền sẵn</li>
+                      <li>🌟 Lên hạng khách thân thiết / VIP — giảm giá tự động</li>
+                      <li>💬 Đánh giá xe sau chuyến để nhận thêm điểm</li>
+                    </ul>
+                    <Link
+                      to="/tai-khoan"
+                      onClick={() => setShowBookingModal(false)}
+                      className="flex items-center justify-center gap-2 w-full rounded-xl bg-violet-600 py-2.5 text-sm font-bold text-white hover:bg-violet-700 transition-colors"
                     >
-                      📅 Thêm vào Google Calendar
-                    </a>
-                  );
-                })()}
+                      Tạo tài khoản miễn phí →
+                    </Link>
+                  </div>
+                )}
 
-                {/* Nút copy */}
-                <button
-                  onClick={() => void copyBookingConfirmation()}
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  📋 Copy tóm tắt để chia sẻ
-                </button>
-
-                <Link
-                  to={`/dat-xe?ref=${bookingRef}&phone=${encodeURIComponent(customerPhone.trim().replace(/\s/g, ''))}`}
-                  className="flex items-center justify-center gap-2 w-full rounded-2xl border border-cyan-200 bg-cyan-50 py-2.5 text-sm font-semibold text-cyan-700 hover:bg-cyan-100 transition-colors"
-                >
-                  🔍 Xem & lưu trang xác nhận
-                </Link>
-
-                {/* Refer friend CTA */}
+                {/* Refer friend CTA — chỉ hiện khi đã đăng nhập và có referral code */}
                 {customerReferralCode && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
                     <p className="font-bold text-amber-900 text-sm mb-1">🎁 Giới thiệu bạn bè — nhận mã giảm giá</p>
@@ -2160,6 +2148,43 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     </button>
                   </div>
                 )}
+
+                {/* Utility actions — gộp thành 1 hàng compact */}
+                {(() => {
+                  const fmt = (dateStr: string, hour: number) => `${dateStr.replace(/-/g, '')}T${String(hour).padStart(2, '0')}0000`;
+                  const loc = deliveryMode === 'self'
+                    ? (LOCATIONS.find(l => l.id === selectedLocation)?.name || '')
+                    : (deliveryAddress || 'Giao tận nơi');
+                  const details = `Mã đặt xe: ${bookingRef}\nXe: ${carName}\nLiên hệ Car Match: 0975563290`;
+                  const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Nhận xe ${carName}`)}&dates=${fmt(pickupDate, pickupHour)}/${fmt(returnDate, returnHour)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(loc)}`;
+                  return (
+                    <div className="grid grid-cols-3 gap-2">
+                      <a
+                        href={calUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1 rounded-xl border border-green-200 bg-green-50 py-2.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
+                      >
+                        <span className="text-base">📅</span>
+                        <span>Calendar</span>
+                      </a>
+                      <button
+                        onClick={() => void copyBookingConfirmation()}
+                        className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="text-base">📋</span>
+                        <span>Copy tóm tắt</span>
+                      </button>
+                      <Link
+                        to={`/dat-xe?ref=${bookingRef}&phone=${encodeURIComponent(customerPhone.trim().replace(/\s/g, ''))}`}
+                        className="flex flex-col items-center gap-1 rounded-xl border border-cyan-200 bg-cyan-50 py-2.5 text-xs font-medium text-cyan-700 hover:bg-cyan-100 transition-colors"
+                      >
+                        <span className="text-base">🔍</span>
+                        <span>Xem đơn</span>
+                      </Link>
+                    </div>
+                  );
+                })()}
 
                 <button
                   onClick={() => {
