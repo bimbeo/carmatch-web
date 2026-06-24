@@ -353,7 +353,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [recentBookingsCount, setRecentBookingsCount] = useState(0);
   const [insuranceAddon, setInsuranceAddon] = useState(false);
   const [confirmTransfer, setConfirmTransfer] = useState(false);
-  const [pointsPerTenK, setPointsPerTenK] = useState(10); // default 10 pts per 10k VND
+  const [pointsPerTenK, setPointsPerTenK] = useState(1); // default 1 pt per 10k VND (overridden by DB setting)
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -426,6 +426,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   useEffect(() => {
     void fetchAvailability();
   }, [fetchAvailability]);
+
+  // Fetch points_per_10k from DB on mount so preview is accurate before phone is entered
+  useEffect(() => {
+    fetch('/api/customer-discount?settings_only=1')
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (json?.points_settings?.points_per_10k) {
+          setPointsPerTenK(Number(json.points_settings.points_per_10k));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Auto-fill phone+name from logged-in session
   useEffect(() => {
