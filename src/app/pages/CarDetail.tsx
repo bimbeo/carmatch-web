@@ -3,9 +3,9 @@ import { useParams, Link, useLocation } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
   Zap, ChevronLeft, ChevronRight, Phone,
-  MapPin, BadgeCheck, Clock, MessageCircle, Share2,
+  MapPin, BadgeCheck, Clock, Share2, CalendarDays,
 } from 'lucide-react';
-import { formatPrice } from '@/data/cars';
+import { formatPrice, type Car } from '@/data/cars';
 import { findVehicleBySlug, useVehicles } from '@/hooks/useVehicles';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -14,11 +14,10 @@ import CarCard from '../components/CarCard';
 import BookingWidget from '../components/BookingWidget';
 import CarReviews from '../components/CarReviews';
 import { useSEO } from '@/hooks/useSEO';
-import { trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { trackCtaClick, trackPhoneClick } from '@/lib/analytics';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
 const ZALO_NUMBER = '0975563290';
-const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
 const SITE_URL = 'https://www.carmatch.vn';
 const HANOI_DELIVERY_DETAILS = {
   '@type': 'OfferShippingDetails',
@@ -204,25 +203,95 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
 /* ─── Spec chip ─── */
 function SpecChip({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3.5">
-      <div className="w-9 h-9 bg-white border border-gray-100 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+    <div className="flex min-h-[86px] items-center gap-3 rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
         {icon}
       </div>
       <div>
-        <div className="text-[11px] text-gray-400 uppercase tracking-wide">{label}</div>
-        <div className="text-sm font-semibold text-gray-900">{value}</div>
+        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">{label}</div>
+        <div className="mt-1 text-sm font-black text-gray-950">{value}</div>
       </div>
     </div>
   );
 }
 
-/* ─── Trust badge ─── */
-function TrustBadge({ icon, text }: { icon: React.ReactNode; text: string }) {
+function vehicleSeoDescription(car: Car): string {
+  return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc/bảo hiểm và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
+}
+
+function PromoBanner({ promos }: { promos: { code: string; description: string }[] }) {
+  if (!promos.length) return null;
+
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-600">
-      <div className="text-brand-600">{icon}</div>
-      {text}
+    <div className="rounded-2xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-base">🎁</span>
+        <span className="text-sm font-bold text-green-800">Ưu đãi đang có</span>
+      </div>
+      <div className="space-y-1">
+        {promos.map(p => (
+          <div key={p.code} className="flex items-center gap-2">
+            <span className="font-mono text-xs font-bold text-green-700 bg-white border border-green-200 px-2 py-0.5 rounded-md">
+              {p.code}
+            </span>
+            <span className="text-xs text-green-700">{p.description}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[11px] text-green-600 mt-1.5">Nhập mã trong bước đặt xe để được giảm giá</p>
     </div>
+  );
+}
+
+function VehicleBookingPanel({
+  car,
+  relatedCars,
+  activePromoCodes,
+}: {
+  car: Car;
+  relatedCars: Car[];
+  activePromoCodes: { code: string; description: string }[];
+}) {
+  return (
+    <div className="space-y-3">
+      <PromoBanner promos={activePromoCodes} />
+      <BookingWidget
+        basePrice={car.price}
+        carName={car.name}
+        carSlug={car.slug}
+        priceMonth={car.priceMonth}
+        vehicleId={car.id}
+        kmPerDay={car.kmPerDay}
+        kmSurcharge={car.kmSurcharge}
+        relatedCars={relatedCars.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
+      />
+    </div>
+  );
+}
+
+function VehicleSeoSummary({ car }: { car: Car }) {
+  const costNotes = [
+    `${car.kmPerDay} km/ngày đã gồm trong giá`,
+    `Vượt km: ${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km`,
+    'Cọc, bảo hiểm và lịch giao nhận xác nhận trước khi nhận tiền',
+  ];
+
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-brand-600">Tóm tắt nhanh</p>
+      <h2 className="mt-2 text-lg font-black text-gray-950">Thuê {car.name} tự lái tại Hà Nội</h2>
+      <p className="mt-2 text-sm leading-6 text-gray-600">
+        {car.name} phù hợp khách cần xe {car.seats} chỗ, {car.fuel.toLowerCase()}, {car.transmission.toLowerCase()} để đi nội thành,
+        đi tỉnh ngắn ngày hoặc nhận xe tại sảnh chung cư/khu đô thị theo lịch hẹn. Car Match kiểm tra lịch xe trống qua Zalo trước khi chốt cọc.
+      </p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        {costNotes.map((note) => (
+          <div key={note} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-xs font-bold leading-5 text-gray-700">
+            {note}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -234,8 +303,10 @@ export default function CarDetail() {
   const car = findVehicleBySlug(cars, slug);
 
   useEffect(() => {
-    if (hash !== '#booking' || !car) return;
-    const scroll = () => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!['#booking', '#booking-mobile', '#booking-desktop'].includes(hash) || !car) return;
+    const scroll = () => {
+      document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
     // Wait one frame after render so layout is stable
     const raf = requestAnimationFrame(() => {
       scroll();
@@ -248,15 +319,15 @@ export default function CarDetail() {
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
   const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
+  const detailUrl = car ? `${SITE_URL}/xe/${canonicalSlug || car.slug}` : 'https://www.carmatch.vn/xe';
+  const seoDescription = car ? vehicleSeoDescription(car) : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.';
 
   useSEO({
     title: car
       ? `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | Car Match`
       : 'Thuê Xe Tự Lái Hà Nội | Car Match',
-    description: car
-      ? `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày, giao xe tận sảnh và xác nhận điều kiện thuê trước khi chốt.`
-      : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.',
-    canonical: canonicalSlug ? `https://www.carmatch.vn/xe/${canonicalSlug}` : 'https://www.carmatch.vn/xe',
+    description: seoDescription,
+    canonical: detailUrl,
     ogImage: car?.images?.[0] ?? undefined,
     noIndex: !loading && !car,
   });
@@ -265,22 +336,73 @@ export default function CarDetail() {
     if (!car) return undefined;
 
     const canonical = `${SITE_URL}/xe/${canonicalSlug || car.slug}`;
+    const description = vehicleSeoDescription(car);
+    const vehicleNodeId = `${canonical}#vehicle`;
     const jsonLd = [
       {
         '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        '@id': `${canonical}#webpage`,
+        url: canonical,
+        name: `Thuê ${car.name} tự lái tại Hà Nội`,
+        description,
+        inLanguage: 'vi-VN',
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+        about: { '@id': vehicleNodeId },
+        primaryImageOfPage: car.images?.[0]
+          ? { '@type': 'ImageObject', url: car.images[0] }
+          : undefined,
+      },
+      {
+        '@context': 'https://schema.org',
         '@type': 'Product',
+        '@id': vehicleNodeId,
         name: `Thuê ${car.name}`,
-        description: `Thuê ${car.name} tự lái tại Hà Nội. ${car.seats} chỗ, ${car.fuel}. Giá từ ${formatPrice(car.price)}/ngày, giao xe tận nơi theo lịch hẹn.`,
+        description,
         image: car.images,
+        mainEntityOfPage: canonical,
+        inLanguage: 'vi-VN',
         brand: car.brand ? { '@type': 'Brand', name: car.brand } : undefined,
         category: 'Xe tự lái',
         url: canonical,
+        areaServed: {
+          '@type': 'City',
+          name: 'Hà Nội',
+          addressCountry: 'VN',
+        },
+        provider: {
+          '@type': 'Organization',
+          name: 'Car Match',
+          url: SITE_URL,
+          telephone: '+84975563290',
+        },
+        additionalProperty: [
+          { '@type': 'PropertyValue', name: 'Số chỗ', value: `${car.seats} chỗ` },
+          { '@type': 'PropertyValue', name: 'Nhiên liệu', value: car.fuel },
+          { '@type': 'PropertyValue', name: 'Hộp số', value: car.transmission },
+          { '@type': 'PropertyValue', name: 'Km miễn phí mỗi ngày', value: `${car.kmPerDay} km/ngày` },
+          { '@type': 'PropertyValue', name: 'Phụ phí vượt km', value: `${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km` },
+        ],
         offers: {
           '@type': 'Offer',
           url: canonical,
           priceCurrency: 'VND',
           price: car.price || undefined,
           availability: car.available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+          areaServed: {
+            '@type': 'City',
+            name: 'Hà Nội',
+            addressCountry: 'VN',
+          },
+          availableAtOrFrom: {
+            '@type': 'Place',
+            name: 'Hà Nội',
+            address: {
+              '@type': 'PostalAddress',
+              addressLocality: 'Hà Nội',
+              addressCountry: 'VN',
+            },
+          },
           seller: {
             '@type': 'Organization',
             name: 'Car Match',
@@ -346,10 +468,21 @@ export default function CarDetail() {
     );
   }
 
-  const zaloMessage = encodeURIComponent(`Xin chào Car Match! Tôi muốn thuê xe ${car.name}. Cho tôi hỏi về lịch trống và giá thuê ạ.`);
-  const zaloHref = `${ZALO_LINK}?text=${zaloMessage}`;
-  const detailUrl = `${SITE_URL}/xe/${canonicalSlug || car.slug}`;
   const shareTitle = `Thuê ${car.name} tự lái tại Hà Nội | Car Match`;
+  const scrollToBooking = () => {
+    document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    trackCtaClick('car_detail_mobile_choose_dates', {
+      vehicle_id: car.id,
+      vehicle_slug: car.slug,
+      vehicle_name: car.name,
+    });
+  };
+  const bookingProcess = [
+    'Chọn ngày, giờ nhận/trả xe',
+    'Car Match xác nhận lịch trống qua Zalo',
+    'Đặt cọc giữ xe, nhận hợp đồng/điều kiện',
+    'Bàn giao xe, chụp hiện trạng và bắt đầu chuyến đi',
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900" style={{ fontFamily: "'Be Vietnam Pro','Inter',sans-serif" }}>
@@ -367,22 +500,22 @@ export default function CarDetail() {
           <span className="text-gray-700 font-medium truncate">{car.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start lg:auto-rows-min">
 
           {/* ── LEFT COLUMN (2/3) ─────────────────────────────── */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Title + badges */}
-            <div>
+            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 {car.available && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-bold">
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
                     Sẵn sàng cho thuê
                   </span>
                 )}
                 {car.popular && (
-                  <span className="px-2.5 py-1 bg-brand-600 text-white rounded-full text-xs font-semibold">
+                  <span className="px-2.5 py-1 bg-brand-600 text-white rounded-full text-xs font-bold">
                     Phổ biến
                   </span>
                 )}
@@ -417,7 +550,7 @@ export default function CarDetail() {
             {/* Specs grid */}
             <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <h2 className="text-base font-bold text-gray-900 mb-4">Thông số xe</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 <SpecChip
                   icon={<Users className="w-4 h-4 text-brand-600" />}
                   label="Số chỗ"
@@ -451,6 +584,58 @@ export default function CarDetail() {
               </div>
             </div>
 
+          </div>
+
+          {/* ── BOOKING COLUMN — high on mobile, sticky on desktop ────────── */}
+          <div className="lg:col-span-1 lg:row-span-2">
+            <div className="space-y-4 lg:sticky lg:top-24">
+              <div id="booking" className="scroll-mt-24">
+                <VehicleBookingPanel
+                  car={car}
+                  relatedCars={displayRelated}
+                  activePromoCodes={activePromoCodes}
+                />
+              </div>
+
+              <div className="hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:block">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">Chia sẻ xe này</h3>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(detailUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Facebook
+                  </a>
+                  <a
+                    href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(detailUrl)}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    Email
+                  </a>
+                </div>
+              </div>
+
+              <div className="hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:block">
+                <h3 className="text-sm font-black text-gray-950 mb-4">Quy trình đặt xe</h3>
+                <ol className="space-y-3">
+                  {bookingProcess.map((text, index) => (
+                    <li key={text} className="flex items-start gap-3 text-sm font-medium leading-6 text-gray-600">
+                      <span className="w-6 h-6 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                        {index + 1}
+                      </span>
+                      {text}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          {/* ── LEFT COLUMN — supporting content ─────────────────────────── */}
+          <div className="lg:col-span-2 space-y-6">
             {/* Description */}
             {car.description && (
               <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
@@ -509,15 +694,28 @@ export default function CarDetail() {
             </div>
 
             {/* Insurance callout */}
-            <div className="bg-brand-50 border border-brand-100 rounded-2xl p-5">
-              <div className="flex items-start gap-3">
-                <BadgeCheck className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-brand-900 text-sm mb-1">Bàn giao & an toàn</div>
-                  <p className="text-brand-700 text-sm leading-relaxed">
-                    Trước khi nhận xe, hai bên kiểm tra ngoại thất, nội thất, nhiên liệu/pin, km và phụ kiện. Điều kiện bảo hiểm, cọc và trách nhiệm phát sinh được xác nhận trước khi chốt lịch thuê.
-                  </p>
-                </div>
+            <div className="overflow-hidden rounded-2xl bg-brand-900 text-white shadow-sm">
+              <div className="border-b border-white/10 px-5 py-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-100/70">Bàn giao & an toàn</p>
+                <h2 className="mt-2 text-xl font-black">Kiểm tra xe cùng bạn trước khi chạy</h2>
+                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-white/70">
+                  Trọng tâm của Car Match là giảm tranh chấp: tình trạng xe, nhiên liệu/pin, km, phụ kiện, cọc và bảo hiểm đều được xác nhận trước khi chốt lịch.
+                </p>
+              </div>
+              <div className="grid gap-px bg-white/10 sm:grid-cols-3">
+                {[
+                  ['Chụp hiện trạng', 'Ngoại thất, nội thất, đồng hồ km và nhiên liệu/pin khi nhận xe.'],
+                  ['Rõ phí trước cọc', 'Giá thuê, phụ phí vượt km, giao nhận và điều kiện cọc được nói rõ trước.'],
+                  ['Có người hỗ trợ', 'Khách nhắn Zalo khi cần đổi giờ, xử lý phát sinh hoặc hỏi điều kiện thuê.'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="bg-brand-900 px-5 py-4">
+                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-900">
+                      <BadgeCheck className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-sm font-black">{title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/65">{desc}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -533,98 +731,10 @@ export default function CarDetail() {
             </Link>
           </div>
 
-          {/* ── RIGHT COLUMN — Booking widget (sticky) ────────── */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-24 space-y-4">
+        </div>
 
-              {/* Promo banner */}
-              {activePromoCodes.length > 0 && (
-                <div className="mb-3 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-4 py-3">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-base">🎁</span>
-                    <span className="text-sm font-bold text-green-800">Ưu đãi đang có</span>
-                  </div>
-                  <div className="space-y-1">
-                    {activePromoCodes.map(p => (
-                      <div key={p.code} className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-green-700 bg-white border border-green-200 px-2 py-0.5 rounded-md">
-                          {p.code}
-                        </span>
-                        <span className="text-xs text-green-700">{p.description}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-green-600 mt-1.5">Nhập mã trong bước đặt xe để được giảm giá</p>
-                </div>
-              )}
-
-              {/* Booking widget with pricing calculator */}
-              <div id="booking">
-              <BookingWidget
-                basePrice={car.price}
-                carName={car.name}
-                carSlug={car.slug}
-                priceMonth={car.priceMonth}
-                vehicleId={car.id}
-                kmPerDay={car.kmPerDay}
-                kmSurcharge={car.kmSurcharge}
-                relatedCars={displayRelated.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
-              />
-              </div>
-
-              {/* Trust badges */}
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <div className="space-y-2.5">
-                  <TrustBadge icon={<Shield className="w-4 h-4" />} text="Điều kiện cọc/bảo hiểm được xác nhận trước" />
-                  <TrustBadge icon={<BadgeCheck className="w-4 h-4" />} text="Kiểm tra xe cùng khách khi bàn giao" />
-                  <TrustBadge icon={<Clock className="w-4 h-4" />} text="Phản hồi trong khoảng 30 phút khi có xe phù hợp" />
-                  <TrustBadge icon={<MapPin className="w-4 h-4" />} text="Giao xe tận tòa nhà theo lịch hẹn" />
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Chia sẻ xe này</h3>
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(detailUrl)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                    Facebook
-                  </a>
-                  <a
-                    href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(detailUrl)}`}
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
-                  >
-                    Email
-                  </a>
-                </div>
-              </div>
-
-              {/* How to rent */}
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <h3 className="text-sm font-bold text-gray-900 mb-4">Quy trình đặt xe</h3>
-                <ol className="space-y-3">
-                  {[
-                    { step: '1', text: 'Nhắn Zalo hoặc gọi điện cho Car Match' },
-                    { step: '2', text: 'Xác nhận lịch xe & thanh toán đặt cọc' },
-                    { step: '3', text: 'Giao xe tận nơi theo giờ đã hẹn' },
-                    { step: '4', text: 'Trả xe — Car Match kiểm tra & hoàn cọc' },
-                  ].map((item) => (
-                    <li key={item.step} className="flex items-start gap-3 text-sm text-gray-600">
-                      <span className="w-6 h-6 rounded-full bg-brand-50 text-brand-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        {item.step}
-                      </span>
-                      {item.text}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-            </div>
-          </div>
+        <div className="mt-14 max-w-4xl">
+          <VehicleSeoSummary car={car} />
         </div>
 
         {/* Related cars */}
@@ -669,20 +779,14 @@ export default function CarDetail() {
         >
           <Phone className="w-4 h-4" />
         </a>
-        <a
-          href={zaloHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackZaloClick('car_detail_mobile_sticky', {
-            vehicle_id: car.id,
-            vehicle_slug: car.slug,
-            vehicle_name: car.name,
-          })}
+        <button
+          type="button"
+          onClick={scrollToBooking}
           className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors shadow-sm"
         >
-          <MessageCircle className="w-4 h-4" />
-          Đặt xe
-        </a>
+          <CalendarDays className="w-4 h-4" />
+          Chọn lịch
+        </button>
       </div>
 
       <Footer />

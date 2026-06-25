@@ -866,27 +866,30 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
   return (
     <>
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden">
-      {/* ── Price header ── */}
-      <div className="px-5 pt-5 pb-4 border-b border-gray-100">
-        {basePrice > 0 ? (
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-bold text-brand-600">
-              {fmtVND(basePrice)}
-            </span>
-            <span className="text-gray-400 text-sm">/ngày</span>
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg shadow-slate-200/70">
+      <div className="border-b border-gray-100 px-5 pb-3 pt-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-black text-gray-950">Đặt lịch thuê xe</h2>
+            <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn ngày nhận/trả xe để xem tổng dự kiến.</p>
           </div>
-        ) : (
-          <div className="text-2xl font-bold text-brand-600">Liên hệ báo giá</div>
-        )}
+          {basePrice > 0 ? (
+            <div className="shrink-0 text-right">
+              <div className="text-lg font-black text-brand-700">{fmtVND(basePrice)}</div>
+              <div className="text-xs font-semibold text-gray-400">/ngày</div>
+            </div>
+          ) : (
+            <div className="shrink-0 text-right text-sm font-black text-brand-700">Liên hệ</div>
+          )}
+        </div>
 
         {priceMonth && savings > 0 && (
-          <div className="flex items-center gap-2 mt-2.5 p-3 bg-green-50 rounded-xl border border-green-100">
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
             <div className="flex-1">
-              <div className="text-xs text-gray-500">Thuê theo tháng</div>
-              <div className="font-bold text-gray-900">{fmtVND(priceMonth)}/tháng</div>
+              <div className="text-xs text-emerald-700">Thuê theo tháng</div>
+              <div className="font-black text-gray-950">{fmtVND(priceMonth)}/tháng</div>
             </div>
-            <span className="text-xs font-bold text-green-700 bg-white border border-green-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+            <span className="whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">
               Tiết kiệm {savings}%
             </span>
           </div>
@@ -1139,7 +1142,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             <span>{result.error}</span>
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-xl overflow-hidden divide-y divide-gray-100">
+          <div className="overflow-hidden rounded-xl border border-gray-100 bg-white divide-y divide-gray-100">
             {/* Fee rows */}
             <div className="px-4 py-3 space-y-2">
               {result.fees.map((fee, i) => (
@@ -1200,12 +1203,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             {/* Total row */}
             <div className="flex justify-between items-center px-4 py-3 bg-brand-50">
               <div>
-                <div className="text-xs text-brand-600 font-medium">Tổng dự kiến</div>
+                <div className="text-xs text-brand-600 font-bold">Tổng dự kiến</div>
                 {result.note && (
                   <div className="text-xs text-gray-400 mt-0.5">{result.note}</div>
                 )}
               </div>
-              <span className="font-bold text-brand-600 text-xl">
+              <span className="font-black text-brand-700 text-xl">
                 {fmtVND(result.total)}
               </span>
             </div>
@@ -1233,10 +1236,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             setConfirmTransfer(false);
           }}
           disabled={!result.valid}
-          className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
-          {requiresConfirmation ? 'Gửi yêu cầu đặt xe' : 'Đặt xe ngay'}
+          {requiresConfirmation ? 'Gửi yêu cầu giữ lịch' : 'Kiểm tra lịch & đặt xe'}
         </button>
         {requiresConfirmation && (
           <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
@@ -1273,16 +1276,6 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           </a>
         </div>
 
-        {/* Trust list */}
-        <ul className="space-y-1 pt-0.5">
-          {[
-            '✓ Giá, cọc và điều kiện bảo hiểm được xác nhận trước khi chốt',
-            '✓ Đặt cọc giữ xe theo hướng dẫn của Car Match',
-            '✓ Giao xe tận tòa nhà theo lịch hẹn',
-          ].map(t => (
-            <li key={t} className="text-xs text-gray-400">{t}</li>
-          ))}
-        </ul>
       </div>
     </div>
 

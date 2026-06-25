@@ -1966,20 +1966,80 @@ function vehicleStructuredData(vehicle) {
   const model = vehicle.vehicle_models || {};
   const url = `${siteUrl}/xe/${vehicle.slug}`;
   const price = Number(vehicle.daily_base_price || 0);
+  const description = vehicleDescription(vehicle);
+  const image = getVehicleImage(vehicle);
+  const vehicleNodeId = `${url}#vehicle`;
+  const kmPerDay = Number(vehicle.km_per_day || 250);
+  const kmSurcharge = Number(vehicle.km_surcharge || 3000);
+
+  const productData = buildProductCarSchema({
+    name: `Thuê ${name}`,
+    description,
+    image,
+    brand: model.make,
+    category: 'Xe tự lái',
+    canonical: url,
+    price,
+    availability: 'https://schema.org/LimitedAvailability',
+    shippingDetails: hanoiDeliveryDetails,
+    returnPolicy: rentalReturnPolicy,
+  }, seoSchemaConfig);
+
+  Object.assign(productData, {
+    '@id': vehicleNodeId,
+    mainEntityOfPage: url,
+    inLanguage: 'vi-VN',
+    areaServed: {
+      '@type': 'City',
+      name: 'Hà Nội',
+      addressCountry: 'VN',
+    },
+    provider: {
+      '@type': 'Organization',
+      name: 'Car Match',
+      url: siteUrl,
+      telephone: '+84975563290',
+    },
+    additionalProperty: [
+      ...(model.seats ? [{ '@type': 'PropertyValue', name: 'Số chỗ', value: `${model.seats} chỗ` }] : []),
+      ...(model.fuel_type ? [{ '@type': 'PropertyValue', name: 'Nhiên liệu', value: model.fuel_type }] : []),
+      ...(model.transmission ? [{ '@type': 'PropertyValue', name: 'Hộp số', value: model.transmission }] : []),
+      { '@type': 'PropertyValue', name: 'Km miễn phí mỗi ngày', value: `${kmPerDay} km/ngày` },
+      { '@type': 'PropertyValue', name: 'Phụ phí vượt km', value: `${kmSurcharge.toLocaleString('vi-VN')}đ/km` },
+    ],
+  });
+
+  productData.offers = {
+    ...productData.offers,
+    areaServed: {
+      '@type': 'City',
+      name: 'Hà Nội',
+      addressCountry: 'VN',
+    },
+    availableAtOrFrom: {
+      '@type': 'Place',
+      name: 'Hà Nội',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Hà Nội',
+        addressCountry: 'VN',
+      },
+    },
+  };
 
   return [
-    buildProductCarSchema({
-      name: `Thuê ${name}`,
-      description: vehicleDescription(vehicle),
-      image: getVehicleImage(vehicle),
-      brand: model.make,
-      category: 'Xe tự lái',
+    webPageData({
+      title: `Thuê ${name} tự lái tại Hà Nội`,
+      description,
       canonical: url,
-      price,
-      availability: 'https://schema.org/LimitedAvailability',
-      shippingDetails: hanoiDeliveryDetails,
-      returnPolicy: rentalReturnPolicy,
-    }, seoSchemaConfig),
+    }, {
+      fields: {
+        '@id': `${url}#webpage`,
+        about: { '@id': vehicleNodeId },
+        primaryImageOfPage: imageObjectData(image, `Thuê ${name} tại Hà Nội`),
+      },
+    }),
+    productData,
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Thuê xe tự lái', path: '/xe' },

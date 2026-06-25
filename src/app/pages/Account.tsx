@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
   LogOut,
@@ -161,6 +162,7 @@ const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 const DOC_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'])
 const PROOF_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
 const SIGNED_DOC_URL_TTL_SECONDS = 30 * 60
+const REVIEW_LABELS = ['', 'Rất tệ', 'Chưa tốt', 'Ổn', 'Tốt', 'Rất hài lòng']
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -238,6 +240,247 @@ function GoogleIcon() {
   )
 }
 
+// ─── Review Dialog ──────────────────────────────────────────────────────────
+
+type ReviewDialogProps = {
+  open: boolean
+  title: string
+  subtitle: string
+  customerName?: string
+  reviewerName: string
+  comment: string
+  rating: number
+  hoverRating: number
+  loading: boolean
+  error: string
+  done: boolean
+  status: string | null
+  reviewData: { rating: number; comment: string | null } | null
+  onClose: () => void
+  onSubmit: () => void
+  onReviewerNameChange: (value: string) => void
+  onCommentChange: (value: string) => void
+  onRatingChange: (value: number) => void
+  onHoverRatingChange: (value: number) => void
+}
+
+function ReviewStars({ rating, size = 'h-4 w-4' }: { rating: number; size?: string }) {
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${rating}/5 sao`}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`${size} ${star <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
+        />
+      ))}
+    </div>
+  )
+}
+
+function ReviewDialog({
+  open,
+  title,
+  subtitle,
+  customerName,
+  reviewerName,
+  comment,
+  rating,
+  hoverRating,
+  loading,
+  error,
+  done,
+  status,
+  reviewData,
+  onClose,
+  onSubmit,
+  onReviewerNameChange,
+  onCommentChange,
+  onRatingChange,
+  onHoverRatingChange,
+}: ReviewDialogProps) {
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [open])
+
+  if (!open || typeof document === 'undefined') return null
+
+  const activeRating = hoverRating || rating
+  const statusText =
+    status === 'approved'
+      ? 'Đánh giá đã được duyệt và có thể hiển thị trên website.'
+      : status === 'rejected'
+        ? 'Đánh giá chưa được duyệt. Car Match sẽ kiểm tra lại nội dung.'
+        : 'Đánh giá đang chờ kiểm duyệt trước khi hiển thị trên website.'
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 px-3 py-0 backdrop-blur-[2px] sm:items-center sm:py-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="review-dialog-title"
+      onClick={() => !loading && onClose()}
+    >
+      <div
+        className="w-full max-w-[520px] overflow-hidden rounded-t-[28px] border border-white/70 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.28)] sm:rounded-[28px]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {done ? (
+          <div className="p-5 text-center sm:p-7">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <CheckCircle className="h-7 w-7" />
+            </div>
+            <h2 id="review-dialog-title" className="mt-4 text-xl font-black text-slate-950">
+              Cảm ơn bạn đã đánh giá
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">{statusText}</p>
+
+            {(reviewData || comment.trim()) && (
+              <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-left">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-amber-700">Đánh giá đã gửi</p>
+                  <ReviewStars rating={reviewData?.rating ?? rating} />
+                </div>
+                {(reviewData?.comment || comment.trim()) && (
+                  <p className="mt-3 text-sm leading-6 text-slate-700">
+                    {reviewData?.comment ?? comment.trim()}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-6 inline-flex h-11 min-w-32 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-bold text-white transition-colors hover:bg-slate-800"
+            >
+              Đóng
+            </button>
+          </div>
+        ) : (
+          <>
+            <header className="border-b border-slate-100 px-5 py-4 sm:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-amber-600">Đánh giá chuyến đi</p>
+                  <h2 id="review-dialog-title" className="mt-1 truncate text-xl font-black text-slate-950">
+                    {title}
+                  </h2>
+                  <p className="mt-1 truncate text-xs font-medium text-slate-400">{subtitle}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={loading}
+                  aria-label="Đóng form đánh giá"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </header>
+
+            <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white px-4 py-5 text-center">
+                <div className="flex justify-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => onRatingChange(star)}
+                      onMouseEnter={() => onHoverRatingChange(star)}
+                      onMouseLeave={() => onHoverRatingChange(0)}
+                      aria-label={`Chọn ${star} sao`}
+                      className="rounded-xl p-1 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    >
+                      <Star
+                        className={`h-9 w-9 transition-colors sm:h-10 sm:w-10 ${
+                          star <= activeRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-sm font-bold text-slate-900">{REVIEW_LABELS[activeRating]}</p>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {customerName ? (
+                  <div className="flex flex-col gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-slate-400">Hiển thị tên</span>
+                    <span className="text-sm font-bold text-slate-900">{customerName}</span>
+                  </div>
+                ) : (
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Tên hiển thị
+                    </span>
+                    <input
+                      value={reviewerName}
+                      onChange={(event) => onReviewerNameChange(event.target.value)}
+                      placeholder="Tên của bạn"
+                      className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                    />
+                  </label>
+                )}
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.1em] text-slate-400">
+                    Nhận xét
+                  </span>
+                  <textarea
+                    value={comment}
+                    onChange={(event) => onCommentChange(event.target.value)}
+                    placeholder="Bạn thấy xe, giao nhận và hỗ trợ của Car Match như thế nào?"
+                    rows={4}
+                    maxLength={500}
+                    className="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                  />
+                  <span className="mt-1 block text-right text-[11px] text-slate-400">{comment.length}/500</span>
+                </label>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
+                  Đánh giá được kiểm duyệt trước khi hiển thị công khai. Nội dung góp ý riêng tư hoặc cần hỗ trợ gấp, bạn vẫn có thể nhắn Zalo trực tiếp.
+                </div>
+
+                {error && (
+                  <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
+                    {error}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <footer className="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
+              >
+                Để sau
+              </button>
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={loading}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-6 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Đang gửi...' : 'Gửi đánh giá'}
+              </button>
+            </footer>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 // ─── BookingCard ──────────────────────────────────────────────────────────────
 
 const ZALO_NUMBER = '0975563290'
@@ -263,6 +506,10 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
   const [reviewData, setReviewData] = useState<{ rating: number; comment: string | null } | null>(null)
 
   const tripEnded = !!(b.return_date && b.return_date < new Date().toISOString().slice(0, 10))
+
+  useEffect(() => {
+    if (customerName) setReviewName(customerName)
+  }, [customerName])
 
   useEffect(() => {
     if (!tripEnded) return
@@ -298,6 +545,8 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Lỗi gửi đánh giá')
+      setReviewStatus('pending')
+      setReviewData({ rating: reviewRating, comment: reviewComment.trim() || null })
       setReviewDone(true)
     } catch (e: unknown) {
       setReviewError((e as Error).message)
@@ -366,25 +615,21 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
           {tripEnded && !reviewDone && (
             <button
               onClick={() => setShowReview(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
             >
-              <Star className="h-3.5 w-3.5" />
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               Đánh giá chuyến đi
             </button>
           )}
           {reviewDone && (
             <div className="flex flex-col gap-1">
-              <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-bold text-emerald-700">
                 <Check className="h-3.5 w-3.5" />
                 {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
               </span>
               {reviewData && (
-                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
-                  <div className="flex gap-0.5 shrink-0 mt-0.5">
-                    {[1,2,3,4,5].map(s => (
-                      <Star key={s} className={`h-3 w-3 ${s <= reviewData.rating ? 'text-amber-400 fill-current' : 'text-slate-200'}`} />
-                    ))}
-                  </div>
+                <div className="flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                  <ReviewStars rating={reviewData.rating} size="h-3 w-3" />
                   {reviewData.comment && <p className="text-xs text-slate-600">{reviewData.comment}</p>}
                 </div>
               )}
@@ -417,69 +662,27 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
         </div>
       </footer>
 
-      {/* Review modal */}
-      {showReview && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={() => !reviewLoading && setShowReview(false)}>
-          <div className="w-full max-w-md rounded-t-2xl bg-white p-6 sm:rounded-2xl" onClick={e => e.stopPropagation()}>
-            {reviewDone ? (
-              <div className="py-6 text-center">
-                <div className="mb-3 text-4xl">🎉</div>
-                <p className="text-base font-bold text-slate-900">Cảm ơn đánh giá của bạn!</p>
-                <p className="mt-1 text-sm text-slate-500">Đánh giá đang chờ kiểm duyệt và sẽ hiển thị trên website sớm.</p>
-                <button onClick={() => setShowReview(false)} className="mt-5 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-700">Đóng</button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-4 flex items-start justify-between">
-                  <div>
-                    <p className="text-base font-bold text-slate-900">Đánh giá chuyến thuê xe</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{b.requested_vehicle_text} · {b.booking_code ?? b.booking_id}</p>
-                  </div>
-                  <button onClick={() => setShowReview(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
-                </div>
-                <div className="mb-4 flex justify-center gap-1">
-                  {[1,2,3,4,5].map(s => (
-                    <button key={s} onClick={() => setReviewRating(s)} onMouseEnter={() => setReviewHover(s)} onMouseLeave={() => setReviewHover(0)}>
-                      <Star className={`h-8 w-8 transition-colors ${s <= (reviewHover || reviewRating) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
-                    </button>
-                  ))}
-                </div>
-                <div className="space-y-3">
-                  {customerName ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
-                      <span className="text-sm text-slate-500">Đánh giá với tên:</span>
-                      <span className="text-sm font-semibold text-slate-800">{customerName}</span>
-                    </div>
-                  ) : (
-                    <input
-                      type="text"
-                      placeholder="Tên của bạn *"
-                      value={reviewName}
-                      onChange={e => setReviewName(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-                    />
-                  )}
-                  <textarea
-                    placeholder="Chia sẻ trải nghiệm của bạn (không bắt buộc)"
-                    value={reviewComment}
-                    onChange={e => setReviewComment(e.target.value)}
-                    rows={3}
-                    className="w-full resize-none rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-                  />
-                </div>
-                {reviewError && <p className="mt-2 text-xs text-red-500">{reviewError}</p>}
-                <button
-                  onClick={submitReview}
-                  disabled={reviewLoading}
-                  className="mt-4 w-full rounded-xl bg-brand-600 py-3 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-60"
-                >
-                  {reviewLoading ? 'Đang gửi...' : 'Gửi đánh giá'}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <ReviewDialog
+        open={showReview}
+        title={b.requested_vehicle_text ?? 'Xe Car Match'}
+        subtitle={`${formatDateShort(b.pickup_date)} → ${formatDate(b.return_date)} · ${b.booking_code ?? b.booking_id}`}
+        customerName={customerName}
+        reviewerName={reviewName}
+        comment={reviewComment}
+        rating={reviewRating}
+        hoverRating={reviewHover}
+        loading={reviewLoading}
+        error={reviewError}
+        done={reviewDone}
+        status={reviewStatus}
+        reviewData={reviewData}
+        onClose={() => setShowReview(false)}
+        onSubmit={() => void submitReview()}
+        onReviewerNameChange={setReviewName}
+        onCommentChange={setReviewComment}
+        onRatingChange={setReviewRating}
+        onHoverRatingChange={setReviewHover}
+      />
     </article>
   )
 }
@@ -516,6 +719,10 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
   })()
 
   useEffect(() => {
+    if (customerName) setReviewName(customerName)
+  }, [customerName])
+
+  useEffect(() => {
     if (!tripEnded || !w.booking_ref) return
     fetch(`/api/reviews?booking_ref=${encodeURIComponent(w.booking_ref)}`)
       .then(r => r.json())
@@ -547,6 +754,8 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Lỗi gửi đánh giá')
+      setReviewStatus('pending')
+      setReviewData({ rating: reviewRating, comment: reviewComment.trim() || null })
       setReviewDone(true)
     } catch (e: unknown) {
       setReviewError((e as Error).message)
@@ -704,25 +913,21 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
           {tripEnded && !reviewDone && (
             <button
               onClick={() => setShowReview(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
             >
-              <Star className="h-3.5 w-3.5" />
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               Đánh giá chuyến đi
             </button>
           )}
           {reviewDone && (
             <div className="flex flex-col gap-1">
-              <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-50 px-3 text-xs font-semibold text-green-700">
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-bold text-emerald-700">
                 <Check className="h-3.5 w-3.5" />
                 {reviewStatus === 'approved' ? 'Đánh giá đã được duyệt' : reviewStatus === 'rejected' ? 'Đánh giá bị từ chối' : 'Đã gửi đánh giá — đang chờ duyệt'}
               </span>
               {reviewData && (
-                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
-                  <div className="flex gap-0.5 shrink-0 mt-0.5">
-                    {[1,2,3,4,5].map(s => (
-                      <Star key={s} className={`h-3 w-3 ${s <= reviewData.rating ? 'text-amber-400 fill-current' : 'text-slate-200'}`} />
-                    ))}
-                  </div>
+                <div className="flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                  <ReviewStars rating={reviewData.rating} size="h-3 w-3" />
                   {reviewData.comment && <p className="text-xs text-slate-600">{reviewData.comment}</p>}
                 </div>
               )}
@@ -740,82 +945,27 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
         </a>
       </footer>
 
-      {/* Review modal */}
-      {showReview && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={() => !reviewLoading && setShowReview(false)}>
-          <div className="w-full max-w-md rounded-t-2xl bg-white p-6 sm:rounded-2xl" onClick={e => e.stopPropagation()}>
-            {reviewDone ? (
-              <div className="py-6 text-center">
-                <div className="mb-3 text-4xl">🎉</div>
-                <p className="text-base font-bold text-slate-900">Cảm ơn đánh giá của bạn!</p>
-                <p className="mt-1 text-sm text-slate-500">Đánh giá đang chờ kiểm duyệt và sẽ hiển thị trên website sớm.</p>
-                <button onClick={() => setShowReview(false)} className="mt-5 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-700">Đóng</button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-4 flex items-start justify-between">
-                  <div>
-                    <p className="text-base font-bold text-slate-900">Đánh giá chuyến thuê xe</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{w.car_model} · {w.booking_ref}</p>
-                  </div>
-                  <button onClick={() => setShowReview(false)} className="rounded-full p-1 hover:bg-slate-100"><X className="h-4 w-4 text-slate-400" /></button>
-                </div>
-
-                {/* Stars */}
-                <div className="mb-4 flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setReviewRating(s)}
-                      onMouseEnter={() => setReviewHover(s)}
-                      onMouseLeave={() => setReviewHover(0)}
-                      className="transition-transform hover:scale-110"
-                    >
-                      <Star className={`h-9 w-9 ${s <= (reviewHover || reviewRating) ? 'text-amber-400 fill-current' : 'text-gray-200'}`} />
-                    </button>
-                  ))}
-                </div>
-                <p className="mb-4 text-center text-xs text-slate-400">
-                  {['', 'Rất tệ', 'Tệ', 'Trung bình', 'Tốt', 'Rất tuyệt!'][reviewRating]}
-                </p>
-
-                <div className="space-y-3">
-                  {customerName ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
-                      <span className="text-sm text-slate-500">Đánh giá với tên:</span>
-                      <span className="text-sm font-semibold text-slate-800">{customerName}</span>
-                    </div>
-                  ) : (
-                    <input
-                      value={reviewName}
-                      onChange={e => setReviewName(e.target.value)}
-                      placeholder="Tên của bạn *"
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                    />
-                  )}
-                  <textarea
-                    value={reviewComment}
-                    onChange={e => setReviewComment(e.target.value)}
-                    placeholder="Nhận xét về xe, dịch vụ... (tuỳ chọn)"
-                    rows={3}
-                    maxLength={500}
-                    className="w-full resize-none rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                  />
-                  {reviewError && <p className="text-xs font-medium text-red-500">{reviewError}</p>}
-                  <button
-                    onClick={() => void submitReview()}
-                    disabled={reviewLoading}
-                    className="w-full rounded-xl bg-brand-600 py-3 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-50"
-                  >
-                    {reviewLoading ? 'Đang gửi...' : 'Gửi đánh giá'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <ReviewDialog
+        open={showReview}
+        title={w.car_model ?? 'Xe Car Match'}
+        subtitle={`${dateText} · ${w.booking_ref}`}
+        customerName={customerName}
+        reviewerName={reviewName}
+        comment={reviewComment}
+        rating={reviewRating}
+        hoverRating={reviewHover}
+        loading={reviewLoading}
+        error={reviewError}
+        done={reviewDone}
+        status={reviewStatus}
+        reviewData={reviewData}
+        onClose={() => setShowReview(false)}
+        onSubmit={() => void submitReview()}
+        onReviewerNameChange={setReviewName}
+        onCommentChange={setReviewComment}
+        onRatingChange={setReviewRating}
+        onHoverRatingChange={setReviewHover}
+      />
     </article>
   )
 }

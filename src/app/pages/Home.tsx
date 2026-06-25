@@ -515,7 +515,7 @@ export default function Home() {
             {/* ── Right: live fleet preview ── */}
             <div className="hidden lg:flex flex-col gap-3 w-[400px] min-h-[312px]">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Gợi ý xe tự lái</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Gợi ý xe tự lái</span>
                 <Link to="/xe" className="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
                   Xem toàn bộ đội xe <ArrowRight className="w-3 h-3" />
                 </Link>
@@ -659,7 +659,7 @@ export default function Home() {
               <Link
                 to="/thue-xe-thang"
                 onClick={() => trackCtaClick('home_search_tab_monthly', { target_path: '/thue-xe-thang' })}
-                className="flex-1 py-3.5 text-sm font-semibold text-gray-400 hover:text-gray-700 flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 py-3.5 text-sm font-semibold text-gray-500 hover:text-gray-700 flex items-center justify-center gap-2 transition-colors"
               >
                 <CalendarDays className="w-4 h-4" />
                 Thuê xe tháng
@@ -675,7 +675,7 @@ export default function Home() {
                 onClick={openQuickCalendar}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-left hover:border-brand-400 hover:bg-brand-50/30 transition-colors mb-3 group"
               >
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1.5 group-hover:text-brand-500">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1.5 group-hover:text-brand-500">
                   Thời gian thuê
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -698,6 +698,7 @@ export default function Home() {
                 <select
                   value={quickSeats}
                   onChange={(e) => setQuickSeats(e.target.value)}
+                  aria-label="Số chỗ"
                   className="flex-1 h-12 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 >
                   {quickSearchSeats.map((o) => (
@@ -707,6 +708,7 @@ export default function Home() {
                 <select
                   value={quickFuel}
                   onChange={(e) => setQuickFuel(e.target.value)}
+                  aria-label="Nhiên liệu"
                   className="flex-1 h-12 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 >
                   {quickSearchFuel.map((o) => (
@@ -717,6 +719,7 @@ export default function Home() {
                   type="submit"
                   className="flex-shrink-0 h-12 px-5 sm:px-6 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors inline-flex items-center gap-2"
                   data-cta="home-quick-search"
+                  aria-label="Tìm xe"
                 >
                   <Search className="w-4 h-4" />
                   <span className="hidden sm:inline">Tìm xe</span>
@@ -1727,7 +1730,7 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed flex-1">"{t.quote}"</p>
-                <p className="text-xs text-gray-400 font-medium">{t.trip}</p>
+                <p className="text-xs text-gray-500 font-medium">{t.trip}</p>
               </div>
             ))}
           </div>
