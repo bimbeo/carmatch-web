@@ -256,6 +256,7 @@ type ReviewDialogProps = {
   done: boolean
   status: string | null
   reviewData: { rating: number; comment: string | null } | null
+  pointsEarned?: number
   onClose: () => void
   onSubmit: () => void
   onReviewerNameChange: (value: string) => void
@@ -291,6 +292,7 @@ function ReviewDialog({
   done,
   status,
   reviewData,
+  pointsEarned = 0,
   onClose,
   onSubmit,
   onReviewerNameChange,
@@ -338,6 +340,13 @@ function ReviewDialog({
               Cảm ơn bạn đã đánh giá
             </h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">{statusText}</p>
+
+            {pointsEarned > 0 && (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+                <span className="text-lg">⭐</span>
+                <span className="text-sm font-bold text-amber-800">+{pointsEarned} điểm tích lũy</span>
+              </div>
+            )}
 
             {(reviewData || comment.trim()) && (
               <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-left">
@@ -504,6 +513,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
   const [reviewDone, setReviewDone] = useState(false)
   const [reviewStatus, setReviewStatus] = useState<string | null>(null)
   const [reviewData, setReviewData] = useState<{ rating: number; comment: string | null } | null>(null)
+  const [reviewPointsEarned, setReviewPointsEarned] = useState(0)
 
   const tripEnded = !!(b.return_date && b.return_date < new Date().toISOString().slice(0, 10))
 
@@ -547,6 +557,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
       if (!res.ok) throw new Error(json.error || 'Lỗi gửi đánh giá')
       setReviewStatus('pending')
       setReviewData({ rating: reviewRating, comment: reviewComment.trim() || null })
+      setReviewPointsEarned(json.points_earned ?? 0)
       setReviewDone(true)
     } catch (e: unknown) {
       setReviewError((e as Error).message)
@@ -676,6 +687,7 @@ function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; cu
         done={reviewDone}
         status={reviewStatus}
         reviewData={reviewData}
+        pointsEarned={reviewPointsEarned}
         onClose={() => setShowReview(false)}
         onSubmit={() => void submitReview()}
         onReviewerNameChange={setReviewName}
@@ -710,6 +722,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
   const [reviewDone, setReviewDone] = useState(false)
   const [reviewStatus, setReviewStatus] = useState<string | null>(null)
   const [reviewData, setReviewData] = useState<{ rating: number; comment: string | null } | null>(null)
+  const [reviewPointsEarned, setReviewPointsEarned] = useState(0)
 
   // Check if trip has ended (return date < today)
   const tripEnded = (() => {
@@ -756,6 +769,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
       if (!res.ok) throw new Error(json.error || 'Lỗi gửi đánh giá')
       setReviewStatus('pending')
       setReviewData({ rating: reviewRating, comment: reviewComment.trim() || null })
+      setReviewPointsEarned(json.points_earned ?? 0)
       setReviewDone(true)
     } catch (e: unknown) {
       setReviewError((e as Error).message)
@@ -959,6 +973,7 @@ function WebLeadCard({ w, phone, customerName }: { w: WebLead; phone: string; cu
         done={reviewDone}
         status={reviewStatus}
         reviewData={reviewData}
+        pointsEarned={reviewPointsEarned}
         onClose={() => setShowReview(false)}
         onSubmit={() => void submitReview()}
         onReviewerNameChange={setReviewName}

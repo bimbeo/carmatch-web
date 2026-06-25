@@ -107,6 +107,8 @@ async function handlePost(req, res) {
 
   let carSlug = null;
   let tripDate = null;
+  let rewardCustomerId = null;
+  let rewardCompanyId = null;
 
   if (refClean.startsWith('CRM-')) {
     // CRM booking — verify in bookings table
@@ -123,7 +125,7 @@ async function handlePost(req, res) {
     // Verify phone belongs to the customer
     const { data: cust } = await supabase
       .from('customers')
-      .select('id')
+      .select('id, company_id')
       .eq('id', crm.customer_id)
       .or(`phone.eq.${phoneClean},phone.eq.${normalized},normalized_phone.eq.${normalized}`)
       .maybeSingle();
@@ -137,6 +139,8 @@ async function handlePost(req, res) {
     }
 
     tripDate = crm.return_date;
+    rewardCustomerId = cust.id;
+    rewardCompanyId = cust.company_id ?? null;
   } else {
     // Website lead — verify in website_leads table
     const { data: lead } = await supabase
@@ -195,5 +199,30 @@ async function handlePost(req, res) {
     return res.status(500).json({ error: 'Lỗi gửi đánh giá, thử lại sau' });
   }
 
-  return res.status(201).json({ success: true, message: 'Cảm ơn! Đánh giá của bạn đang chờ kiểm duyệt.' });
+  // Award loyalty points for CRM customers
+  let pointsEarned = 0;
+  if (rewardCustomerId) {
+    try {
+      const { data: ps } = await supabase
+        .from('points_settings')
+        .select('enabled, review_points')
+        .limit(1)
+        .maybeSingle();
+
+      if (ps?.enabled && ps.review_points > 0) {
+        const { error: ledgerErr } = await supabase.from('customer_points_ledger').insert({
+          customer_id: rewardCustomerId,
+          company_id: rewardCompanyId,
+          points: ps.review_points,
+          type: 'review',
+          description: `Điểm thưởng đánh giá chuyến đi ${refClean}`,
+        });
+        if (!ledgerErr) pointsEarned = ps.review_points;
+      }
+    } catch {
+      // Points awarding is non-critical — review still succeeds
+    }
+  }
+
+  return res.status(201).json({ success: true, message: 'Cảm ơn! Đánh giá của bạn đang chờ kiểm duyệt.', points_earned: pointsEarned });
 }
