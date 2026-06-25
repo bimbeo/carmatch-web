@@ -226,6 +226,7 @@ export interface UseVehiclesResult {
   cars: Car[];
   loading: boolean;
   error: string | null;
+  fetched: boolean;
 }
 
 async function fetchVehicleJson(path: string): Promise<SupabaseVehicle[]> {
@@ -256,6 +257,7 @@ export function useVehicles(): UseVehiclesResult {
   const [cars, setCars] = useState<Car[]>(initialVehicles);
   const [loading, setLoading] = useState(initialVehicles.length === 0);
   const [error, setError] = useState<string | null>(null);
+  const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,6 +268,7 @@ export function useVehicles(): UseVehiclesResult {
         if (cancelled) return;
         setCars(uniquifyCarSlugs(data.map(mapToCar)));
         setLoading(false);
+        setFetched(true);
         return;
       } catch (apiError) {
         try {
@@ -273,6 +276,7 @@ export function useVehicles(): UseVehiclesResult {
           if (cancelled) return;
           setCars(uniquifyCarSlugs(data.map(mapToCar)));
           setLoading(false);
+          setFetched(true);
           return;
         } catch (staticError) {
           if (cancelled) return;
@@ -283,6 +287,7 @@ export function useVehicles(): UseVehiclesResult {
       if (!cancelled) {
         setError('Không thể tải danh sách xe. Vui lòng thử lại sau.');
         setLoading(false);
+        setFetched(true);
       }
     }
 
@@ -293,15 +298,16 @@ export function useVehicles(): UseVehiclesResult {
     };
   }, []);
 
-  return { cars, loading, error };
+  return { cars, loading, error, fetched };
 }
 
 // Hook for a single vehicle by slug
 export function useVehicle(slug: string | undefined): {
   car: Car | null;
   loading: boolean;
+  fetched: boolean;
 } {
-  const { cars, loading } = useVehicles();
+  const { cars, loading, fetched } = useVehicles();
   const car = findVehicleBySlug(cars, slug);
-  return { car, loading };
+  return { car, loading, fetched };
 }

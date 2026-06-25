@@ -230,7 +230,7 @@ function TrustBadge({ icon, text }: { icon: React.ReactNode; text: string }) {
 export default function CarDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { hash } = useLocation();
-  const { cars, loading } = useVehicles();
+  const { cars, loading, fetched } = useVehicles();
   const car = findVehicleBySlug(cars, slug);
 
   useEffect(() => {
@@ -320,7 +320,7 @@ export default function CarDetail() {
       .catch(() => {});
   }, []);
 
-  if (loading) {
+  if (loading || !fetched) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center" style={{ fontFamily: "'Be Vietnam Pro','Inter',sans-serif" }}>
         <div className="text-center">
