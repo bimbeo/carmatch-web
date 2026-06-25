@@ -159,13 +159,6 @@ function calculateRental(
   }
 
   const fees: Fee[] = [];
-  const pDow = pDate.getDay();
-  const rDow = rDate.getDay();
-  const isReturnSat = rDow === 6;
-  const isReturnSun = rDow === 0;
-  const isReturnWeekend = isReturnSat || isReturnSun;
-  const isPickupWeekend = pDow === 0 || pDow === 6;
-
   if (calDays === 0) {
     const inMorning = pickupHour >= 7 && pickupHour <= 12 && returnHour <= 12;
     const inAfternoon = pickupHour >= 13 && returnHour <= 20;
@@ -174,10 +167,6 @@ function calculateRental(
     let base = isHalfDay ? Math.round(BP * 0.7) : BP;
     fees.push({ label: isHalfDay ? 'Nửa ngày (×70%)' : '1 ngày', amount: base });
 
-    if (isPickupWeekend) {
-      fees.push({ label: 'Phụ phí cuối tuần', amount: 100_000 });
-      base += 100_000;
-    }
     return { valid: true, total: base, fees };
   }
 
@@ -229,16 +218,10 @@ function calculateRental(
     baseAmount += halfExtra;
   }
 
-  let weekendFee = 0;
-  if (calDays === 1 && (isReturnSat || isReturnSun || isReturnWeekend)) {
-    weekendFee = 100_000;
-  }
-
   if (lateFee > 0) fees.push({ label: 'Phụ phí quá giờ', amount: lateFee });
   if (earlyFee > 0) fees.push({ label: 'Phụ phí nhận xe sớm', amount: earlyFee });
-  if (weekendFee > 0) fees.push({ label: 'Phụ phí cuối tuần (T7/CN)', amount: weekendFee });
 
-  const total = baseAmount + lateFee + earlyFee + weekendFee;
+  const total = baseAmount + lateFee + earlyFee;
 
   return {
     valid: true,
