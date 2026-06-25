@@ -59,7 +59,7 @@ async function bootApp() {
     await preloadPrerenderedRoute()
   }
 
-  const [{ StrictMode, createElement }, { createRoot }, { default: App }] = await Promise.all([
+  const [{ StrictMode, createElement }, { createRoot, hydrateRoot }, { default: App }] = await Promise.all([
     import('react'),
     import('react-dom/client'),
     import('./app/App'),
@@ -67,8 +67,10 @@ async function bootApp() {
   const app = createElement(StrictMode, null, createElement(App))
 
   if (hadPrerenderedShell) {
-    root.replaceChildren()
+    // Hydrate in-place instead of clearing DOM — avoids blank-flash on first click
     delete root.dataset.prerendered
+    hydrateRoot(root, app)
+    return
   }
 
   if (root.dataset.staticShell) {

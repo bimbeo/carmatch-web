@@ -101,7 +101,7 @@ export default function Navbar() {
           </div>
 
           {/* CTA */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3" suppressHydrationWarning>
             {session ? (
               <Link
                 to="/tai-khoan"
