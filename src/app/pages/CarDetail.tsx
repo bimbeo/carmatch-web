@@ -219,7 +219,19 @@ function vehicleSeoDescription(car: Car): string {
   return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc/bảo hiểm và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
 }
 
-function PromoBanner({ promos }: { promos: { code: string; description: string }[] }) {
+function PromoBanner({ promos, loading }: { promos: { code: string; description: string }[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3 animate-pulse">
+        <div className="h-4 w-28 bg-green-200 rounded mb-2" />
+        <div className="space-y-1.5">
+          <div className="h-5 bg-green-200 rounded" />
+          <div className="h-5 bg-green-200 rounded w-4/5" />
+        </div>
+        <div className="h-3 w-44 bg-green-100 rounded mt-2" />
+      </div>
+    );
+  }
   if (!promos.length) return null;
 
   return (
@@ -247,14 +259,16 @@ function VehicleBookingPanel({
   car,
   relatedCars,
   activePromoCodes,
+  promoLoading,
 }: {
   car: Car;
   relatedCars: Car[];
   activePromoCodes: { code: string; description: string }[];
+  promoLoading: boolean;
 }) {
   return (
     <div className="space-y-3">
-      <PromoBanner promos={activePromoCodes} />
+      <PromoBanner promos={activePromoCodes} loading={promoLoading} />
       <BookingWidget
         basePrice={car.price}
         carName={car.name}
@@ -319,6 +333,7 @@ export default function CarDetail() {
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
   const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
+  const [promoLoading, setPromoLoading] = useState(true);
   const detailUrl = car ? `${SITE_URL}/xe/${canonicalSlug || car.slug}` : 'https://www.carmatch.vn/xe';
   const seoDescription = car ? vehicleSeoDescription(car) : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.';
 
@@ -439,7 +454,8 @@ export default function CarDetail() {
       .then((data: { promos?: { code: string; description: string }[] }) => {
         setActivePromoCodes(Array.isArray(data.promos) ? data.promos.slice(0, 2) : []);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setPromoLoading(false));
   }, []);
 
   if (!car && (loading || !fetched)) {
@@ -594,6 +610,7 @@ export default function CarDetail() {
                   car={car}
                   relatedCars={displayRelated}
                   activePromoCodes={activePromoCodes}
+                  promoLoading={promoLoading}
                 />
               </div>
 
