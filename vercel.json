@@ -235,6 +235,7 @@
     { "src": "/chao-ban/?", "dest": "/index.html" },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/xe/([^/]+)/?", "dest": "/xe/index.html" },
     { "src": "/(.*)", "status": 404, "dest": "/404.html" }
   ]
 }
