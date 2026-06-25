@@ -286,6 +286,56 @@ interface Props {
   relatedCars?: RelatedCar[];
 }
 
+function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Fallback for iOS in-app browsers / older Safari
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(el);
+    ok ? resolve() : reject(new Error('execCommand copy failed'));
+  });
+}
+
+function ReferralCopyBlock({ referralCode, rewardAmount }: { referralCode: string; rewardAmount: number }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const msg = `Thuê xe tự lái tại Car Match — chất lượng, giao tận nơi!\nDùng mã giới thiệu của mình: ${referralCode}\ncarmatch.vn/?ref=${referralCode}`;
+    copyToClipboard(msg)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      })
+      .catch(() => {
+        // Last resort: prompt user to copy manually
+        window.prompt('Copy mã giới thiệu:', referralCode);
+      });
+  };
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+      <p className="font-bold text-amber-900 text-sm mb-1">🎁 Giới thiệu bạn bè — nhận mã giảm giá</p>
+      <p className="mb-2">Bạn bè đặt xe thành công bằng mã của bạn → nhận <strong>mã giảm giá {rewardAmount > 0 ? rewardAmount.toLocaleString('vi-VN') + 'đ' : '100.000đ'}</strong> cho chuyến thuê tiếp theo</p>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-semibold transition-colors ${copied ? 'border-green-300 bg-green-50 text-green-700' : 'border-amber-300 bg-white text-amber-800 hover:bg-amber-100'}`}
+      >
+        <Copy className="w-3.5 h-3.5" />
+        {copied ? 'Đã copy!' : `Copy mã ${referralCode}`}
+      </button>
+    </div>
+  );
+}
+
 export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, carSlug, kmPerDay = 300, relatedCars = [] }: Props) {
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
@@ -2246,21 +2296,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
                 {/* Refer friend CTA — chỉ hiện khi đã đăng nhập và có referral code */}
                 {customerReferralCode && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                    <p className="font-bold text-amber-900 text-sm mb-1">🎁 Giới thiệu bạn bè — nhận mã giảm giá</p>
-                    <p className="mb-2">Bạn bè đặt xe thành công bằng mã của bạn → nhận <strong>mã giảm giá {referralRewardAmount > 0 ? fmtVND(referralRewardAmount) : '100.000đ'}</strong> cho chuyến thuê tiếp theo</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const msg = `Thuê xe tự lái tại Car Match — chất lượng, giao tận nơi!\nDùng mã giới thiệu của mình: ${customerReferralCode}\ncarmatch.vn/?ref=${customerReferralCode}`;
-                        navigator.clipboard.writeText(msg).catch(() => {});
-                      }}
-                      className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      Copy mã {customerReferralCode}
-                    </button>
-                  </div>
+                  <ReferralCopyBlock
+                    referralCode={customerReferralCode}
+                    rewardAmount={referralRewardAmount}
+                  />
                 )}
 
                 {/* Utility actions — gộp thành 1 hàng compact */}
