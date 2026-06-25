@@ -55,9 +55,8 @@ function makeDisplaySlug(v: SupabaseVehicle, make: string, model: string, varian
 }
 
 function makeDuplicateSlug(car: Car): string {
-  const colorPart = slugify(car.description?.split('—').pop()?.trim() || '');
   const platePart = slugify(car.plateNumber || '');
-  const suffix = colorPart || platePart || car.id.slice(0, 8).toLowerCase();
+  const suffix = platePart || car.id.slice(0, 8).toLowerCase();
   return `${car.slug}-${suffix}`;
 }
 
