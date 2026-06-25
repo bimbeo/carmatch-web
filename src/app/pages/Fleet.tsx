@@ -58,15 +58,15 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
+      className={`h-9 px-3.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border ${
         active
-          ? 'bg-gray-900 text-white border-gray-900'
-          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
+          ? 'bg-slate-950 text-white border-slate-950 shadow-sm'
+          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-950'
       }`}
     >
       {children}
       {count !== undefined && count > 0 && !active && (
-        <span className="ml-0.5 text-gray-400">{count}</span>
+        <span className="ml-1 text-slate-400">{count}</span>
       )}
     </button>
   );
@@ -171,6 +171,11 @@ export default function Fleet() {
     };
   }, [cars, brandFilter, seatsFilter]);
 
+  const totalFuelCounts = useMemo(() => ({
+    Điện: cars.filter((c) => c.fuel === 'Điện').length,
+    Xăng: cars.filter((c) => c.fuel === 'Xăng').length,
+  }), [cars]);
+
   // ── filtered + sorted result ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let r = [...cars];
@@ -251,27 +256,43 @@ export default function Fleet() {
   }, { replace: true });
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 text-gray-900 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
       <MobileConversionBar source="fleet" />
 
       {/* ── Header ── */}
-      <div id="main-content" className="bg-white border-b border-gray-100 pt-24 pb-8">
+      <div id="main-content" className="border-b border-slate-100 bg-white pt-24 pb-8 sm:pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Đội xe Car Match</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-            Thuê Xe Tự Lái Hà Nội
-          </h1>
-          <p className="text-gray-500">
-            {loading
-              ? 'Đang tải danh sách xe...'
-              : `${cars.length} mẫu xe — Giao tận tòa nhà · Đặt qua Zalo · Xác nhận 30 phút`}
-          </p>
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-2 text-sm font-bold uppercase tracking-[0.16em] text-brand-600">Đội xe Car Match</p>
+              <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                Thuê Xe Tự Lái Hà Nội
+              </h1>
+              <p className="mt-3 text-base font-semibold text-slate-500">
+                {loading
+                  ? 'Đang tải danh sách xe...'
+                  : `${cars.length} mẫu xe — Giao tận tòa nhà · Đặt qua Zalo · Xác nhận 30 phút`}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:w-[420px]">
+              {[
+                [loading ? '...' : `${cars.length}`, 'mẫu xe'],
+                [`${totalFuelCounts['Điện'] || 0}`, 'xe điện'],
+                [`${totalFuelCounts['Xăng'] || 0}`, 'xe xăng'],
+              ].map(([value, label]) => (
+                <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xl font-black tracking-tight text-slate-950">{value}</div>
+                  <div className="mt-0.5 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
         {querySummary.length > 0 && (
           <div className="mb-5 grid gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
@@ -292,26 +313,31 @@ export default function Fleet() {
           </div>
         )}
 
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Danh sách xe tự lái đang có</h2>
-          <p className="mt-1 text-sm leading-6 text-gray-500">
-            Lọc nhanh theo lịch nhận xe, hãng xe, nhiên liệu và số chỗ để tìm mẫu phù hợp trước khi nhắn Zalo kiểm tra lịch thật.
-          </p>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Chọn xe</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">{loading ? 'Đang tải xe...' : `${filtered.length} xe phù hợp`}</p>
+          </div>
+          {activeCount > 0 && (
+            <button onClick={resetAll} className="inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900">
+              <X className="h-3.5 w-3.5" /> Xóa lọc
+            </button>
+          )}
         </div>
 
         <DateRangeFilter onFilter={setUnavailableModels} onActiveChange={setDateFilterActive} />
 
         {dateFilterActive && !loading && (
-          <div className="mb-5 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700">
+          <div className="mb-4 inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-700">
             Đang lọc: {filtered.length} xe trống lịch cho ngày bạn chọn
           </div>
         )}
 
         {/* ── Filter bar (Mioto-style) ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 px-4 py-2.5 flex items-center gap-3">
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
           {/* Scrollable chip row */}
-          <div className="flex-1 overflow-x-auto min-w-0" style={{ scrollbarWidth: 'none' }}>
-            <div className="flex items-center gap-1.5 min-w-max">
+          <div className="min-w-0 flex-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex min-w-max items-center gap-2">
               {/* Brand chips */}
               {brands.length > 1 && (
                 <>
@@ -319,14 +345,14 @@ export default function Fleet() {
                   {brands.map((b) => (
                     <Chip key={b} active={brandFilter === b} count={brandCounts[b]} onClick={() => setBrandFilter(b)}>{b}</Chip>
                   ))}
-                  <span className="w-px h-4 bg-gray-200 mx-0.5 flex-shrink-0" />
+                  <span className="mx-1 h-6 w-px flex-shrink-0 bg-slate-200" />
                 </>
               )}
               {/* Fuel chips */}
               <Chip active={fuelFilter === 'Điện'} count={fuelCounts['Điện']} onClick={() => setFuelFilter(fuelFilter === 'Điện' ? 'all' : 'Điện')}>⚡ Điện</Chip>
               <Chip active={fuelFilter === 'Xăng'} count={fuelCounts['Xăng']} onClick={() => setFuelFilter(fuelFilter === 'Xăng' ? 'all' : 'Xăng')}>Xăng</Chip>
               {hasDiesel && <Chip active={fuelFilter === 'Dầu'} count={fuelCounts['Dầu']} onClick={() => setFuelFilter(fuelFilter === 'Dầu' ? 'all' : 'Dầu')}>Dầu</Chip>}
-              <span className="w-px h-4 bg-gray-200 mx-0.5 flex-shrink-0" />
+              <span className="mx-1 h-6 w-px flex-shrink-0 bg-slate-200" />
               {/* Seat chips */}
               {availableSeats.map((s) => (
                 <Chip
@@ -342,27 +368,22 @@ export default function Fleet() {
           </div>
 
           {/* Count + reset */}
-          <div className="flex items-center gap-2 flex-shrink-0 border-l border-gray-100 pl-3">
-            <span className="text-xs text-gray-500 whitespace-nowrap">
-              {loading ? '...' : <><strong className="text-gray-800">{filtered.length}</strong> xe</>}
+          <div className="flex flex-shrink-0 items-center gap-2 border-l border-slate-100 pl-3">
+            <span className="hidden whitespace-nowrap text-sm font-bold text-slate-500 sm:inline">
+              {loading ? '...' : <><strong className="text-slate-950">{filtered.length}</strong> xe</>}
             </span>
-            {activeCount > 0 && (
-              <button onClick={resetAll} className="flex items-center gap-0.5 text-xs text-gray-400 hover:text-gray-700 transition-colors whitespace-nowrap">
-                <X className="w-3 h-3" /> Xóa lọc
-              </button>
-            )}
             {/* Bộ lọc button */}
             <button
               onClick={() => setShowFilter(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+              className={`flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold transition-colors ${
                 sortBy !== 'default'
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'border-gray-300 text-gray-700 hover:border-gray-500 bg-white'
+                  ? 'bg-slate-950 text-white border-slate-950'
+                  : 'border-slate-300 text-slate-700 hover:border-slate-500 bg-white'
               }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <SlidersHorizontal className="h-4 w-4" />
               Bộ lọc
-              {sortBy !== 'default' && <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />}
+              {sortBy !== 'default' && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-white" />}
             </button>
           </div>
         </div>
@@ -476,7 +497,7 @@ export default function Fleet() {
 
         {/* ── Grid ── */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-16">
+          <div className="grid grid-cols-1 gap-5 pb-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : error ? (
@@ -489,9 +510,9 @@ export default function Fleet() {
             </a>
           </div>
         ) : filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-16">
+          <div className="grid grid-cols-1 gap-5 pb-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((car) => (
-              <CarCard key={car.id} car={car} source="fleet_list" />
+              <CarCard key={car.id} car={car} mode="listing" source="fleet_list" />
             ))}
           </div>
         ) : (

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { Users, Zap, Fuel, CalendarDays } from 'lucide-react';
+import { ArrowRight, CalendarDays, Fuel, Users, Zap } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
 import { trackVehicleClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
@@ -23,6 +23,7 @@ const fuelBadge: Record<Car['fuel'], { class: string; icon: React.ReactNode }> =
 interface CarCardProps {
   car: Car;
   compact?: boolean;
+  mode?: 'standard' | 'listing';
   source?: string;
 }
 
@@ -39,7 +40,7 @@ function withPreservedCampaign(path: string, search: string, hash = '') {
   return `${path}${query ? `?${query}` : ''}${hash}`;
 }
 
-export default function CarCard({ car, compact = false, source = 'vehicle_card' }: CarCardProps) {
+export default function CarCard({ car, compact = false, mode = 'standard', source = 'vehicle_card' }: CarCardProps) {
   const location = useLocation();
   const badge = fuelBadge[car.fuel];
   const vehicleLinkLabel = [car.name, car.description, car.plateNumber].filter(Boolean).join(' - ');
@@ -52,6 +53,95 @@ export default function CarCard({ car, compact = false, source = 'vehicle_card' 
     vehicle_name: car.name,
     vehicle_price: car.price,
   });
+
+  if (mode === 'listing') {
+    return (
+      <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]">
+        <Link
+          to={detailHref}
+          onClick={() => trackCar('image_click')}
+          className="relative block overflow-hidden bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+        >
+          <span className="sr-only">Xem chi tiết {vehicleLinkLabel}</span>
+          <div className="aspect-[4/3]">
+            <img
+              src={optimizedImageUrl(car.images[0], 640, 60)}
+              srcSet={optimizedImageSrcSet(car.images[0], [480, 720, 960], 60)}
+              sizes="(min-width: 1280px) 302px, (min-width: 768px) 33vw, 100vw"
+              alt={vehicleImageAlt(car)}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]"
+              width={720}
+              height={540}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <div className="absolute left-3 top-3 pointer-events-none">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm backdrop-blur-md ${badge.class} bg-white/90`}>
+              {badge.icon}
+              {car.fuel}
+            </span>
+          </div>
+          {car.popular && (
+            <div className="absolute right-3 top-3 pointer-events-none">
+              <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                Phổ biến
+              </span>
+            </div>
+          )}
+        </Link>
+
+        <div className="p-4">
+          <Link
+            to={detailHref}
+            onClick={() => trackCar('title_click')}
+            className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+          >
+            <h3 id={`xe-${car.slug}`} className="line-clamp-1 text-lg font-bold tracking-tight text-slate-950">{car.name}</h3>
+            {!compact && car.description && (
+              <p className="mt-1 line-clamp-1 text-sm font-medium text-slate-500">{car.description}</p>
+            )}
+          </Link>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-4 w-4 text-slate-400" />
+              {car.seats} chỗ
+            </span>
+            <span className="h-1 w-1 rounded-full bg-slate-300" />
+            <span>{car.transmission}</span>
+            {car.model_year && (
+              <>
+                <span className="h-1 w-1 rounded-full bg-slate-300" />
+                <span>{car.model_year}</span>
+              </>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
+            <div>
+              {car.price > 0 ? (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-black tracking-tight text-brand-600">{formatPrice(car.price)}</span>
+                  <span className="text-sm font-semibold text-slate-500">/ngày</span>
+                </div>
+              ) : (
+                <span className="text-base font-bold text-brand-600">Liên hệ báo giá</span>
+              )}
+            </div>
+            <Link
+              to={detailHref}
+              onClick={() => trackCar('detail_click')}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-slate-950 px-3.5 text-sm font-bold text-white transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+            >
+              Xem xe
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:border-gray-200 transition-all group">

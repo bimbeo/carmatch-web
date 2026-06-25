@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarDays, X } from 'lucide-react';
+import { CalendarDays, RotateCcw, X } from 'lucide-react';
 
 function toDateStr(date: Date): string {
   const year = date.getFullYear();
@@ -67,12 +67,13 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
   }
 
   return (
-    <div className="mb-5 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+    <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Ngày nhận xe</label>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ngày nhận xe</label>
           <div className="relative w-full">
-            <div className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
+            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-bold text-slate-950 pointer-events-none">
+              <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
               {pickupDate ? pickupDate.split('-').reverse().join('/') : ''}
             </div>
             <input
@@ -92,9 +93,10 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
           </div>
         </div>
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Ngày trả xe</label>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ngày trả xe</label>
           <div className="relative w-full">
-            <div className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
+            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-bold text-slate-950 pointer-events-none">
+              <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
               {returnDate ? returnDate.split('-').reverse().join('/') : ''}
             </div>
             <input
@@ -112,7 +114,7 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
             type="button"
             onClick={() => void checkAvailability()}
             disabled={loading}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 lg:flex-none"
+            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(13,22,71,0.2)] transition-colors hover:bg-brand-700 disabled:opacity-50 lg:flex-none"
           >
             <CalendarDays className="h-4 w-4" />
             {loading ? 'Đang kiểm tra...' : 'Kiểm tra ngày'}
@@ -121,15 +123,20 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
             <button
               type="button"
               onClick={reset}
-              className="inline-flex items-center justify-center rounded-xl border border-gray-200 px-3 py-2.5 text-gray-500 transition-colors hover:bg-gray-50"
+              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-500 transition-colors hover:bg-slate-50"
               aria-label="Xóa lọc ngày"
             >
-              <X className="h-4 w-4" />
+              <RotateCcw className="h-4 w-4" />
             </button>
           )}
         </div>
       </div>
-      {error && <p className="mt-2 text-xs font-medium text-red-500">{error}</p>}
+      {error && (
+        <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
+          <X className="h-3 w-3" />
+          {error}
+        </p>
+      )}
     </div>
   );
 }
