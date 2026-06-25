@@ -48,6 +48,9 @@ function pruneVehicle(vehicle) {
     status: vehicle.status,
     published: vehicle.published,
     website_description: vehicle.website_description ?? null,
+    km_per_day: vehicle.km_per_day ?? null,
+    km_surcharge: vehicle.km_surcharge ?? null,
+    rental_conditions: vehicle.rental_conditions ?? null,
     external_refs: pruneExternalRefs(vehicle.external_refs),
     vehicle_models: vehicle.vehicle_models
       ? {
@@ -74,7 +77,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('vehicles')
       .select(
-        'id,display_name,plate_number,color,model_year,daily_base_price,current_km,status,published,external_refs,website_description,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
+        'id,display_name,plate_number,color,model_year,daily_base_price,current_km,status,published,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
       )
       .eq('status', 'available')
       .eq('published', true)

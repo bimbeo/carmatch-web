@@ -266,6 +266,7 @@ interface Props {
   vehicleId?: string;
   carSlug?: string;
   kmPerDay?: number;
+  kmSurcharge?: number;
   relatedCars?: RelatedCar[];
 }
 
@@ -319,7 +320,7 @@ function ReferralCopyBlock({ referralCode, rewardAmount }: { referralCode: strin
   );
 }
 
-export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, carSlug, kmPerDay = 300, relatedCars = [] }: Props) {
+export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, carSlug, kmPerDay = 300, kmSurcharge = 3000, relatedCars = [] }: Props) {
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
@@ -855,7 +856,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       'Điều kiện bảo hiểm: xác nhận theo hợp đồng và biên bản bàn giao',
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
-      `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: 3.000đ/km | 100.000đ/giờ`,
+      `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: ${kmSurcharge.toLocaleString('vi-VN')}đ/km | 100.000đ/giờ`,
       'Liên hệ: Car Match Vận Hành 0975563290',
     ].filter(l => l !== null).join('\n');
     try {
@@ -2229,7 +2230,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs text-slate-500">
                     <div className="flex justify-between"><span>Giới hạn Km</span><span className="text-slate-700">{kmPerDay} km/ngày</span></div>
-                    <div className="flex justify-between"><span>Phụ trội quá km</span><span className="text-slate-700">3.000 đ/km</span></div>
+                    <div className="flex justify-between"><span>Phụ trội quá km</span><span className="text-slate-700">{kmSurcharge.toLocaleString('vi-VN')} đ/km</span></div>
                     <div className="flex justify-between"><span>Phụ trội quá giờ</span><span className="text-slate-700">100.000 đ/giờ</span></div>
                   </div>
 

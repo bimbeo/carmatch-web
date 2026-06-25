@@ -11,6 +11,7 @@ export interface Car {
   fuel: 'Điện' | 'Xăng' | 'Dầu';
   transmission: string;
   kmPerDay: number;
+  kmSurcharge: number;
   model_year?: number | null;
   amenities: string[];
   conditions: string[];
@@ -40,6 +41,7 @@ export const cars: Car[] = [
     fuel: 'Điện',
     transmission: 'Tự động',
     kmPerDay: 250,
+    kmSurcharge: 3000,
     amenities: ['Cảm biến lùi', 'ADAS an toàn', 'Dây sạc theo xe', 'Màn hình cảm ứng 15.6"', 'Điều hòa tự động'],
     conditions,
     available: true,
@@ -62,6 +64,7 @@ export const cars: Car[] = [
     fuel: 'Điện',
     transmission: 'Tự động',
     kmPerDay: 250,
+    kmSurcharge: 3000,
     amenities: ['Cảm biến lùi', 'ADAS an toàn', 'Dây sạc theo xe', 'Màn hình cảm ứng'],
     conditions,
     available: true,
@@ -84,6 +87,7 @@ export const cars: Car[] = [
     fuel: 'Điện',
     transmission: 'Tự động',
     kmPerDay: 250,
+    kmSurcharge: 3000,
     amenities: ['Cảm biến lùi', 'ADAS an toàn', 'Dây sạc theo xe'],
     conditions,
     available: true,
@@ -105,6 +109,7 @@ export const cars: Car[] = [
     fuel: 'Xăng',
     transmission: 'Tự động',
     kmPerDay: 300,
+    kmSurcharge: 3000,
     amenities: ['Cảm biến lùi', 'Camera lùi', 'Điều hòa 2 hàng', 'Ghế da', 'Cổng sạc USB'],
     conditions,
     available: true,
@@ -127,6 +132,7 @@ export const cars: Car[] = [
     fuel: 'Dầu',
     transmission: 'Tự động',
     kmPerDay: 300,
+    kmSurcharge: 3000,
     amenities: ['Cảm biến lùi', 'ADAS an toàn', 'Cửa trượt điện', 'Màn hình sau', 'Ghế chỉnh điện'],
     conditions,
     available: true,
@@ -149,6 +155,7 @@ export const cars: Car[] = [
     fuel: 'Xăng',
     transmission: 'Tự động',
     kmPerDay: 300,
+    kmSurcharge: 3000,
     amenities: ['Cảm biến lùi', 'Camera lùi', 'Điều hòa tự động', 'Màn hình cảm ứng 10.25"'],
     conditions,
     available: true,

@@ -441,7 +441,7 @@ export default function CarDetail() {
                 <SpecChip
                   icon={<Gauge className="w-4 h-4 text-brand-600" />}
                   label="Phụ phí vượt km"
-                  value="3.000đ/km"
+                  value={`${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km`}
                 />
                 <SpecChip
                   icon={<Clock className="w-4 h-4 text-brand-600" />}
@@ -567,6 +567,7 @@ export default function CarDetail() {
                 priceMonth={car.priceMonth}
                 vehicleId={car.id}
                 kmPerDay={car.kmPerDay}
+                kmSurcharge={car.kmSurcharge}
                 relatedCars={displayRelated.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
               />
               </div>

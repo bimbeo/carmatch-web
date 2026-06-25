@@ -74,6 +74,9 @@ interface SupabaseVehicle {
   status: string;
   published: boolean;
   website_description?: string | null;
+  km_per_day?: number | null;
+  km_surcharge?: number | null;
+  rental_conditions?: string[] | null;
   external_refs: Record<string, unknown> | null;
   vehicle_models: {
     make: string | null;
@@ -210,10 +213,13 @@ function mapToCar(v: SupabaseVehicle): Car {
     seats: vm?.seats || 5,
     fuel,
     transmission: mapTransmission(vm?.transmission || ''),
-    kmPerDay: DEFAULT_KM_PER_DAY,
+    kmPerDay: v.km_per_day ?? DEFAULT_KM_PER_DAY,
+    kmSurcharge: v.km_surcharge ?? 3000,
     model_year: v.model_year ?? undefined,
     amenities: [],
-    conditions: DEFAULT_CONDITIONS,
+    conditions: Array.isArray(v.rental_conditions) && v.rental_conditions.length > 0
+      ? v.rental_conditions
+      : DEFAULT_CONDITIONS,
     available: v.status === 'available',
     images: galleryImages.length > 0 ? galleryImages : [PLACEHOLDER_IMAGE],
     category: mapCategory(fuel),
