@@ -6,6 +6,23 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import AuthModal from './AuthModal';
 
+// Read Supabase session from localStorage synchronously to avoid auth flash on hydration
+function getStoredSession(): Session | null {
+  try {
+    const url = import.meta.env.VITE_SUPABASE_URL as string;
+    const ref = url?.match(/https?:\/\/([^.]+)/)?.[1];
+    if (!ref) return null;
+    const raw = localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Session & { expires_at?: number };
+    if (!parsed?.access_token) return null;
+    if (parsed.expires_at && parsed.expires_at * 1000 < Date.now()) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
 const navLinks = [
@@ -23,7 +40,7 @@ const navLinks = [
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null>(getStoredSession);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const location = useLocation();
 
