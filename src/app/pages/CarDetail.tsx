@@ -320,7 +320,7 @@ export default function CarDetail() {
       .catch(() => {});
   }, []);
 
-  if (loading || !fetched) {
+  if (loading && !car) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center" style={{ fontFamily: "'Be Vietnam Pro','Inter',sans-serif" }}>
         <div className="text-center">
