@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     res.status(200).json((data || []).map(pruneVehicle));
   } catch (err) {
     console.error('[api/vehicles]', err);
