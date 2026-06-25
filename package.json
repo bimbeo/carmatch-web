@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node --env-file-if-exists=.env.local scripts/generate-static-blog.mjs",
+    "build": "vite build && node --env-file-if-exists=.env.local scripts/generate-vehicles-json.mjs && node --env-file-if-exists=.env.local scripts/generate-static-blog.mjs",
     "build:geo": "npm run build && npm run geo:audit",
     "build:seo": "npm run build && npm run seo:audit",
     "seo:audit": "node scripts/audit-geo-foundation.mjs",

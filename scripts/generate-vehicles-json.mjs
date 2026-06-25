@@ -1,9 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * Build-time script: fetch published vehicles from Supabase and write
+ * dist/data/vehicles.json so the web app can load it instantly from CDN
+ * instead of waiting for a serverless function cold-start.
+ *
+ * Run after `vite build` (the dist/ folder must already exist).
+ */
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-);
+import { createClient } from '@supabase/supabase-js';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distDataDir = path.join(__dirname, '..', 'dist', 'data');
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('[generate-vehicles-json] Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY — skipping static JSON generation.');
+  process.exit(0);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 function isVehicleImageMedia(file) {
   return Boolean(
@@ -62,30 +81,25 @@ function pruneVehicle(vehicle) {
   };
 }
 
-export default async function handler(req, res) {
-  if (req.query?.cleanXe === '1') {
-    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-    res.writeHead(301, { Location: 'https://www.carmatch.vn/xe' });
-    res.end('Redirecting to /xe');
-    return;
-  }
+const { data, error } = await supabase
+  .from('vehicles')
+  .select(
+    'id,display_name,plate_number,color,model_year,daily_base_price,current_km,status,published,external_refs,website_description,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
+  )
+  .eq('status', 'available')
+  .eq('published', true)
+  .order('daily_base_price', { ascending: true });
 
-  try {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select(
-        'id,display_name,plate_number,color,model_year,daily_base_price,current_km,status,published,external_refs,website_description,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
-      )
-      .eq('status', 'available')
-      .eq('published', true)
-      .order('daily_base_price', { ascending: true });
-
-    if (error) throw error;
-
-    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=86400');
-    res.status(200).json((data || []).map(pruneVehicle));
-  } catch (err) {
-    console.error('[api/vehicles]', err);
-    res.status(500).json({ error: 'Failed to fetch vehicles' });
-  }
+if (error) {
+  console.error('[generate-vehicles-json] Supabase error:', error.message);
+  process.exit(0); // Don't fail the build
 }
+
+const vehicles = (data || []).map(pruneVehicle);
+
+await mkdir(distDataDir, { recursive: true });
+await writeFile(
+  path.join(distDataDir, 'vehicles.json'),
+  JSON.stringify(vehicles),
+);
+console.log(`[generate-vehicles-json] Wrote ${vehicles.length} vehicles → dist/data/vehicles.json`);

@@ -263,6 +263,23 @@ export function useVehicles(): UseVehiclesResult {
     let cancelled = false;
 
     async function loadVehicles() {
+      // Try static CDN file first — generated at build time, served instantly
+      try {
+        const data = await fetchVehicleJson('/data/vehicles.json');
+        if (cancelled) return;
+        setCars(uniquifyCarSlugs(data.map(mapToCar)));
+        setLoading(false);
+        setFetched(true);
+        // Background refresh from live API (silent — static data already shown)
+        fetchVehicleJson('/api/vehicles')
+          .then((fresh) => { if (!cancelled) setCars(uniquifyCarSlugs(fresh.map(mapToCar))); })
+          .catch(() => {});
+        return;
+      } catch {
+        // Static file not available (local dev or first deploy) — fall through to API
+      }
+
+      // Live API fallback
       try {
         const data = await fetchVehicleJson('/api/vehicles');
         if (cancelled) return;
@@ -271,17 +288,8 @@ export function useVehicles(): UseVehiclesResult {
         setFetched(true);
         return;
       } catch (apiError) {
-        try {
-          const data = await fetchVehicleJson('/data/vehicles.json');
-          if (cancelled) return;
-          setCars(uniquifyCarSlugs(data.map(mapToCar)));
-          setLoading(false);
-          setFetched(true);
-          return;
-        } catch (staticError) {
-          if (cancelled) return;
-          console.error('[useVehicles]', apiError, staticError);
-        }
+        if (cancelled) return;
+        console.error('[useVehicles]', apiError);
       }
 
       if (!cancelled) {
