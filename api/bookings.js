@@ -460,7 +460,7 @@ export default async function handler(req, res) {
     car_slug: body.car_slug || null,
     building: locationName,
     note: noteLines,
-    status: 'new',
+    status: body.requires_confirmation === true ? 'partner_pending' : 'new',
   });
 
   if (error) {

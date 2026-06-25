@@ -304,6 +304,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [blockedRanges, setBlockedRanges] = useState<BlockedRange[]>([]);
   const [availLoading, setAvailLoading] = useState(false);
   const [showCalModal, setShowCalModal] = useState(false);
+  const [requiresConfirmation, setRequiresConfirmation] = useState(false);
 
   // ── Promo code ────────────────────────────────────────────────────────────
   const [promoCode, setPromoCode] = useState(initialPromoCode);
@@ -424,6 +425,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       if (!res.ok) return;
       const data = await res.json();
       setBlockedRanges(data.blockedRanges || []);
+      setRequiresConfirmation(data.requires_confirmation === true);
       if (data.recent_bookings_count > 0) setRecentBookingsCount(data.recent_bookings_count);
     } catch {
       // graceful
@@ -712,6 +714,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           promo_code: promoResult?.code ?? null,
           promo_discount: promoResult?.discount_amount ?? 0,
           total_amount: result.valid ? result.total : 0,
+          requires_confirmation: requiresConfirmation,
         }),
       });
       const data = await res.json();
@@ -1199,8 +1202,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
-          Đặt xe ngay
+          {requiresConfirmation ? 'Gửi yêu cầu đặt xe' : 'Đặt xe ngay'}
         </button>
+        {requiresConfirmation && (
+          <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
+            Xe này cần xác nhận lịch với chủ xe. Car Match sẽ liên hệ bạn trong 1–2 giờ.
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-2">
           <a

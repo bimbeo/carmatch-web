@@ -96,18 +96,28 @@ export default async function handler(req, res) {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data, error } = await supabase
-      .from('vehicle_schedule_events')
-      .select('event_type, starts_at, ends_at, all_day, status, note, location_text')
-      .eq('vehicle_id', vehicleId)
-      .in('status', ACTIVE_STATUSES)
-      .lt('starts_at', dateToExclusiveEndAt(toDate))
-      .gt('ends_at', dateToStartAt(fromDate))
-      .order('starts_at');
+    const [eventsResult, vehicleResult] = await Promise.all([
+      supabase
+        .from('vehicle_schedule_events')
+        .select('event_type, starts_at, ends_at, all_day, status, note, location_text')
+        .eq('vehicle_id', vehicleId)
+        .in('status', ACTIVE_STATUSES)
+        .lt('starts_at', dateToExclusiveEndAt(toDate))
+        .gt('ends_at', dateToStartAt(fromDate))
+        .order('starts_at'),
+      supabase
+        .from('vehicles')
+        .select('ownership_type')
+        .eq('id', vehicleId)
+        .single(),
+    ]);
+
+    const { data, error } = eventsResult;
+    const requiresConfirmation = vehicleResult.data?.ownership_type === 'partner';
 
     if (error) {
       console.error('[vehicle-availability] Supabase error:', error.message);
-      return res.status(200).json({ blockedRanges: [] }); // graceful fallback
+      return res.status(200).json({ blockedRanges: [], requires_confirmation: false }); // graceful fallback
     }
 
     const blockedRanges = (data || [])
@@ -133,7 +143,7 @@ export default async function handler(req, res) {
       .gte('created_at', sevenDaysAgo);
 
     res.setHeader('Cache-Control', 'no-store, max-age=0');
-    return res.status(200).json({ blockedRanges, recent_bookings_count: recentCount || 0 });
+    return res.status(200).json({ blockedRanges, requires_confirmation: requiresConfirmation, recent_bookings_count: recentCount || 0 });
   } catch (err) {
     console.error('[vehicle-availability] Error:', err?.message);
     return res.status(200).json({ blockedRanges: [] }); // always graceful
