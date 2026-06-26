@@ -202,6 +202,7 @@ export default function ReEngagement() {
     title: 'Chào bạn quay lại đặt xe online',
     description: 'Khách cũ Car Match có thể tự xem xe, giá tham khảo và gửi yêu cầu thuê xe qua web. Nhập mã DATWEBNGAY để nhận ưu đãi thử web.',
     canonical: 'https://www.carmatch.vn/chao-ban',
+    noIndex: true,
   });
 
   return (
