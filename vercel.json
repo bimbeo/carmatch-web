@@ -128,6 +128,26 @@
       "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf5-2025-30b-25908" }
     },
     {
+      "src": "/xe/hyundai-accent-2020/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe" }
+    },
+    {
+      "src": "/xe/vf6-plus-2025/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025-30m-63654" }
+    },
+    {
+      "src": "/xe/vinfast-vf6-plus-2025/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025-30m-63654" }
+    },
+    {
+      "src": "/xe/vinfast-vf3-2025-30k-49565/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf3-2025" }
+    },
+    {
       "src": "/lien-he/?",
       "dest": "/lien-he/index.html"
     },
@@ -235,7 +255,7 @@
     { "src": "/chao-ban/?", "dest": "/index.html" },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/xe/([^/]+)/?", "dest": "/xe/index.html" },
+    { "src": "/xe/([^/]+)/?", "status": 404, "dest": "/404.html" },
     { "src": "/(.*)", "status": 404, "dest": "/404.html" }
   ]
 }

@@ -36,7 +36,8 @@ const siteUrl = 'https://www.carmatch.vn';
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 const brandIcon = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandSocialImage = `${siteUrl}/og-image-20260619.png`;
-const homeLastModified = '2026-06-14';
+const contentLastModified = process.env.SITE_LASTMOD || '2026-06-26';
+const homeLastModified = contentLastModified;
 const socialProfiles = [
   'https://zalo.me/0975563290',
   'https://www.facebook.com/carmatchvn',
@@ -122,6 +123,7 @@ function mapSupabasePost(row) {
     mainImageUrl: row.main_image_url || null,
     categories: row.category_slug ? [categoryLabel(row.category_slug)] : [],
     author: normalizeRequiredText(row.author, 'Car Match'),
+    updatedAt: row.updated_at || row.published_at || row.created_at,
     body: [],
     bodyHtml: normalizeRequiredText(row.content_html),
     seoTitle: normalizeOptionalText(row.seo_title),
@@ -450,7 +452,7 @@ const routeMeta = [
     path: '/xe',
     title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
     description:
-      'Duyệt 20+ mẫu xe tự lái cho thuê tại Hà Nội: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận sảnh tòa nhà.',
+      'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Lọc theo ngày, số chỗ, nhiên liệu và nhắn Zalo để Car Match kiểm tra lịch.',
     canonical: `${siteUrl}/xe`,
     priority: '0.9',
     changefreq: 'daily',
@@ -1587,6 +1589,12 @@ function normalizeRequiredText(value, fallback = '') {
   return normalizeCustomerText(value);
 }
 
+function dateOnly(value, fallback = undefined) {
+  if (!value) return fallback;
+  const date = String(value).slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : fallback;
+}
+
 function normalizeRelatedVehicleLinks(links) {
   if (!Array.isArray(links)) return [];
   return links.map((link) => ({
@@ -1886,6 +1894,10 @@ function homeStructuredData(meta, vehicles) {
         '@id': `${siteUrl}/#webpage`,
         dateModified: homeLastModified,
         datePublished: '2026-06-14',
+        author: publisherData(),
+        reviewedBy: publisherData(),
+        maintainer: publisherData(),
+        isAccessibleForFree: true,
         primaryImageOfPage: imageObjectData(brandLogo, 'Car Match - thuê xe tự lái Hà Nội', 288, 66),
         thumbnailUrl: brandIcon,
         about: [
@@ -1902,6 +1914,32 @@ function homeStructuredData(meta, vehicles) {
             position: index + 1,
             name: getVehicleName(vehicle),
             url: `${siteUrl}/xe/${vehicle.slug}`,
+          })),
+        },
+        potentialAction: [
+          {
+            '@type': 'ContactAction',
+            name: 'Nhắn Zalo kiểm tra xe trống',
+            target: staticZaloHref(),
+          },
+          {
+            '@type': 'ViewAction',
+            name: 'Xem danh sách xe tự lái',
+            target: `${siteUrl}/xe`,
+          },
+        ],
+        subjectOf: {
+          '@type': 'ItemList',
+          name: 'Quy trình thuê xe tự lái qua Car Match',
+          itemListElement: [
+            'Chọn mẫu xe, ngày nhận và ngày trả xe trên website',
+            'Nhắn Zalo để Car Match kiểm tra lịch xe trống và điều kiện thuê',
+            'Xác nhận cọc, giấy tờ và điểm giao nhận trước khi nhận xe',
+            'Hai bên kiểm tra xe cùng nhau khi bàn giao và khi trả xe',
+          ].map((name, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name,
           })),
         },
       },
@@ -2054,8 +2092,24 @@ function fleetStructuredData(meta, vehicles) {
     webPageData(meta, {
       type: 'CollectionPage',
       fields: {
+        '@id': `${siteUrl}/xe#collection`,
+        about: [
+          { '@type': 'Thing', name: 'Thuê xe tự lái Hà Nội' },
+          { '@type': 'Thing', name: 'Xe điện VinFast tự lái' },
+          { '@type': 'Thing', name: 'Xe 4 chỗ, 5 chỗ, 7 chỗ tự lái' },
+          { '@type': 'Thing', name: 'Giao xe tận sảnh chung cư' },
+        ],
+        areaServed: [
+          { '@type': 'City', name: 'Hà Nội', addressCountry: 'VN' },
+          { '@type': 'Place', name: 'Vinhomes Ocean Park' },
+          { '@type': 'Place', name: 'Times City' },
+          { '@type': 'Place', name: 'The Manor Central Park' },
+          { '@type': 'Place', name: 'Ecopark' },
+        ],
+        provider: { '@id': `${siteUrl}/#localbusiness` },
         mainEntity: {
           '@type': 'ItemList',
+          name: 'Danh sách xe tự lái Car Match tại Hà Nội',
           numberOfItems: vehicles.length,
           itemListElement: vehicles.slice(0, 50).map((vehicle, index) => ({
             '@type': 'ListItem',
@@ -2154,14 +2208,26 @@ async function fetchVehicles() {
     }
   }
 
-  const { data, error } = await supabase
+  const baseSelect =
+    'id,display_name,plate_number,color,model_year,daily_base_price,status,published,external_refs,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+  const datedSelect = `created_at,updated_at,${baseSelect}`;
+  let result = await supabase
     .from('vehicles')
-    .select(
-      'id,display_name,plate_number,color,model_year,daily_base_price,status,published,external_refs,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
-    )
+    .select(datedSelect)
     .eq('status', 'available')
     .eq('published', true)
     .order('daily_base_price', { ascending: true });
+
+  if (result.error && /created_at|updated_at/i.test(result.error.message)) {
+    result = await supabase
+      .from('vehicles')
+      .select(baseSelect)
+      .eq('status', 'available')
+      .eq('published', true)
+      .order('daily_base_price', { ascending: true });
+  }
+
+  const { data, error } = result;
 
   if (error) {
     console.warn(`Skipped vehicle sitemap generation: ${error.message}`);
@@ -4612,13 +4678,19 @@ function renderPost(post, contentIndex) {
 }
 
 function collectSitemapEntries(posts, vehicles, landingPages = [], travelCollections = []) {
+  const blogLastmod =
+    posts
+      .map((post) => dateOnly(post.updatedAt || post.publishedAt))
+      .filter(Boolean)
+      .sort()
+      .at(-1) || contentLastModified;
   const urls = [
     // CMS landing pages override hardcoded routeMeta entries for the same slug
     ...landingPages.map((page) => ({
       loc: page.canonical_url || `${siteUrl}/${page.slug}`,
       priority: '0.92',
       changefreq: 'weekly',
-      lastmod: (page.published_at || page.updated_at)?.slice(0, 10),
+      lastmod: dateOnly(page.updated_at || page.published_at) || contentLastModified,
     })),
     ...routeMeta.map((meta) => ({
       loc: meta.canonical,
@@ -4630,27 +4702,31 @@ function collectSitemapEntries(posts, vehicles, landingPages = [], travelCollect
       loc: `${siteUrl}/di-dau/${destination.slug}`,
       priority: '0.78',
       changefreq: 'weekly',
+      lastmod: contentLastModified,
     })),
     ...travelCollections.map((collection) => ({
       loc: `${siteUrl}/di-dau/chu-de/${collection.slug}`,
       priority: '0.76',
       changefreq: 'weekly',
+      lastmod: contentLastModified,
     })),
     {
       loc: `${siteUrl}/blog`,
       priority: '0.8',
       changefreq: 'weekly',
+      lastmod: blogLastmod,
     },
     ...vehicles.map((vehicle) => ({
       loc: `${siteUrl}/xe/${vehicle.slug}`,
       priority: '0.7',
       changefreq: 'daily',
+      lastmod: dateOnly(vehicle.updated_at || vehicle.created_at) || contentLastModified,
     })),
     ...posts.map((post) => ({
       loc: postUrl(post),
       priority: '0.7',
       changefreq: 'monthly',
-      lastmod: post.publishedAt?.slice(0, 10),
+      lastmod: dateOnly(post.updatedAt || post.publishedAt) || contentLastModified,
     })),
   ];
 

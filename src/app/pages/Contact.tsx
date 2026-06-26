@@ -14,64 +14,71 @@ const MAP_LINK = 'https://www.google.com/maps/search/?api=1&query=Car%20Match%20
 
 const contactMethods = [
   {
-    icon: MessageCircle,
-    title: 'Zalo đặt xe',
-    detail: PHONE_DISPLAY,
-    description: 'Gửi ngày thuê, khu vực nhận xe, số người và mẫu xe mong muốn.',
-    href: ZALO_LINK,
-    label: 'Nhắn Zalo',
-    primary: true,
-  },
-  {
     icon: Phone,
     title: 'Hotline',
     detail: PHONE_DISPLAY,
-    description: 'Phù hợp khi cần xác nhận xe gấp hoặc thay đổi lịch nhận/trả.',
+    description: 'Dùng khi cần xác nhận xe gấp, đổi lịch nhận/trả hoặc xử lý việc phát sinh trong chuyến.',
     href: PHONE_LINK,
-    label: 'Gọi ngay',
+    label: 'Gọi Car Match',
   },
   {
     icon: Mail,
     title: 'Email',
     detail: EMAIL,
-    description: 'Dành cho hợp đồng thuê tháng, doanh nghiệp hoặc hợp tác chủ xe.',
+    description: 'Phù hợp với thuê xe tháng, hợp đồng doanh nghiệp, chủ xe muốn hợp tác hoặc yêu cầu cần ghi nhận bằng văn bản.',
     href: `mailto:${EMAIL}`,
     label: 'Gửi email',
   },
 ];
 
+const quickInfo = [
+  'Ngày nhận và ngày trả xe',
+  'Khu vực nhận xe hoặc tòa nhà',
+  'Số người, hành lý và điểm đến dự kiến',
+  'Mẫu xe mong muốn hoặc ngân sách',
+];
+
 const serviceAreas = [
-  'Vinhomes Ocean Park, Gia Lâm',
-  'Vinhomes Times City, Hai Bà Trưng',
-  'Vinhomes Smart City, Nam Từ Liêm',
-  'Vinhomes Royal City, Thanh Xuân',
-  'The Manor Central Park, Hoàng Mai',
-  'Ecopark và khu vực lân cận Hà Nội',
+  'Vinhomes Ocean Park',
+  'Times City',
+  'Smart City',
+  'Royal City',
+  'The Manor Central Park',
+  'Ecopark',
+  'Linh Đàm',
+  'Nội thành Hà Nội',
+];
+
+const contactNotes = [
+  'Car Match kiểm tra lịch xe thật trước khi báo phương án.',
+  'Giá thuê, cọc, km/ngày và phí giao nhận được xác nhận trước khi chốt.',
+  'Khách có thể nhắn Zalo nếu chưa biết nên chọn xe nào.',
 ];
 
 export default function Contact() {
   useSEO({
     title: 'Liên hệ thuê xe tự lái Hà Nội | Car Match',
-    description: 'Liên hệ Car Match qua Zalo 0975 563 290, hotline hoặc email để kiểm tra xe trống, giá thuê, giấy tờ và lịch giao xe tận sảnh tại Hà Nội.',
+    description:
+      'Liên hệ Car Match qua Zalo 0975 563 290, hotline hoặc email để kiểm tra xe trống, giá thuê, giấy tờ và lịch giao xe tận sảnh tại Hà Nội.',
     canonical: 'https://www.carmatch.vn/lien-he',
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
       <MobileConversionBar source="contact" zaloLabel="Kiểm tra xe" />
 
-      <main id="main-content" className="pt-24">
-        <section className="border-b border-slate-200 bg-white px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_420px] lg:items-center">
+      <main id="main-content" className="pt-20">
+        <section className="border-b border-slate-200 bg-white px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_460px] lg:items-start">
             <div>
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-brand-600">Liên hệ Car Match</p>
-              <h1 className="max-w-3xl text-4xl font-black leading-tight text-slate-950 sm:text-5xl">
-                Kiểm tra xe trống, giá thuê và điểm giao nhận tại Hà Nội
+              <p className="mb-4 text-sm font-semibold uppercase text-brand-600">Liên hệ Car Match</p>
+              <h1 className="max-w-4xl text-4xl font-semibold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
+                Kiểm tra xe trống và lịch giao nhận tại Hà Nội
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-                Cách nhanh nhất là nhắn Zalo cho Car Match với ngày thuê, khu vực nhận xe, số người và nhu cầu chuyến đi. Đội vận hành sẽ kiểm tra lịch xe thật trước khi báo giá và điều kiện thuê.
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+                Gửi nhu cầu qua Zalo để Car Match kiểm tra xe còn lịch, báo giá, cọc và điều kiện thuê trước khi anh/chị chốt chuyến.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
@@ -79,7 +86,7 @@ export default function Contact() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackZaloClick('contact_hero')}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-6 py-3.5 text-sm font-black text-white shadow-md shadow-brand-100 transition-colors hover:bg-brand-700"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
                   data-cta="contact-hero-zalo"
                 >
                   <MessageCircle className="h-5 w-5" />
@@ -88,7 +95,7 @@ export default function Contact() {
                 <a
                   href={PHONE_LINK}
                   onClick={() => trackPhoneClick('contact_hero')}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 transition-colors hover:bg-slate-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50"
                   data-cta="contact-hero-phone"
                 >
                   <Phone className="h-5 w-5" />
@@ -97,69 +104,103 @@ export default function Contact() {
               </div>
             </div>
 
-            <aside className="rounded-2xl border border-brand-100 bg-brand-50 p-6">
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-brand-600" />
-                <div>
-                  <h2 className="text-lg font-black text-slate-950">Thông tin nên gửi trước</h2>
-                  <p className="mt-2 text-sm leading-7 text-slate-600">
-                    Ngày nhận/trả xe, khu vực nhận xe, số người, điểm đến dự kiến và nhóm xe mong muốn. Nếu chưa biết chọn xe nào, Car Match sẽ gợi ý theo hành lý, cung đường và ngân sách.
-                  </p>
+            <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+              <div className="flex items-start gap-4 rounded-xl bg-white p-5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-950">Gửi 4 thông tin để được báo nhanh</h2>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">Nếu chưa có đủ thông tin, chỉ cần gửi lịch và khu vực nhận xe trước.</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3">
+                {quickInfo.map((item, index) => (
+                  <div key={item} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white">
+                      {index + 1}
+                    </span>
+                    <span className="text-sm font-medium text-slate-700">{item}</span>
+                  </div>
+                ))}
               </div>
             </aside>
           </div>
         </section>
 
         <section className="px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-3">
-            {contactMethods.map((method) => (
-              <a
-                key={method.title}
-                href={method.href}
-                target={method.href.startsWith('http') ? '_blank' : undefined}
-                rel={method.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                onClick={() => {
-                  if (method.title.includes('Zalo')) trackZaloClick('contact_method_card');
-                  else if (method.title.includes('Hotline')) trackPhoneClick('contact_method_card');
-                  else trackCtaClick('contact_email_click', { target: method.href });
-                }}
-                className={`rounded-2xl border p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                  method.primary
-                    ? 'border-brand-200 bg-brand-600 text-white'
-                    : 'border-slate-100 bg-white text-slate-900'
-                }`}
-                data-cta={method.primary ? 'contact-method-zalo' : undefined}
-              >
-                <method.icon className={`h-7 w-7 ${method.primary ? 'text-white' : 'text-brand-600'}`} />
-                <h2 className="mt-5 text-lg font-black">{method.title}</h2>
-                <p className={`mt-1 font-bold ${method.primary ? 'text-brand-50' : 'text-slate-700'}`}>{method.detail}</p>
-                <p className={`mt-3 min-h-[72px] text-sm leading-7 ${method.primary ? 'text-white/80' : 'text-slate-500'}`}>
-                  {method.description}
-                </p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-black">
-                  {method.label}
+          <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <article className="rounded-2xl bg-slate-950 p-6 text-white shadow-sm sm:p-8">
+              <MessageCircle className="h-9 w-9 text-brand-200" />
+              <h2 className="mt-7 text-3xl font-semibold">Zalo là kênh nhanh nhất</h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70">
+                Car Match thường xác nhận xe qua Zalo vì dễ gửi hình xe, lịch nhận/trả, vị trí giao nhận và các điều kiện cần lưu lại trước khi đặt cọc.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href={ZALO_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackZaloClick('contact_primary_card')}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
+                  data-cta="contact-primary-zalo"
+                >
+                  Nhắn Zalo {PHONE_DISPLAY}
                   <ArrowRight className="h-4 w-4" />
-                </span>
-              </a>
-            ))}
+                </a>
+                <a
+                  href="/xe"
+                  className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  Xem đội xe
+                </a>
+              </div>
+            </article>
+
+            <div className="grid gap-4">
+              {contactMethods.map((method) => (
+                <a
+                  key={method.title}
+                  href={method.href}
+                  onClick={() => {
+                    if (method.title.includes('Hotline')) trackPhoneClick('contact_method_card');
+                    else trackCtaClick('contact_email_click', { target: method.href });
+                  }}
+                  className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                        <method.icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-950">{method.title}</h2>
+                        <p className="mt-1 font-semibold text-slate-700">{method.detail}</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-1" />
+                  </div>
+                  <p className="mt-4 text-sm leading-7 text-slate-600">{method.description}</p>
+                </a>
+              ))}
+            </div>
           </div>
         </section>
 
         <section className="border-y border-slate-200 bg-white px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[380px_1fr]">
             <div>
-              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-brand-600">Giao nhận xe</p>
-              <h2 className="text-3xl font-black text-slate-950">Khu vực Car Match thường phục vụ</h2>
+              <p className="mb-3 text-sm font-semibold uppercase text-brand-600">Giao nhận xe</p>
+              <h2 className="text-3xl font-semibold text-slate-950 sm:text-4xl">Khu vực thường phục vụ</h2>
               <p className="mt-4 text-sm leading-7 text-slate-600">
-                Car Match tập trung vào các khu đô thị, chung cư và điểm hẹn thuận tiện tại Hà Nội. Lịch giao nhận cụ thể phụ thuộc mẫu xe, thời điểm thuê và đội vận hành trong ngày.
+                Lịch giao nhận cụ thể phụ thuộc xe trống, thời điểm thuê và vị trí nhận xe trong ngày.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {serviceAreas.map((area) => (
-                <div key={area} className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                  <MapPin className="mb-2 h-4 w-4 text-brand-600" />
-                  {area}
+                <div key={area} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <MapPin className="mb-3 h-4 w-4 text-brand-600" />
+                  <p className="text-sm font-semibold leading-6 text-slate-700">{area}</p>
                 </div>
               ))}
             </div>
@@ -168,29 +209,43 @@ export default function Contact() {
 
         <section className="px-4 py-14 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1fr_1fr]">
-            <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <Clock className="h-7 w-7 text-brand-600" />
-              <h2 className="mt-5 text-2xl font-black text-slate-950">Giờ hỗ trợ</h2>
+              <h2 className="mt-5 text-2xl font-semibold text-slate-950">Giờ hỗ trợ</h2>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Tư vấn và xác nhận lịch thuê: <strong>7h-22h mỗi ngày</strong>. Với chuyến gấp hoặc thay đổi lịch nhận/trả, anh/chị nên gọi hotline để đội vận hành xử lý nhanh hơn.
+                Tư vấn và kiểm tra lịch xe trong khung <strong>7h-22h mỗi ngày</strong>. Với việc gấp, gọi hotline sẽ nhanh hơn nhắn nhiều tin rời rạc.
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <MapPin className="h-7 w-7 text-brand-600" />
-              <h2 className="mt-5 text-2xl font-black text-slate-950">Thông tin địa điểm</h2>
+              <h2 className="mt-5 text-2xl font-semibold text-slate-950">Địa điểm vận hành</h2>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Car Match vận hành tại Hà Nội, có điểm giao nhận quanh The Manor Central Park và các khu đô thị lớn theo lịch hẹn.
+                Car Match phục vụ tại Hà Nội, có điểm giao nhận quanh The Manor Central Park và các khu đô thị lớn theo lịch hẹn.
               </p>
               <a
                 href={MAP_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackCtaClick('contact_map_click', { target: MAP_LINK })}
-                className="mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50"
+                className="mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50"
               >
                 Xem bản đồ
                 <ArrowRight className="h-4 w-4" />
               </a>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 pb-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl rounded-2xl border border-brand-100 bg-brand-50 p-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              {contactNotes.map((note) => (
+                <div key={note} className="flex gap-3">
+                  <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-brand-600" />
+                  <p className="text-sm leading-7 text-slate-700">{note}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>

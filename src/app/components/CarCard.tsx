@@ -77,14 +77,14 @@ export default function CarCard({ car, compact = false, mode = 'standard', sourc
             />
           </div>
           <div className="absolute left-3 top-3 pointer-events-none">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm backdrop-blur-md ${badge.class} bg-white/90`}>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur-md ${badge.class} bg-white/90`}>
               {badge.icon}
               {car.fuel}
             </span>
           </div>
           {car.popular && (
             <div className="absolute right-3 top-3 pointer-events-none">
-              <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+              <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
                 Phổ biến
               </span>
             </div>
@@ -97,13 +97,13 @@ export default function CarCard({ car, compact = false, mode = 'standard', sourc
             onClick={() => trackCar('title_click')}
             className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
           >
-            <h3 id={`xe-${car.slug}`} className="line-clamp-1 text-lg font-bold tracking-tight text-slate-950">{car.name}</h3>
+            <h3 id={`xe-${car.slug}`} className="line-clamp-1 text-[17px] font-semibold tracking-tight text-slate-950">{car.name}</h3>
             {!compact && car.description && (
-              <p className="mt-1 line-clamp-1 text-sm font-medium text-slate-500">{car.description}</p>
+              <p className="mt-1 line-clamp-1 text-sm text-slate-500">{car.description}</p>
             )}
           </Link>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-slate-500">
             <span className="inline-flex items-center gap-1.5">
               <Users className="h-4 w-4 text-slate-400" />
               {car.seats} chỗ
@@ -122,17 +122,17 @@ export default function CarCard({ car, compact = false, mode = 'standard', sourc
             <div>
               {car.price > 0 ? (
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-xl font-black tracking-tight text-brand-600">{formatPrice(car.price)}</span>
-                  <span className="text-sm font-semibold text-slate-500">/ngày</span>
+                  <span className="text-xl font-semibold tracking-tight text-brand-600">{formatPrice(car.price)}</span>
+                  <span className="text-sm font-medium text-slate-500">/ngày</span>
                 </div>
               ) : (
-                <span className="text-base font-bold text-brand-600">Liên hệ báo giá</span>
+                <span className="text-base font-semibold text-brand-600">Liên hệ báo giá</span>
               )}
             </div>
             <Link
               to={detailHref}
               onClick={() => trackCar('detail_click')}
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-slate-950 px-3.5 text-sm font-bold text-white transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-800 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
             >
               Xem xe
               <ArrowRight className="h-4 w-4" />

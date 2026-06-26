@@ -1,161 +1,261 @@
-import { Shield, Clock, Smile, Wrench, CheckCircle2, ArrowRight } from 'lucide-react';
+import {
+  ArrowRight,
+  Car,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Handshake,
+  MapPin,
+  MessageCircle,
+  ShieldCheck,
+  Wrench,
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
+import MobileConversionBar from '../components/MobileConversionBar';
 import { useSEO } from '@/hooks/useSEO';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 
 const stats = [
-  { value: '20+', label: 'Mẫu xe đa dạng' },
-  { value: '7h-22h', label: 'Hỗ trợ mỗi ngày' },
-  { value: 'CCCD + GPLX', label: 'Giấy tờ chính' },
-  { value: 'Zalo', label: 'Kiểm tra lịch xe' },
+  { value: '20+', label: 'Mẫu xe', detail: 'Xe 4-7 chỗ, xăng và điện' },
+  { value: '7h-22h', label: 'Giờ hỗ trợ', detail: 'Kiểm tra lịch xe qua Zalo' },
+  { value: 'CCCD + GPLX', label: 'Giấy tờ', detail: 'Xác nhận trước khi nhận xe' },
+  { value: 'Hà Nội', label: 'Khu vực', detail: 'Ưu tiên chung cư, khu đô thị' },
+];
+
+const operatingSteps = [
+  {
+    icon: MessageCircle,
+    title: 'Khách gửi nhu cầu',
+    desc: 'Ngày thuê, khu vực nhận xe, số người và mẫu xe mong muốn.',
+  },
+  {
+    icon: Car,
+    title: 'Car Match kiểm tra xe',
+    desc: 'Đối chiếu lịch xe thật, giá thuê, cọc và điểm giao nhận.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Xác nhận điều kiện',
+    desc: 'Giấy tờ, bảo hiểm, phí phát sinh và cách bàn giao được nói rõ trước cọc.',
+  },
+  {
+    icon: MapPin,
+    title: 'Giao nhận theo lịch',
+    desc: 'Ưu tiên giao xe tận sảnh chung cư hoặc điểm hẹn thuận tiện tại Hà Nội.',
+  },
 ];
 
 const commitments = [
-  { icon: Shield, title: 'Kiểm tra xe khi bàn giao', desc: 'Hai bên ghi nhận tình trạng xe, nhiên liệu/pin, km và phụ kiện trước khi khởi hành.' },
-  { icon: Clock, title: 'Phản hồi trong giờ hỗ trợ', desc: 'Đội ngũ trực Zalo từ 7h–22h và kiểm tra lịch xe thật trước khi báo phương án.' },
-  { icon: Smile, title: 'Điều kiện thuê rõ ràng', desc: 'Giá thuê, cọc, phí giao nhận và điều kiện hoàn/hủy được xác nhận trước khi chốt.' },
-  { icon: Wrench, title: 'Hỗ trợ khi phát sinh', desc: 'Khi có sự cố trong chuyến, khách liên hệ Car Match để được hướng dẫn bước xử lý tiếp theo.' },
+  {
+    icon: ShieldCheck,
+    title: 'Minh bạch trước khi đặt cọc',
+    desc: 'Giá thuê, cọc, phí giao nhận, km/ngày và điều kiện hoàn/hủy được xác nhận trước khi khách chuyển cọc.',
+  },
+  {
+    icon: CheckCircle2,
+    title: 'Kiểm tra xe cùng khách',
+    desc: 'Ngoại thất, nội thất, nhiên liệu/pin, đồng hồ km và phụ kiện được ghi nhận khi bàn giao để hạn chế tranh chấp.',
+  },
+  {
+    icon: Clock,
+    title: 'Phản hồi đúng ngữ cảnh',
+    desc: 'Nếu chưa chắc nên chọn xe nào, Car Match gợi ý theo hành lý, cung đường, số người và thời gian thuê.',
+  },
+  {
+    icon: Wrench,
+    title: 'Có người hỗ trợ khi phát sinh',
+    desc: 'Trong chuyến đi, khách nhắn Zalo hoặc gọi hotline để được hướng dẫn bước xử lý khi cần đổi giờ, sự cố hoặc phát sinh phí.',
+  },
 ];
 
 const processSteps = [
-  { step: '01', title: 'Chọn xe & liên hệ Zalo', desc: 'Xem fleet trên website, chọn xe phù hợp và nhắn Zalo để Car Match kiểm tra lịch xe.' },
-  { step: '02', title: 'Xác nhận giấy tờ & đặt cọc', desc: 'Xuất trình CCCD + GPLX hạng B. Khoản cọc và điều kiện thuê được báo theo mẫu xe trước khi giao.' },
-  { step: '03', title: 'Nhận xe & lên đường', desc: 'Xe được giao tận nơi hoặc nhận tại địa điểm hẹn. Kiểm tra xe cùng nhân viên, rồi tự do khởi hành.' },
-  { step: '04', title: 'Trả xe & đối soát', desc: 'Trả xe đúng giờ hẹn. Hai bên kiểm tra lại xe, đối soát chi phí phát sinh và xử lý cọc theo hợp đồng.' },
+  { step: '01', title: 'Chọn xe hoặc gửi nhu cầu', desc: 'Khách xem đội xe trên website hoặc nhắn thẳng lịch trình để được gợi ý.' },
+  { step: '02', title: 'Xác nhận lịch và giấy tờ', desc: 'Car Match kiểm tra xe trống, điều kiện thuê, CCCD, GPLX và khoản cọc.' },
+  { step: '03', title: 'Nhận xe theo lịch hẹn', desc: 'Hai bên kiểm tra xe, chụp hiện trạng, ghi nhận km và nhiên liệu/pin.' },
+  { step: '04', title: 'Trả xe và đối soát', desc: 'Xe được kiểm tra lại, chi phí phát sinh nếu có được đối chiếu theo điều kiện đã xác nhận.' },
 ];
 
 const conditions = [
-  'Chứng minh nhân dân / CCCD (bản gốc)',
+  'CCCD hoặc giấy tờ tùy thân bản gốc',
   'Giấy phép lái xe hạng B còn hiệu lực',
-  'Khoản đặt cọc theo mẫu xe, được xác nhận trước khi giao xe',
-  'Thông tin nơi ở hoặc điểm giao nhận tại Hà Nội',
-  'Tuổi: 21–65 tuổi',
-  'Không yêu cầu hộ khẩu Hà Nội',
+  'Khoản cọc theo mẫu xe và thời điểm thuê',
+  'Điểm nhận/trả xe tại Hà Nội hoặc khu vực đã hẹn',
+  'Thông tin liên hệ chính xác để xác nhận lịch',
+  'Kiểm tra xe cùng Car Match trước khi khởi hành',
 ];
 
 export default function About() {
   useSEO({
-    title: 'Về Car Match — Dịch Vụ Thuê Xe Tự Lái Hà Nội',
-    description: 'Car Match là dịch vụ thuê xe tự lái tại Hà Nội, giao xe tận sảnh tòa nhà, kiểm tra lịch xe qua Zalo và xác nhận điều kiện thuê trước khi chốt.',
+    title: 'Về Car Match — Thuê xe tự lái minh bạch tại Hà Nội',
+    description:
+      'Car Match là dịch vụ thuê xe tự lái tại Hà Nội, tập trung vào quy trình rõ ràng: kiểm tra xe trống qua Zalo, xác nhận điều kiện thuê và giao xe tận sảnh theo lịch hẹn.',
     canonical: 'https://www.carmatch.vn/gioi-thieu',
   });
 
   return (
-    <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
+      <MobileConversionBar source="about" zaloLabel="Nhắn Zalo" />
 
-      {/* Hero */}
-      <section className="pt-32 pb-16 px-4 bg-gradient-to-br from-brand-50 via-white to-brand-50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Về <span className="text-brand-600">Car Match</span>
-          </h1>
-          <p className="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto">
-            Car Match ra đời từ niềm tin đơn giản: thuê xe tự lái phải dễ dàng, minh bạch và đáng tin cậy.
-          </p>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="py-12 px-4 bg-white border-y border-gray-100">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-brand-600 mb-1">{stat.value}</div>
-                <div className="text-gray-500 text-sm">{stat.label}</div>
+      <main id="main-content" className="pt-20">
+        <section className="border-b border-slate-200 bg-white px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_440px] lg:items-start">
+            <div>
+              <p className="mb-4 text-sm font-semibold uppercase text-brand-600">Về Car Match</p>
+              <h1 className="max-w-4xl text-4xl font-semibold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
+                Thuê xe tự lái Hà Nội rõ xe, rõ lịch, rõ điều kiện
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+                Car Match tập trung vào trải nghiệm thuê xe thực tế: khách biết xe còn lịch hay không, nhận xe ở đâu,
+                cần giấy tờ gì và chi phí nào cần xác nhận trước khi đặt cọc.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="/xe"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+                >
+                  Xem đội xe
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  href={ZALO_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Nhắn Zalo đặt xe
+                </a>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
 
-      {/* Story */}
-      <section className="py-16 px-4 bg-gray-50">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Câu chuyện của chúng tôi</h2>
-          <div className="space-y-4 text-gray-600 leading-relaxed">
-            <p>Car Match được thành lập tại Hà Nội với mong muốn mang lại trải nghiệm thuê xe tự lái đơn giản, minh bạch và đáng tin cậy.</p>
-            <p>Chúng tôi hoạt động theo mô hình đối tác — kết nối người sở hữu xe chất lượng với khách hàng có nhu cầu, tạo ra giá trị cho cả hai phía trong khi đảm bảo tiêu chuẩn dịch vụ cao nhất.</p>
-            <p>Car Match tập trung xây dựng đội xe đa dạng từ xe điện VinFast đến các dòng xe 7 chỗ, đồng thời chuẩn hóa quy trình xác nhận lịch, đặt cọc, bàn giao và hỗ trợ khách trong chuyến đi.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Commitments */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-12">Cam kết của Car Match</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {commitments.map((item) => (
-              <div key={item.title} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-all">
-                <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center mb-4">
-                  <item.icon className="w-6 h-6 text-brand-600" />
-                </div>
-                <h3 className="text-gray-900 font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+            <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+              <div className="rounded-xl bg-slate-950 p-5 text-white">
+                <p className="text-sm font-semibold text-white/60">Mô hình vận hành</p>
+                <h2 className="mt-2 text-2xl font-semibold">Car Match xác nhận xe trước khi khách chốt</h2>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Process */}
-      <section id="quy-trinh" className="py-16 px-4 bg-gray-50">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-12">Quy trình thuê xe</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            {processSteps.map((step) => (
-              <div key={step.step} className="flex gap-5">
-                <div className="shrink-0">
-                  <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center shadow-sm shadow-brand-200">
-                    <span className="text-white font-bold text-sm">{step.step}</span>
+              <div className="mt-4 divide-y divide-slate-200">
+                {operatingSteps.map((item) => (
+                  <div key={item.title} className="flex gap-4 py-4 first:pt-0 last:pb-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm">
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-950">{item.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{item.desc}</p>
+                    </div>
                   </div>
+                ))}
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section className="border-b border-slate-200 bg-white px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                <div className="text-2xl font-semibold text-slate-950">{stat.value}</div>
+                <div className="mt-1 text-sm font-semibold text-slate-700">{stat.label}</div>
+                <div className="mt-2 text-sm leading-6 text-slate-500">{stat.detail}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-3xl">
+              <p className="mb-3 text-sm font-semibold uppercase text-brand-600">Điều Car Match ưu tiên</p>
+              <h2 className="text-3xl font-semibold text-slate-950 sm:text-4xl">Giảm mơ hồ trong từng bước thuê xe</h2>
+              <p className="mt-4 text-base leading-8 text-slate-600">
+                Một chuyến thuê tốt không chỉ là có xe. Quan trọng hơn là điều kiện rõ, có người xác nhận, và khách biết cần làm gì trước, trong và sau chuyến đi.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {commitments.map((item) => (
+                <article key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-950">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{item.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="quy-trinh" className="border-y border-slate-200 bg-white px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[380px_1fr]">
+            <div>
+              <p className="mb-3 text-sm font-semibold uppercase text-brand-600">Quy trình thuê xe</p>
+              <h2 className="text-3xl font-semibold text-slate-950 sm:text-4xl">Từ nhu cầu đến bàn giao xe</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">
+                Car Match giữ quy trình ngắn, nhưng các điểm dễ tranh chấp như cọc, km, phí phát sinh và hiện trạng xe đều được xác nhận trước.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {processSteps.map((step) => (
+                <article key={step.step} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="mb-5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+                    {step.step}
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-950">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{step.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="dieu-kien" className="px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_440px]">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                  <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-gray-900 font-semibold mb-2">{step.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
+                  <h2 className="text-2xl font-semibold text-slate-950">Điều kiện thuê xe</h2>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">Các điều kiện chính được xác nhận trước khi giao xe.</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {conditions.map((cond) => (
+                  <div key={cond} className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                    <span className="text-sm leading-6 text-slate-700">{cond}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-      {/* Conditions */}
-      <section id="dieu-kien" className="py-16 px-4 bg-white">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-4">Điều kiện thuê xe</h2>
-          <p className="text-gray-500 text-center mb-10">Yêu cầu đơn giản, minh bạch — không có điều kiện ẩn.</p>
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-8">
-            <ul className="space-y-4">
-              {conditions.map((cond) => (
-                <li key={cond} className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
-                  <span className="text-gray-700 text-sm">{cond}</span>
-                </li>
-              ))}
-            </ul>
+            <aside className="rounded-2xl bg-slate-950 p-6 text-white shadow-sm">
+              <Handshake className="h-8 w-8 text-brand-200" />
+              <h2 className="mt-6 text-2xl font-semibold">Dịch vụ phù hợp với khách muốn rõ ràng trước khi nhận xe</h2>
+              <p className="mt-4 text-sm leading-7 text-white/70">
+                Nếu cần xe cho cuối tuần, đi tỉnh, công tác ngắn ngày hoặc thuê theo tháng, Car Match sẽ kiểm tra xe phù hợp rồi xác nhận lại điều kiện qua Zalo.
+              </p>
+              <a
+                href={ZALO_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
+              >
+                Nhắn Zalo kiểm tra xe
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </aside>
           </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-br from-brand-50 to-brand-50">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Sẵn sàng khởi hành?</h2>
-          <p className="text-gray-600 mb-8">Đặt xe qua Zalo để Car Match kiểm tra lịch xe, báo giá và điều kiện thuê trước khi chốt.</p>
-          <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200">
-            Đặt xe qua Zalo
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <Footer />
     </div>

@@ -77,9 +77,17 @@ export function buildPublisherSchema(config?: SeoSchemaConfig) {
     '@id': `${c.siteUrl}/#organization`,
     name: c.brandName,
     url: c.siteUrl,
+    sameAs: c.socialProfiles,
     logo: {
       '@type': 'ImageObject',
       url: c.iconUrl,
+    },
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: c.telephone,
+      contactType: 'customer support',
+      areaServed: 'VN',
+      availableLanguage: ['vi'],
     },
   };
 }

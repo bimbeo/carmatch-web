@@ -70,9 +70,9 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
     <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ngày nhận xe</label>
+          <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-slate-500">Ngày nhận xe</label>
           <div className="relative w-full">
-            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-bold text-slate-950 pointer-events-none">
+            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-medium text-slate-950 pointer-events-none">
               <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
               {pickupDate ? pickupDate.split('-').reverse().join('/') : ''}
             </div>
@@ -93,9 +93,9 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
           </div>
         </div>
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ngày trả xe</label>
+          <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-slate-500">Ngày trả xe</label>
           <div className="relative w-full">
-            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-bold text-slate-950 pointer-events-none">
+            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-medium text-slate-950 pointer-events-none">
               <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
               {returnDate ? returnDate.split('-').reverse().join('/') : ''}
             </div>
@@ -114,7 +114,7 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
             type="button"
             onClick={() => void checkAvailability()}
             disabled={loading}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(13,22,71,0.2)] transition-colors hover:bg-brand-700 disabled:opacity-50 lg:flex-none"
+            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(13,22,71,0.16)] transition-colors hover:bg-brand-700 disabled:opacity-50 lg:flex-none"
           >
             <CalendarDays className="h-4 w-4" />
             {loading ? 'Đang kiểm tra...' : 'Kiểm tra ngày'}

@@ -33,12 +33,24 @@ function parseSeatsFilter(value: string | null): SeatsFilter {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
-      <div className="aspect-video bg-gray-100" />
-      <div className="p-4 space-y-3">
-        <div className="h-5 bg-gray-100 rounded w-3/4" />
-        <div className="h-4 bg-gray-100 rounded w-1/2" />
-        <div className="h-8 bg-gray-100 rounded mt-4" />
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.04)] animate-pulse">
+      <div className="relative aspect-[4/3] bg-slate-100">
+        <div className="absolute left-3 top-3 h-7 w-16 rounded-full bg-white/80" />
+      </div>
+      <div className="p-4">
+        <div className="h-5 w-2/3 rounded bg-slate-100" />
+        <div className="mt-2 h-4 w-1/2 rounded bg-slate-100" />
+        <div className="mt-4 flex items-center gap-3">
+          <div className="h-4 w-14 rounded bg-slate-100" />
+          <div className="h-1 w-1 rounded-full bg-slate-200" />
+          <div className="h-4 w-16 rounded bg-slate-100" />
+          <div className="h-1 w-1 rounded-full bg-slate-200" />
+          <div className="h-4 w-10 rounded bg-slate-100" />
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="h-6 w-24 rounded bg-slate-100" />
+          <div className="h-9 w-24 rounded-full bg-slate-100" />
+        </div>
       </div>
     </div>
   );
@@ -58,9 +70,9 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`h-9 px-3.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border ${
+      className={`h-9 px-3.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap border ${
         active
-          ? 'bg-slate-950 text-white border-slate-950 shadow-sm'
+          ? 'border-brand-200 bg-brand-50 text-brand-700 shadow-none ring-1 ring-brand-100'
           : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-950'
       }`}
     >
@@ -110,7 +122,7 @@ export default function Fleet() {
 
   useSEO({
     title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
-    description: 'Duyệt 20+ mẫu xe tự lái cho thuê tại Hà Nội: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận sảnh tòa nhà.',
+    description: 'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Lọc theo ngày, số chỗ, nhiên liệu và nhắn Zalo để Car Match kiểm tra lịch.',
     canonical: 'https://www.carmatch.vn/xe',
     noIndex: hasQueryParams,
   });
@@ -266,11 +278,11 @@ export default function Fleet() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="mb-2 text-sm font-bold uppercase tracking-[0.16em] text-brand-600">Đội xe Car Match</p>
-              <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-brand-600">Đội xe Car Match</p>
+              <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
                 Thuê Xe Tự Lái Hà Nội
               </h1>
-              <p className="mt-3 text-base font-semibold text-slate-500">
+              <p className="mt-3 text-base font-medium text-slate-500">
                 {loading
                   ? 'Đang tải danh sách xe...'
                   : `${cars.length} mẫu xe — Giao tận tòa nhà · Đặt qua Zalo · Xác nhận 30 phút`}
@@ -283,8 +295,8 @@ export default function Fleet() {
                 [`${totalFuelCounts['Xăng'] || 0}`, 'xe xăng'],
               ].map(([value, label]) => (
                 <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="text-xl font-black tracking-tight text-slate-950">{value}</div>
-                  <div className="mt-0.5 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</div>
+                  <div className="text-xl font-semibold tracking-tight text-slate-950">{value}</div>
+                  <div className="mt-0.5 text-xs font-medium uppercase tracking-wide text-slate-400">{label}</div>
                 </div>
               ))}
             </div>
@@ -296,7 +308,7 @@ export default function Fleet() {
         {querySummary.length > 0 && (
           <div className="mb-5 grid gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <p className="text-sm font-bold text-gray-900">Nhu cầu vừa chọn từ trang chủ</p>
+              <p className="text-sm font-semibold text-gray-900">Nhu cầu vừa chọn từ trang chủ</p>
               <p className="mt-1 text-sm leading-relaxed text-gray-600">{querySummary.join(' · ')}</p>
             </div>
             <a
@@ -304,7 +316,7 @@ export default function Fleet() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackZaloClick('fleet_query_summary')}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-brand-700"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
               data-cta="fleet-query-zalo"
             >
               <MessageCircle className="h-4 w-4" />
@@ -315,11 +327,11 @@ export default function Fleet() {
 
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Chọn xe</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">{loading ? 'Đang tải xe...' : `${filtered.length} xe phù hợp`}</p>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Chọn xe</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">{loading ? 'Đang tải xe...' : `${filtered.length} xe phù hợp`}</p>
           </div>
           {activeCount > 0 && (
-            <button onClick={resetAll} className="inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900">
+            <button onClick={resetAll} className="inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900">
               <X className="h-3.5 w-3.5" /> Xóa lọc
             </button>
           )}
@@ -328,7 +340,7 @@ export default function Fleet() {
         <DateRangeFilter onFilter={setUnavailableModels} onActiveChange={setDateFilterActive} />
 
         {dateFilterActive && !loading && (
-          <div className="mb-4 inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-700">
+          <div className="mb-4 inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
             Đang lọc: {filtered.length} xe trống lịch cho ngày bạn chọn
           </div>
         )}
@@ -336,46 +348,49 @@ export default function Fleet() {
         {/* ── Filter bar (Mioto-style) ── */}
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
           {/* Scrollable chip row */}
-          <div className="min-w-0 flex-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-            <div className="flex min-w-max items-center gap-2">
-              {/* Brand chips */}
-              {brands.length > 1 && (
-                <>
-                  <Chip active={brandFilter === 'all'} onClick={() => setBrandFilter('all')}>Tất cả</Chip>
-                  {brands.map((b) => (
-                    <Chip key={b} active={brandFilter === b} count={brandCounts[b]} onClick={() => setBrandFilter(b)}>{b}</Chip>
-                  ))}
-                  <span className="mx-1 h-6 w-px flex-shrink-0 bg-slate-200" />
-                </>
-              )}
-              {/* Fuel chips */}
-              <Chip active={fuelFilter === 'Điện'} count={fuelCounts['Điện']} onClick={() => setFuelFilter(fuelFilter === 'Điện' ? 'all' : 'Điện')}>⚡ Điện</Chip>
-              <Chip active={fuelFilter === 'Xăng'} count={fuelCounts['Xăng']} onClick={() => setFuelFilter(fuelFilter === 'Xăng' ? 'all' : 'Xăng')}>Xăng</Chip>
-              {hasDiesel && <Chip active={fuelFilter === 'Dầu'} count={fuelCounts['Dầu']} onClick={() => setFuelFilter(fuelFilter === 'Dầu' ? 'all' : 'Dầu')}>Dầu</Chip>}
-              <span className="mx-1 h-6 w-px flex-shrink-0 bg-slate-200" />
-              {/* Seat chips */}
-              {availableSeats.map((s) => (
-                <Chip
-                  key={s}
-                  active={seatsFilter === String(s)}
-                  count={seatCounts[s]}
-                  onClick={() => setSeatsFilter(seatsFilter === String(s) ? 'all' : String(s) as SeatsFilter)}
-                >
-                  {s} chỗ
-                </Chip>
-              ))}
+          <div className="relative min-w-0 flex-1">
+            <div className="overflow-x-auto pr-8 sm:pr-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex min-w-max items-center gap-2">
+                {/* Brand chips */}
+                {brands.length > 1 && (
+                  <>
+                    <Chip active={brandFilter === 'all'} onClick={() => setBrandFilter('all')}>Tất cả</Chip>
+                    {brands.map((b) => (
+                      <Chip key={b} active={brandFilter === b} count={brandCounts[b]} onClick={() => setBrandFilter(b)}>{b}</Chip>
+                    ))}
+                    <span className="mx-1 h-6 w-px flex-shrink-0 bg-slate-200" />
+                  </>
+                )}
+                {/* Fuel chips */}
+                <Chip active={fuelFilter === 'Điện'} count={fuelCounts['Điện']} onClick={() => setFuelFilter(fuelFilter === 'Điện' ? 'all' : 'Điện')}>⚡ Điện</Chip>
+                <Chip active={fuelFilter === 'Xăng'} count={fuelCounts['Xăng']} onClick={() => setFuelFilter(fuelFilter === 'Xăng' ? 'all' : 'Xăng')}>Xăng</Chip>
+                {hasDiesel && <Chip active={fuelFilter === 'Dầu'} count={fuelCounts['Dầu']} onClick={() => setFuelFilter(fuelFilter === 'Dầu' ? 'all' : 'Dầu')}>Dầu</Chip>}
+                <span className="mx-1 h-6 w-px flex-shrink-0 bg-slate-200" />
+                {/* Seat chips */}
+                {availableSeats.map((s) => (
+                  <Chip
+                    key={s}
+                    active={seatsFilter === String(s)}
+                    count={seatCounts[s]}
+                    onClick={() => setSeatsFilter(seatsFilter === String(s) ? 'all' : String(s) as SeatsFilter)}
+                  >
+                    {s} chỗ
+                  </Chip>
+                ))}
+              </div>
             </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white via-white/90 to-transparent sm:hidden" />
           </div>
 
           {/* Count + reset */}
           <div className="flex flex-shrink-0 items-center gap-2 border-l border-slate-100 pl-3">
-            <span className="hidden whitespace-nowrap text-sm font-bold text-slate-500 sm:inline">
+            <span className="hidden whitespace-nowrap text-sm font-medium text-slate-500 sm:inline">
               {loading ? '...' : <><strong className="text-slate-950">{filtered.length}</strong> xe</>}
             </span>
             {/* Bộ lọc button */}
             <button
               onClick={() => setShowFilter(true)}
-              className={`flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold transition-colors ${
+              className={`flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-colors ${
                 sortBy !== 'default'
                   ? 'bg-slate-950 text-white border-slate-950'
                   : 'border-slate-300 text-slate-700 hover:border-slate-500 bg-white'
@@ -621,7 +636,7 @@ export default function Fleet() {
             </div>
             <button
               type="submit"
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white transition-colors hover:bg-brand-700"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
               data-cta="fleet-quick-lead-zalo"
             >
               <MessageCircle className="h-4 w-4" />
