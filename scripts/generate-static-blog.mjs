@@ -791,6 +791,22 @@ const noIndexRouteMeta = [
     canonical: `${siteUrl}/admin`,
     noIndex: true,
   },
+  {
+    path: '/tai-khoan',
+    title: 'Tài Khoản Của Tôi | Car Match',
+    description:
+      'Trang tài khoản cá nhân Car Match dành cho khách đăng nhập để xem chuyến đi, giấy tờ và ưu đãi.',
+    canonical: `${siteUrl}/tai-khoan`,
+    noIndex: true,
+  },
+  {
+    path: '/chao-ban',
+    title: 'Chào Bạn Quay Lại Đặt Xe Online | Car Match',
+    description:
+      'Ưu đãi riêng cho khách cũ Car Match quay lại xem xe và gửi yêu cầu thuê xe trực tuyến.',
+    canonical: `${siteUrl}/chao-ban`,
+    noIndex: true,
+  },
 ];
 
 const generatedRoutePaths = new Set([...routeMeta, ...noIndexRouteMeta].map((meta) => meta.path));
@@ -4222,14 +4238,14 @@ function renderPortableText(blocks = []) {
   return html.join('\n');
 }
 
-function layout({ title, description, canonical, image, type = 'article', body, structuredData, publishedAt }) {
+function layout({ title, description, canonical, image, type = 'article', body, structuredData, publishedAt, modifiedAt }) {
   const ogImage = image || brandSocialImage;
   const socialImageMeta = ogImage === brandSocialImage
     ? '<meta property="og:image:width" content="1200" />\n    <meta property="og:image:height" content="630" />\n    <meta property="og:image:type" content="image/png" />'
     : '';
   const articleMeta = type === 'article' && publishedAt
     ? `<meta property="article:published_time" content="${escapeHtml(publishedAt)}" />
-    <meta property="article:modified_time" content="${escapeHtml(publishedAt)}" />
+    <meta property="article:modified_time" content="${escapeHtml(modifiedAt || publishedAt)}" />
     <meta property="article:publisher" content="https://www.facebook.com/carmatchvn" />`
     : '';
 
@@ -4239,7 +4255,7 @@ function layout({ title, description, canonical, image, type = 'article', body, 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#11163e" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />
@@ -4610,7 +4626,7 @@ function renderBlogIndex(posts) {
           canonical: postUrl(post),
           image: postImage(post),
           publishedAt: post.publishedAt,
-          modifiedAt: post.publishedAt,
+          modifiedAt: post.updatedAt || post.publishedAt,
         }, seoSchemaConfig)),
       },
       breadcrumbData([
@@ -4636,6 +4652,7 @@ function renderPost(post, contentIndex) {
   const description = postDescription(post);
   const canonical = postUrl(post);
   const image = postImage(post);
+  const modifiedAt = post.updatedAt || post.publishedAt;
   const bodyHtml = post.bodyHtml ? optimizeStaticBodyImages(normalizeCustomerText(post.bodyHtml), post.title) : '';
   const hasInlineBodyImages = /<img\b/i.test(bodyHtml);
 
@@ -4645,6 +4662,7 @@ function renderPost(post, contentIndex) {
     canonical,
     image,
     publishedAt: post.publishedAt,
+    modifiedAt,
     body: `<main>
       <article class="article">
         ${(post.categories || []).length ? `<p class="eyebrow">${escapeHtml(post.categories.join(' / '))}</p>` : ''}
@@ -4666,7 +4684,7 @@ function renderPost(post, contentIndex) {
         canonical,
         image,
         publishedAt: post.publishedAt,
-        modifiedAt: post.publishedAt,
+        modifiedAt,
       }, seoSchemaConfig),
       breadcrumbData([
         { name: 'Trang chủ', path: '/' },
@@ -4745,6 +4763,43 @@ ${uniqueUrls.map((url) => `  <url>
     <priority>${url.priority}</priority>
   </url>`).join('\n')}
 </urlset>
+`;
+}
+
+function formatRssDate(value, fallback = `${contentLastModified}T00:00:00+07:00`) {
+  const date = new Date(value || fallback);
+  return Number.isNaN(date.getTime()) ? new Date(fallback).toUTCString() : date.toUTCString();
+}
+
+function renderRssFeed(posts) {
+  const recentPosts = [...posts]
+    .filter((post) => post?.slug?.current && post?.publishedAt)
+    .sort((left, right) => new Date(right.updatedAt || right.publishedAt).getTime() - new Date(left.updatedAt || left.publishedAt).getTime())
+    .slice(0, 20);
+  const mostRecentDate = recentPosts[0]?.updatedAt || recentPosts[0]?.publishedAt || contentLastModified;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Car Match Blog</title>
+    <link>${siteUrl}/blog</link>
+    <description>Kinh nghiệm thuê xe tự lái, chọn xe và đi lại từ Hà Nội do Car Match biên tập.</description>
+    <language>vi</language>
+    <lastBuildDate>${formatRssDate(mostRecentDate)}</lastBuildDate>
+    <atom:link href="${siteUrl}/rss.xml" rel="self" type="application/rss+xml" />
+${recentPosts.map((post) => {
+    const url = postUrl(post);
+    const publishedAt = post.publishedAt;
+    return `    <item>
+      <title>${escapeHtml(post.title)}</title>
+      <link>${escapeHtml(url)}</link>
+      <guid isPermaLink="true">${escapeHtml(url)}</guid>
+      <description>${escapeHtml(postDescription(post))}</description>
+      <pubDate>${formatRssDate(publishedAt)}</pubDate>
+    </item>`;
+  }).join('\n')}
+  </channel>
+</rss>
 `;
 }
 
@@ -5061,7 +5116,7 @@ function renderHanoiLanding() {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fffaf1" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />
@@ -5533,7 +5588,7 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f8fafc" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>${escapeHtml(normalizedTitle)}</title>
     <meta name="description" content="${escapeHtml(normalizedDescription)}" />
@@ -6300,7 +6355,7 @@ function destinationStructuredData(destination) {
         headline: `Đi ${destination.name} bằng xe tự lái từ Hà Nội`,
         mainEntityOfPage: canonical,
         author: publisherData(),
-        dateModified: new Date().toISOString().slice(0, 10),
+        dateModified: contentLastModified,
       },
     }),
     {
@@ -6803,6 +6858,7 @@ async function main() {
   }
 
   await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, landingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'rss.xml'), renderRssFeed(posts), 'utf8');
   await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, vehicles, landingPages, travelCollections), 'utf8');
   await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, vehicles, landingPages, travelCollections), 'utf8');
   await writeFile(
@@ -6831,6 +6887,7 @@ async function main() {
       'Allow: /',
       '',
       `Sitemap: ${siteUrl}/sitemap.xml`,
+      `Sitemap: ${siteUrl}/rss.xml`,
       '',
     ].join('\n'),
     'utf8',
