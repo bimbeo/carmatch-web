@@ -268,7 +268,9 @@ function VehicleBookingPanel({
 }) {
   return (
     <div className="space-y-3">
-      <PromoBanner promos={activePromoCodes} loading={promoLoading} />
+      <div className="min-h-[76px]">
+        <PromoBanner promos={activePromoCodes} loading={promoLoading} />
+      </div>
       <BookingWidget
         basePrice={car.price}
         carName={car.name}
@@ -333,7 +335,7 @@ export default function CarDetail() {
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
   const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
-  const [promoLoading, setPromoLoading] = useState(true);
+  const [promoLoading, setPromoLoading] = useState(false);
   const detailUrl = car ? `${SITE_URL}/xe/${canonicalSlug || car.slug}` : 'https://www.carmatch.vn/xe';
   const seoDescription = car ? vehicleSeoDescription(car) : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.';
 
@@ -449,6 +451,7 @@ export default function CarDetail() {
   }, [car, canonicalSlug]);
 
   useEffect(() => {
+    setPromoLoading(true);
     fetch('/api/promo-list')
       .then(r => r.json())
       .then((data: { promos?: { code: string; description: string }[] }) => {
