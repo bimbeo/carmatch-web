@@ -74,15 +74,16 @@ export default async function handler(req, res) {
     const { error } = await supabase.from('website_leads').insert([payload]);
     if (error) throw error;
 
-    res.status(200).json({ ok: true });
-
-    // Fire-and-forget push cho team — không chặn response cho khách
+    // Await trước khi trả response — Vercel đóng băng Lambda ngay sau
+    // res.json(), fire-and-forget phía sau đó sẽ bị cắt ngang giữa chừng.
     const carInfo = payload.car_model ? ` · ${payload.car_model}` : '';
-    sendPushToCompany({
+    await sendPushToCompany({
       title: '🔔 Lead website mới',
       body: `${payload.name}${carInfo}`,
       url: '/web-leads',
     }).catch(() => {});
+
+    res.status(200).json({ ok: true });
   } catch (err) {
     console.error('[api/leads]', err);
     res.status(500).json({ ok: false, error: 'Failed to submit lead' });

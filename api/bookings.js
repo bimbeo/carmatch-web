@@ -2,6 +2,49 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const COMPANY_CODE = 'carmatch';
+
+// Push cho team khi có đơn đặt xe mới từ website. Phải await trước khi trả
+// response — Vercel đóng băng Lambda ngay sau res.json(), fire-and-forget
+// phía sau response sẽ bị cắt ngang giữa chừng (đã gặp với promo tracking).
+async function sendPushToCompany(supabase, payload) {
+  try {
+    const { data: company } = await supabase
+      .from('companies').select('id').eq('code', COMPANY_CODE).single();
+    if (!company) return;
+
+    const { data: subs } = await supabase
+      .from('push_subscriptions').select('endpoint, p256dh, auth').eq('company_id', company.id);
+    if (!subs || subs.length === 0) return;
+
+    const publicKey = process.env.VITE_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    if (!publicKey || !privateKey) return;
+
+    const webpush = (await import('web-push')).default;
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:admin@carmatch.vn', publicKey, privateKey);
+
+    const message = JSON.stringify(payload);
+    const staleEndpoints = [];
+    await Promise.allSettled(
+      subs.map(async (sub) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            message
+          );
+        } catch (err) {
+          if (err.statusCode === 410 || err.statusCode === 404) staleEndpoints.push(sub.endpoint);
+        }
+      })
+    );
+    if (staleEndpoints.length > 0) {
+      await supabase.from('push_subscriptions').delete().in('endpoint', staleEndpoints);
+    }
+  } catch (err) {
+    console.error('[bookings] push error', err.message);
+  }
+}
 const MAX_PROOF_BYTES = 8 * 1024 * 1024;
 const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
 const IMAGE_MIME_BY_EXT = {
@@ -609,6 +652,12 @@ export default async function handler(req, res) {
       depositAmount,
     })
   ).catch(() => {});
+
+  await sendPushToCompany(supabase, {
+    title: '🔔 Lead website mới',
+    body: `${body.customer_name.trim()} · ${body.car_name}`,
+    url: '/web-leads',
+  });
 
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({ bookingRef, depositAmount });
