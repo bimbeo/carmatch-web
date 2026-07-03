@@ -1,3 +1,5 @@
+import { sanitizeBlogHtml } from './sanitize.js';
+
 const siteUrl = 'https://www.carmatch.vn';
 const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
@@ -739,7 +741,7 @@ export function renderBlogPage(post) {
   const title = postTitleOverrides[post.slug.current] || `${post.seoTitle || post.title} | Car Match`;
   const description = getDescription(post);
   const image = optimizeImageUrl(post.mainImageUrl || brandSocialImage, 1400);
-  const rawBodyHtml = optimizeBodyImages(post.bodyHtml || renderPortableText(post.body), post.title);
+  const rawBodyHtml = sanitizeBlogHtml(optimizeBodyImages(post.bodyHtml || renderPortableText(post.body), post.title));
   const headings = extractHeadings(rawBodyHtml);
   const bodyHtml = addHeadingIds(rawBodyHtml, headings);
   const faqItems = extractFaqItems(bodyHtml);

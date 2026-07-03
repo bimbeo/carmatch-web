@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { sanitizeBlogHtml } from './sanitize.js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
@@ -62,7 +63,7 @@ function mapSupabasePost(row) {
     categories: row.category_slug ? [categoryLabel(row.category_slug)] : [],
     author: normalizeRequiredText(row.author, 'Car Match'),
     body: [],
-    bodyHtml: normalizeRequiredText(row.content_html),
+    bodyHtml: sanitizeBlogHtml(normalizeRequiredText(row.content_html)),
     seoTitle: normalizeOptionalText(row.seo_title),
     seoDescription: normalizeOptionalText(row.seo_description),
     canonicalUrl: row.canonical_url || undefined,

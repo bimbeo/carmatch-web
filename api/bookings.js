@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit } from './_security.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
@@ -63,6 +64,29 @@ const ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:5173',
 ]);
 
+const PAYMENT_PROOF_SIGNED_URL_TTL_SECONDS = 3600;
+
+function extractPaymentProofStoragePath(fileUrl = '') {
+  const marker = '/object/public/payment-proofs/';
+  const idx = fileUrl.indexOf(marker);
+  if (idx === -1) return null;
+  return fileUrl.slice(idx + marker.length).split('?')[0];
+}
+
+async function resolvePaymentProofUrl(supabase, value) {
+  if (!value) return null;
+  const path = /^https?:\/\//i.test(value) ? extractPaymentProofStoragePath(value) : value;
+  if (!path) return value; // legacy URL không nhận diện được path — trả nguyên trạng
+  const { data, error } = await supabase.storage
+    .from('payment-proofs')
+    .createSignedUrl(path, PAYMENT_PROOF_SIGNED_URL_TTL_SECONDS);
+  if (error) {
+    console.error('[bookings] signed proof url error:', error.message);
+    return null;
+  }
+  return data?.signedUrl || null;
+}
+
 function setCorsHeaders(req, res) {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.has(origin)) {
@@ -110,6 +134,9 @@ function getBookingRef(raw = '') {
 
 function decodeProofImage(fileBase64 = '', fileName = '') {
   const base64Clean = String(fileBase64).replace(/^data:image\/[a-z0-9+.-]+;base64,/i, '');
+  if (base64Clean.length > Math.ceil(MAX_PROOF_BYTES * 1.4)) {
+    throw new Error('Ảnh quá lớn, vui lòng chọn ảnh dưới 8MB');
+  }
   const buffer = Buffer.from(base64Clean, 'base64');
   if (!buffer.length) throw new Error('File không hợp lệ');
   if (buffer.length > MAX_PROOF_BYTES) throw new Error('Ảnh quá lớn, vui lòng chọn ảnh dưới 8MB');
@@ -301,6 +328,7 @@ export default async function handler(req, res) {
 
   // POST /api/bookings?action=upload-proof — payment proof image upload
   if (req.method === 'POST' && req.query.action === 'upload-proof') {
+    if (!rateLimit(req, res, { id: 'bookings:upload-proof', windowMs: 15 * 60_000, max: 10 })) return;
     let body2;
     try { body2 = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; } catch { return res.status(400).json({ error: 'Invalid JSON' }); }
     const { booking_ref, phone, file_base64, file_name } = body2 || {};
@@ -331,22 +359,23 @@ export default async function handler(req, res) {
     const path = `${safeName}.${image.ext}`;
     const { error: uploadError } = await supabaseUp.storage.from('payment-proofs').upload(path, image.buffer, { contentType: image.contentType, upsert: true });
     if (uploadError) { console.error('[bookings] upload-proof error:', uploadError.message); return res.status(500).json({ error: 'Upload thất bại, vui lòng thử lại' }); }
-    const { data: { publicUrl } } = supabaseUp.storage.from('payment-proofs').getPublicUrl(path);
     const { error: updateError } = await supabaseUp
       .from('website_leads')
-      .update({ payment_proof_url: publicUrl })
+      .update({ payment_proof_url: path })
       .eq('booking_ref', bookingRef)
       .eq('form_type', 'booking');
     if (updateError) {
       console.error('[bookings] upload-proof update error:', updateError.message);
       return res.status(500).json({ error: 'Đã upload ảnh nhưng chưa lưu được vào đơn, vui lòng báo Car Match' });
     }
+    const signedUrl = await resolvePaymentProofUrl(supabaseUp, path);
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ url: publicUrl });
+    return res.status(200).json({ url: signedUrl });
   }
 
   // POST /api/bookings?action=link-phone — link Google account to customer phone
   if (req.method === 'POST' && req.query.action === 'link-phone') {
+    if (!rateLimit(req, res, { id: 'bookings:link-phone', windowMs: 10 * 60_000, max: 12 })) return;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     if (!SUPABASE_URL || !serviceRoleKey) {
       return res.status(500).json({ error: 'Dịch vụ tài khoản chưa cấu hình xác minh server' });
@@ -413,6 +442,7 @@ export default async function handler(req, res) {
 
   // GET /api/bookings?ref=XXXX — booking lookup
   if (req.method === 'GET') {
+    if (!rateLimit(req, res, { id: 'bookings:lookup', windowMs: 10 * 60_000, max: 40 })) return;
     const { ref, phone } = req.query;
     if (!ref || typeof ref !== 'string') return res.status(400).json({ error: 'Missing ref' });
     if (!phone || typeof phone !== 'string') return res.status(400).json({ error: 'Vui lòng nhập số điện thoại đã đặt xe' });
@@ -428,6 +458,7 @@ export default async function handler(req, res) {
     }
     const phoneCheck = assertBookingPhone(data, phone);
     if (!phoneCheck.ok) return res.status(phoneCheck.status).json({ error: phoneCheck.error });
+    const paymentProofUrl = await resolvePaymentProofUrl(supabase, data.payment_proof_url);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({
       booking_ref: data.booking_ref,
@@ -440,11 +471,12 @@ export default async function handler(req, res) {
       status: data.status,
       created_at: data.created_at,
       building: data.building,
-      payment_proof_url: data.payment_proof_url,
+      payment_proof_url: paymentProofUrl,
     });
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!rateLimit(req, res, { id: 'bookings:create', windowMs: 10 * 60_000, max: 8 })) return;
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: 'Dịch vụ chưa khả dụng' });

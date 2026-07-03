@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { applyCors, isPreflightAllowed, rateLimit } from './_security.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
@@ -211,15 +212,14 @@ async function validatePromo(req, res) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res, { methods: 'GET,OPTIONS' });
   res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') return isPreflightAllowed(req) ? res.status(204).end() : res.status(403).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const action = String(req.query.action || '').trim();
+  if (!rateLimit(req, res, { id: `promos:${action || 'unknown'}`, windowMs: 60_000, max: action === 'validate' ? 40 : 80 })) return;
   if (action === 'list') return listPromos(req, res);
   if (action === 'validate') return validatePromo(req, res);
 

@@ -15,38 +15,34 @@ function isVehicleImageMedia(file) {
   );
 }
 
+function isSupabaseStorageUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.endsWith('.supabase.co') && parsed.pathname.includes('/storage/v1/');
+  } catch {
+    return false;
+  }
+}
+
 function pruneExternalRefs(externalRefs) {
   const refs = externalRefs && typeof externalRefs === 'object' ? externalRefs : {};
-  const mediaFiles = Array.isArray(refs.mediaFiles)
-    ? refs.mediaFiles
-        .filter(isVehicleImageMedia)
-        .slice(0, 8)
-        .map((file) => ({
-          category: file.category,
-          fileUrl: file.fileUrl,
-          mimeType: file.mimeType || null,
-        }))
-    : [];
+  const firstMediaImage = Array.isArray(refs.mediaFiles)
+    ? refs.mediaFiles.find(isVehicleImageMedia)?.fileUrl
+    : '';
+  const coverImageUrl = refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || firstMediaImage;
 
-  return {
-    ...(refs.coverImageUrl ? { coverImageUrl: refs.coverImageUrl } : {}),
-    ...(refs.vehiclePhotoUrl ? { vehiclePhotoUrl: refs.vehiclePhotoUrl } : {}),
-    ...(refs.imageUrl ? { imageUrl: refs.imageUrl } : {}),
-    ...(mediaFiles.length ? { mediaFiles } : {}),
-  };
+  if (!coverImageUrl || isSupabaseStorageUrl(coverImageUrl)) return {};
+
+  return { coverImageUrl };
 }
 
 function pruneVehicle(vehicle) {
   return {
     id: vehicle.id,
     display_name: vehicle.display_name ?? null,
-    plate_number: vehicle.plate_number ?? null,
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
-    current_km: vehicle.current_km ?? null,
-    status: vehicle.status,
-    published: vehicle.published,
     website_description: vehicle.website_description ?? null,
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
@@ -77,7 +73,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('vehicles')
       .select(
-        'id,display_name,plate_number,color,model_year,daily_base_price,current_km,status,published,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
+        'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
       )
       .eq('status', 'available')
       .eq('published', true)
@@ -85,7 +81,7 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
     res.status(200).json((data || []).map(pruneVehicle));
   } catch (err) {
     console.error('[api/vehicles]', err);

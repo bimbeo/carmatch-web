@@ -1,15 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
+import { applyCors, isPreflightAllowed, rateLimit } from './_security.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  applyCors(req, res, { methods: 'GET,POST,OPTIONS' });
+  if (req.method === 'OPTIONS') return isPreflightAllowed(req) ? res.status(204).end() : res.status(403).end();
 
+  if (req.method === 'GET' && !rateLimit(req, res, { id: 'reviews:get', windowMs: 60_000, max: 120 })) return;
+  if (req.method === 'POST' && !rateLimit(req, res, { id: 'reviews:post', windowMs: 30 * 60_000, max: 6 })) return;
   if (req.method === 'GET') return handleGet(req, res);
   if (req.method === 'POST') return handlePost(req, res);
   return res.status(405).json({ error: 'Method not allowed' });

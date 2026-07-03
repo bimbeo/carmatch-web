@@ -23,10 +23,19 @@ import {
   safeJsonLdStringify,
 } from '../src/lib/seoSchemas.ts';
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
+import {
+  cacheStaticImageUrls,
+  cacheVehicleCoverImages,
+  cacheVehicleGalleryImages,
+} from './vehicle-cover-cache.mjs';
+import { sanitizeBlogHtml } from '../server/blog/sanitize.js';
 
 process.env.NODE_ENV ||= 'production';
 
 let generatedTripDestinations = fallbackTripDestinations;
+let vehicleCoverCacheUrls = new Map();
+let vehicleGalleryCacheUrls = new Map();
+let staticImageCacheUrls = new Map();
 import { travelCollections as fallbackTravelCollections } from '../src/data/travelCollections.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -125,7 +134,7 @@ function mapSupabasePost(row) {
     author: normalizeRequiredText(row.author, 'Car Match'),
     updatedAt: row.updated_at || row.published_at || row.created_at,
     body: [],
-    bodyHtml: normalizeRequiredText(row.content_html),
+    bodyHtml: sanitizeBlogHtml(normalizeRequiredText(row.content_html)),
     seoTitle: normalizeOptionalText(row.seo_title),
     seoDescription: normalizeOptionalText(row.seo_description),
     canonicalUrl: row.canonical_url || undefined,
@@ -1638,9 +1647,9 @@ function makeVehicleSlug(vehicle) {
 
 function makeDuplicateVehicleSlug(vehicle) {
   const baseSlug = makeVehicleSlug(vehicle);
-  const platePart = slugify(vehicle.plate_number || '');
   const colorPart = slugify(vehicle.color || '');
-  const suffix = platePart || colorPart || String(vehicle.id || '').slice(0, 8).toLowerCase();
+  const idPart = String(vehicle.id || '').slice(0, 8).toLowerCase();
+  const suffix = colorPart || idPart;
   return `${baseSlug}-${suffix}`;
 }
 
@@ -1651,19 +1660,24 @@ function makeLegacyColorVehicleSlug(vehicle) {
 }
 
 function getVehicleImage(vehicle) {
-  const refs = vehicle.external_refs && typeof vehicle.external_refs === 'object' ? vehicle.external_refs : {};
-  const mediaFiles = Array.isArray(refs.mediaFiles) ? refs.mediaFiles : [];
-  const mediaImage = mediaFiles.find((file) => (
-    file &&
-    typeof file === 'object' &&
-    file.fileUrl &&
-    file.category === 'vehicle_photos' &&
-    (!file.mimeType || String(file.mimeType).startsWith('image/'))
-  ));
-  return refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || mediaImage?.fileUrl || vehiclePlaceholderImage;
+  return getVehicleCoverImage(vehicle, { includePlaceholder: true });
+}
+
+function getVehicleCoverImage(vehicle, { includePlaceholder = false } = {}) {
+  const vehicleId = String(vehicle?.id || '');
+  const cachedCoverUrl = vehicleCoverCacheUrls.get(vehicleId);
+  const firstGalleryUrl = vehicleGalleryCacheUrls.get(vehicleId)?.[0]?.fileUrl || '';
+  return cachedCoverUrl || firstGalleryUrl || (includePlaceholder ? vehiclePlaceholderImage : '');
+}
+
+function normalizeImageCacheKey(src) {
+  return String(src || '').replace(/&amp;/g, '&');
 }
 
 function optimizedStaticImageUrl(src, width, quality = 62) {
+  const cachedUrl = staticImageCacheUrls.get(normalizeImageCacheKey(src));
+  if (cachedUrl) return cachedUrl;
+
   try {
     const url = new URL(src);
 
@@ -2225,7 +2239,7 @@ async function fetchVehicles() {
   }
 
   const baseSelect =
-    'id,display_name,plate_number,color,model_year,daily_base_price,status,published,external_refs,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const datedSelect = `created_at,updated_at,${baseSelect}`;
   let result = await supabase
     .from('vehicles')
@@ -2328,36 +2342,75 @@ function serializeForInlineScript(value) {
     .replace(/\u2029/g, '\\u2029');
 }
 
+const ABSOLUTE_IMAGE_URL_PATTERN = /https?:\/\/[^\s"'<>]+?\.(?:jpe?g|png|webp)(?:\?[^\s"'<>]*)?/gi;
+
+function collectStaticImageUrls(value, urls = new Set()) {
+  if (!value) return urls;
+
+  if (typeof value === 'string') {
+    const matches = value.matchAll(ABSOLUTE_IMAGE_URL_PATTERN);
+    for (const match of matches) {
+      const url = normalizeImageCacheKey(match[0]);
+      if (url.includes('.supabase.co/storage/v1/')) urls.add(url);
+    }
+    return urls;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStaticImageUrls(item, urls));
+    return urls;
+  }
+
+  if (typeof value === 'object') {
+    Object.values(value).forEach((item) => collectStaticImageUrls(item, urls));
+  }
+
+  return urls;
+}
+
+function replaceCachedStaticImageUrls(value) {
+  if (!value) return value;
+
+  if (typeof value === 'string') {
+    return value.replace(ABSOLUTE_IMAGE_URL_PATTERN, (match) => {
+      const cachedUrl = staticImageCacheUrls.get(normalizeImageCacheKey(match));
+      return cachedUrl || match;
+    });
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceCachedStaticImageUrls(item));
+  }
+
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, replaceCachedStaticImageUrls(item)]),
+    );
+  }
+
+  return value;
+}
+
 function pruneVehicleForClient(vehicle) {
-  const refs = vehicle.external_refs && typeof vehicle.external_refs === 'object' ? vehicle.external_refs : {};
-  const firstMediaImage = Array.isArray(refs.mediaFiles)
-    ? refs.mediaFiles
-        .filter((file) => {
-          if (!file || typeof file !== 'object') return false;
-          return (
-            file.category === 'vehicle_photos' &&
-            file.fileUrl &&
-            (!file.mimeType || String(file.mimeType).startsWith('image/'))
-          );
-        })
-        .map((file) => file.fileUrl)[0]
-    : null;
-  const coverImageUrl = refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || firstMediaImage;
+  const vehicleId = String(vehicle.id);
+  const coverImageUrl = getVehicleCoverImage(vehicle);
+  const mediaFiles = vehicleGalleryCacheUrls.get(vehicleId) || [];
 
   return {
     id: vehicle.id,
     display_name: vehicle.display_name ?? null,
-    plate_number: vehicle.plate_number ?? null,
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
-    current_km: vehicle.current_km ?? null,
-    status: vehicle.status,
-    published: vehicle.published,
+    website_description: vehicle.website_description ?? null,
+    km_per_day: vehicle.km_per_day ?? null,
+    km_surcharge: vehicle.km_surcharge ?? null,
+    rental_conditions: vehicle.rental_conditions ?? null,
     slug: vehicle.slug ?? null,
     slugAliases: Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [],
     external_refs: {
       ...(coverImageUrl ? { coverImageUrl } : {}),
+      ...(mediaFiles.length > 0 ? { mediaFiles } : {}),
     },
     vehicle_models: vehicle.vehicle_models
       ? {
@@ -4653,7 +4706,7 @@ function renderPost(post, contentIndex) {
   const canonical = postUrl(post);
   const image = postImage(post);
   const modifiedAt = post.updatedAt || post.publishedAt;
-  const bodyHtml = post.bodyHtml ? optimizeStaticBodyImages(normalizeCustomerText(post.bodyHtml), post.title) : '';
+  const bodyHtml = post.bodyHtml ? sanitizeBlogHtml(optimizeStaticBodyImages(normalizeCustomerText(post.bodyHtml), post.title)) : '';
   const hasInlineBodyImages = /<img\b/i.test(bodyHtml);
 
   return layout({
@@ -6817,9 +6870,24 @@ async function main() {
     fetchTravelCollections(),
     fetchLandingPages(),
   ]);
-  const posts = mergeStaticBlogPosts(cmsPosts);
-  const travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
-  const travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
+  let posts = mergeStaticBlogPosts(cmsPosts);
+  let travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
+  let travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
+  vehicleCoverCacheUrls = await cacheVehicleCoverImages(vehicles, distDir, {
+    loggerPrefix: 'generate-static-blog',
+  });
+  vehicleGalleryCacheUrls = await cacheVehicleGalleryImages(vehicles, distDir, {
+    loggerPrefix: 'generate-static-blog',
+  });
+  staticImageCacheUrls = await cacheStaticImageUrls(
+    Array.from(collectStaticImageUrls([posts, landingPages, travelDestinations, travelCollections])),
+    distDir,
+    { loggerPrefix: 'generate-static-blog' },
+  );
+  posts = replaceCachedStaticImageUrls(posts);
+  travelDestinations = replaceCachedStaticImageUrls(travelDestinations);
+  travelCollections = replaceCachedStaticImageUrls(travelCollections);
+  const cachedLandingPages = replaceCachedStaticImageUrls(landingPages);
   generatedTripDestinations = travelDestinations;
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
   spaBaseHtml = baseHtml;
@@ -6834,7 +6902,7 @@ async function main() {
 
   // Render CMS-managed landing pages (published entries from seo_landing_pages table)
   const cmsRenderedSlugs = new Set();
-  for (const page of landingPages) {
+  for (const page of cachedLandingPages) {
     await writeHtmlRoute(`/${page.slug}`, renderCmsLandingPage(page));
     cmsRenderedSlugs.add(page.slug);
     console.log(`  CMS landing: /${page.slug}`);
@@ -6857,10 +6925,10 @@ async function main() {
     await writeHtmlRoute(`/blog/${post.slug.current}`, renderPost(post, contentIndex));
   }
 
-  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, landingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
   await writeFile(path.join(distDir, 'rss.xml'), renderRssFeed(posts), 'utf8');
-  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, vehicles, landingPages, travelCollections), 'utf8');
-  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, vehicles, landingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
   await writeFile(
     path.join(distDir, 'robots.txt'),
     [

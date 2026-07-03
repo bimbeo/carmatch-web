@@ -106,6 +106,15 @@ type LoyaltyDiscount = {
   enabled: boolean
 }
 
+type AccountApiResponse = {
+  customer?: CustomerInfo | null
+  bookings?: Booking[]
+  web_leads?: WebLead[]
+  docs?: CustomerDoc[]
+  rewards?: ReferralReward[]
+  doc_id?: string
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
@@ -165,6 +174,24 @@ const SIGNED_DOC_URL_TTL_SECONDS = 30 * 60
 const REVIEW_LABELS = ['', 'Rất tệ', 'Chưa tốt', 'Ổn', 'Tốt', 'Rất hài lòng']
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function callCustomerAccountApi<T extends AccountApiResponse>(
+  session: Session,
+  action: string,
+  payload: Record<string, unknown>,
+): Promise<T> {
+  const res = await fetch('/api/customer-discount', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ action, ...payload }),
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json.error || 'Chưa tải được dữ liệu tài khoản')
+  return json as T
+}
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -1078,28 +1105,28 @@ export default function Account() {
     loadBookings()
     loadDocs()
     if (!customerInfo) {
-      supabase.rpc('get_customer_by_phone', { p_phone: phone }).then(({ data }) => {
-        if (data && (data as CustomerInfo[]).length > 0) {
-          setCustomerInfo((data as CustomerInfo[])[0])
-        }
-      })
+      callCustomerAccountApi<{ customer: CustomerInfo | null }>(session, 'customer', { phone })
+        .then(({ customer }) => {
+          if (customer) setCustomerInfo(customer)
+        })
+        .catch((err) => console.error('[account] loadCustomer error:', err))
     }
   }, [session, phone])
 
   // ── Data loaders ─────────────────────────────────────────────────────────
 
   async function loadBookings() {
+    if (!session) return
     setLoadingBookings(true)
     setBookingsError('')
     try {
-      const [crmResult, webResult] = await Promise.all([
-        supabase.rpc('get_customer_bookings_by_phone', { p_phone: phone }),
-        supabase.rpc('get_my_website_leads', { p_phone: phone }),
-      ])
-      if (crmResult.error) throw crmResult.error
-      if (webResult.error) throw webResult.error
-      setBookings((crmResult.data as Booking[]) ?? [])
-      setWebLeads((webResult.data as WebLead[]) ?? [])
+      const data = await callCustomerAccountApi<{ bookings: Booking[]; web_leads: WebLead[] }>(
+        session,
+        'bookings',
+        { phone },
+      )
+      setBookings(data.bookings ?? [])
+      setWebLeads(data.web_leads ?? [])
     } catch (err) {
       console.error('[account] loadBookings error:', err)
       setBookingsError('Chưa tải được danh sách chuyến đi. Vui lòng thử lại.')
@@ -1109,12 +1136,12 @@ export default function Account() {
   }
 
   async function loadDocs() {
+    if (!session) return
     setLoadingDocs(true)
     setDocsError('')
     try {
-      const { data, error } = await supabase.rpc('get_customer_docs_by_phone', { p_phone: phone })
-      if (error) throw error
-      setDocs((data as CustomerDoc[]) ?? [])
+      const data = await callCustomerAccountApi<{ docs: CustomerDoc[] }>(session, 'docs', { phone })
+      setDocs(data.docs ?? [])
     } catch (err) {
       console.error('[account] loadDocs error:', err)
       setDocsError('Chưa tải được giấy tờ. Vui lòng thử lại.')
@@ -1124,18 +1151,18 @@ export default function Account() {
   }
 
   async function loadBenefits() {
+    if (!session) return
     setLoadingBenefits(true)
     setBenefitsError('')
     try {
       const [promosResult, rewardsResult, discountRes] = await Promise.all([
         supabase.rpc('get_active_promos'),
-        supabase.rpc('get_my_referral_rewards', { p_phone: phone }),
+        callCustomerAccountApi<{ rewards: ReferralReward[] }>(session, 'rewards', { phone }),
         phone ? fetch(`/api/customer-discount?phone=${encodeURIComponent(phone)}&include_referral_codes=1`) : Promise.resolve(null),
       ])
       if (promosResult.error) throw promosResult.error
-      if (rewardsResult.error) throw rewardsResult.error
       setPromos((promosResult.data as PromoCode[]) ?? [])
-      setReferralRewards((rewardsResult.data as ReferralReward[]) ?? [])
+      setReferralRewards(rewardsResult.rewards ?? [])
 
       if (discountRes?.ok) {
         const discountJson = await discountRes.json()
@@ -1325,15 +1352,13 @@ export default function Account() {
 
       if (uploadErr) throw uploadErr
 
-      const { error: rpcErr } = await supabase.rpc('submit_customer_document', {
-        p_phone: phone,
-        p_file_url: path,
-        p_file_name: file.name,
-        p_doc_type: docType,
-        p_title: DOC_LABELS[docType] ?? 'Giấy tờ',
+      await callCustomerAccountApi<{ doc_id: string }>(session, 'submit-document', {
+        phone,
+        file_url: path,
+        file_name: file.name,
+        doc_type: docType,
+        title: DOC_LABELS[docType] ?? 'Giấy tờ',
       })
-
-      if (rpcErr) throw rpcErr
       await loadDocs()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Lỗi upload'

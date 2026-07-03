@@ -55,8 +55,7 @@ function makeDisplaySlug(v: SupabaseVehicle, make: string, model: string, varian
 }
 
 function makeDuplicateSlug(car: Car): string {
-  const platePart = slugify(car.plateNumber || '');
-  const suffix = platePart || car.id.slice(0, 8).toLowerCase();
+  const suffix = car.id.slice(0, 8).toLowerCase();
   return `${car.slug}-${suffix}`;
 }
 
@@ -65,13 +64,13 @@ interface SupabaseVehicle {
   slug?: string | null;
   slugAliases?: string[] | null;
   display_name: string | null;
-  plate_number: string | null;
+  plate_number?: string | null;
   color: string | null;
   model_year: number | null;
   daily_base_price: number | null;
-  current_km: number | null;
-  status: string;
-  published: boolean;
+  current_km?: number | null;
+  status?: string | null;
+  published?: boolean | null;
   website_description?: string | null;
   km_per_day?: number | null;
   km_surcharge?: number | null;
@@ -205,7 +204,7 @@ function mapToCar(v: SupabaseVehicle): Car {
     id: v.id,
     slug: primarySlug,
     slugAliases,
-    plateNumber: v.plate_number || undefined,
+    plateNumber: undefined,
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
     brand: make,
     price: v.daily_base_price || 0,
@@ -219,7 +218,7 @@ function mapToCar(v: SupabaseVehicle): Car {
     conditions: Array.isArray(v.rental_conditions) && v.rental_conditions.length > 0
       ? v.rental_conditions
       : DEFAULT_CONDITIONS,
-    available: v.status === 'available',
+    available: v.status ? v.status === 'available' : true,
     images: galleryImages.length > 0 ? galleryImages : [PLACEHOLDER_IMAGE],
     category: mapCategory(fuel),
     description: v.website_description?.trim() || undefined,
@@ -275,10 +274,6 @@ export function useVehicles(): UseVehiclesResult {
         setCars(uniquifyCarSlugs(data.map(mapToCar)));
         setLoading(false);
         setFetched(true);
-        // Background refresh from live API (silent — static data already shown)
-        fetchVehicleJson('/api/vehicles')
-          .then((fresh) => { if (!cancelled) setCars(uniquifyCarSlugs(fresh.map(mapToCar))); })
-          .catch(() => {});
         return;
       } catch {
         // Static file not available (local dev or first deploy) — fall through to API

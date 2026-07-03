@@ -75,6 +75,13 @@ function parseTotalFromNote(note: string | null, fallback: number | null) {
   return Number(match[1].replace(/[^\d]/g, '')) || Number(fallback || 0);
 }
 
+function adminAuthHeaders(activePin: string, extraHeaders: HeadersInit = {}): HeadersInit {
+  return {
+    ...extraHeaders,
+    Authorization: `Bearer ${activePin}`,
+  };
+}
+
 function StatusBadge({ status }: { status: string | null }) {
   const meta = STATUS_META[status || ''] || { label: status || '—', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
   return (
@@ -135,12 +142,13 @@ export default function Admin() {
     setError('');
     try {
       const params = new URLSearchParams({
-        pin: activePin,
         status,
         from,
         to,
       });
-      const res = await fetch(`/api/admin-bookings?${params.toString()}`);
+      const res = await fetch(`/api/admin-bookings?${params.toString()}`, {
+        headers: adminAuthHeaders(activePin),
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Không thể tải danh sách booking');
       setBookings(Array.isArray(json) ? json : []);
@@ -167,13 +175,14 @@ export default function Admin() {
     setError('');
     try {
       const params = new URLSearchParams({
-        pin: nextPin,
         status: 'all',
         from,
         to,
         limit: '1',
       });
-      const res = await fetch(`/api/admin-bookings?${params.toString()}`);
+      const res = await fetch(`/api/admin-bookings?${params.toString()}`, {
+        headers: adminAuthHeaders(nextPin),
+      });
       if (!res.ok) throw new Error('PIN không đúng');
       sessionStorage.setItem('carmatch_admin_pin', nextPin);
       setPin(nextPin);
@@ -199,10 +208,9 @@ export default function Admin() {
     setActionRef(bookingRef);
     setError('');
     try {
-      const params = new URLSearchParams({ pin });
-      const res = await fetch(`/api/admin-bookings?${params.toString()}`, {
+      const res = await fetch('/api/admin-bookings', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminAuthHeaders(pin, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ booking_ref: bookingRef, status: nextStatus }),
       });
       const json = await res.json();

@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { PortableText } from '@portabletext/react';
 import type { TypedObject } from '@portabletext/types';
+import DOMPurify from 'isomorphic-dompurify';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -85,6 +86,13 @@ function normalizeOptionalText(value?: string) {
   return normalizeCustomerText(value);
 }
 
+function sanitizeCmsHtml(value = '') {
+  return DOMPurify.sanitize(normalizeCustomerText(value), {
+    ADD_ATTR: ['target', 'rel', 'style', 'srcset', 'sizes', 'loading', 'decoding', 'fetchpriority', 'width', 'height', 'data-caption'],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+  });
+}
+
 function normalizePost(post: Post): Post {
   return {
     ...post,
@@ -142,7 +150,8 @@ function extractFaqItems(html: string) {
 }
 
 function CmsHtml({ html }: { html: string }) {
-  const chunks = normalizeCustomerText(html).split(/(<img\b[^>]*>)/gi).filter(Boolean);
+  const safeHtml = useMemo(() => sanitizeCmsHtml(html), [html]);
+  const chunks = safeHtml.split(/(<img\b[^>]*>)/gi).filter(Boolean);
   return (
     <div className="cms-blog-body max-w-none">
       {chunks.map((chunk, index) => {
@@ -321,10 +330,11 @@ export default function BlogPost() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const headings = useMemo(() => extractHeadings(post?.bodyHtml || ''), [post?.bodyHtml]);
-  const htmlWithHeadingIds = useMemo(() => addHeadingIds(post?.bodyHtml || '', headings), [headings, post?.bodyHtml]);
+  const safeBodyHtml = useMemo(() => sanitizeCmsHtml(post?.bodyHtml || ''), [post?.bodyHtml]);
+  const headings = useMemo(() => extractHeadings(safeBodyHtml), [safeBodyHtml]);
+  const htmlWithHeadingIds = useMemo(() => addHeadingIds(safeBodyHtml, headings), [headings, safeBodyHtml]);
   const faqItems = useMemo(() => extractFaqItems(htmlWithHeadingIds), [htmlWithHeadingIds]);
-  const hasInlineBodyImages = Boolean(post?.bodyHtml && /<img\b/i.test(post.bodyHtml));
+  const hasInlineBodyImages = /<img\b/i.test(safeBodyHtml);
   const relatedLinks = post ? [
     ...(post.relatedDestinations?.length
       ? post.relatedDestinations

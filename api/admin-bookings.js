@@ -1,12 +1,52 @@
 import { createClient } from '@supabase/supabase-js';
+import { timingSafeEqual } from 'node:crypto';
+import { rateLimit } from './_security.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const ALLOWED_STATUSES = new Set(['confirmed', 'completed', 'cancelled']);
+const ALLOWED_ORIGINS = new Set([
+  'https://www.carmatch.vn',
+  'https://carmatch.vn',
+]);
 
-function isAuthorized(pin) {
-  return Boolean(process.env.ADMIN_PIN) && String(pin || '') === process.env.ADMIN_PIN;
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  return (
+    ALLOWED_ORIGINS.has(origin) ||
+    /^https:\/\/carmatch-web-[a-z0-9-]+\.vercel\.app$/i.test(origin) ||
+    /^https:\/\/carmatch-web\.vercel\.app$/i.test(origin) ||
+    /^http:\/\/(localhost|127\.0\.0\.1):\d+$/i.test(origin)
+  );
+}
+
+function applyCors(req, res) {
+  const origin = req.headers.origin || '';
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Pin');
+  res.setHeader('Access-Control-Max-Age', '600');
+}
+
+function safeCompare(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  if (!a.length || a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+function authToken(req) {
+  const auth = req.headers.authorization || '';
+  if (auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
+  return String(req.headers['x-admin-pin'] || '').trim();
+}
+
+function isAuthorized(req) {
+  return Boolean(process.env.ADMIN_PIN) && safeCompare(authToken(req), process.env.ADMIN_PIN);
 }
 
 function endOfDate(dateStr) {
@@ -14,15 +54,20 @@ function endOfDate(dateStr) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PATCH,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
   res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return isAllowedOrigin(req.headers.origin || '') ? res.status(204).end() : res.status(403).end();
+  }
 
-  const { pin } = req.query;
-  if (!isAuthorized(pin)) return res.status(401).json({ error: 'Unauthorized' });
+  const authorized = isAuthorized(req);
+  if (!authorized && !rateLimit(req, res, { id: 'admin-bookings:auth', windowMs: 10 * 60_000, max: 20 })) return;
+
+  if (!authorized) {
+    res.setHeader('WWW-Authenticate', 'Bearer realm="carmatch-admin"');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: 'Service unavailable' });
