@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
@@ -11,7 +11,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
-import BookingWidget from '../components/BookingWidget';
+import BookingWidget, { type BookingAvailabilityStatus } from '../components/BookingWidget';
 import CarReviews from '../components/CarReviews';
 import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick } from '@/lib/analytics';
@@ -52,6 +52,24 @@ const RENTAL_RETURN_POLICY = {
   applicableCountry: 'VN',
   returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
 };
+
+const DEFAULT_BOOKING_AVAILABILITY_STATUS: BookingAvailabilityStatus = {
+  isLoading: true,
+  hasBlockedRanges: false,
+  selectedRangeHasHardConflict: false,
+  selectedRangeHasBoundaryConflict: false,
+  requiresConfirmation: false,
+  firstHardConflict: null,
+};
+
+function formatBlockedRange(range: BookingAvailabilityStatus['firstHardConflict']): string | null {
+  if (!range) return null;
+  const short = (dateStr: string) => {
+    const [, month, day] = dateStr.split('-');
+    return `${Number(day)}/${Number(month)}`;
+  };
+  return `${short(range.from)} - ${short(range.to)}`;
+}
 
 /* ─── Image Gallery ─── */
 function Gallery({ images, name }: { images: string[]; name: string }) {
@@ -260,11 +278,13 @@ function VehicleBookingPanel({
   relatedCars,
   activePromoCodes,
   promoLoading,
+  onAvailabilityStatusChange,
 }: {
   car: Car;
   relatedCars: Car[];
   activePromoCodes: { code: string; description: string }[];
   promoLoading: boolean;
+  onAvailabilityStatusChange: (status: BookingAvailabilityStatus) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -280,6 +300,7 @@ function VehicleBookingPanel({
         kmPerDay={car.kmPerDay}
         kmSurcharge={car.kmSurcharge}
         relatedCars={relatedCars.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
+        onAvailabilityStatusChange={onAvailabilityStatusChange}
       />
     </div>
   );
@@ -331,11 +352,41 @@ export default function CarDetail() {
     });
     return () => cancelAnimationFrame(raf);
   }, [hash, car]);
+
   const canonicalSlug = car && slug && (car.slug === slug || car.slugAliases?.includes(slug)) ? slug : car?.slug;
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
   const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
   const [promoLoading, setPromoLoading] = useState(false);
+  const [bookingAvailabilityStatus, setBookingAvailabilityStatus] = useState<BookingAvailabilityStatus>(
+    DEFAULT_BOOKING_AVAILABILITY_STATUS,
+  );
+
+  useEffect(() => {
+    setBookingAvailabilityStatus(DEFAULT_BOOKING_AVAILABILITY_STATUS);
+  }, [car?.id]);
+
+  const handleAvailabilityStatusChange = useCallback((next: BookingAvailabilityStatus) => {
+    setBookingAvailabilityStatus((prev) => {
+      const sameFirstConflict =
+        prev.firstHardConflict?.from === next.firstHardConflict?.from &&
+        prev.firstHardConflict?.to === next.firstHardConflict?.to &&
+        prev.firstHardConflict?.type === next.firstHardConflict?.type;
+
+      if (
+        prev.isLoading === next.isLoading &&
+        prev.hasBlockedRanges === next.hasBlockedRanges &&
+        prev.selectedRangeHasHardConflict === next.selectedRangeHasHardConflict &&
+        prev.selectedRangeHasBoundaryConflict === next.selectedRangeHasBoundaryConflict &&
+        prev.requiresConfirmation === next.requiresConfirmation &&
+        sameFirstConflict
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, []);
   const detailUrl = car ? `${SITE_URL}/xe/${canonicalSlug || car.slug}` : 'https://www.carmatch.vn/xe';
   const seoDescription = car ? vehicleSeoDescription(car) : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.';
 
@@ -502,6 +553,64 @@ export default function CarDetail() {
     'Đặt cọc giữ xe, nhận hợp đồng/điều kiện',
     'Bàn giao xe, chụp hiện trạng và bắt đầu chuyến đi',
   ];
+  const hardConflictRange = formatBlockedRange(bookingAvailabilityStatus.firstHardConflict);
+  const availabilityBadgeMeta = !car.available
+    ? {
+        label: 'Tạm ngừng cho thuê',
+        className: 'bg-slate-100 text-slate-600 border-slate-200',
+        dotClassName: 'bg-slate-400',
+        notice: 'Xe này đang tạm ngừng nhận lịch mới. Bạn có thể chọn xe tương tự hoặc nhắn Zalo để được hỗ trợ.',
+        noticeClassName: 'border-slate-200 bg-slate-50 text-slate-600',
+      }
+    : bookingAvailabilityStatus.selectedRangeHasHardConflict
+      ? {
+          label: 'Bận trong ngày đã chọn',
+          className: 'bg-red-50 text-red-700 border-red-200',
+          dotClassName: 'bg-red-500',
+          notice: hardConflictRange
+            ? `Xe đang có lịch ${hardConflictRange}. Vui lòng đổi ngày hoặc xem xe tương tự ở khung đặt lịch.`
+            : 'Xe đang bận trong khoảng ngày đang chọn. Vui lòng đổi ngày hoặc xem xe tương tự ở khung đặt lịch.',
+          noticeClassName: 'border-red-200 bg-red-50 text-red-700',
+        }
+      : bookingAvailabilityStatus.selectedRangeHasBoundaryConflict
+        ? {
+            label: 'Cần xác nhận giờ',
+            className: 'bg-amber-50 text-amber-800 border-amber-200',
+            dotClassName: 'bg-amber-500',
+            notice: 'Ngày nhận hoặc trả đang sát lịch khác. Car Match sẽ xác nhận lại giờ trống trước khi giữ xe.',
+            noticeClassName: 'border-amber-200 bg-amber-50 text-amber-800',
+          }
+        : bookingAvailabilityStatus.isLoading
+          ? {
+              label: 'Đang kiểm tra lịch',
+              className: 'bg-slate-50 text-slate-600 border-slate-200',
+              dotClassName: 'bg-slate-400 animate-pulse',
+              notice: '',
+              noticeClassName: '',
+            }
+          : bookingAvailabilityStatus.hasBlockedRanges
+            ? {
+                label: 'Có lịch bận, chọn ngày để kiểm tra',
+                className: 'bg-amber-50 text-amber-800 border-amber-200',
+                dotClassName: 'bg-amber-500',
+                notice: '',
+                noticeClassName: '',
+              }
+            : bookingAvailabilityStatus.requiresConfirmation
+              ? {
+                  label: 'Cần xác nhận lịch',
+                  className: 'bg-amber-50 text-amber-800 border-amber-200',
+                  dotClassName: 'bg-amber-500',
+                  notice: 'Xe này cần xác nhận thêm với chủ xe. Car Match sẽ kiểm tra lại lịch trước khi giữ xe cho bạn.',
+                  noticeClassName: 'border-amber-200 bg-amber-50 text-amber-800',
+                }
+            : {
+                label: 'Có thể đặt, cần xác nhận lịch',
+                className: 'bg-green-50 text-green-700 border-green-200',
+                dotClassName: 'bg-green-500',
+                notice: '',
+                noticeClassName: '',
+              };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900" style={{ fontFamily: "'Be Vietnam Pro','Inter',sans-serif" }}>
@@ -527,12 +636,10 @@ export default function CarDetail() {
             {/* Title + badges */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                {car.available && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-bold">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                    Sẵn sàng cho thuê
-                  </span>
-                )}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 border rounded-full text-xs font-bold ${availabilityBadgeMeta.className}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${availabilityBadgeMeta.dotClassName}`} />
+                  {availabilityBadgeMeta.label}
+                </span>
                 {car.popular && (
                   <span className="px-2.5 py-1 bg-brand-600 text-white rounded-full text-xs font-bold">
                     Phổ biến
@@ -561,6 +668,11 @@ export default function CarDetail() {
                   Kiểm tra lịch qua Zalo
                 </div>
               </div>
+              {availabilityBadgeMeta.notice && (
+                <p className={`mt-3 rounded-xl border px-3 py-2 text-xs font-semibold leading-relaxed ${availabilityBadgeMeta.noticeClassName}`}>
+                  {availabilityBadgeMeta.notice}
+                </p>
+              )}
             </div>
 
             {/* Gallery */}
@@ -614,6 +726,7 @@ export default function CarDetail() {
                   relatedCars={displayRelated}
                   activePromoCodes={activePromoCodes}
                   promoLoading={promoLoading}
+                  onAvailabilityStatusChange={handleAvailabilityStatusChange}
                 />
               </div>
 

@@ -22,6 +22,15 @@ interface BlockedRange {
   allDay: boolean;
 }
 
+export interface BookingAvailabilityStatus {
+  isLoading: boolean;
+  hasBlockedRanges: boolean;
+  selectedRangeHasHardConflict: boolean;
+  selectedRangeHasBoundaryConflict: boolean;
+  requiresConfirmation: boolean;
+  firstHardConflict: Pick<BlockedRange, 'from' | 'to' | 'type'> | null;
+}
+
 /**
  * Phân loại conflict thành 2 loại:
  * - hard: xe đang bận rõ ràng trong khoảng đặt (báo đỏ, không nên đặt)
@@ -268,6 +277,7 @@ interface Props {
   kmPerDay?: number;
   kmSurcharge?: number;
   relatedCars?: RelatedCar[];
+  onAvailabilityStatusChange?: (status: BookingAvailabilityStatus) => void;
 }
 
 function copyToClipboard(text: string): Promise<void> {
@@ -320,7 +330,17 @@ function ReferralCopyBlock({ referralCode, rewardAmount }: { referralCode: strin
   );
 }
 
-export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, carSlug, kmPerDay = 300, kmSurcharge = 3000, relatedCars = [] }: Props) {
+export default function BookingWidget({
+  basePrice,
+  carName,
+  priceMonth,
+  vehicleId,
+  carSlug,
+  kmPerDay = 300,
+  kmSurcharge = 3000,
+  relatedCars = [],
+  onAvailabilityStatusChange,
+}: Props) {
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
@@ -511,6 +531,21 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     () => categorizeConflicts(pickupDate, returnDate, blockedRanges),
     [pickupDate, returnDate, blockedRanges],
   );
+
+  const availabilityStatus = useMemo<BookingAvailabilityStatus>(() => ({
+    isLoading: availLoading,
+    hasBlockedRanges: blockedRanges.length > 0,
+    selectedRangeHasHardConflict: hardConflicts.length > 0,
+    selectedRangeHasBoundaryConflict: boundaryConflicts.length > 0,
+    requiresConfirmation,
+    firstHardConflict: hardConflicts[0]
+      ? { from: hardConflicts[0].from, to: hardConflicts[0].to, type: hardConflicts[0].type }
+      : null,
+  }), [availLoading, blockedRanges.length, boundaryConflicts, hardConflicts, requiresConfirmation]);
+
+  useEffect(() => {
+    onAvailabilityStatusChange?.(availabilityStatus);
+  }, [availabilityStatus, onAvailabilityStatusChange]);
 
   // Giữ biến `conflicts` để tương thích với calendar modifiers bên dưới
   const conflicts = [...hardConflicts, ...boundaryConflicts];
