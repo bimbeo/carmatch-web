@@ -65,6 +65,8 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const PAYMENT_PROOF_SIGNED_URL_TTL_SECONDS = 3600;
+const CUSTOMER_SELECT =
+  'id, full_name, loyalty_tier, referral_code, first_seen_at, last_rental_at, email, phone, normalized_phone, status';
 
 function extractPaymentProofStoragePath(fileUrl = '') {
   const marker = '/object/public/payment-proofs/';
@@ -109,6 +111,94 @@ function toVietnamPhone84(normalizedPhone) {
 
 function sameEmail(a = '', b = '') {
   return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
+
+function getGoogleDisplayName(user) {
+  const meta = user?.user_metadata || {};
+  const candidates = [
+    meta.full_name,
+    meta.name,
+    user?.email ? String(user.email).split('@')[0] : '',
+  ];
+  return candidates.map((value) => String(value || '').trim()).find(Boolean) || 'Khách Car Match';
+}
+
+function referralCandidate(normalizedPhone) {
+  const suffix = normalizedPhone.slice(-4) || '0000';
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `CM${suffix}${random}`;
+}
+
+async function createReferralCode(supabase, normalizedPhone) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const code = referralCandidate(normalizedPhone);
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('referral_code', code)
+      .maybeSingle();
+    if (!error && !data) return code;
+  }
+  return null;
+}
+
+async function findActiveCustomerByPhone(supabase, normalizedPhone) {
+  const phone84 = toVietnamPhone84(normalizedPhone);
+  return supabase
+    .from('customers')
+    .select(CUSTOMER_SELECT)
+    .or(`phone.eq.${normalizedPhone},phone.eq.${phone84},normalized_phone.eq.${normalizedPhone},normalized_phone.eq.${phone84}`)
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle();
+}
+
+async function createWebsiteAccountCustomer(supabase, user, normalizedPhone) {
+  const { data: company, error: companyError } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('code', COMPANY_CODE)
+    .maybeSingle();
+
+  if (companyError || !company?.id) {
+    console.error('[bookings] link-phone company lookup error:', companyError?.message || 'missing company');
+    throw new Error('Chưa tạo được hồ sơ khách hàng');
+  }
+
+  const referralCode = await createReferralCode(supabase, normalizedPhone);
+  const fullName = getGoogleDisplayName(user);
+  const now = new Date().toISOString();
+  const payload = {
+    company_id: company.id,
+    full_name: fullName,
+    phone: normalizedPhone,
+    normalized_phone: normalizedPhone,
+    email: user.email || null,
+    customer_type: 'individual',
+    source_channel: 'website_account',
+    status: 'active',
+    loyalty_tier: 'new',
+    referral_code: referralCode,
+    first_seen_at: now.slice(0, 10),
+    note: `Tạo từ tài khoản website Google (${user.email || 'no-email'})`,
+    profile_updated_at: now,
+  };
+
+  const { data, error } = await supabase
+    .from('customers')
+    .insert(payload)
+    .select(CUSTOMER_SELECT)
+    .single();
+
+  if (!error) return data;
+
+  if (error.code === '23505') {
+    const { data: existing, error: lookupError } = await findActiveCustomerByPhone(supabase, normalizedPhone);
+    if (!lookupError && existing) return existing;
+  }
+
+  console.error('[bookings] link-phone create customer error:', error.message);
+  throw new Error('Chưa tạo được hồ sơ khách hàng');
 }
 
 function publicCustomerPayload(customer) {
@@ -404,21 +494,22 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Tài khoản Google chưa có email để xác minh' });
     }
 
-    const phone84 = toVietnamPhone84(normalizedPhone);
-    const { data: customer, error: customerError } = await supabaseAdmin
-      .from('customers')
-      .select('id, full_name, loyalty_tier, referral_code, first_seen_at, last_rental_at, email, phone, normalized_phone, status')
-      .or(`phone.eq.${normalizedPhone},phone.eq.${phone84},normalized_phone.eq.${normalizedPhone},normalized_phone.eq.${phone84}`)
-      .eq('status', 'active')
-      .limit(1)
-      .maybeSingle();
+    const { data: existingCustomer, error: customerError } = await findActiveCustomerByPhone(supabaseAdmin, normalizedPhone);
 
     if (customerError) {
       console.error('[bookings] link-phone customer lookup error:', customerError.message);
       return res.status(500).json({ error: 'Chưa kiểm tra được hồ sơ khách hàng' });
     }
+
+    let customer = existingCustomer;
+    let created = false;
     if (!customer) {
-      return res.status(404).json({ error: 'Không tìm thấy số này trong hệ thống. Vui lòng kiểm tra lại hoặc liên hệ Car Match để được hỗ trợ.' });
+      try {
+        customer = await createWebsiteAccountCustomer(supabaseAdmin, authData.user, normalizedPhone);
+        created = true;
+      } catch (error) {
+        return res.status(500).json({ error: error.message || 'Chưa tạo được hồ sơ khách hàng' });
+      }
     }
 
     const appMetadata = {
@@ -437,6 +528,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       phone: normalizedPhone,
       customer: publicCustomerPayload(customer),
+      created,
     });
   }
 
