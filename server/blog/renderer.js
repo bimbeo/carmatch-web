@@ -140,7 +140,7 @@ function normalizeBrandText(value = '') {
 function normalizeCustomerText(value = '') {
   return normalizeBrandText(value)
     .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
-    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/bảo\s*hiểm/gi, 'điều kiện bàn giao')
     .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
     .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
 }
@@ -581,7 +581,7 @@ function renderFooter() {
 
 export function renderBlogIndex(posts = []) {
   const title = 'Blog Kinh Nghiệm Thuê Xe Tự Lái | Car Match Hà Nội';
-  const description = 'Kinh nghiệm thuê xe tự lái Hà Nội: giấy tờ cần chuẩn bị, đặt cọc, bảo hiểm, chọn xe phù hợp và dịch vụ giao xe tận sảnh chung cư.';
+  const description = 'Kinh nghiệm thuê xe tự lái Hà Nội: giấy tờ cần chuẩn bị, đặt cọc, chọn xe phù hợp và dịch vụ giao xe tận sảnh chung cư.';
   const postItems = posts.map((post, index) => ({
     ...post,
     url: getPostUrl(post),
