@@ -614,7 +614,7 @@ export default async function handler(req, res) {
     body.customer_note ? `Ghi chú khách: ${body.customer_note}` : '',
   ].filter(Boolean).join('\n');
 
-  const { error } = await supabase.from('website_leads').insert({
+  const leadPayload = {
     booking_ref: bookingRef,
     deposit_amount: depositAmount,
     source: 'b2b',
@@ -641,7 +641,26 @@ export default async function handler(req, res) {
     },
     note: noteLines,
     status: body.requires_confirmation === true ? 'partner_pending' : 'new',
-  });
+  };
+
+  let { error } = await supabase.from('website_leads').insert(leadPayload);
+  // Deploy web/API và migration có thể lệch vài phút. Không được làm khách mất
+  // booking chỉ vì các cột chi tiết giá chưa được áp dụng; ghi chú vẫn lưu đủ
+  // tổng tiền, cọc, phí giao nhận và khuyến mãi để Ops đọc ngược.
+  if (error && /column|schema cache|vehicle_url|rental_amount|pricing_snapshot/i.test(error.message || '')) {
+    const {
+      vehicle_url,
+      rental_amount,
+      delivery_fee_amount,
+      loyalty_discount_amount,
+      promo_discount_amount,
+      total_amount,
+      pricing_snapshot,
+      ...legacyPayload
+    } = leadPayload;
+    console.warn('[bookings] booking detail fields unavailable; saving compatible lead payload');
+    ({ error } = await supabase.from('website_leads').insert(legacyPayload));
+  }
 
   if (error) {
     console.error('[bookings] Supabase error:', error.message);
