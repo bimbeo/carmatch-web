@@ -14,19 +14,46 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
-interface Props {
-  onFilter: (unavailableModels: string[]) => void;
-  onActiveChange?: (active: boolean) => void;
+export interface AvailabilityResult {
+  unavailableVehicleIds: string[];
+  unavailableModels: string[];
 }
 
-export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
+interface Props {
+  onFilter: (availability: AvailabilityResult) => void;
+  onActiveChange?: (active: boolean) => void;
+  onRangeChange?: (pickupDate: string, returnDate: string) => void;
+  initialPickupDate?: string;
+  initialReturnDate?: string;
+}
+
+function isValidDateString(value?: string): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+export default function DateRangeFilter({
+  onFilter,
+  onActiveChange,
+  onRangeChange,
+  initialPickupDate,
+  initialReturnDate,
+}: Props) {
   const today = useMemo(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
   const todayStr = toDateStr(today);
-  const [pickupDate, setPickupDate] = useState(toDateStr(addDays(today, 1)));
-  const [returnDate, setReturnDate] = useState(toDateStr(addDays(today, 2)));
+  const defaultPickupDate = toDateStr(addDays(today, 1));
+  const safeInitialPickup =
+    isValidDateString(initialPickupDate) && initialPickupDate >= todayStr
+      ? initialPickupDate
+      : defaultPickupDate;
+  const safeInitialReturn =
+    isValidDateString(initialReturnDate) && initialReturnDate > safeInitialPickup
+      ? initialReturnDate
+      : toDateStr(addDays(new Date(`${safeInitialPickup}T00:00:00`), 1));
+  const [pickupDate, setPickupDate] = useState(safeInitialPickup);
+  const [returnDate, setReturnDate] = useState(safeInitialReturn);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [active, setActive] = useState(false);
@@ -44,12 +71,15 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
       const res = await fetch(`/api/availability?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Không kiểm tra được lịch xe');
-      onFilter(Array.isArray(data.unavailable_models) ? data.unavailable_models : []);
+      onFilter({
+        unavailableVehicleIds: Array.isArray(data.unavailable_vehicle_ids) ? data.unavailable_vehicle_ids : [],
+        unavailableModels: Array.isArray(data.unavailable_models) ? data.unavailable_models : [],
+      });
       setActive(true);
       onActiveChange?.(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không kiểm tra được lịch xe');
-      onFilter([]);
+      onFilter({ unavailableVehicleIds: [], unavailableModels: [] });
       setActive(false);
       onActiveChange?.(false);
     } finally {
@@ -58,12 +88,15 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
   }
 
   function reset() {
-    setPickupDate(toDateStr(addDays(today, 1)));
-    setReturnDate(toDateStr(addDays(today, 2)));
+    const nextPickup = toDateStr(addDays(today, 1));
+    const nextReturn = toDateStr(addDays(today, 2));
+    setPickupDate(nextPickup);
+    setReturnDate(nextReturn);
     setError('');
     setActive(false);
-    onFilter([]);
+    onFilter({ unavailableVehicleIds: [], unavailableModels: [] });
     onActiveChange?.(false);
+    onRangeChange?.(nextPickup, nextReturn);
   }
 
   return (
@@ -82,10 +115,13 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
               value={pickupDate}
               onChange={event => {
                 const nextPickup = event.target.value;
+                let nextReturn = returnDate;
                 setPickupDate(nextPickup);
                 if (nextPickup >= returnDate) {
-                  setReturnDate(toDateStr(addDays(new Date(nextPickup), 1)));
+                  nextReturn = toDateStr(addDays(new Date(`${nextPickup}T00:00:00`), 1));
+                  setReturnDate(nextReturn);
                 }
+                onRangeChange?.(nextPickup, nextReturn);
               }}
               onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
               className="absolute inset-0 opacity-0 w-full cursor-pointer"
@@ -103,7 +139,10 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
               type="date"
               min={pickupDate}
               value={returnDate}
-              onChange={event => setReturnDate(event.target.value)}
+              onChange={event => {
+                setReturnDate(event.target.value);
+                onRangeChange?.(pickupDate, event.target.value);
+              }}
               onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
               className="absolute inset-0 opacity-0 w-full cursor-pointer"
             />

@@ -39,7 +39,7 @@ const operatingSteps = [
   {
     icon: ShieldCheck,
     title: 'Xác nhận điều kiện',
-    desc: 'Giấy tờ, bảo hiểm, phí phát sinh và cách bàn giao được nói rõ trước cọc.',
+    desc: 'Giấy tờ, phí phát sinh và cách bàn giao được nói rõ trước cọc.',
   },
   {
     icon: MapPin,

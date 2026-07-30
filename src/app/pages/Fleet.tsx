@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router';
 import { MessageCircle, Phone, SlidersHorizontal, X } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import CarCard from '../components/CarCard';
-import DateRangeFilter from '../components/DateRangeFilter';
+import DateRangeFilter, { type AvailabilityResult } from '../components/DateRangeFilter';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
@@ -29,6 +29,19 @@ function parseFuelFilter(value: string | null): FuelFilter {
 
 function parseSeatsFilter(value: string | null): SeatsFilter {
   return value === '4' || value === '5' || value === '7' || value === '8+' ? value : 'all';
+}
+
+function toLocalDateStr(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function addLocalDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
 function SkeletonCard() {
@@ -129,9 +142,29 @@ export default function Fleet() {
 
   const { cars, loading, error } = useVehicles();
 
-  const [unavailableModels, setUnavailableModels] = useState<string[]>([]);
+  const [unavailableVehicles, setUnavailableVehicles] = useState<AvailabilityResult>({
+    unavailableVehicleIds: [],
+    unavailableModels: [],
+  });
   const [dateFilterActive, setDateFilterActive] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
+  const [selectedRentalRange, setSelectedRentalRange] = useState(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStr = toLocalDateStr(today);
+    const defaultPickup = toLocalDateStr(addLocalDays(today, 1));
+    const requestedPickup = searchParams.get('from');
+    const pickupDate =
+      requestedPickup && /^\d{4}-\d{2}-\d{2}$/.test(requestedPickup) && requestedPickup >= todayStr
+        ? requestedPickup
+        : defaultPickup;
+    const requestedReturn = searchParams.get('to');
+    const returnDate =
+      requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn > pickupDate
+        ? requestedReturn
+        : toLocalDateStr(addLocalDays(new Date(`${pickupDate}T00:00:00`), 1));
+    return { pickupDate, returnDate, pickupHour: 20, returnHour: 20 };
+  });
   const [leadArea, setLeadArea] = useState(searchParams.get('area') || '');
   const [leadDate, setLeadDate] = useState(searchParams.get('from') || '');
   const [leadPassengers, setLeadPassengers] = useState('');
@@ -197,13 +230,16 @@ export default function Fleet() {
       if (seatsFilter === '8+') r = r.filter((c) => c.seats >= 8);
       else r = r.filter((c) => c.seats === Number(seatsFilter));
     }
-    if (unavailableModels.length > 0) {
-      r = r.filter((c) => !unavailableModels.includes(c.name));
+    if (unavailableVehicles.unavailableVehicleIds.length > 0 || unavailableVehicles.unavailableModels.length > 0) {
+      r = r.filter((c) =>
+        !unavailableVehicles.unavailableVehicleIds.includes(c.id) &&
+        !unavailableVehicles.unavailableModels.includes(c.name),
+      );
     }
     if (sortBy === 'price-asc')  r.sort((a, b) => (a.price || 9_999_999) - (b.price || 9_999_999));
     if (sortBy === 'price-desc') r.sort((a, b) => (b.price || 0) - (a.price || 0));
     return r;
-  }, [cars, brandFilter, fuelFilter, seatsFilter, sortBy, unavailableModels]);
+  }, [cars, brandFilter, fuelFilter, seatsFilter, sortBy, unavailableVehicles]);
 
   const activeCount =
     (brandFilter  !== 'all' ? 1 : 0) +
@@ -337,7 +373,15 @@ export default function Fleet() {
           )}
         </div>
 
-        <DateRangeFilter onFilter={setUnavailableModels} onActiveChange={setDateFilterActive} />
+        <DateRangeFilter
+          onFilter={setUnavailableVehicles}
+          onActiveChange={setDateFilterActive}
+          initialPickupDate={selectedRentalRange.pickupDate}
+          initialReturnDate={selectedRentalRange.returnDate}
+          onRangeChange={(pickupDate, returnDate) => {
+            setSelectedRentalRange((current) => ({ ...current, pickupDate, returnDate }));
+          }}
+        />
 
         {dateFilterActive && !loading && (
           <div className="mb-4 inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
@@ -384,6 +428,16 @@ export default function Fleet() {
 
           {/* Count + reset */}
           <div className="flex flex-shrink-0 items-center gap-2 border-l border-slate-100 pl-3">
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as SortOption)}
+              aria-label="Sắp xếp danh sách xe"
+              className="hidden h-9 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition-colors hover:border-slate-400 focus:border-brand-400 md:block"
+            >
+              <option value="default">Tối ưu</option>
+              <option value="price-asc">Giá thấp nhất</option>
+              <option value="price-desc">Giá cao nhất</option>
+            </select>
             <span className="hidden whitespace-nowrap text-sm font-medium text-slate-500 sm:inline">
               {loading ? '...' : <><strong className="text-slate-950">{filtered.length}</strong> xe</>}
             </span>
@@ -527,7 +581,14 @@ export default function Fleet() {
         ) : filtered.length > 0 ? (
           <div className="grid grid-cols-1 gap-5 pb-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((car) => (
-              <CarCard key={car.id} car={car} mode="listing" source="fleet_list" />
+              <CarCard
+                key={car.id}
+                car={car}
+                mode="listing"
+                source="fleet_list"
+                rentalRange={selectedRentalRange}
+                availabilityChecked={dateFilterActive}
+              />
             ))}
           </div>
         ) : (

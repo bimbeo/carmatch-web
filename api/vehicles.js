@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-);
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseServerKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY ||
+  '';
+const supabase = supabaseUrl && supabaseServerKey
+  ? createClient(supabaseUrl, supabaseServerKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
 
 function isVehicleImageMedia(file) {
   return Boolean(
@@ -70,6 +76,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!supabase) {
+      return res.status(503).json({ error: 'Vehicle data service is not configured' });
+    }
     const { data, error } = await supabase
       .from('vehicles')
       .select(
@@ -81,7 +90,9 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
+    // Vehicle visibility and rental policy are edited from the internal app.
+    // Never let the CDN keep showing a hidden vehicle or outdated pricing rules.
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     res.status(200).json((data || []).map(pruneVehicle));
   } catch (err) {
     console.error('[api/vehicles]', err);

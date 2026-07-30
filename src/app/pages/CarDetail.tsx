@@ -234,7 +234,7 @@ function SpecChip({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 function vehicleSeoDescription(car: Car): string {
-  return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc/bảo hiểm và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
+  return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
 }
 
 function PromoBanner({ promos, loading }: { promos: { code: string; description: string }[]; loading: boolean }) {
@@ -310,7 +310,7 @@ function VehicleSeoSummary({ car }: { car: Car }) {
   const costNotes = [
     `${car.kmPerDay} km/ngày đã gồm trong giá`,
     `Vượt km: ${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km`,
-    'Cọc, bảo hiểm và lịch giao nhận xác nhận trước khi nhận tiền',
+    'Cọc và lịch giao nhận xác nhận trước khi nhận tiền',
   ];
 
   return (
@@ -826,13 +826,13 @@ export default function CarDetail() {
               </div>
             </div>
 
-            {/* Insurance callout */}
+            {/* Handover and safety callout */}
             <div className="overflow-hidden rounded-2xl bg-brand-900 text-white shadow-sm">
               <div className="border-b border-white/10 px-5 py-5">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-100/70">Bàn giao & an toàn</p>
                 <h2 className="mt-2 text-xl font-black">Kiểm tra xe cùng bạn trước khi chạy</h2>
                 <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-white/70">
-                  Trọng tâm của Car Match là giảm tranh chấp: tình trạng xe, nhiên liệu/pin, km, phụ kiện, cọc và bảo hiểm đều được xác nhận trước khi chốt lịch.
+                  Trọng tâm của Car Match là giảm tranh chấp: tình trạng xe, nhiên liệu/pin, km, phụ kiện, cọc và lịch giao nhận đều được xác nhận trước khi chốt.
                 </p>
               </div>
               <div className="grid gap-px bg-white/10 sm:grid-cols-3">

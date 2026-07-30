@@ -76,7 +76,7 @@ function normalizeBrandText(value = '') {
 function normalizeCustomerText(value = '') {
   return normalizeBrandText(value)
     .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
-    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/bảo\s*hiểm[^.?!<\n]*/gi, 'điều kiện bàn giao được xác nhận trước')
     .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
     .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
 }

@@ -110,9 +110,13 @@ const rentalReturnPolicy = {
   returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
 };
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createSupabaseClient(supabaseUrl, supabaseAnonKey) : null;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseServerKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseServerKey
+  ? createSupabaseClient(supabaseUrl, supabaseServerKey)
+  : null;
 
 function categoryLabel(slug = '') {
   return slug

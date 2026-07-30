@@ -7,6 +7,7 @@ import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
+import { useIsMobile } from './ui/use-mobile';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -121,6 +122,75 @@ function parseDateStr(str: string): Date {
 
 function displayDateSlash(dateStr: string): string {
   return dateStr.split('-').reverse().join('/');
+}
+
+function rentalDurationHours(
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+  returnHour: number,
+): number {
+  const pickup = parseDateStr(pickupDate);
+  pickup.setHours(pickupHour, 0, 0, 0);
+  const dropoff = parseDateStr(returnDate);
+  dropoff.setHours(returnHour, 0, 0, 0);
+  return Math.max(0, Math.round((dropoff.getTime() - pickup.getTime()) / 3_600_000));
+}
+
+function rentalDurationLabel(
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+  returnHour: number,
+): string {
+  const hours = rentalDurationHours(pickupDate, pickupHour, returnDate, returnHour);
+  if (hours === 24) return '1 ngày (24 giờ)';
+  if (hours < 24) return `${hours} giờ`;
+
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours === 0
+    ? `${days} ngày (${hours} giờ)`
+    : `${days} ngày ${remainingHours} giờ`;
+}
+
+function getInitialBookingSelection(today: Date) {
+  const todayStr = toDateStr(today);
+  const defaultPickupDate = toDateStr(addDays(today, 1));
+  const defaultReturnDate = toDateStr(addDays(today, 2));
+  if (typeof window === 'undefined') {
+    return {
+      pickupDate: defaultPickupDate,
+      returnDate: defaultReturnDate,
+      pickupHour: 20,
+      returnHour: 20,
+    };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const requestedPickup = params.get('from');
+  const pickupDate =
+    requestedPickup && /^\d{4}-\d{2}-\d{2}$/.test(requestedPickup) && requestedPickup >= todayStr
+      ? requestedPickup
+      : defaultPickupDate;
+  const requestedReturn = params.get('to');
+  const returnDate =
+    requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn > pickupDate
+      ? requestedReturn
+      : pickupDate === defaultPickupDate
+        ? defaultReturnDate
+        : toDateStr(addDays(parseDateStr(pickupDate), 1));
+  const parseHour = (key: string) => {
+    const value = Number(params.get(key));
+    return Number.isInteger(value) && value >= 7 && value <= 23 ? value : 20;
+  };
+
+  return {
+    pickupDate,
+    returnDate,
+    pickupHour: parseHour('pickupHour'),
+    returnHour: parseHour('returnHour'),
+  };
 }
 
 function getInitialPromoCodeFromUrl(): string {
@@ -341,13 +411,15 @@ export default function BookingWidget({
   relatedCars = [],
   onAvailabilityStatusChange,
 }: Props) {
+  const isMobile = useIsMobile();
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
-  const [pickupDate, setPickupDate] = useState(toDateStr(addDays(today, 1)));
-  const [pickupHour, setPickupHour] = useState(20);
-  const [returnDate, setReturnDate] = useState(toDateStr(addDays(today, 2)));
-  const [returnHour, setReturnHour] = useState(20);
+  const initialBookingSelection = useMemo(() => getInitialBookingSelection(today), [today]);
+  const [pickupDate, setPickupDate] = useState(initialBookingSelection.pickupDate);
+  const [pickupHour, setPickupHour] = useState(initialBookingSelection.pickupHour);
+  const [returnDate, setReturnDate] = useState(initialBookingSelection.returnDate);
+  const [returnHour, setReturnHour] = useState(initialBookingSelection.returnHour);
   const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>('self');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('times-city');
@@ -357,6 +429,7 @@ export default function BookingWidget({
   // ── Availability ──────────────────────────────────────────────────────────
   const [blockedRanges, setBlockedRanges] = useState<BlockedRange[]>([]);
   const [availLoading, setAvailLoading] = useState(false);
+  const [availabilityUnavailable, setAvailabilityUnavailable] = useState(false);
   const [showCalModal, setShowCalModal] = useState(false);
   const [requiresConfirmation, setRequiresConfirmation] = useState(false);
 
@@ -413,8 +486,6 @@ export default function BookingWidget({
   const [customerReferralCode, setCustomerReferralCode] = useState('');
   const [activeSuggestedCodes, setActiveSuggestedCodes] = useState<Array<{ code: string; discount_value: number; expires_at: string }>>([]);
   const [recentBookingsCount, setRecentBookingsCount] = useState(0);
-  const [insuranceAddon, setInsuranceAddon] = useState(false);
-  const [showInsuranceDetail, setShowInsuranceDetail] = useState(false);
   const [confirmTransfer, setConfirmTransfer] = useState(false);
   const [pointsPerTenK, setPointsPerTenK] = useState(1); // default 1 pt per 10k VND (overridden by DB setting)
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
@@ -472,17 +543,20 @@ export default function BookingWidget({
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
     setAvailLoading(true);
+    setAvailabilityUnavailable(false);
     try {
       const from = todayStr;
       const to = toDateStr(addDays(today, 120));
       const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`);
-      if (!res.ok) return;
+      if (!res.ok) throw new Error('availability request failed');
       const data = await res.json();
       setBlockedRanges(data.blockedRanges || []);
       setRequiresConfirmation(data.requires_confirmation === true);
+      setAvailabilityUnavailable(data.availability_unavailable === true);
       if (data.recent_bookings_count > 0) setRecentBookingsCount(data.recent_bookings_count);
     } catch {
-      // graceful
+      setAvailabilityUnavailable(true);
+      setRequiresConfirmation(true);
     } finally {
       setAvailLoading(false);
     }
@@ -556,10 +630,7 @@ export default function BookingWidget({
   );
 
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
-  // 10% tổng giá thuê xe, làm tròn đến 1.000đ
-  const insuranceFeeAmount = rentalResult.valid ? Math.round(rentalResult.total * 0.1 / 1000) * 1000 : 0;
-  const insuranceFee = insuranceAddon ? insuranceFeeAmount : 0;
-  const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee + insuranceFee : 0;
+  const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee : 0;
   const totalAmount = orderTotalBeforePromo;
   const loyaltyDiscountAmount = loyaltyDiscount?.discount_amount ?? 0;
 
@@ -567,9 +638,6 @@ export default function BookingWidget({
     if (!rentalResult.valid) return rentalResult;
     const extraFees: Fee[] = deliveryMode === 'delivery'
       ? [{ label: 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
-      : [];
-    const insuranceFees: Fee[] = insuranceAddon
-      ? [{ label: 'Bảo hiểm chuyến đi', amount: insuranceFee }]
       : [];
     const loyaltyFee: Fee[] = loyaltyDiscount
       ? [{ label: loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết', amount: -loyaltyDiscountAmount, highlight: true }]
@@ -579,10 +647,10 @@ export default function BookingWidget({
       : [];
     return {
       ...rentalResult,
-      fees: [...rentalResult.fees, ...extraFees, ...insuranceFees, ...loyaltyFee, ...promoFee],
+      fees: [...rentalResult.fees, ...extraFees, ...loyaltyFee, ...promoFee],
       total: Math.max(0, orderTotalBeforePromo - loyaltyDiscountAmount - (promoResult?.discount_amount ?? 0)),
     };
-  }, [rentalResult, deliveryMode, deliveryFee, insuranceAddon, insuranceFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
+  }, [rentalResult, deliveryMode, deliveryFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
 
   const savings =
     priceMonth && basePrice > 0
@@ -776,8 +844,6 @@ export default function BookingWidget({
           location_name: deliveryMode === 'self' ? loc?.name : deliveryAddress.trim() || 'Giao tận nơi',
           base_amount: rentalResult.valid ? rentalResult.total : 0,
           delivery_fee: deliveryFee,
-          insurance_addon: insuranceAddon,
-          insurance_fee: insuranceFee,
           loyalty_tier: loyaltyDiscount?.tier ?? null,
           loyalty_discount: loyaltyDiscountAmount,
           promo_code: promoResult?.code ?? null,
@@ -888,7 +954,6 @@ export default function BookingWidget({
       (loyaltyDiscountAmount > 0 || promoDiscount > 0) ? `Tổng sau ưu đãi: ${finalTotal.toLocaleString('vi-VN')}đ` : null,
       `${BANK_QR_ENABLED ? 'Đã cọc' : 'Tiền cọc dự kiến'}: ${depositAmount.toLocaleString('vi-VN')}đ`,
       deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
-      'Điều kiện bảo hiểm: xác nhận theo hợp đồng và biên bản bàn giao',
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
       `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: ${kmSurcharge.toLocaleString('vi-VN')}đ/km | 100.000đ/giờ`,
@@ -1004,15 +1069,29 @@ export default function BookingWidget({
           <div>
             <button
               type="button"
-              onClick={() => { setShowCalModal(true); setRangeStep('from'); }}
+              onClick={() => {
+                setShowCalModal(true);
+                setRangeStep('from');
+                void fetchAvailability();
+              }}
               className="flex items-center gap-2 w-full py-2.5 px-3.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 text-sm font-semibold hover:bg-brand-100 transition-colors"
             >
               <CalendarDays className="w-4 h-4 shrink-0" />
               {availLoading ? 'Đang tải lịch xe…' : 'Chọn ngày trên lịch'}
               <span className="ml-auto text-brand-400 text-xs font-normal">
-                {displayDate(pickupDate)} → {displayDate(returnDate)}
+                {rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}
               </span>
             </button>
+            <p className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${availabilityUnavailable ? 'text-red-600' : 'text-emerald-700'}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                availLoading ? 'animate-pulse bg-amber-400' : availabilityUnavailable ? 'bg-red-500' : 'bg-emerald-500'
+              }`} />
+              {availLoading
+                ? 'Đang đồng bộ lịch vận hành…'
+                : availabilityUnavailable
+                  ? 'Chưa đồng bộ được lịch — vui lòng thử lại'
+                  : 'Lịch được đồng bộ từ Car Match /calendar'}
+            </p>
 
             {/* Hard conflict — xe đang bận hẳn — cảnh báo đỏ + gợi xe khác */}
             {hardConflicts.length > 0 && (
@@ -1270,7 +1349,7 @@ export default function BookingWidget({
             setBookingError('');
             setConfirmTransfer(false);
           }}
-          disabled={!result.valid}
+          disabled={!result.valid || hardConflicts.length > 0 || availabilityUnavailable || availLoading}
           className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
@@ -1322,7 +1401,7 @@ export default function BookingWidget({
       >
         <div
           className="bg-white rounded-2xl shadow-2xl flex flex-col"
-          style={{ width: '90vw', maxWidth: 700, maxHeight: '92vh' }}
+          style={{ width: '94vw', maxWidth: 760, maxHeight: '92vh' }}
           onClick={e => e.stopPropagation()}
         >
           {/* ── Header ── */}
@@ -1339,14 +1418,14 @@ export default function BookingWidget({
           </div>
 
           {/* ── Calendar ── */}
-          <div className="carmatch-cal overflow-x-auto py-2" style={{ minHeight: 260 }}>
-            <div style={{ minWidth: 560, padding: '0 12px' }}>
+          <div className="carmatch-cal overflow-x-hidden py-2" style={{ minHeight: 260 }}>
+            <div style={{ minWidth: isMobile ? 300 : 560, padding: isMobile ? '0 8px' : '0 12px' }}>
               <DayPicker
                 mode="range"
                 selected={selectedRange}
                 onDayClick={handleDayClick}
-                numberOfMonths={2}
-                pagedNavigation
+                numberOfMonths={isMobile ? 1 : 2}
+                pagedNavigation={!isMobile}
                 locale={vi}
                 disabled={[{ before: today }, ...blockedIntervals]}
                 modifiers={{ blocked: blockedIntervals }}
@@ -1419,9 +1498,19 @@ export default function BookingWidget({
             ))}
           </div>
 
+          {hardConflicts.length > 0 && (
+            <div className="mx-4 mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700 sm:mx-6">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <div>
+                <div className="font-bold">Khoảng thời gian này trùng lịch xe đang bận.</div>
+                <div className="mt-0.5">Vui lòng chọn lại ngày không có ô màu đỏ trước khi xác nhận.</div>
+              </div>
+            </div>
+          )}
+
           {/* ── Bottom bar ── */}
           <div className="px-6 py-4 border-t border-gray-100 shrink-0 bg-gray-50 rounded-b-2xl">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               {/* Summary */}
               <div className="flex-1 flex items-center gap-2 min-w-0">
                 <div className="min-w-0">
@@ -1431,10 +1520,7 @@ export default function BookingWidget({
                 <div className="flex flex-col items-center px-2 shrink-0">
                   <div className="text-gray-300">→</div>
                   <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                    {(() => {
-                      const d = Math.round((new Date(returnDate).getTime() - new Date(pickupDate).getTime()) / 86_400_000);
-                      return d > 0 ? `${d} ngày` : '';
-                    })()}
+                    {rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}
                   </span>
                 </div>
                 <div className="min-w-0">
@@ -1445,7 +1531,8 @@ export default function BookingWidget({
 
               <button
                 onClick={() => setShowCalModal(false)}
-                className="shrink-0 py-3 px-7 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all"
+                disabled={hardConflicts.length > 0 || !result.valid || availabilityUnavailable || availLoading}
+                className="shrink-0 py-3 px-7 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 Xác nhận
               </button>
@@ -1881,99 +1968,6 @@ export default function BookingWidget({
                     </div>
                   )}
                 </div>
-                {/* Add-on bảo hiểm */}
-                <div className={`rounded-xl border transition-colors overflow-hidden ${insuranceAddon ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}>
-                  {/* Hàng chọn bảo hiểm */}
-                  <label className="flex items-start gap-3 p-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={insuranceAddon}
-                      onChange={e => setInsuranceAddon(e.target.checked)}
-                      className="mt-0.5 accent-green-600 w-4 h-4 shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-gray-800">🛡️ Bảo hiểm chuyến đi</span>
-                        <span className="text-xs font-bold text-green-700 shrink-0">
-                          {rentalResult.valid ? `+${fmtVND(insuranceFeeAmount)}` : '+10% giá thuê'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Tai nạn đâm va, cháy nổ, ngập nước · Cứu hộ miễn phí 70 km
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Toggle chi tiết */}
-                  <button
-                    type="button"
-                    onClick={() => setShowInsuranceDetail(v => !v)}
-                    className="w-full flex items-center justify-between px-3 pb-2.5 text-xs text-brand-600 font-medium hover:text-brand-700 transition-colors"
-                  >
-                    <span>{showInsuranceDetail ? 'Ẩn chi tiết' : 'Xem chi tiết bảo hiểm'}</span>
-                    {showInsuranceDetail ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                  </button>
-
-                  {/* Chi tiết mở rộng */}
-                  {showInsuranceDetail && (
-                    <div className="border-t border-gray-100 bg-white px-4 py-3 space-y-3 text-xs">
-                      {/* Được bảo hiểm */}
-                      <div>
-                        <p className="font-semibold text-gray-800 mb-1.5">✅ Được bảo hiểm</p>
-                        <ul className="space-y-1 text-gray-600">
-                          <li>• Tai nạn đâm va, cháy nổ, lật đổ xe</li>
-                          <li>• Trầy xước, bóp mép dù nhẹ hay nặng</li>
-                          <li>• Thiệt hại do hành động ác ý từ bên thứ ba</li>
-                          <li>• Tổn thất động cơ do ngập nước (khấu trừ 20%)</li>
-                          <li>• Mất nguyên chiếc xe</li>
-                          <li>• Cứu hộ kéo xe miễn phí tối đa 70 km/vụ</li>
-                        </ul>
-                      </div>
-
-                      {/* Không được bảo hiểm */}
-                      <div>
-                        <p className="font-semibold text-gray-800 mb-1.5">❌ Không được bảo hiểm</p>
-                        <ul className="space-y-1 text-gray-600">
-                          <li>• Cố ý gây thiệt hại hoặc vi phạm pháp luật</li>
-                          <li>• Sử dụng sai mục đích (đua xe, chạy hàng cấm...)</li>
-                          <li>• Mất cắp phụ kiện, lốp xe riêng lẻ</li>
-                          <li>• Hao mòn tự nhiên (lốp mòn, kính mờ...)</li>
-                          <li>• Lái xe ra ngoài lãnh thổ Việt Nam</li>
-                        </ul>
-                      </div>
-
-                      {/* Mức khấu trừ — quan trọng nhất */}
-                      <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
-                        <p className="font-semibold text-amber-800 mb-1">⚠️ Mức khấu trừ khi có sự cố</p>
-                        <p className="text-amber-700 leading-relaxed">
-                          Khách chịu tối đa <strong>2.000.000đ</strong> tiền sửa xe + chi phí thuê xe trong những ngày xe nằm gara. Phần thiệt hại vượt quá do bảo hiểm chi trả.
-                        </p>
-                      </div>
-
-                      {/* Không mua bảo hiểm */}
-                      <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
-                        <p className="font-semibold text-red-800 mb-1">⛔ Nếu không mua bảo hiểm</p>
-                        <p className="text-red-700 leading-relaxed">
-                          Khách chịu <strong>100% chi phí</strong> sửa chữa khi có va chạm, trầy xước hoặc hư hỏng trong thời gian thuê.
-                        </p>
-                      </div>
-
-                      {/* Quy trình xử lý sự cố */}
-                      <div>
-                        <p className="font-semibold text-gray-800 mb-1.5">🚨 Quy trình xử lý khi xảy ra sự cố</p>
-                        <ol className="space-y-1.5 text-gray-600">
-                          <li className="flex gap-2"><span className="font-bold shrink-0">1.</span><span><strong>Giữ nguyên hiện trường</strong> và chụp ảnh xe đang bị sự cố.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">2.</span><span>Gọi cho nhân viên Car Match để được hướng dẫn liên hệ trung tâm bồi thường của nhà bảo hiểm.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">3.</span><span>Giám định viên bảo hiểm liên hệ hướng dẫn xử lý, xác minh thông tin và hiện trường.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">4.</span><span>Giám định viên và chủ xe/khách thuê cùng đưa xe ra Garage để <strong>giám định thiệt hại và ra báo giá sửa chữa</strong>.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">5.</span><span>Trung tâm bồi thường ra <strong>Biên bản giám định</strong> thiệt hại.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">6.</span><span>Garage tiến hành sửa chữa theo báo giá đã được xác nhận.</span></li>
-                        </ol>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Ghi chú (tuỳ chọn)

@@ -1542,7 +1542,7 @@ export default function Home() {
                 {[
                   'Ước tính doanh thu theo mẫu xe và lịch khai thác',
                   'Car Match hỗ trợ điều phối vận hành theo hợp đồng',
-                  'Điều kiện bảo hiểm và bảo dưỡng được thống nhất trước',
+                  'Điều kiện vận hành và bảo dưỡng được thống nhất trước',
                   'Báo cáo doanh thu minh bạch theo kỳ đối soát',
                   'Thời hạn hợp tác và điều kiện rút xe ghi rõ trong hợp đồng',
                 ].map((item) => (

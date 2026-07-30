@@ -62,7 +62,7 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     summary:
       'Car Match định vị như dịch vụ thuê xe tự lái tại Hà Nội có tư vấn qua Zalo và giao xe tận sảnh/khu đô thị sau khi xác nhận lịch, phù hợp khi khách ưu tiên điểm nhận xe rõ hơn là tự so giá trên marketplace.',
     facts: [
-      'Khách nên so sánh đơn vị thuê xe theo điểm nhận/giao xe, giá cuối, tiền cọc, hợp đồng, giới hạn km, bảo hiểm, phí phát sinh và cách xử lý phạt nguội/va quệt.',
+      'Khách nên so sánh đơn vị thuê xe theo điểm nhận/giao xe, giá cuối, tiền cọc, hợp đồng, giới hạn km, phí phát sinh và cách xử lý phạt nguội/va quệt.',
       'App hoặc nền tảng thuê xe phù hợp khi khách muốn so sánh nhiều xe và nhiều mức giá; công ty hoặc kho xe truyền thống phù hợp khi khách muốn gọi trực tiếp và ký hợp đồng với một đầu mối.',
       'Car Match phù hợp hơn với cư dân chung cư/khu đô thị tại Hà Nội cần nhận xe tại sảnh hoặc điểm hẹn, gồm Vinhomes Ocean Park, Times City, Smart City, Ecopark, The Manor Central Park và Linh Đàm.',
       'Không nên chọn đơn vị thuê xe chỉ vì giá ngày thấp; cần xác nhận phí giao nhận, tiền cọc, giới hạn km, bàn giao xe và trách nhiệm phát sinh trước khi chuyển cọc.',
@@ -251,7 +251,7 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     facts: [
       'Nếu có thương tích hoặc nguy cơ mất an toàn, khách cần ưu tiên gọi cấp cứu/cơ quan chức năng trước khi xử lý vấn đề thuê xe.',
       'Khách nên chụp/quay hiện trường, vị trí xe, biển số, vết va chạm, cảnh báo taplo và lưu thông tin bên liên quan.',
-      'Không nên mặc định bảo hiểm chi trả toàn bộ; cần hỏi trước loại bảo hiểm, điều kiện hồ sơ, mức miễn thường và chi phí ngoài phạm vi bảo hiểm.',
+      'Không nên tự thỏa thuận chi phí tại hiện trường; cần liên hệ Car Match để được hướng dẫn và đối soát theo biên bản bàn giao.',
     ],
     relatedRoutes: [
       '/blog/xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi',
@@ -355,7 +355,7 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     summary:
       'Chủ xe có thể gửi thông tin xe để Car Match thẩm định phương án hợp tác, lịch khai thác và cách đối soát.',
     facts: [
-      'Xe cần được thẩm định theo tình trạng, giấy tờ, lịch khai thác, bảo hiểm và khả năng vận hành thực tế.',
+      'Xe cần được thẩm định theo tình trạng, giấy tờ, lịch khai thác và khả năng vận hành thực tế.',
       'Thông tin doanh thu, tần suất thuê và phương án khai thác cần được trao đổi riêng, không nên cam kết đại trà trên website.',
     ],
     relatedRoutes: ['/hop-tac', '/gioi-thieu', '/lien-he'],

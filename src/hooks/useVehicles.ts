@@ -233,8 +233,8 @@ export interface UseVehiclesResult {
   fetched: boolean;
 }
 
-async function fetchVehicleJson(path: string): Promise<SupabaseVehicle[]> {
-  const res = await fetch(path);
+async function fetchVehicleJson(path: string, init?: RequestInit): Promise<SupabaseVehicle[]> {
+  const res = await fetch(path, init);
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}`);
 
   const contentType = res.headers.get('content-type') || '';
@@ -267,21 +267,11 @@ export function useVehicles(): UseVehiclesResult {
     let cancelled = false;
 
     async function loadVehicles() {
-      // Try static CDN file first — generated at build time, served instantly
+      // Vehicle Master is edited from app.carmatch.vn. Always refresh from the
+      // live API so visibility, pricing and rental policy changes appear
+      // immediately; the build-time snapshot is only an outage fallback.
       try {
-        const data = await fetchVehicleJson('/data/vehicles.json');
-        if (cancelled) return;
-        setCars(uniquifyCarSlugs(data.map(mapToCar)));
-        setLoading(false);
-        setFetched(true);
-        return;
-      } catch {
-        // Static file not available (local dev or first deploy) — fall through to API
-      }
-
-      // Live API fallback
-      try {
-        const data = await fetchVehicleJson('/api/vehicles');
+        const data = await fetchVehicleJson('/api/vehicles', { cache: 'no-store' });
         if (cancelled) return;
         setCars(uniquifyCarSlugs(data.map(mapToCar)));
         setLoading(false);
@@ -289,7 +279,21 @@ export function useVehicles(): UseVehiclesResult {
         return;
       } catch (apiError) {
         if (cancelled) return;
-        console.error('[useVehicles]', apiError);
+        console.error('[useVehicles] Live API failed, using static fallback', apiError);
+      }
+
+      // Static file is generated at build time and keeps the fleet usable if
+      // Supabase or the serverless API is temporarily unavailable.
+      try {
+        const data = await fetchVehicleJson('/data/vehicles.json');
+        if (cancelled) return;
+        setCars(uniquifyCarSlugs(data.map(mapToCar)));
+        setLoading(false);
+        setFetched(true);
+        return;
+      } catch (staticError) {
+        if (cancelled) return;
+        console.error('[useVehicles] Static vehicle fallback failed', staticError);
       }
 
       if (!cancelled) {

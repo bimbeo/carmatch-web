@@ -21,9 +21,9 @@ async function handleGet(req, res) {
 
   // Check if a specific booking already has a review
   if (booking_ref && typeof booking_ref === 'string') {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return res.status(200).json({ reviewed: false });
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return res.status(200).json({ reviewed: false });
     try {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
       const { data } = await supabase
@@ -45,13 +45,13 @@ async function handleGet(req, res) {
 
   if (!slug || typeof slug !== 'string') return res.status(400).json({ error: 'Missing slug' });
 
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     res.setHeader('Cache-Control', 's-maxage=60');
     return res.status(200).json([]);
   }
 
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
