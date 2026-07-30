@@ -267,23 +267,9 @@ export function useVehicles(): UseVehiclesResult {
     let cancelled = false;
 
     async function loadVehicles() {
-      // Vehicle Master is edited from app.carmatch.vn. Always refresh from the
-      // live API so visibility, pricing and rental policy changes appear
-      // immediately; the build-time snapshot is only an outage fallback.
-      try {
-        const data = await fetchVehicleJson('/api/vehicles', { cache: 'no-store' });
-        if (cancelled) return;
-        setCars(uniquifyCarSlugs(data.map(mapToCar)));
-        setLoading(false);
-        setFetched(true);
-        return;
-      } catch (apiError) {
-        if (cancelled) return;
-        console.error('[useVehicles] Live API failed, using static fallback', apiError);
-      }
-
-      // Static file is generated at build time and keeps the fleet usable if
-      // Supabase or the serverless API is temporarily unavailable.
+      // The build snapshot includes the optimized public vehicle photos. The
+      // live API intentionally excludes Supabase Storage URLs, so loading it
+      // first makes every card fall back to the same placeholder image.
       try {
         const data = await fetchVehicleJson('/data/vehicles.json');
         if (cancelled) return;
@@ -293,7 +279,20 @@ export function useVehicles(): UseVehiclesResult {
         return;
       } catch (staticError) {
         if (cancelled) return;
-        console.error('[useVehicles] Static vehicle fallback failed', staticError);
+        console.error('[useVehicles] Static vehicle data failed, using live API fallback', staticError);
+      }
+
+      // The live API keeps the fleet usable if the static snapshot is missing.
+      try {
+        const data = await fetchVehicleJson('/api/vehicles', { cache: 'no-store' });
+        if (cancelled) return;
+        setCars(uniquifyCarSlugs(data.map(mapToCar)));
+        setLoading(false);
+        setFetched(true);
+        return;
+      } catch (apiError) {
+        if (cancelled) return;
+        console.error('[useVehicles] Live API fallback failed', apiError);
       }
 
       if (!cancelled) {
