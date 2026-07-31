@@ -945,11 +945,14 @@ export default function BookingWidget({
   const [rangeStep, setRangeStep] = useState<'from' | 'to'>('from');
   const [calendarStartPreview, setCalendarStartPreview] = useState<Date | null>(null);
 
+  // Keep the visual range anchored to the exact dates the customer clicked,
+  // as Mioto does. Billable dates remain a separate pricing concern handled
+  // by getBillableDayRange/getBillableDateStrings.
   const selectedRange = useMemo(
     () => rangeStep === 'to' && calendarStartPreview
       ? { from: calendarStartPreview }
-      : getBillableDayRange(pickupDate, pickupHour, returnDate),
-    [calendarStartPreview, pickupDate, pickupHour, rangeStep, returnDate],
+      : { from: parseDateStr(pickupDate), to: parseDateStr(returnDate) },
+    [calendarStartPreview, pickupDate, rangeStep, returnDate],
   );
 
   // Use onDayClick instead of onSelect — onSelect has stale-range issues in v8
@@ -1882,7 +1885,7 @@ export default function BookingWidget({
           {/* ── Legend ── */}
           <div className="px-4 pb-3 sm:px-8 flex flex-wrap gap-x-5 gap-y-1.5 shrink-0">
             {[
-              { color: 'bg-brand-600 rounded-full', label: 'Ngày tính xe' },
+              { color: 'bg-brand-600 rounded-full', label: 'Khoảng ngày đã chọn' },
               { color: 'bg-amber-50 border border-amber-300 rounded', label: 'Giá lễ' },
               { color: 'bg-red-100 border border-red-200 rounded', label: 'Đã có lịch (bận)' },
             ].map(({ color, label }) => (
