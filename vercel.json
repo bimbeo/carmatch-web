@@ -256,6 +256,10 @@
       "src": "/api/promo-validate/?",
       "dest": "/api/promos?action=validate"
     },
+    {
+      "src": "/api/holiday-pricing/?",
+      "dest": "/api/promos?action=holiday-pricing"
+    },
     { "src": "/tai-khoan/?", "dest": "/tai-khoan/index.html" },
     { "src": "/chao-ban/?", "dest": "/chao-ban/index.html" },
     { "handle": "filesystem" },

@@ -141,6 +141,50 @@ async function listPromos(req, res) {
   return res.status(200).json({ promos });
 }
 
+async function listHolidayPricing(_req, res) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return res.status(200).json({ rules: [] });
+  }
+
+  try {
+    const supabase = createSupabaseClient();
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('code', COMPANY_CODE)
+      .single();
+    if (companyError) throw companyError;
+
+    let { data, error } = await supabase
+      .from('holiday_pricing_rules')
+      .select('id,name,start_date,end_date,adjustment_type,adjustment_value,booking_windows,note')
+      .eq('company_id', company.id)
+      .eq('active', true)
+      .order('start_date', { ascending: true });
+    if (error && /booking_windows|column/i.test(error.message || '')) {
+      ({ data, error } = await supabase
+        .from('holiday_pricing_rules')
+        .select('id,name,start_date,end_date,adjustment_type,adjustment_value,note')
+        .eq('company_id', company.id)
+        .eq('active', true)
+        .order('start_date', { ascending: true }));
+    }
+    if (error) throw error;
+
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30, stale-while-revalidate=120');
+    return res.status(200).json({
+      rules: (data || []).map((rule) => ({
+        ...rule,
+        adjustment_value: Number(rule.adjustment_value),
+        booking_windows: Array.isArray(rule.booking_windows) ? rule.booking_windows : [],
+      })),
+    });
+  } catch (error) {
+    console.error('[holiday-pricing]', error);
+    return res.status(200).json({ rules: [] });
+  }
+}
+
 async function validatePromo(req, res) {
   const code = String(req.query.code || '').trim().toUpperCase();
   const totalAmount = Number(req.query.total || 0);
@@ -277,7 +321,9 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const action = String(req.query.action || '').trim();
-  if (!rateLimit(req, res, { id: `promos:${action || 'unknown'}`, windowMs: 60_000, max: action === 'validate' ? 40 : 80 })) return;
+  const maxRequests = action === 'validate' ? 40 : action === 'holiday-pricing' ? 120 : 80;
+  if (!rateLimit(req, res, { id: `promos:${action || 'unknown'}`, windowMs: 60_000, max: maxRequests })) return;
+  if (action === 'holiday-pricing') return listHolidayPricing(req, res);
   if (action === 'list') return listPromos(req, res);
   if (action === 'validate') return validatePromo(req, res);
 
