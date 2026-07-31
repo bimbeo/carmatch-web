@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag, ImageIcon, Upload, Copy, Check } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
+import { DayPicker, type DayContentProps } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
@@ -132,6 +132,13 @@ function calDaysDiff(a: Date, b: Date): number {
 
 function fmtVND(n: number): string {
   return n.toLocaleString('vi-VN') + 'đ';
+}
+
+function fmtCalendarPrice(n: number): string {
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}tr`;
+  }
+  return `${Math.round(n / 1_000)}K`;
 }
 
 /** Display YYYY-MM-DD as "T6 22/5" — parse manually to avoid UTC offset bug */
@@ -911,6 +918,28 @@ export default function BookingWidget({
     })),
     [holidayPricingRules],
   );
+  const CalendarDayContent = useCallback(({ date, activeModifiers }: DayContentProps) => {
+    const dateStr = toDateStr(date);
+    const holidayRule = holidayPricingRules
+      .filter((rule) => rule.start_date <= dateStr && rule.end_date >= dateStr)
+      .map((rule) => ({ rule, surcharge: holidayDailySurcharge(rule, basePrice) }))
+      .sort((a, b) => b.surcharge - a.surcharge)[0];
+    const showPrice = basePrice > 0 && !activeModifiers.disabled && !activeModifiers.blocked;
+
+    return (
+      <span className="carmatch-cal-day-content">
+        <span className="carmatch-cal-day-number">
+          {date.getDate()}
+          {holidayRule && <span className="carmatch-cal-day-spark" aria-hidden="true">◆</span>}
+        </span>
+        {showPrice && (
+          <span className="carmatch-cal-day-price">
+            {fmtCalendarPrice(basePrice + (holidayRule?.surcharge ?? 0))}
+          </span>
+        )}
+      </span>
+    );
+  }, [basePrice, holidayPricingRules]);
 
   // Step mode: first click = pickup, second = return
   const [rangeStep, setRangeStep] = useState<'from' | 'to'>('from');
@@ -938,15 +967,26 @@ export default function BookingWidget({
         setReturnDate(ds);
         setCalendarStartPreview(null);
         setRangeStep('from');
+      } else if (ds === pickupDate) {
+        // Mioto-style same-day rental: a second click on the start date
+        // completes a one-cell range. If the current hours cannot form the
+        // minimum 4-hour rental, move pickup to opening time and keep return.
+        setReturnDate(ds);
+        if (returnHour - pickupHour < 4) {
+          setPickupHour(7);
+          if (returnHour < 11) setReturnHour(11);
+        }
+        setCalendarStartPreview(null);
+        setRangeStep('from');
       } else {
-        // clicked same day or before pickup → restart from this day
+        // Clicking before pickup starts a fresh selection from that day.
         setPickupDate(ds);
         setReturnDate(toDateStr(addDays(day, 1)));
         setCalendarStartPreview(day);
         setRangeStep('to');
       }
     }
-  }, [rangeStep, pickupDate]);
+  }, [pickupDate, pickupHour, rangeStep, returnHour]);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -1747,26 +1787,34 @@ export default function BookingWidget({
         onClick={() => setShowCalModal(false)}
       >
         <div
-          className="bg-white rounded-2xl shadow-2xl flex flex-col"
-          style={{ width: '94vw', maxWidth: 760, maxHeight: '92vh' }}
+          className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-y-auto"
+          style={{ width: '94vw', maxWidth: 900, maxHeight: '94vh' }}
           onClick={e => e.stopPropagation()}
         >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-            <div>
-              <h3 className="font-bold text-gray-900 text-base">Chọn ngày thuê xe</h3>
-              <p className={`text-xs mt-0.5 font-medium ${rangeStep === 'from' ? 'text-brand-600' : 'text-green-600'}`}>
-                {rangeStep === 'from' ? '① Chọn ngày nhận xe' : '② Chọn ngày trả xe'}
-              </p>
-            </div>
-            <button onClick={() => setShowCalModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+          <div className="relative flex items-center justify-center px-6 py-4 border-b border-gray-100 shrink-0">
+            <h3 className="text-xl font-black text-gray-950">Thời gian</h3>
+            <button
+              type="button"
+              aria-label="Đóng lịch"
+              onClick={() => setShowCalModal(false)}
+              className="absolute right-4 p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+            >
               <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>
 
           {/* ── Calendar ── */}
-          <div className="carmatch-cal overflow-x-hidden py-2" style={{ minHeight: 260 }}>
-            <div style={{ minWidth: isMobile ? 300 : 560, padding: isMobile ? '0 8px' : '0 12px' }}>
+          <div className="carmatch-cal overflow-x-hidden px-3 pt-3 sm:px-8 sm:pt-5">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <p className={`text-sm font-bold ${rangeStep === 'from' ? 'text-brand-700' : 'text-emerald-700'}`}>
+                {rangeStep === 'from' ? '① Chọn ngày nhận xe' : '② Chọn ngày trả xe'}
+              </p>
+              <p className="hidden text-xs font-medium text-gray-400 sm:block">
+                Ngày có giá cao hơn được đánh dấu màu cam
+              </p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white px-1 py-2 shadow-sm sm:px-3 sm:py-3" style={{ minWidth: isMobile ? 300 : 680 }}>
               <DayPicker
                 mode="range"
                 selected={selectedRange}
@@ -1779,65 +1827,64 @@ export default function BookingWidget({
                 modifiersClassNames={{ blocked: 'rdp-day_blocked', holidayPrice: 'rdp-day_holiday_price' }}
                 fromDate={today}
                 showOutsideDays={false}
+                components={{ DayContent: CalendarDayContent }}
               />
             </div>
           </div>
 
           {/* ── Time pickers ── */}
-          <div className="px-6 py-4 border-t border-gray-100 shrink-0">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="px-4 py-4 sm:px-8 shrink-0">
+            <div className="relative grid grid-cols-2 gap-4 sm:gap-8">
               {/* Nhận xe */}
-              <div>
-                <div className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-brand-600 inline-block" />
-                  Giờ nhận xe
-                </div>
-                <div className="relative">
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <div className="text-xs font-semibold text-gray-500">Nhận xe</div>
+                <div className="relative mt-0.5">
                   <select
                     value={pickupHour}
                     onChange={e => setPickupHour(+e.target.value)}
-                    className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 pr-8 cursor-pointer"
+                    className="w-full appearance-none bg-transparent py-1 text-lg font-black text-gray-950 focus:outline-none pr-8 cursor-pointer"
                   >
                     {PICKUP_HOURS.map(h => (
                       <option key={h} value={h}>{h}:00</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">Giờ hoạt động: 07:00 – 23:00</p>
+              </div>
+
+              <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm">
+                <ChevronRight className="h-4 w-4" />
               </div>
 
               {/* Trả xe */}
-              <div>
-                <div className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                  Giờ trả xe
-                </div>
-                <div className="relative">
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <div className="text-xs font-semibold text-gray-500">Trả xe</div>
+                <div className="relative mt-0.5">
                   <select
                     value={returnHour}
                     onChange={e => setReturnHour(+e.target.value)}
-                    className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 pr-8 cursor-pointer"
+                    className="w-full appearance-none bg-transparent py-1 text-lg font-black text-gray-950 focus:outline-none pr-8 cursor-pointer"
                   >
                     {RETURN_HOURS.map(h => (
                       <option key={h} value={h}>{h}:00</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">Giờ hoạt động: 07:00 – 23:00</p>
               </div>
+            </div>
+            <div className="mt-3 rounded-xl bg-gray-100 px-4 py-2.5 text-xs font-medium text-gray-600 sm:text-sm">
+              <div className="flex justify-between gap-4"><span>Thời gian nhận xe</span><strong>07:00 – 23:00</strong></div>
+              <div className="mt-1 flex justify-between gap-4"><span>Thời gian trả xe</span><strong>07:00 – 23:00</strong></div>
             </div>
           </div>
 
           {/* ── Legend ── */}
-          <div className="px-6 pb-2 flex flex-wrap gap-x-5 gap-y-1.5 shrink-0">
+          <div className="px-4 pb-3 sm:px-8 flex flex-wrap gap-x-5 gap-y-1.5 shrink-0">
             {[
               { color: 'bg-brand-600 rounded-full', label: 'Ngày tính xe' },
-              { color: 'bg-brand-100 border border-brand-200 rounded', label: 'Các ngày thuê' },
               { color: 'bg-amber-50 border border-amber-300 rounded', label: 'Giá lễ' },
               { color: 'bg-red-100 border border-red-200 rounded', label: 'Đã có lịch (bận)' },
-              { color: 'bg-gray-200 rounded opacity-60', label: 'Không khả dụng' },
             ].map(({ color, label }) => (
               <span key={label} className="flex items-center gap-1.5 text-xs text-gray-400">
                 <span className={`w-3 h-3 inline-block shrink-0 ${color}`} />
@@ -1875,32 +1922,29 @@ export default function BookingWidget({
           )}
 
           {/* ── Bottom bar ── */}
-          <div className="px-6 py-4 border-t border-gray-100 shrink-0 bg-gray-50 rounded-b-2xl">
+          <div className="px-4 py-4 sm:px-8 border-t border-gray-100 shrink-0 bg-white rounded-b-2xl">
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               {/* Summary */}
-              <div className="flex-1 flex items-center gap-2 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nhận xe</div>
-                  <div className="font-bold text-gray-900 text-sm">{pickupHour}:00 · {displayDate(pickupDate)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-gray-950 text-sm sm:text-base">
+                  {rangeStep === 'to'
+                    ? `${pickupHour}:00 ${displayDate(pickupDate)} – Chọn ngày kết thúc`
+                    : `${pickupHour}:00 ${displayDate(pickupDate)} – ${returnHour}:00 ${displayDate(returnDate)}`}
                 </div>
-                <div className="flex flex-col items-center px-2 shrink-0">
-                  <div className="text-gray-300">→</div>
-                  <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                    {rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trả xe</div>
-                  <div className="font-bold text-gray-900 text-sm">{returnHour}:00 · {displayDate(returnDate)}</div>
-                </div>
+                {rangeStep === 'from' && (
+                  <div className="mt-1 text-xs font-medium text-gray-500">
+                    Thời gian thuê: <strong className="text-emerald-600">{rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}</strong>
+                  </div>
+                )}
               </div>
 
               <button
+                type="button"
                 onClick={() => setShowCalModal(false)}
-                disabled={hardConflicts.length > 0 || !result.valid || availabilityUnavailable || availLoading || holidayBookingBlocked}
-                className="shrink-0 py-3 px-7 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
+                disabled={rangeStep === 'to' || hardConflicts.length > 0 || !result.valid || availabilityUnavailable || availLoading || holidayBookingBlocked}
+                className="shrink-0 py-3.5 px-8 bg-emerald-500 text-white font-black rounded-xl text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {holidayBookingBlocked ? 'Chọn combo lễ' : 'Xác nhận'}
+                {holidayBookingBlocked ? 'Chọn combo lễ' : 'Tiếp tục'}
               </button>
             </div>
           </div>

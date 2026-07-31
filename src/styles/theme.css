@@ -205,7 +205,7 @@
 
 /* ─── react-day-picker Car Match theme ─────────────────────────────────────── */
 .carmatch-cal .rdp {
-  --rdp-cell-size: 38px;
+  --rdp-cell-size: 48px;
   --rdp-accent-color: #11163e;
   --rdp-background-color: #d4d8ef;
   --rdp-outline: 2px solid #11163e;
@@ -296,10 +296,55 @@
 
 .carmatch-cal .rdp-day {
   border-radius: 10px;
+  padding: 0;
   font-size: 0.875rem;
   font-weight: 500;
   color: #1f2937;
   transition: background 0.1s, color 0.1s;
+}
+
+.carmatch-cal-day-content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1;
+}
+
+.carmatch-cal-day-number {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 750;
+}
+
+.carmatch-cal-day-price {
+  font-size: 0.55rem;
+  font-weight: 650;
+  color: #9ca3af;
+  letter-spacing: -0.01em;
+}
+
+.carmatch-cal-day-spark {
+  margin-left: 2px;
+  color: #f59e0b;
+  font-size: 0.42rem;
+}
+
+.carmatch-cal .rdp-day_range_start .carmatch-cal-day-price,
+.carmatch-cal .rdp-day_range_end .carmatch-cal-day-price,
+.carmatch-cal .rdp-day_range_middle .carmatch-cal-day-price {
+  color: currentColor;
+  opacity: 0.72;
+}
+
+.carmatch-cal .rdp-day_blocked .carmatch-cal-day-price,
+.carmatch-cal .rdp-day_disabled .carmatch-cal-day-price {
+  display: none;
 }
 
 .carmatch-cal .rdp-day:hover:not([disabled]):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_blocked) {
@@ -347,4 +392,26 @@
 }
 .carmatch-cal .rdp-day_blocked:hover {
   background-color: #fecaca !important;
+}
+
+.carmatch-cal .rdp-day_holiday_price:not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_blocked) {
+  background-color: #fff7ed !important;
+  color: #c2410c !important;
+  box-shadow: inset 0 0 0 1px #fdba74;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .carmatch-cal .rdp {
+    --rdp-cell-size: 42px;
+    font-size: 0.75rem;
+  }
+
+  .carmatch-cal .rdp-months {
+    gap: 0;
+  }
+
+  .carmatch-cal-day-price {
+    font-size: 0.5rem;
+  }
 }
