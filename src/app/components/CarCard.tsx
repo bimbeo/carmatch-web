@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { ArrowRight, CalendarDays, Fuel, Users, Zap } from 'lucide-react';
+import { ArrowRight, CalendarDays, Fuel, Gauge, Truck, Users, Zap } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
 import { trackVehicleClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
@@ -166,6 +166,17 @@ export default function CarCard({
                 <span>{car.model_year}</span>
               </>
             )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-slate-600">
+              <Truck className="h-3.5 w-3.5 text-brand-500" />
+              Giao tận nơi
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-slate-600">
+              <Gauge className="h-3.5 w-3.5 text-brand-500" />
+              {car.kmPerDay} km/ngày
+            </span>
           </div>
 
           {availabilityChecked && (

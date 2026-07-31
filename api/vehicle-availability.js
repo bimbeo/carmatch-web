@@ -178,7 +178,7 @@ export default async function handler(req, res) {
     }
 
     const companyId = vehicleResult.data.company_id;
-    const [eventsResult, assignmentsResult] = await Promise.all([
+    const [eventsResult, assignmentsResult, reservationsResult] = await Promise.all([
       supabase
         .from('vehicle_schedule_events')
         .select('booking_id, vehicle_id, event_type, starts_at, ends_at, all_day, status, note, location_text, external_refs')
@@ -194,6 +194,14 @@ export default async function handler(req, res) {
         .eq('company_id', companyId)
         .or(`assigned_from.is.null,assigned_from.lte.${toDate}`)
         .or(`assigned_to.is.null,assigned_to.gte.${fromDate}`),
+      supabase
+        .from('vehicle_reservations')
+        .select('status,active_until,starts_at,ends_at')
+        .eq('company_id', companyId)
+        .eq('vehicle_id', vehicleId)
+        .in('status', ['held', 'confirmed'])
+        .lt('starts_at', dateToExclusiveEndAt(toDate))
+        .gt('ends_at', dateToStartAt(fromDate)),
     ]);
 
     const { data, error } = eventsResult;
@@ -248,8 +256,24 @@ export default async function handler(req, res) {
         allDay: e.all_day,
       }));
 
+    const now = Date.now();
+    const reservationRanges = reservationsResult.error
+      ? []
+      : (reservationsResult.data || [])
+        .filter((reservation) => reservation.status !== 'held'
+          || (reservation.active_until && new Date(reservation.active_until).getTime() > now))
+        .map((reservation) => ({
+          from: datePartInVietnam(reservation.starts_at),
+          to: datePartInVietnam(reservation.ends_at),
+          type: reservation.status === 'held' ? 'held' : 'rental',
+          allDay: false,
+        }));
+
     let assignmentRanges = [];
-    let availabilityUnavailable = Boolean(assignmentsResult.error);
+    let availabilityUnavailable = Boolean(assignmentsResult.error || reservationsResult.error);
+    if (reservationsResult.error) {
+      console.error('[vehicle-availability] Reservation lookup error:', reservationsResult.error.message);
+    }
     if (assignmentsResult.error) {
       console.error('[vehicle-availability] Assignment lookup error:', assignmentsResult.error.message);
     } else {
@@ -294,7 +318,7 @@ export default async function handler(req, res) {
     }
 
     const seenRanges = new Set();
-    const blockedRanges = [...eventRanges, ...assignmentRanges].filter((range) => {
+    const blockedRanges = [...eventRanges, ...assignmentRanges, ...reservationRanges].filter((range) => {
       const key = `${range.from}|${range.to}|${range.type}`;
       if (seenRanges.has(key)) return false;
       seenRanges.add(key);

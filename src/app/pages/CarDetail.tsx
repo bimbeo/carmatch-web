@@ -81,14 +81,79 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
   const prev = () => setActive((i) => (i - 1 + images.length) % images.length);
   const next = () => setActive((i) => (i + 1) % images.length);
 
+  useEffect(() => {
+    if (!lightbox) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLightbox(false);
+      if (event.key === 'ArrowLeft') setActive((index) => (index - 1 + images.length) % images.length);
+      if (event.key === 'ArrowRight') setActive((index) => (index + 1) % images.length);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length, lightbox]);
+
   return (
     <>
-      <div className="space-y-3">
+      <div className="relative hidden h-[540px] grid-cols-[1.6fr_1fr] grid-rows-2 gap-3 overflow-hidden rounded-2xl lg:grid">
+        <button
+          type="button"
+          onClick={() => { setActive(0); setLightbox(true); }}
+          className="group row-span-2 overflow-hidden bg-slate-100 text-left"
+          aria-label={`Xem ảnh chính của ${name}`}
+        >
+          <img
+            src={optimizedImageUrl(images[0], 1280, 70)}
+            srcSet={optimizedImageSrcSet(images[0], [720, 960, 1280, 1600], 70)}
+            sizes="55vw"
+            alt={`${name} - ảnh 1`}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            width={1280}
+            height={960}
+            loading="eager"
+            decoding="async"
+          />
+        </button>
+        {[1, 2].map((index) => images[index] ? (
+          <button
+            key={images[index]}
+            type="button"
+            onClick={() => { setActive(index); setLightbox(true); }}
+            className="group overflow-hidden bg-slate-100 text-left"
+            aria-label={`Xem ảnh ${index + 1} của ${name}`}
+          >
+            <img
+              src={optimizedImageUrl(images[index], 720, 66)}
+              srcSet={optimizedImageSrcSet(images[index], [480, 720, 960], 66)}
+              sizes="35vw"
+              alt={`${name} - ảnh ${index + 1}`}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              width={720}
+              height={540}
+              loading="lazy"
+              decoding="async"
+            />
+          </button>
+        ) : <div key={index} className="bg-slate-100" />)}
+        <button
+          type="button"
+          onClick={() => setLightbox(true)}
+          className="absolute bottom-4 right-4 rounded-xl border border-white/60 bg-white/95 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-lg backdrop-blur transition-colors hover:bg-white"
+        >
+          Xem tất cả {images.length} ảnh
+        </button>
+      </div>
+
+      <div className="space-y-3 lg:hidden">
         {/* Main image */}
         <div
           className="relative rounded-2xl overflow-hidden bg-slate-100 group cursor-zoom-in aspect-[4/3]"
-          onClick={() => setLightbox(true)}
         >
+          <button
+            type="button"
+            onClick={() => setLightbox(true)}
+            className="absolute inset-0 z-10"
+            aria-label={`Mở thư viện ảnh của ${name}`}
+          />
           <img
             key={`bg-${active}`}
             src={optimizedImageUrl(activeImage, 720, 45)}
@@ -117,14 +182,18 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
           {multi && (
             <>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); prev(); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
+                aria-label="Xem ảnh trước"
+                className="absolute left-3 top-1/2 z-20 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); next(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
+                aria-label="Xem ảnh tiếp theo"
+                className="absolute right-3 top-1/2 z-20 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -144,7 +213,9 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
             {images.map((img, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => setActive(i)}
+                aria-label={`Xem ảnh ${i + 1} của ${name}`}
                 className={`flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
                   i === active
                     ? 'border-brand-600 ring-2 ring-brand-100 opacity-100 scale-105'
@@ -174,23 +245,32 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setLightbox(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Thư viện ảnh ${name}`}
         >
           <button
+            type="button"
             className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center text-xl font-bold"
             onClick={() => setLightbox(false)}
+            aria-label="Đóng thư viện ảnh"
           >
             ✕
           </button>
           {multi && (
             <>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); prev(); }}
+                aria-label="Xem ảnh trước"
                 className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); next(); }}
+                aria-label="Xem ảnh tiếp theo"
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -675,11 +755,27 @@ export default function CarDetail() {
               )}
             </div>
 
+            <nav className="sticky top-20 z-20 hidden items-center gap-1 rounded-2xl border border-slate-200 bg-white/95 p-1.5 text-sm font-semibold text-slate-600 shadow-sm backdrop-blur lg:flex" aria-label="Điều hướng chi tiết xe">
+              {[
+                ['#photos', 'Ảnh xe'],
+                ['#specs', 'Thông số'],
+                ['#conditions', 'Điều kiện'],
+                ['#reviews', 'Đánh giá'],
+                ['#booking', 'Đặt xe'],
+              ].map(([href, label]) => (
+                <a key={href} href={href} className="rounded-xl px-3 py-2 transition-colors hover:bg-brand-50 hover:text-brand-700">
+                  {label}
+                </a>
+              ))}
+            </nav>
+
             {/* Gallery */}
-            <Gallery images={car.images} name={car.name} />
+            <section id="photos" className="scroll-mt-32">
+              <Gallery images={car.images} name={car.name} />
+            </section>
 
             {/* Specs grid */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+            <div id="specs" className="scroll-mt-32 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <h2 className="text-base font-bold text-gray-900 mb-4">Thông số xe</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 <SpecChip
@@ -814,7 +910,7 @@ export default function CarDetail() {
             )}
 
             {/* Rental conditions */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+            <div id="conditions" className="scroll-mt-32 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <h2 className="text-base font-bold text-gray-900 mb-4">Điều kiện thuê xe</h2>
               <div className="space-y-3">
                 {car.conditions.map((condition) => (
@@ -852,7 +948,9 @@ export default function CarDetail() {
               </div>
             </div>
 
-            <CarReviews carSlug={car.slug} />
+            <div id="reviews" className="scroll-mt-32">
+              <CarReviews carSlug={car.slug} />
+            </div>
 
             {/* Back button mobile */}
             <Link

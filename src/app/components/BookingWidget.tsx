@@ -601,6 +601,7 @@ export default function BookingWidget({
   }>>([]);
   const [promoListLoading, setPromoListLoading] = useState(false);
   const promoAutoAppliedRef = useRef(false);
+  const bookingIdempotencyRef = useRef('');
 
   // ── Loyalty auto-discount ─────────────────────────────────────────────────
   const [referralCredit, setReferralCredit] = useState(0);
@@ -623,6 +624,7 @@ export default function BookingWidget({
   const [bookingError, setBookingError] = useState('');
   const [bookingRef, setBookingRef] = useState('');
   const [depositAmount, setDepositAmount] = useState(0);
+  const [bookingNeedsConfirmation, setBookingNeedsConfirmation] = useState(false);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
@@ -635,6 +637,26 @@ export default function BookingWidget({
   const [pointsPerTenK, setPointsPerTenK] = useState(1); // default 1 pt per 10k VND (overridden by DB setting)
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    bookingIdempotencyRef.current = '';
+  }, [
+    vehicleId,
+    pickupDate,
+    pickupHour,
+    returnDate,
+    returnHour,
+    deliveryMode,
+    deliveryAddress,
+    selectedLocation,
+    customerName,
+    customerPhone,
+    customerEmail,
+    customerNote,
+    promoResult?.code,
+    promoResult?.discount_amount,
+    loyaltyDiscount?.discount_amount,
+  ]);
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -770,6 +792,7 @@ export default function BookingWidget({
     () => categorizeConflicts(pickupDate, returnDate, blockedRanges),
     [pickupDate, returnDate, blockedRanges],
   );
+  const needsManualConfirmation = requiresConfirmation || boundaryConflicts.length > 0;
 
   const availabilityStatus = useMemo<BookingAvailabilityStatus>(() => ({
     isLoading: availLoading,
@@ -1098,6 +1121,14 @@ export default function BookingWidget({
   }, [initialPromoCode, totalAmount, holidayPromoBlocked]);
 
   const handleBookingSubmit = async () => {
+    if (availLoading || availabilityUnavailable) {
+      setBookingError('Chưa kiểm tra được lịch xe. Vui lòng thử lại trước khi gửi yêu cầu.');
+      return;
+    }
+    if (hardConflicts.length > 0) {
+      setBookingError('Xe đã có lịch trong khoảng này. Vui lòng chọn ngày khác.');
+      return;
+    }
     if (!customerName.trim()) { setBookingError('Vui lòng nhập họ tên'); return; }
     const phoneClean = customerPhone.trim().replace(/\s/g, '');
     if (!/^(0[3-9]\d{8})$/.test(phoneClean)) { setBookingError('Số điện thoại không hợp lệ'); return; }
@@ -1130,10 +1161,20 @@ export default function BookingWidget({
     });
     try {
       const loc = LOCATIONS.find(l => l.id === selectedLocation);
+      if (!bookingIdempotencyRef.current) {
+        bookingIdempotencyRef.current = typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+      }
+      const idempotencyKey = bookingIdempotencyRef.current;
       const res = await fetch('/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify({
+          idempotency_key: idempotencyKey,
           vehicle_id: vehicleId || null,
           car_slug: carSlug || null,
           car_name: carName,
@@ -1157,21 +1198,22 @@ export default function BookingWidget({
           promo_code: promoForBooking?.code ?? null,
           promo_discount: promoForBooking?.discount_amount ?? 0,
           total_amount: result.valid ? result.total : 0,
-          requires_confirmation: requiresConfirmation,
+          requires_confirmation: needsManualConfirmation,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi tạo đơn');
       setBookingRef(data.bookingRef);
       setDepositAmount(data.depositAmount);
-      setBookingStep(BANK_QR_ENABLED ? 2 : 3);
+      setBookingNeedsConfirmation(needsManualConfirmation);
+      setBookingStep(BANK_QR_ENABLED && data.paymentRequired !== false && !needsManualConfirmation ? 2 : 3);
       trackBookingSubmit('success', {
         vehicle_id: vehicleId || null,
         vehicle_name: carName,
         booking_ref: data.bookingRef,
         rental_days: rentalDays,
         total_amount: result.valid ? result.total : 0,
-        deposit_amount: data.depositAmount,
+          deposit_amount: needsManualConfirmation ? 0 : data.depositAmount,
         delivery_mode: deliveryMode,
         promo_code: promoForBooking?.code ?? null,
       });
@@ -1239,6 +1281,10 @@ export default function BookingWidget({
 
   const selectedLocationInfo = LOCATIONS.find(l => l.id === selectedLocation);
   const finalTotal = result.valid ? result.total : 0;
+  const estimatedDepositAmount = finalTotal > 0
+    ? Math.max(200_000, Math.round(finalTotal * 0.3 / 10_000) * 10_000)
+    : 0;
+  const estimatedRemainingAmount = Math.max(0, finalTotal - estimatedDepositAmount);
   const promoDiscount = promoResult?.discount_amount ?? 0;
   const appliedPromo = promoResult?.code ?? '';
   const pickupDt = parseDateStr(pickupDate);
@@ -1716,8 +1762,33 @@ export default function BookingWidget({
                 {fmtVND(result.total)}
               </span>
             </div>
+            <div className="grid grid-cols-2 gap-3 bg-slate-50 px-4 py-3 text-xs">
+              <div>
+                <div className="font-medium text-slate-500">
+                  {needsManualConfirmation ? 'Cọc sau khi xác nhận' : 'Cọc giữ xe dự kiến'}
+                </div>
+                <div className="mt-1 font-bold text-blue-700">{fmtVND(estimatedDepositAmount)}</div>
+              </div>
+              <div className="text-right">
+                <div className="font-medium text-slate-500">Còn lại khi nhận xe</div>
+                <div className="mt-1 font-bold text-slate-900">{fmtVND(estimatedRemainingAmount)}</div>
+              </div>
+            </div>
           </div>
         )}
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <div className="font-bold text-slate-800">Phụ phí có thể phát sinh</div>
+          <div className="mt-2 flex justify-between gap-3">
+            <span>Vượt {kmPerDay} km/ngày</span>
+            <span className="font-semibold text-slate-800">{fmtVND(kmSurcharge)}/km</span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span>Trả xe trễ</span>
+            <span className="font-semibold text-slate-800">100.000đ/giờ</span>
+          </div>
+          <p className="mt-2 text-[11px] leading-4 text-slate-500">Chỉ tính theo sử dụng thực tế, chưa cộng vào tổng dự kiến.</p>
+        </div>
 
         {/* ── CTAs ── */}
         {recentBookingsCount > 0 && (
@@ -1736,6 +1807,7 @@ export default function BookingWidget({
             });
             setShowBookingModal(true);
             setBookingStep(1);
+            setBookingNeedsConfirmation(false);
             setBookingError('');
             setConfirmTransfer(false);
           }}
@@ -1743,11 +1815,11 @@ export default function BookingWidget({
           className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
-          {holidayBookingBlocked ? 'Chọn đúng combo lễ' : requiresConfirmation ? 'Gửi yêu cầu giữ lịch' : 'Kiểm tra lịch & đặt xe'}
+          {holidayBookingBlocked ? 'Chọn đúng combo lễ' : needsManualConfirmation ? 'Gửi yêu cầu xác nhận lịch' : 'Kiểm tra lịch & đặt xe'}
         </button>
-        {requiresConfirmation && (
+        {needsManualConfirmation && (
           <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
-            Xe này cần xác nhận lịch với chủ xe. Car Match sẽ liên hệ bạn trong 1–2 giờ.
+            Car Match sẽ xác nhận chính xác giờ trống trước. Bạn chưa cần chuyển khoản ở bước này.
           </p>
         )}
 
@@ -2191,7 +2263,13 @@ export default function BookingWidget({
                     {bookingStep > s ? '✓' : s}
                   </div>
                   <span className={`text-xs font-medium hidden sm:inline ${bookingStep === s ? 'text-brand-600' : 'text-gray-400'}`}>
-                    {s === 1 ? 'Thông tin' : s === 2 ? 'Đặt cọc' : 'Xác nhận'}
+                    {s === 1
+                      ? 'Thông tin'
+                      : s === 2
+                        ? needsManualConfirmation || bookingNeedsConfirmation
+                          ? 'Xác nhận lịch'
+                          : 'Đặt cọc'
+                        : 'Hoàn tất'}
                   </span>
                   {s < 3 && <div className="w-6 h-px bg-gray-200" />}
                 </div>
@@ -2234,22 +2312,36 @@ export default function BookingWidget({
                       {deliveryMode === 'self' ? LOCATIONS.find(l => l.id === selectedLocation)?.name : 'Giao tận nơi'}
                     </span>
                   </div>
-                  {loyaltyDiscount && (
-                    <div className="flex justify-between text-violet-600">
-                      <span>{loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết'}</span>
-                      <span className="font-medium">-{fmtVND(loyaltyDiscountAmount)}</span>
+                  {result.valid && result.fees.map((fee, index) => (
+                    <div
+                      key={`${fee.label}-${index}`}
+                      className={`flex justify-between gap-3 ${fee.amount < 0 ? 'text-green-600' : 'text-gray-600'}`}
+                    >
+                      <span>{fee.label}</span>
+                      <span className="font-medium">{fee.amount < 0 ? '-' : ''}{fmtVND(Math.abs(fee.amount))}</span>
                     </div>
-                  )}
-                  {promoResult && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Mã {promoResult.code}</span>
-                      <span className="font-medium">-{fmtVND(promoResult.discount_amount)}</span>
-                    </div>
-                  )}
+                  ))}
                   <div className="flex justify-between pt-2 border-t border-gray-200">
                     <span className="font-bold text-gray-800">Tổng dự kiến</span>
                     <span className="font-bold text-brand-600 text-base">{result.valid ? fmtVND(result.total) : '—'}</span>
                   </div>
+                  {result.valid && (
+                    <>
+                      <div className="flex justify-between text-blue-700">
+                        <span>{needsManualConfirmation ? 'Cọc sau khi xác nhận lịch' : 'Cọc giữ xe dự kiến'}</span>
+                        <span className="font-semibold">{fmtVND(estimatedDepositAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600">
+                        <span>Còn lại khi nhận xe</span>
+                        <span className="font-semibold text-gray-900">{fmtVND(estimatedRemainingAmount)}</span>
+                      </div>
+                    </>
+                  )}
+                  {needsManualConfirmation && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                      Đây là yêu cầu xác nhận lịch. Car Match sẽ gọi lại trước khi gửi QR đặt cọc.
+                    </div>
+                  )}
                   {result.valid && result.total > 0 && (
                     <div className="text-xs text-blue-600 font-medium text-right">
                       ⭐ Tích được ~{Math.floor(result.total / 10000) * pointsPerTenK} điểm chuyến này
@@ -2600,20 +2692,30 @@ export default function BookingWidget({
               <div className="px-5 py-5 space-y-4">
                 {/* Header xác nhận */}
                 <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 mb-3">
-                    <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className={`inline-flex items-center justify-center w-14 h-14 rounded-full mb-3 ${bookingNeedsConfirmation ? 'bg-amber-100' : 'bg-green-100'}`}>
+                    <svg className={`w-7 h-7 ${bookingNeedsConfirmation ? 'text-amber-600' : 'text-green-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">Đặt xe thành công!</h3>
-                  <p className="text-sm text-slate-500 mt-1">Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút</p>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {bookingNeedsConfirmation ? 'Đã gửi yêu cầu xác nhận lịch' : 'Đặt xe thành công!'}
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {bookingNeedsConfirmation
+                      ? 'Car Match sẽ kiểm tra giờ trống và liên hệ trước khi gửi QR đặt cọc.'
+                      : 'Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút'}
+                  </p>
                 </div>
 
                 {/* Card xác nhận */}
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <span className="font-black text-slate-900 text-base">ĐƠN XÁC NHẬN ĐẶT XE</span>
-                    <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Đã đặt</span>
+                    <span className="font-black text-slate-900 text-base">
+                      {bookingNeedsConfirmation ? 'YÊU CẦU XÁC NHẬN LỊCH' : 'ĐƠN XÁC NHẬN ĐẶT XE'}
+                    </span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${bookingNeedsConfirmation ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                      {bookingNeedsConfirmation ? 'Chờ xác nhận' : 'Đã đặt'}
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
@@ -2670,7 +2772,11 @@ export default function BookingWidget({
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-slate-500">{BANK_QR_ENABLED ? 'Đã cọc (chuyển khoản)' : 'Tiền cọc dự kiến'}</span>
+                      <span className="text-slate-500">
+                        {bookingNeedsConfirmation
+                          ? 'Cọc sau khi xác nhận lịch'
+                          : BANK_QR_ENABLED ? 'Đã cọc (chuyển khoản)' : 'Tiền cọc dự kiến'}
+                      </span>
                       <span className="font-semibold text-blue-600">{depositAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
                     {deliveryFee > 0 && (
@@ -2679,10 +2785,12 @@ export default function BookingWidget({
                         <span className="font-semibold text-slate-900">{deliveryFee.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
-                    <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1">
-                      <span className="font-bold text-slate-900">Thanh toán khi nhận xe</span>
-                      <span className="font-black text-red-600 text-base">{remainingAmount.toLocaleString('vi-VN')}đ</span>
-                    </div>
+                    {!bookingNeedsConfirmation && (
+                      <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1">
+                        <span className="font-bold text-slate-900">Thanh toán khi nhận xe</span>
+                        <span className="font-black text-red-600 text-base">{remainingAmount.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs text-slate-500">
@@ -2709,9 +2817,19 @@ export default function BookingWidget({
                 {/* Bước tiếp theo */}
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800 space-y-1.5">
                   <p className="font-bold text-blue-900 text-sm">Bước tiếp theo</p>
-                  <p>1️⃣ Nhân viên gọi xác nhận trong <strong>30 phút</strong> (giờ hành chính)</p>
-                  <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
-                  <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
+                  {bookingNeedsConfirmation ? (
+                    <>
+                      <p>1️⃣ Nhân viên kiểm tra xe và giờ bàn giao.</p>
+                      <p>2️⃣ Khi lịch chắc chắn, Car Match mới gửi <strong>QR cọc {depositAmount.toLocaleString('vi-VN')}đ</strong>.</p>
+                      <p>3️⃣ Khách xác nhận cọc để giữ xe.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>1️⃣ Nhân viên gọi xác nhận trong <strong>30 phút</strong> (giờ hành chính)</p>
+                      <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
+                      <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
+                    </>
+                  )}
                 </div>
 
                 {/* CTA đăng ký tài khoản — chỉ hiện khi chưa đăng nhập */}
@@ -2811,7 +2929,11 @@ export default function BookingWidget({
                 className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2"
               >
                 {bookingLoading ? <span className="animate-spin">⟳</span> : <CalendarDays className="w-4 h-4" />}
-                {bookingLoading ? 'Đang xử lý…' : BANK_QR_ENABLED ? 'Tiếp tục — Xem QR đặt cọc' : 'Gửi yêu cầu đặt xe'}
+                {bookingLoading
+                  ? 'Đang xử lý…'
+                  : needsManualConfirmation
+                    ? 'Gửi yêu cầu xác nhận lịch'
+                    : BANK_QR_ENABLED ? 'Tiếp tục — Xem QR đặt cọc' : 'Gửi yêu cầu đặt xe'}
               </button>
             )}
             {bookingStep === 2 && (

@@ -55,7 +55,7 @@ async function bootApp() {
   const hadStaticShell = Boolean(root.dataset.staticShell)
   const hadPrerenderedShell = Boolean(root.dataset.prerendered)
 
-  const [{ StrictMode, createElement }, { createRoot, hydrateRoot }, { default: App }] = await Promise.all([
+  const [{ StrictMode, createElement }, { createRoot }, { default: App }] = await Promise.all([
     import('react'),
     import('react-dom/client'),
     import('./app/App'),
@@ -67,9 +67,14 @@ async function bootApp() {
   const app = createElement(StrictMode, null, createElement(App))
 
   if (hadPrerenderedShell) {
-    // Hydrate in-place instead of clearing DOM — avoids blank-flash on first click
+    // The SEO snapshot is handcrafted HTML rather than output from React SSR,
+    // so hydrating it always produces a mismatch and forces a second render.
+    // Mount React cleanly instead; keeping the snapshot until all route chunks
+    // have loaded still preserves the fast first paint.
+    root.replaceChildren()
     delete root.dataset.prerendered
-    hydrateRoot(root, app)
+    document.querySelectorAll('style[data-ssg]').forEach((el) => el.remove())
+    createRoot(root).render(app)
     return
   }
 

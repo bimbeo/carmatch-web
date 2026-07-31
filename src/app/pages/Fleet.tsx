@@ -22,6 +22,7 @@ function buildZaloHref(message: string) {
 type FuelFilter  = 'all' | 'Điện' | 'Xăng' | 'Dầu';
 type SeatsFilter = 'all' | '4' | '5' | '7' | '8+';
 type SortOption  = 'default' | 'price-asc' | 'price-desc';
+type BudgetFilter = 'all' | 'under-1m';
 
 function parseFuelFilter(value: string | null): FuelFilter {
   return value === 'Điện' || value === 'Xăng' || value === 'Dầu' ? value : 'all';
@@ -29,6 +30,11 @@ function parseFuelFilter(value: string | null): FuelFilter {
 
 function parseSeatsFilter(value: string | null): SeatsFilter {
   return value === '4' || value === '5' || value === '7' || value === '8+' ? value : 'all';
+}
+
+function parseHour(value: string | null, fallback = 20): number {
+  const hour = Number(value);
+  return Number.isInteger(hour) && hour >= 7 && hour <= 23 ? hour : fallback;
 }
 
 function toLocalDateStr(date: Date): string {
@@ -91,7 +97,7 @@ function Chip({
     >
       {children}
       {count !== undefined && count > 0 && !active && (
-        <span className="ml-1 text-slate-400">{count}</span>
+        <span className="ml-1 text-slate-600">{count}</span>
       )}
     </button>
   );
@@ -107,6 +113,7 @@ export default function Fleet() {
   const seatsFilter  = parseSeatsFilter(searchParams.get('seatFilter') || searchParams.get('seats'));
   const sortByRaw    = searchParams.get('sort') || '';
   const sortBy       = (sortByRaw === 'price-asc' || sortByRaw === 'price-desc' ? sortByRaw : 'default') as SortOption;
+  const budgetFilter = (searchParams.get('budget') === 'under-1m' ? 'under-1m' : 'all') as BudgetFilter;
 
   // Setters update URL, preserving unrelated params (area, from, to, etc.)
   const setBrandFilter = (v: string) => setSearchParams(prev => {
@@ -130,6 +137,12 @@ export default function Fleet() {
   const setSortBy = (v: SortOption) => setSearchParams(prev => {
     const n = new URLSearchParams(prev);
     if (v === 'default') n.delete('sort'); else n.set('sort', v);
+    return n;
+  }, { replace: true });
+
+  const setBudgetFilter = (v: BudgetFilter) => setSearchParams(prev => {
+    const n = new URLSearchParams(prev);
+    if (v === 'all') n.delete('budget'); else n.set('budget', v);
     return n;
   }, { replace: true });
 
@@ -163,7 +176,12 @@ export default function Fleet() {
       requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn > pickupDate
         ? requestedReturn
         : toLocalDateStr(addLocalDays(new Date(`${pickupDate}T00:00:00`), 1));
-    return { pickupDate, returnDate, pickupHour: 20, returnHour: 20 };
+    return {
+      pickupDate,
+      returnDate,
+      pickupHour: parseHour(searchParams.get('pickupHour')),
+      returnHour: parseHour(searchParams.get('returnHour')),
+    };
   });
   const [leadArea, setLeadArea] = useState(searchParams.get('area') || '');
   const [leadDate, setLeadDate] = useState(searchParams.get('from') || '');
@@ -230,6 +248,7 @@ export default function Fleet() {
       if (seatsFilter === '8+') r = r.filter((c) => c.seats >= 8);
       else r = r.filter((c) => c.seats === Number(seatsFilter));
     }
+    if (budgetFilter === 'under-1m') r = r.filter((c) => c.price > 0 && c.price < 1_000_000);
     if (unavailableVehicles.unavailableVehicleIds.length > 0 || unavailableVehicles.unavailableModels.length > 0) {
       r = r.filter((c) =>
         !unavailableVehicles.unavailableVehicleIds.includes(c.id) &&
@@ -239,12 +258,13 @@ export default function Fleet() {
     if (sortBy === 'price-asc')  r.sort((a, b) => (a.price || 9_999_999) - (b.price || 9_999_999));
     if (sortBy === 'price-desc') r.sort((a, b) => (b.price || 0) - (a.price || 0));
     return r;
-  }, [cars, brandFilter, fuelFilter, seatsFilter, sortBy, unavailableVehicles]);
+  }, [cars, brandFilter, budgetFilter, fuelFilter, seatsFilter, sortBy, unavailableVehicles]);
 
   const activeCount =
     (brandFilter  !== 'all' ? 1 : 0) +
     (fuelFilter   !== 'all' ? 1 : 0) +
-    (seatsFilter  !== 'all' ? 1 : 0);
+    (seatsFilter  !== 'all' ? 1 : 0) +
+    (budgetFilter !== 'all' ? 1 : 0);
 
   const querySummary = [
     searchParams.get('area') && `Nhận xe: ${searchParams.get('area')}`,
@@ -252,14 +272,16 @@ export default function Fleet() {
     searchParams.get('to') && `Trả ngày: ${searchParams.get('to')}`,
     seatsFilter !== 'all' && `Số chỗ: ${seatsFilter}`,
     fuelFilter !== 'all' && `Nhiên liệu: ${fuelFilter}`,
+    budgetFilter !== 'all' && 'Ngân sách: dưới 1 triệu/ngày',
   ].filter(Boolean);
 
   const leadFilterSummary = useMemo(() => [
     brandFilter !== 'all' && `Hãng xe: ${brandFilter}`,
     fuelFilter !== 'all' && `Nhiên liệu: ${fuelFilter}`,
     seatsFilter !== 'all' && `Số chỗ: ${seatsFilter}`,
+    budgetFilter !== 'all' && 'Ngân sách: dưới 1 triệu/ngày',
     sortBy !== 'default' && `Sắp xếp: ${sortBy === 'price-asc' ? 'giá thấp trước' : 'giá cao trước'}`,
-  ].filter(Boolean), [brandFilter, fuelFilter, seatsFilter, sortBy]);
+  ].filter(Boolean), [brandFilter, budgetFilter, fuelFilter, seatsFilter, sortBy]);
 
   const fleetZaloMessage = useMemo(() => [
     'Xin chào Car Match, tôi cần thuê xe tự lái tại Hà Nội.',
@@ -299,7 +321,7 @@ export default function Fleet() {
 
   const resetAll = () => setSearchParams(prev => {
     const n = new URLSearchParams(prev);
-    ['brand', 'fuelFilter', 'seatFilter', 'sort'].forEach(k => n.delete(k));
+    ['brand', 'fuelFilter', 'seatFilter', 'sort', 'budget'].forEach(k => n.delete(k));
     return n;
   }, { replace: true });
 
@@ -310,7 +332,8 @@ export default function Fleet() {
       <MobileConversionBar source="fleet" />
 
       {/* ── Header ── */}
-      <div id="main-content" className="border-b border-slate-100 bg-white pt-24 pb-8 sm:pb-10">
+      <main id="main-content">
+      <div className="border-b border-slate-100 bg-white pt-24 pb-8 sm:pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -332,7 +355,7 @@ export default function Fleet() {
               ].map(([value, label]) => (
                 <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xl font-semibold tracking-tight text-slate-950">{value}</div>
-                  <div className="mt-0.5 text-xs font-medium uppercase tracking-wide text-slate-400">{label}</div>
+                  <div className="mt-0.5 text-xs font-medium uppercase tracking-wide text-slate-600">{label}</div>
                 </div>
               ))}
             </div>
@@ -378,16 +401,28 @@ export default function Fleet() {
           onActiveChange={setDateFilterActive}
           initialPickupDate={selectedRentalRange.pickupDate}
           initialReturnDate={selectedRentalRange.returnDate}
-          onRangeChange={(pickupDate, returnDate) => {
-            setSelectedRentalRange((current) => ({ ...current, pickupDate, returnDate }));
+          initialPickupHour={selectedRentalRange.pickupHour}
+          initialReturnHour={selectedRentalRange.returnHour}
+          onRangeChange={(pickupDate, returnDate, pickupHour, returnHour) => {
+            setSelectedRentalRange({ pickupDate, returnDate, pickupHour, returnHour });
+            setSearchParams(prev => {
+              const next = new URLSearchParams(prev);
+              next.set('from', pickupDate);
+              next.set('to', returnDate);
+              next.set('pickupHour', String(pickupHour));
+              next.set('returnHour', String(returnHour));
+              return next;
+            }, { replace: true });
           }}
         />
 
-        {dateFilterActive && !loading && (
-          <div className="mb-4 inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
-            Đang lọc: {filtered.length} xe trống lịch cho ngày bạn chọn
-          </div>
-        )}
+        <div className="mb-4 min-h-8" aria-live="polite">
+          {dateFilterActive && !loading && (
+            <div className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+              Đang lọc: {filtered.length} xe trống lịch cho ngày bạn chọn
+            </div>
+          )}
+        </div>
 
         {/* ── Filter bar (Mioto-style) ── */}
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
@@ -421,6 +456,13 @@ export default function Fleet() {
                     {s} chỗ
                   </Chip>
                 ))}
+                <span className="mx-1 h-6 w-px flex-shrink-0 bg-slate-200" />
+                <Chip
+                  active={budgetFilter === 'under-1m'}
+                  onClick={() => setBudgetFilter(budgetFilter === 'under-1m' ? 'all' : 'under-1m')}
+                >
+                  Dưới 1 triệu
+                </Chip>
               </div>
             </div>
             <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white via-white/90 to-transparent sm:hidden" />
@@ -707,6 +749,7 @@ export default function Fleet() {
         </form>
       </div>
 
+      </main>
       <Footer />
     </div>
   );

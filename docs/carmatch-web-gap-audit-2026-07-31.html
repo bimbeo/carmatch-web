@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Critique · Car Match booking website</title>
+  <style>
+    :root{--paper:#f5f4ef;--ink:#172033;--muted:#657086;--line:#d9dce4;--navy:#111c4e;--blue:#3156d8;--green:#16855b;--red:#c33d4f;--amber:#b96c12;--card:#fff}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{width:min(1160px,calc(100% - 32px));margin:32px auto 64px}.eyebrow{margin:0 0 8px;color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+    h1{max-width:820px;margin:0;font-size:clamp(34px,6vw,68px);line-height:1.02;letter-spacing:-.04em}h2{margin:0 0 14px;font-size:22px;line-height:1.2}h3{margin:0;font-size:17px}
+    p{margin:0}.muted{color:var(--muted)}.header{display:grid;grid-template-columns:1.5fr .8fr;gap:24px;padding:32px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(135deg,#fff 0%,#f0f3ff 100%)}
+    .verdict{margin-top:24px;max-width:760px;font-size:18px}.meta{align-self:end;padding:18px;border-radius:18px;background:var(--navy);color:#fff}.meta strong{display:block;font-size:18px}.meta span{display:block;margin-top:6px;color:#cbd5ff;font-size:13px}
+    .summary{display:grid;grid-template-columns:360px 1fr;gap:24px;margin-top:24px}.panel,.card,.actions section{border:1px solid var(--line);border-radius:24px;background:var(--card)}.panel{padding:22px}.radar{display:block;width:100%;height:auto}.mean{display:flex;align-items:end;justify-content:space-between;margin-top:8px;padding-top:16px;border-top:1px solid var(--line)}.mean strong{font-size:48px;line-height:1}.mean span{color:var(--muted);font-weight:700}
+    .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.fact{padding:17px;border-radius:17px;background:#f7f8fb}.fact strong{display:block;font-size:25px;letter-spacing:-.03em}.fact span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+    .dimensions{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}.card{padding:22px}.card:last-child{grid-column:span 2}.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.score{min-width:62px;padding:8px 10px;border-radius:999px;background:#eef1ff;color:var(--navy);font-weight:900;text-align:center}.band{margin:10px 0 14px;color:var(--muted);font-size:13px;font-weight:700}.evidence{color:#394358}.triad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}.triad div{padding:11px;border-radius:12px;font-size:12px}.keep{background:#ecf8f2;color:#126a49}.fix{background:#fff0f2;color:#9f2939}.quick{background:#fff6e8;color:#8d520e}.triad b{display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em;font-size:10px}
+    .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}.actions section{padding:22px}.actions ul{margin:0;padding-left:20px}.actions li+li{margin-top:10px}.priority{display:inline-flex;margin-right:6px;padding:2px 7px;border-radius:999px;background:var(--navy);color:#fff;font-size:10px;font-weight:900}.source{margin-top:24px;padding:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.source a{color:var(--blue)}
+    @media(max-width:800px){main{width:min(100% - 20px,1160px);margin-top:10px}.header,.summary{grid-template-columns:1fr}.dimensions,.actions{grid-template-columns:1fr}.card:last-child{grid-column:auto}.facts{grid-template-columns:1fr 1fr}.triad{grid-template-columns:1fr}.header{padding:24px}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="header">
+    <div>
+      <p class="eyebrow">OD · Critique skill · 31/07/2026</p>
+      <h1>Car Match booking website</h1>
+      <p class="verdict">Nền tảng đã có luồng đặt xe và bản sắc rõ, nhưng điểm nghẽn tiếp theo không nằm ở hiệu ứng giao diện: cần làm lịch/giá đáng tin ở tầng server, sửa lỗi hydration và bổ sung dữ liệu tạo niềm tin cho từng xe.</p>
+    </div>
+    <div class="meta">
+      <strong>Verdict · Functional, not yet defensible</strong>
+      <span>Đối chiếu listing, chi tiết xe, booking flow, dữ liệu production, Lighthouse mobile và Mioto.</span>
+    </div>
+  </header>
+
+  <section class="summary">
+    <div class="panel">
+      <svg class="radar" viewBox="0 0 320 320" role="img" aria-label="Biểu đồ năm chiều: Philosophy 7, Hierarchy 7, Detail 5, Functionality 5, Innovation 6">
+        <g fill="none" stroke="#d9dce4">
+          <polygon points="160,60 255.1,129.1 218.8,240.9 101.2,240.9 64.9,129.1"/>
+          <polygon points="160,80 236.1,135.3 207,224.7 113,224.7 83.9,135.3"/>
+          <polygon points="160,100 217.1,141.5 195.3,208.5 124.7,208.5 102.9,141.5"/>
+          <polygon points="160,120 198,147.6 183.5,192.4 136.5,192.4 122,147.6"/>
+          <polygon points="160,140 179,153.8 171.8,176.2 148.2,176.2 141,153.8"/>
+          <line x1="160" y1="160" x2="160" y2="60"/><line x1="160" y1="160" x2="255.1" y2="129.1"/><line x1="160" y1="160" x2="218.8" y2="240.9"/><line x1="160" y1="160" x2="101.2" y2="240.9"/><line x1="160" y1="160" x2="64.9" y2="129.1"/>
+        </g>
+        <polygon points="160,90 226.6,138.4 189.4,200.5 130.6,200.5 102.9,141.5" fill="rgba(49,86,216,.2)" stroke="#3156d8" stroke-width="3"/>
+        <g fill="#3156d8"><circle cx="160" cy="90" r="5"/><circle cx="226.6" cy="138.4" r="5"/><circle cx="189.4" cy="200.5" r="5"/><circle cx="130.6" cy="200.5" r="5"/><circle cx="102.9" cy="141.5" r="5"/></g>
+        <g fill="#657086" font-size="11" font-weight="700"><text x="160" y="42" text-anchor="middle">PHILOSOPHY</text><text x="270" y="125">HIERARCHY</text><text x="228" y="265">DETAIL</text><text x="92" y="265" text-anchor="end">FUNCTION</text><text x="48" y="125" text-anchor="end">INNOVATION</text></g>
+      </svg>
+      <div class="mean"><span>Điểm trung bình</span><strong>6.0</strong></div>
+    </div>
+    <div class="panel">
+      <h2>Bằng chứng định lượng</h2>
+      <div class="facts">
+        <div class="fact"><strong>66/100</strong><span>Lighthouse performance mobile</span></div>
+        <div class="fact"><strong>1.060 ms</strong><span>Total Blocking Time</span></div>
+        <div class="fact"><strong>4.181 ms</strong><span>LCP element render delay</span></div>
+        <div class="fact"><strong>3 lỗi</strong><span>React hydration #418/#423</span></div>
+        <div class="fact"><strong>26/27</strong><span>Xe thiếu mô tả website</span></div>
+        <div class="fact"><strong>26/27</strong><span>Xe thiếu điều kiện thuê riêng</span></div>
+        <div class="fact"><strong>19/27</strong><span>Dùng ảnh cover tạo tự động</span></div>
+        <div class="fact"><strong>55 KiB</strong><span>JavaScript chưa dùng ở tải đầu</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dimensions">
+    <article class="card">
+      <div class="card-head"><h3>1. Philosophy consistency</h3><span class="score">7/10</span></div>
+      <p class="band">Strong · Bản sắc vận hành tập trung, navy/blue nhất quán.</p>
+      <p class="evidence">Thông điệp “giao tận tòa nhà”, quy trình xác nhận lịch qua Zalo và phần bàn giao/an toàn cùng nói một ngôn ngữ dịch vụ. Điểm lệch là CTA production vẫn nói “Xem QR đặt cọc” trong khi trạng thái xe báo “Cần xác nhận giờ”, làm triết lý an toàn trước cọc bị phá vỡ.</p>
+      <div class="triad"><div class="keep"><b>Keep</b>Thông điệp bàn giao rõ ràng.</div><div class="fix"><b>Fix</b>Mọi CTA phải theo trạng thái lịch.</div><div class="quick"><b>Quick win</b>Deploy nhánh xác nhận lịch mới.</div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><h3>2. Visual hierarchy</h3><span class="score">7/10</span></div>
+      <p class="band">Strong · Khách nhìn thấy ngày, giá và CTA sớm.</p>
+      <p class="evidence">Chi tiết xe đặt lịch và tổng dự kiến ở cột phải, các thông số chính ở trên fold. Tuy nhiên Car Match thiếu tầng “bằng chứng tin cậy” giữa tên xe và nút đặt: Mioto đặt đánh giá, số chuyến, bảo hiểm, chủ xe và phản hồi ngay trong hành trình quyết định.</p>
+      <div class="triad"><div class="keep"><b>Keep</b>Booking panel sticky.</div><div class="fix"><b>Fix</b>Thêm trust proof gần CTA.</div><div class="quick"><b>Quick win</b>Hiện số chuyến/đánh giá đã xác minh.</div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><h3>3. Detail execution</h3><span class="score">5/10</span></div>
+      <p class="band">Functional · Khung tốt nhưng dữ liệu xe còn quá mỏng.</p>
+      <p class="evidence">Dữ liệu production có 26/27 xe thiếu mô tả và điều kiện thuê riêng, 19/27 xe dùng cover sinh tự động; mẫu VF3 đang chỉ có một ảnh. Mioto cung cấp gallery, tiện nghi, mô tả, tài sản thế chấp, phụ phí vệ sinh/khử mùi/sạc và chính sách huỷ.</p>
+      <div class="triad"><div class="keep"><b>Keep</b>Thông số km và phí trễ.</div><div class="fix"><b>Fix</b>Checklist nội dung trước publish.</div><div class="quick"><b>Quick win</b>Ưu tiên bổ sung top 10 xe bán chạy.</div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><h3>4. Functionality</h3><span class="score">5/10</span></div>
+      <p class="band">Functional · Luồng chạy được nhưng chưa đủ an toàn để scale.</p>
+      <p class="evidence">Lighthouse mobile đạt 66, TBT 1.060 ms và ghi nhận React hydration #418/#423. API tạo booking nhận <code>total_amount</code> từ client, sinh mã bằng “đếm số đơn hôm nay + 1”, chưa thấy kiểm tra xung đột lịch lần cuối hoặc giữ chỗ transaction trước khi tạo lead.</p>
+      <div class="triad"><div class="keep"><b>Keep</b>Rate limit và kiểm tra giá lễ.</div><div class="fix"><b>Fix</b>Server quote + hold + idempotency.</div><div class="quick"><b>Quick win</b>Lazy-load Supabase auth ở navbar.</div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><h3>5. Innovation</h3><span class="score">6/10</span></div>
+      <p class="band">Functional · Có điểm riêng nhưng chưa tạo lợi thế khó sao chép.</p>
+      <p class="evidence">“Đi đâu”, lập kế hoạch chuyến đi, loyalty, referral và giao tận sảnh là các điểm khác biệt phù hợp Car Match. Nhưng listing/chi tiết vẫn khiến khách so chủ yếu bằng tên xe và giá; chưa có gợi ý theo hành trình, chi phí toàn chuyến hoặc cam kết vận hành để biến mô hình đội xe tập trung thành lợi thế rõ ràng.</p>
+      <div class="triad"><div class="keep"><b>Keep</b>Trip planning + Zalo fallback.</div><div class="fix"><b>Fix</b>Biến SLA vận hành thành sản phẩm.</div><div class="quick"><b>Quick win</b>Badge “Car Match kiểm tra xe”.</div></div>
+    </article>
+  </section>
+
+  <section class="actions">
+    <section>
+      <h2>Keep</h2>
+      <ul>
+        <li>Giữ booking panel sticky và truyền ngày/giờ xuyên suốt listing → chi tiết.</li>
+        <li>Giữ Zalo/điện thoại làm kênh fallback, không làm đường duy nhất.</li>
+        <li>Giữ phần tổng giá, cọc, còn lại và phụ phí đã bổ sung.</li>
+        <li>Giữ lợi thế “giao tận sảnh” và quy trình bàn giao chống tranh chấp.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Fix</h2>
+      <ul>
+        <li><span class="priority">P0</span>Deploy bản hiện tại và chạy lại smoke test production.</li>
+        <li><span class="priority">P0</span>Thay hydrate trên HTML thủ công bằng React SSR/prerender đúng contract hoặc interactive islands.</li>
+        <li><span class="priority">P0</span>Server tự tính giá; client chỉ gửi lựa chọn, không gửi tổng tiền đáng tin cậy.</li>
+        <li><span class="priority">P0</span>Kiểm tra lịch lần cuối + giữ chỗ 10–15 phút + idempotency/DB constraint.</li>
+        <li><span class="priority">P1</span>Tạo “vehicle completeness score” và không publish xe thiếu ảnh/mô tả/điều kiện.</li>
+        <li><span class="priority">P1</span>Thêm trust layer: số chuyến, review xác minh, bảo hiểm, SLA, vệ sinh và hỗ trợ.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Quick wins</h2>
+      <ul>
+        <li>Lazy-load Supabase auth và AuthModal khỏi tải đầu; Lighthouse ước tính 55 KiB JS thừa.</li>
+        <li>Đổi <code>text-slate-400</code> sang màu đủ tương phản cho nhãn và số filter.</li>
+        <li>Bọc nội dung listing trong <code>&lt;main&gt;</code>; giữ aria-label ngày/giờ đã sửa.</li>
+        <li>Gắn Web Vitals + error monitoring cho hydration/API booking.</li>
+        <li>Hiện vị trí nhận xe, khoảng cách và phí giao nhận ngay trên card.</li>
+      </ul>
+    </section>
+  </section>
+
+  <footer class="source">
+    Bằng chứng: <a href="https://www.carmatch.vn/xe">Car Match listing</a>, <a href="https://www.mioto.vn/car/vinfast-vf8-plus-2022/KG9126">Mioto detail</a>, Lighthouse mobile chạy ngày 31/07/2026, <code>api/bookings.js</code>, <code>src/main.tsx</code>, <code>src/app/components/Navbar.tsx</code>, và <code>data/vehicles.json</code> production. Báo cáo này không thay đổi dữ liệu production.
+  </footer>
+</main>
+</body>
+</html>

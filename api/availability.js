@@ -65,9 +65,13 @@ function parseDuration(duration) {
   return from && to ? { from, to } : null;
 }
 
-function requestedDateAt20(dateString) {
+function requestedDateAt(dateString, hourValue, fallbackHour = 20) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ''))) return null;
-  return parseDateTimePart(`${dateString} 20:00`);
+  const parsedHour = Number(hourValue);
+  const hour = Number.isInteger(parsedHour) && parsedHour >= 7 && parsedHour <= 23
+    ? parsedHour
+    : fallbackHour;
+  return parseDateTimePart(`${dateString} ${String(hour).padStart(2, '0')}:00`);
 }
 
 function isGeneratedAssignment(assignment) {
@@ -118,8 +122,8 @@ export default async function handler(req, res) {
 
   const pickup = clean(req.query.pickup);
   const returnDate = clean(req.query.return);
-  const requestedPickup = requestedDateAt20(pickup);
-  const requestedReturn = requestedDateAt20(returnDate);
+  const requestedPickup = requestedDateAt(pickup, req.query.pickupHour);
+  const requestedReturn = requestedDateAt(returnDate, req.query.returnHour);
   if (!requestedPickup || !requestedReturn || requestedReturn <= requestedPickup) {
     return res.status(400).json({ error: 'Invalid date range' });
   }
@@ -144,7 +148,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ unavailable_vehicle_ids: [], unavailable_models: [] });
     }
 
-    const [eventsResult, assignmentsResult, leadsResult] = await Promise.all([
+    const [eventsResult, assignmentsResult, leadsResult, reservationsResult] = await Promise.all([
       supabase
         .from('vehicle_schedule_events')
         .select('booking_id, vehicle_id, event_type, starts_at, ends_at, status, note, location_text, external_refs')
@@ -163,10 +167,18 @@ export default async function handler(req, res) {
         .select('car_model, duration')
         .eq('form_type', 'booking')
         .not('status', 'in', '("cancelled","completed")'),
+      supabase
+        .from('vehicle_reservations')
+        .select('vehicle_id,status,active_until,starts_at,ends_at')
+        .in('vehicle_id', vehicleIds)
+        .in('status', ['held', 'confirmed'])
+        .lt('starts_at', requestedReturn.toISOString())
+        .gt('ends_at', requestedPickup.toISOString()),
     ]);
     if (eventsResult.error) throw eventsResult.error;
     if (assignmentsResult.error) throw assignmentsResult.error;
     if (leadsResult.error) throw leadsResult.error;
+    if (reservationsResult.error) throw reservationsResult.error;
 
     const selectedAssignments = selectCurrentAssignments(assignmentsResult.data || []);
     const assignmentIds = new Set(selectedAssignments.map((assignment) => assignment.id));
@@ -205,6 +217,12 @@ export default async function handler(req, res) {
       const assignedTo = clean(assignment.assigned_to || booking.return_date || assignedFrom);
       if (!assignedFrom || !assignedTo || assignedFrom > returnDate || assignedTo < pickup) return;
       unavailableVehicleIds.add(assignment.vehicle_id);
+    });
+
+    const now = Date.now();
+    (reservationsResult.data || []).forEach((reservation) => {
+      if (reservation.status === 'held' && (!reservation.active_until || new Date(reservation.active_until).getTime() <= now)) return;
+      unavailableVehicleIds.add(reservation.vehicle_id);
     });
 
     const unavailableModels = new Set();
