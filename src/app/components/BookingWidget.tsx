@@ -144,14 +144,35 @@ function rentalDurationLabel(
   returnHour: number,
 ): string {
   const hours = rentalDurationHours(pickupDate, pickupHour, returnDate, returnHour);
-  if (hours === 24) return '1 ngày (24 giờ)';
+  if (hours === 24) return '1 ngày';
   if (hours < 24) return `${hours} giờ`;
 
   const days = Math.floor(hours / 24);
   const remainingHours = hours % 24;
   return remainingHours === 0
-    ? `${days} ngày (${hours} giờ)`
+    ? `${days} ngày`
     : `${days} ngày ${remainingHours} giờ`;
+}
+
+/**
+ * Khoảng ngày được tô trên lịch là các ngày tính tiền xe, không phải cả hai
+ * mốc bàn giao. Với ca nhận từ 16:00, ngày nhận chỉ là tối bàn giao trước;
+ * ngày xe đầu tiên được tính từ ngày hôm sau.
+ */
+function getBillableDayRange(
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+): { from: Date; to?: Date } {
+  const pickup = parseDateStr(pickupDate);
+  const dropoff = parseDateStr(returnDate);
+  const firstBillableDay = pickupHour >= 16 && dropoff > pickup
+    ? addDays(pickup, 1)
+    : pickup;
+
+  return firstBillableDay <= dropoff
+    ? { from: firstBillableDay, to: dropoff }
+    : { from: pickup };
 }
 
 function getInitialBookingSelection(today: Date) {
@@ -677,13 +698,16 @@ export default function BookingWidget({
     [blockedRanges],
   );
 
-  const selectedRange = useMemo(() => ({
-    from: parseDateStr(pickupDate),
-    to: parseDateStr(returnDate),
-  }), [pickupDate, returnDate]);
-
   // Step mode: first click = pickup, second = return
   const [rangeStep, setRangeStep] = useState<'from' | 'to'>('from');
+  const [calendarStartPreview, setCalendarStartPreview] = useState<Date | null>(null);
+
+  const selectedRange = useMemo(
+    () => rangeStep === 'to' && calendarStartPreview
+      ? { from: calendarStartPreview }
+      : getBillableDayRange(pickupDate, pickupHour, returnDate),
+    [calendarStartPreview, pickupDate, pickupHour, rangeStep, returnDate],
+  );
 
   // Use onDayClick instead of onSelect — onSelect has stale-range issues in v8
   // when an existing range is already selected and user starts fresh
@@ -693,15 +717,18 @@ export default function BookingWidget({
     if (rangeStep === 'from') {
       setPickupDate(ds);
       setReturnDate(toDateStr(addDays(day, 1)));
+      setCalendarStartPreview(day);
       setRangeStep('to');
     } else {
       if (ds > pickupDate) {
         setReturnDate(ds);
+        setCalendarStartPreview(null);
         setRangeStep('from');
       } else {
         // clicked same day or before pickup → restart from this day
         setPickupDate(ds);
         setReturnDate(toDateStr(addDays(day, 1)));
+        setCalendarStartPreview(day);
         setRangeStep('to');
       }
     }
@@ -1072,6 +1099,7 @@ export default function BookingWidget({
               onClick={() => {
                 setShowCalModal(true);
                 setRangeStep('from');
+                setCalendarStartPreview(null);
                 void fetchAvailability();
               }}
               className="flex items-center gap-2 w-full py-2.5 px-3.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 text-sm font-semibold hover:bg-brand-100 transition-colors"
@@ -1082,16 +1110,16 @@ export default function BookingWidget({
                 {rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}
               </span>
             </button>
-            <p className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${availabilityUnavailable ? 'text-red-600' : 'text-emerald-700'}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${
-                availLoading ? 'animate-pulse bg-amber-400' : availabilityUnavailable ? 'bg-red-500' : 'bg-emerald-500'
-              }`} />
-              {availLoading
-                ? 'Đang đồng bộ lịch vận hành…'
-                : availabilityUnavailable
-                  ? 'Chưa đồng bộ được lịch — vui lòng thử lại'
-                  : 'Lịch được đồng bộ từ Car Match /calendar'}
-            </p>
+            {(availLoading || availabilityUnavailable) && (
+              <p className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${availabilityUnavailable ? 'text-red-600' : 'text-amber-700'}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  availLoading ? 'animate-pulse bg-amber-400' : 'bg-red-500'
+                }`} />
+                {availLoading
+                  ? 'Đang tải lịch xe…'
+                  : 'Chưa tải được lịch xe — vui lòng thử lại'}
+              </p>
+            )}
 
             {/* Hard conflict — xe đang bận hẳn — cảnh báo đỏ + gợi xe khác */}
             {hardConflicts.length > 0 && (
@@ -1486,8 +1514,8 @@ export default function BookingWidget({
           {/* ── Legend ── */}
           <div className="px-6 pb-2 flex flex-wrap gap-x-5 gap-y-1.5 shrink-0">
             {[
-              { color: 'bg-brand-600 rounded-full', label: 'Ngày chọn' },
-              { color: 'bg-brand-100 border border-brand-200 rounded', label: 'Trong khoảng' },
+              { color: 'bg-brand-600 rounded-full', label: 'Ngày tính xe' },
+              { color: 'bg-brand-100 border border-brand-200 rounded', label: 'Các ngày thuê' },
               { color: 'bg-red-100 border border-red-200 rounded', label: 'Đã có lịch (bận)' },
               { color: 'bg-gray-200 rounded opacity-60', label: 'Không khả dụng' },
             ].map(({ color, label }) => (
