@@ -23,6 +23,33 @@ interface BlockedRange {
   allDay: boolean;
 }
 
+interface HolidayBookingWindow {
+  pickup_date: string;
+  return_date: string;
+  label?: string | null;
+  rule_name?: string;
+}
+
+interface HolidayPricingRule {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  adjustment_type: 'fixed' | 'percent';
+  adjustment_value: number;
+  booking_windows?: HolidayBookingWindow[];
+  note?: string | null;
+}
+
+interface AppliedHolidayPricing {
+  rule_id: string;
+  name: string;
+  dates: string[];
+  adjustment_type: 'fixed' | 'percent';
+  adjustment_value: number;
+  amount: number;
+}
+
 export interface BookingAvailabilityStatus {
   isLoading: boolean;
   hasBlockedRanges: boolean;
@@ -173,6 +200,95 @@ function getBillableDayRange(
   return firstBillableDay <= dropoff
     ? { from: firstBillableDay, to: dropoff }
     : { from: pickup };
+}
+
+function getBillableDateStrings(
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+): string[] {
+  const range = getBillableDayRange(pickupDate, pickupHour, returnDate);
+  const to = range.to ?? range.from;
+  const dates: string[] = [];
+  for (let current = range.from, guard = 0; current <= to && guard < 370; current = addDays(current, 1), guard += 1) {
+    dates.push(toDateStr(current));
+  }
+  return dates;
+}
+
+function holidayDailySurcharge(rule: HolidayPricingRule, basePrice: number): number {
+  if (rule.adjustment_type === 'fixed') return Math.max(0, rule.adjustment_value);
+  return Math.max(0, Math.round((basePrice * rule.adjustment_value / 100) / 1000) * 1000);
+}
+
+function calculateHolidayPricing(
+  rules: HolidayPricingRule[],
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+  basePrice: number,
+): { total: number; applied: AppliedHolidayPricing[]; fees: Fee[] } {
+  const grouped = new Map<string, AppliedHolidayPricing>();
+
+  for (const date of getBillableDateStrings(pickupDate, pickupHour, returnDate)) {
+    const candidates = rules
+      .filter((rule) => rule.start_date <= date && rule.end_date >= date)
+      .map((rule) => ({ rule, amount: holidayDailySurcharge(rule, basePrice) }))
+      .filter((candidate) => candidate.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+    const selected = candidates[0];
+    if (!selected) continue;
+
+    const existing = grouped.get(selected.rule.id);
+    if (existing) {
+      existing.dates.push(date);
+      existing.amount += selected.amount;
+    } else {
+      grouped.set(selected.rule.id, {
+        rule_id: selected.rule.id,
+        name: selected.rule.name,
+        dates: [date],
+        adjustment_type: selected.rule.adjustment_type,
+        adjustment_value: selected.rule.adjustment_value,
+        amount: selected.amount,
+      });
+    }
+  }
+
+  const applied = [...grouped.values()];
+  return {
+    total: applied.reduce((sum, item) => sum + item.amount, 0),
+    applied,
+    fees: applied.map((item) => ({
+      label: `🎉 Phụ thu ${item.name} (${item.dates.length} ngày)`,
+      amount: item.amount,
+    })),
+  };
+}
+
+function formatHolidayAdjustment(rule: HolidayPricingRule): string {
+  return rule.adjustment_type === 'percent'
+    ? `+${rule.adjustment_value}%/ngày`
+    : `+${fmtVND(rule.adjustment_value)}/ngày`;
+}
+
+function formatHolidayBookingWindow(window: HolidayBookingWindow): string {
+  return window.label?.trim()
+    || `${displayDateSlash(window.pickup_date)} – ${displayDateSlash(window.return_date)}`;
+}
+
+function bookingRangeOverlapsHoliday(rule: HolidayPricingRule, pickupDate: string, returnDate: string): boolean {
+  return pickupDate <= rule.end_date && returnDate >= rule.start_date;
+}
+
+function dedupeHolidayBookingWindows(windows: HolidayBookingWindow[]): HolidayBookingWindow[] {
+  const seen = new Set<string>();
+  return windows.filter((window) => {
+    const key = `${window.pickup_date}:${window.return_date}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function getInitialBookingSelection(today: Date) {
@@ -453,6 +569,7 @@ export default function BookingWidget({
   const [availabilityUnavailable, setAvailabilityUnavailable] = useState(false);
   const [showCalModal, setShowCalModal] = useState(false);
   const [requiresConfirmation, setRequiresConfirmation] = useState(false);
+  const [holidayPricingRules, setHolidayPricingRules] = useState<HolidayPricingRule[]>([]);
 
   // ── Promo code ────────────────────────────────────────────────────────────
   const [promoCode, setPromoCode] = useState(initialPromoCode);
@@ -587,6 +704,26 @@ export default function BookingWidget({
     void fetchAvailability();
   }, [fetchAvailability]);
 
+  useEffect(() => {
+    fetch('/api/holiday-pricing')
+      .then((response) => response.ok ? response.json() : null)
+      .then((json) => {
+        const rules = Array.isArray(json?.rules) ? json.rules : [];
+        setHolidayPricingRules(rules.map((rule: HolidayPricingRule) => ({
+          ...rule,
+          adjustment_value: Number(rule.adjustment_value),
+          booking_windows: Array.isArray(rule.booking_windows)
+            ? rule.booking_windows.map((window) => ({
+                pickup_date: String(window.pickup_date || ''),
+                return_date: String(window.return_date || ''),
+                label: window.label ? String(window.label) : null,
+              }))
+            : [],
+        })));
+      })
+      .catch(() => setHolidayPricingRules([]));
+  }, []);
+
   // Fetch points_per_10k from DB on mount so preview is accurate before phone is entered
   useEffect(() => {
     fetch('/api/customer-discount?settings_only=1')
@@ -650,8 +787,72 @@ export default function BookingWidget({
     [pickupDate, pickupHour, returnDate, returnHour, basePrice],
   );
 
+  const holidayPricing = useMemo(
+    () => calculateHolidayPricing(
+      holidayPricingRules,
+      pickupDate,
+      pickupHour,
+      returnDate,
+      basePrice,
+    ),
+    [basePrice, holidayPricingRules, pickupDate, pickupHour, returnDate],
+  );
+  const upcomingHolidayRules = useMemo(
+    () => holidayPricingRules.filter((rule) => rule.end_date >= todayStr).slice(0, 3),
+    [holidayPricingRules, todayStr],
+  );
+  const upcomingHolidayWindows = useMemo(
+    () => dedupeHolidayBookingWindows(
+      upcomingHolidayRules.flatMap((rule) => (
+        rule.booking_windows ?? []
+      ).map((window) => ({
+        ...window,
+        rule_name: rule.name,
+      })).filter((window) => window.pickup_date && window.return_date)),
+    ),
+    [upcomingHolidayRules],
+  );
+  const holidayBookingPolicy = useMemo(() => {
+    const overlappingRules = holidayPricingRules.filter((rule) => (
+      bookingRangeOverlapsHoliday(rule, pickupDate, returnDate)
+    ));
+    const restrictedRules = overlappingRules.filter((rule) => (rule.booking_windows?.length ?? 0) > 0);
+    const windows = dedupeHolidayBookingWindows(
+      restrictedRules.flatMap((rule) => (
+        rule.booking_windows ?? []
+      ).map((window) => ({
+        ...window,
+        rule_name: rule.name,
+      })).filter((window) => window.pickup_date && window.return_date)),
+    );
+    const matchedWindow = windows.find((window) => (
+      window.pickup_date === pickupDate && window.return_date === returnDate
+    )) ?? null;
+
+    return {
+      hasHoliday: overlappingRules.length > 0,
+      isComboRestricted: restrictedRules.length > 0,
+      allowed: restrictedRules.length === 0 || Boolean(matchedWindow),
+      matchedWindow,
+      windows,
+    };
+  }, [holidayPricingRules, pickupDate, returnDate]);
+  const holidayPromoBlocked = holidayBookingPolicy.hasHoliday;
+  const holidayBookingBlocked = holidayBookingPolicy.hasHoliday
+    && holidayBookingPolicy.isComboRestricted
+    && !holidayBookingPolicy.allowed;
+  const holidayComboText = holidayBookingPolicy.windows
+    .map(formatHolidayBookingWindow)
+    .join(', ');
+  const holidayComboBlockMessage = holidayComboText
+    ? `Kỳ lễ này chỉ nhận ${holidayComboText}. Đặt lẻ ngày không nhận.`
+    : 'Kỳ lễ này chỉ nhận đúng combo đã công bố. Đặt lẻ ngày không nhận.';
+  const holidayPromoBlockMessage = 'Mã giảm giá không áp dụng vào ngày lễ / cao điểm.';
+
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
-  const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee : 0;
+  const orderTotalBeforePromo = rentalResult.valid
+    ? rentalResult.total + holidayPricing.total + deliveryFee
+    : 0;
   const totalAmount = orderTotalBeforePromo;
   const loyaltyDiscountAmount = loyaltyDiscount?.discount_amount ?? 0;
 
@@ -668,10 +869,16 @@ export default function BookingWidget({
       : [];
     return {
       ...rentalResult,
-      fees: [...rentalResult.fees, ...extraFees, ...loyaltyFee, ...promoFee],
+      fees: [...rentalResult.fees, ...holidayPricing.fees, ...extraFees, ...loyaltyFee, ...promoFee],
       total: Math.max(0, orderTotalBeforePromo - loyaltyDiscountAmount - (promoResult?.discount_amount ?? 0)),
     };
-  }, [rentalResult, deliveryMode, deliveryFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
+  }, [rentalResult, holidayPricing.fees, deliveryMode, deliveryFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
+
+  useEffect(() => {
+    if (!holidayPromoBlocked) return;
+    setPromoResult(null);
+    setPromoError('');
+  }, [holidayPromoBlocked]);
 
   const savings =
     priceMonth && basePrice > 0
@@ -696,6 +903,13 @@ export default function BookingWidget({
       return { from: fromDate, to: effectiveTo };
     }),
     [blockedRanges],
+  );
+  const holidayPricingIntervals = useMemo(
+    () => holidayPricingRules.map((rule) => ({
+      from: parseDateStr(rule.start_date),
+      to: parseDateStr(rule.end_date),
+    })),
+    [holidayPricingRules],
   );
 
   // Step mode: first click = pickup, second = return
@@ -736,13 +950,18 @@ export default function BookingWidget({
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
+    if (holidayPromoBlocked) {
+      setPromoResult(null);
+      setPromoError(holidayPromoBlockMessage);
+      return;
+    }
     setPromoLoading(true);
     setPromoError('');
     setPromoResult(null);
     try {
       const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
       const res = await fetch(
-        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}&pickup_date=${pickupDate}${phoneParam}`,
+        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`,
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
@@ -788,27 +1007,34 @@ export default function BookingWidget({
   const fetchPromoList = useCallback(async () => {
     setPromoListLoading(true);
     try {
-      const res = await fetch(`/api/promo-list?total=${totalAmount}`);
+      const res = await fetch(`/api/promo-list?total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}`);
       const json = await res.json();
       if (res.ok) setPromoList(json.promos || []);
     } catch { /* silent */ } finally {
       setPromoListLoading(false);
     }
-  }, [totalAmount]);
+  }, [pickupDate, returnDate, totalAmount]);
 
   const openPromoModal = () => {
+    if (holidayPromoBlocked) return;
     setShowPromoModal(true);
     void fetchPromoList();
   };
 
   const applyPromoFromList = async (code: string) => {
+    if (holidayPromoBlocked) {
+      setPromoCode(code);
+      setPromoResult(null);
+      setPromoError(holidayPromoBlockMessage);
+      return;
+    }
     setPromoCode(code);
     setPromoLoading(true);
     setPromoError('');
     setPromoResult(null);
     try {
       const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
-      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}&pickup_date=${pickupDate}${phoneParam}`);
+      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
       setPromoResult(json);
@@ -821,12 +1047,12 @@ export default function BookingWidget({
   };
 
   useEffect(() => {
-    if (!initialPromoCode || promoAutoAppliedRef.current || totalAmount <= 0) return;
+    if (!initialPromoCode || promoAutoAppliedRef.current || totalAmount <= 0 || holidayPromoBlocked) return;
     promoAutoAppliedRef.current = true;
     void applyPromoFromList(initialPromoCode);
     // Run once when the calculator has a valid amount; `applyPromoFromList` reads the latest booking state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPromoCode, totalAmount]);
+  }, [initialPromoCode, totalAmount, holidayPromoBlocked]);
 
   const handleBookingSubmit = async () => {
     if (!customerName.trim()) { setBookingError('Vui lòng nhập họ tên'); return; }
@@ -836,9 +1062,19 @@ export default function BookingWidget({
       setBookingError('Vui lòng nhập địa chỉ giao xe');
       return;
     }
+    if (holidayBookingBlocked) {
+      setBookingError(holidayComboBlockMessage);
+      return;
+    }
+    if (holidayPromoBlocked && promoResult) {
+      setPromoResult(null);
+      setBookingError(holidayPromoBlockMessage);
+      return;
+    }
 
     setBookingLoading(true);
     setBookingError('');
+    const promoForBooking = holidayPromoBlocked ? null : promoResult;
     trackBookingSubmit('attempt', {
       vehicle_id: vehicleId || null,
       vehicle_name: carName,
@@ -847,7 +1083,7 @@ export default function BookingWidget({
       delivery_mode: deliveryMode,
       pickup_date: pickupDate,
       return_date: returnDate,
-      promo_code: promoResult?.code ?? null,
+      promo_code: promoForBooking?.code ?? null,
     });
     try {
       const loc = LOCATIONS.find(l => l.id === selectedLocation);
@@ -870,11 +1106,13 @@ export default function BookingWidget({
           delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() : null,
           location_name: deliveryMode === 'self' ? loc?.name : deliveryAddress.trim() || 'Giao tận nơi',
           base_amount: rentalResult.valid ? rentalResult.total : 0,
+          holiday_surcharge: holidayPricing.total,
+          holiday_pricing: holidayPricing.applied,
           delivery_fee: deliveryFee,
           loyalty_tier: loyaltyDiscount?.tier ?? null,
           loyalty_discount: loyaltyDiscountAmount,
-          promo_code: promoResult?.code ?? null,
-          promo_discount: promoResult?.discount_amount ?? 0,
+          promo_code: promoForBooking?.code ?? null,
+          promo_discount: promoForBooking?.discount_amount ?? 0,
           total_amount: result.valid ? result.total : 0,
           requires_confirmation: requiresConfirmation,
         }),
@@ -892,7 +1130,7 @@ export default function BookingWidget({
         total_amount: result.valid ? result.total : 0,
         deposit_amount: data.depositAmount,
         delivery_mode: deliveryMode,
-        promo_code: promoResult?.code ?? null,
+        promo_code: promoForBooking?.code ?? null,
       });
     } catch (e: unknown) {
       const message = (e as Error)?.message || 'Lỗi kết nối, thử lại sau';
@@ -915,6 +1153,9 @@ export default function BookingWidget({
     const locationLine = deliveryMode === 'self'
       ? `📍 Địa điểm: ${loc.name} (${loc.address})`
       : `🚗 Giao xe tận nơi (phí 100.000đ/chiều)`;
+    const holidayComboLine = holidayBookingPolicy.matchedWindow
+      ? `🎉 Combo lễ: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}\n`
+      : '';
     const promoLine = promoResult
       ? `🏷️ Mã giảm giá: ${promoResult.code} (-${fmtVND(promoResult.discount_amount)})\n`
       : '';
@@ -923,6 +1164,7 @@ export default function BookingWidget({
       `📅 Nhận xe: ${displayDate(pickupDate)} lúc ${pickupHour}:00\n` +
       `📅 Trả xe: ${displayDate(returnDate)} lúc ${returnHour}:00\n` +
       `${locationLine}\n` +
+      `${holidayComboLine}` +
       `${promoLine}` +
       `💰 Dự kiến: ${priceText}\n\n` +
       `Anh/chị xác nhận giúp lịch xe và giá thuê ạ!`
@@ -973,9 +1215,11 @@ export default function BookingWidget({
       `Tên xe: ${carName}`,
       `Giờ nhận xe: ${pickupHour} giờ ngày ${displayDateSlash(pickupDate)}`,
       `Giờ trả xe: ${returnHour} giờ ngày ${displayDateSlash(returnDate)}`,
+      holidayBookingPolicy.matchedWindow ? `Combo lễ: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}` : null,
       `Số ngày thuê: ${rentalDays} ngày`,
       '',
       `Tổng giá: ${orderTotalBeforePromo.toLocaleString('vi-VN')}đ`,
+      holidayPricing.total > 0 ? `Phụ thu giá lễ: +${holidayPricing.total.toLocaleString('vi-VN')}đ` : null,
       loyaltyDiscountAmount > 0 ? `Ưu đãi ${loyaltyDiscount?.tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${loyaltyDiscountAmount.toLocaleString('vi-VN')}đ` : null,
       promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
       (loyaltyDiscountAmount > 0 || promoDiscount > 0) ? `Tổng sau ưu đãi: ${finalTotal.toLocaleString('vi-VN')}đ` : null,
@@ -1019,6 +1263,62 @@ export default function BookingWidget({
             <span className="whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">
               Tiết kiệm {savings}%
             </span>
+          </div>
+        )}
+
+        {upcomingHolidayRules.length > 0 && (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-black text-amber-900">🎉 Giá dịp lễ / cao điểm</div>
+              {holidayPricing.total > 0 && (
+                <span className="whitespace-nowrap rounded-full bg-white px-2 py-1 text-[11px] font-black text-orange-700">
+                  +{fmtVND(holidayPricing.total)}
+                </span>
+              )}
+            </div>
+            <div className="mt-1.5 space-y-1">
+              {upcomingHolidayRules.map((rule) => (
+                <div key={rule.id} className="flex items-start justify-between gap-3 text-[11px] leading-4">
+                  <span className="font-medium text-amber-800">
+                    {rule.name}: {displayDateSlash(rule.start_date)} – {displayDateSlash(rule.end_date)}
+                  </span>
+                  <strong className="shrink-0 text-orange-700">{formatHolidayAdjustment(rule)}</strong>
+                </div>
+              ))}
+            </div>
+            {upcomingHolidayWindows.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5 border-t border-amber-200 pt-2">
+                {upcomingHolidayWindows.map((window) => (
+                  <span
+                    key={`${window.pickup_date}-${window.return_date}`}
+                    className="rounded-full bg-white px-2 py-1 text-[11px] font-bold text-amber-800"
+                  >
+                    {formatHolidayBookingWindow(window)}
+                  </span>
+                ))}
+              </div>
+            )}
+            {holidayPricing.total > 0 && (
+              <p className="mt-1.5 border-t border-amber-200 pt-1.5 text-[11px] font-semibold text-amber-900">
+                Lịch đang chọn có {holidayPricing.applied.reduce((sum, item) => sum + item.dates.length, 0)} ngày áp dụng giá lễ.
+              </p>
+            )}
+            {holidayBookingPolicy.hasHoliday && (
+              <div className={`mt-2 rounded-lg border px-2.5 py-2 text-[11px] leading-4 ${
+                holidayBookingBlocked
+                  ? 'border-red-200 bg-red-50 text-red-700'
+                  : 'border-amber-200 bg-white/70 text-amber-900'
+              }`}>
+                <p className="font-bold">
+                  {holidayBookingBlocked
+                    ? holidayComboBlockMessage
+                    : holidayBookingPolicy.isComboRestricted
+                      ? `Lịch đang chọn thuộc combo lễ hợp lệ${holidayBookingPolicy.matchedWindow ? `: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}` : ''}.`
+                      : 'Lịch đang chọn thuộc kỳ lễ / cao điểm.'}
+                </p>
+                <p className="mt-0.5">{holidayPromoBlockMessage}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1327,19 +1627,38 @@ export default function BookingWidget({
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={openPromoModal}
-                className="w-full px-4 py-2.5 flex items-center justify-between text-sm text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-gray-200 flex items-center justify-center">
-                    <Tag className="w-3.5 h-3.5 text-gray-500" />
-                  </div>
-                  Mã khuyến mãi
-                </span>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={openPromoModal}
+                  disabled={holidayPromoBlocked}
+                  title={holidayPromoBlocked ? holidayPromoBlockMessage : 'Mở mã khuyến mãi'}
+                  className={`w-full px-4 py-2.5 flex items-center justify-between text-sm transition-colors ${
+                    holidayPromoBlocked
+                      ? 'cursor-not-allowed bg-amber-50 text-amber-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                      holidayPromoBlocked ? 'bg-amber-100' : 'bg-gray-200'
+                    }`}>
+                      <Tag className={`w-3.5 h-3.5 ${holidayPromoBlocked ? 'text-amber-600' : 'text-gray-500'}`} />
+                    </div>
+                    Mã khuyến mãi
+                  </span>
+                  {holidayPromoBlocked ? (
+                    <span className="text-[11px] font-bold">Không áp dụng</span>
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+                {holidayPromoBlocked && (
+                  <p className="px-4 py-2 text-xs font-medium text-amber-700 bg-amber-50">
+                    {holidayPromoBlockMessage}
+                  </p>
+                )}
+              </>
             )}
 
             {/* Total row */}
@@ -1377,11 +1696,11 @@ export default function BookingWidget({
             setBookingError('');
             setConfirmTransfer(false);
           }}
-          disabled={!result.valid || hardConflicts.length > 0 || availabilityUnavailable || availLoading}
+          disabled={!result.valid || hardConflicts.length > 0 || availabilityUnavailable || availLoading || holidayBookingBlocked}
           className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
-          {requiresConfirmation ? 'Gửi yêu cầu giữ lịch' : 'Kiểm tra lịch & đặt xe'}
+          {holidayBookingBlocked ? 'Chọn đúng combo lễ' : requiresConfirmation ? 'Gửi yêu cầu giữ lịch' : 'Kiểm tra lịch & đặt xe'}
         </button>
         {requiresConfirmation && (
           <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
@@ -1456,8 +1775,8 @@ export default function BookingWidget({
                 pagedNavigation={!isMobile}
                 locale={vi}
                 disabled={[{ before: today }, ...blockedIntervals]}
-                modifiers={{ blocked: blockedIntervals }}
-                modifiersClassNames={{ blocked: 'rdp-day_blocked' }}
+                modifiers={{ blocked: blockedIntervals, holidayPrice: holidayPricingIntervals }}
+                modifiersClassNames={{ blocked: 'rdp-day_blocked', holidayPrice: 'rdp-day_holiday_price' }}
                 fromDate={today}
                 showOutsideDays={false}
               />
@@ -1516,6 +1835,7 @@ export default function BookingWidget({
             {[
               { color: 'bg-brand-600 rounded-full', label: 'Ngày tính xe' },
               { color: 'bg-brand-100 border border-brand-200 rounded', label: 'Các ngày thuê' },
+              { color: 'bg-amber-50 border border-amber-300 rounded', label: 'Giá lễ' },
               { color: 'bg-red-100 border border-red-200 rounded', label: 'Đã có lịch (bận)' },
               { color: 'bg-gray-200 rounded opacity-60', label: 'Không khả dụng' },
             ].map(({ color, label }) => (
@@ -1532,6 +1852,24 @@ export default function BookingWidget({
               <div>
                 <div className="font-bold">Khoảng thời gian này trùng lịch xe đang bận.</div>
                 <div className="mt-0.5">Vui lòng chọn lại ngày không có ô màu đỏ trước khi xác nhận.</div>
+              </div>
+            </div>
+          )}
+
+          {holidayBookingPolicy.hasHoliday && holidayBookingPolicy.isComboRestricted && (
+            <div className={`mx-4 mb-3 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs sm:mx-6 ${
+              holidayBookingBlocked
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            }`}>
+              <Info className={`mt-0.5 h-4 w-4 shrink-0 ${holidayBookingBlocked ? 'text-red-500' : 'text-amber-500'}`} />
+              <div>
+                <div className="font-bold">
+                  {holidayBookingBlocked
+                    ? holidayComboBlockMessage
+                    : `Combo lễ hợp lệ: ${holidayBookingPolicy.matchedWindow ? formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow) : holidayComboText}`}
+                </div>
+                <div className="mt-0.5">{holidayPromoBlockMessage}</div>
               </div>
             </div>
           )}
@@ -1559,10 +1897,10 @@ export default function BookingWidget({
 
               <button
                 onClick={() => setShowCalModal(false)}
-                disabled={hardConflicts.length > 0 || !result.valid || availabilityUnavailable || availLoading}
+                disabled={hardConflicts.length > 0 || !result.valid || availabilityUnavailable || availLoading || holidayBookingBlocked}
                 className="shrink-0 py-3 px-7 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                Xác nhận
+                {holidayBookingBlocked ? 'Chọn combo lễ' : 'Xác nhận'}
               </button>
             </div>
           </div>
@@ -1603,10 +1941,11 @@ export default function BookingWidget({
                   setPromoError('');
                 }}
                 onKeyDown={e => e.key === 'Enter' && void validatePromo()}
-                placeholder="Nhập mã khuyến mãi"
+                placeholder={holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'Nhập mã khuyến mãi'}
                 type="text"
                 autoFocus
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                disabled={holidayPromoBlocked}
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-amber-50 disabled:text-amber-700"
                 autoCapitalize="characters"
               />
               <button
@@ -1615,12 +1954,15 @@ export default function BookingWidget({
                   if (!promoCode.trim()) return;
                   await applyPromoFromList(promoCode.trim());
                 }}
-                disabled={promoLoading || !promoCode.trim()}
+                disabled={promoLoading || !promoCode.trim() || holidayPromoBlocked}
                 className="px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {promoLoading ? '...' : 'Áp dụng'}
               </button>
             </div>
+            {holidayPromoBlocked && (
+              <p className="text-xs text-amber-700 font-medium mt-2">{holidayPromoBlockMessage}</p>
+            )}
             {promoError && (
               <p className="text-xs text-red-500 font-medium mt-2">{promoError}</p>
             )}
@@ -1637,24 +1979,24 @@ export default function BookingWidget({
                 <div
                   key={item.code}
                   className={`flex items-center gap-3 px-5 py-3.5 border-b border-gray-50 last:border-0 ${
-                    !item.applicable ? 'opacity-50' : ''
+                    (!item.applicable || holidayPromoBlocked) ? 'opacity-50' : ''
                   }`}
                 >
                   {/* Icon */}
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    item.applicable ? 'bg-green-100' : 'bg-gray-100'
+                    item.applicable && !holidayPromoBlocked ? 'bg-green-100' : 'bg-gray-100'
                   }`}>
-                    <Tag className={`w-5 h-5 ${item.applicable ? 'text-green-600' : 'text-gray-400'}`} />
+                    <Tag className={`w-5 h-5 ${item.applicable && !holidayPromoBlocked ? 'text-green-600' : 'text-gray-400'}`} />
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className={`font-bold text-sm ${item.applicable ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <div className={`font-bold text-sm ${item.applicable && !holidayPromoBlocked ? 'text-gray-900' : 'text-gray-400'}`}>
                       {item.code}
                     </div>
-                    <div className={`text-xs mt-0.5 ${item.applicable ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`text-xs mt-0.5 ${item.applicable && !holidayPromoBlocked ? 'text-gray-500' : 'text-gray-400'}`}>
                       {item.description}
-                      {item.discount_amount > 0 && (
+                      {item.discount_amount > 0 && !holidayPromoBlocked && (
                         <span className="text-green-600 font-semibold"> · Tiết kiệm {fmtVND(item.discount_amount)}</span>
                       )}
                     </div>
@@ -1672,10 +2014,10 @@ export default function BookingWidget({
                   {/* Button */}
                   <button
                     type="button"
-                    disabled={!item.applicable}
+                    disabled={!item.applicable || holidayPromoBlocked}
                     onClick={() => void applyPromoFromList(item.code)}
                     className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                      item.applicable
+                      item.applicable && !holidayPromoBlocked
                         ? 'bg-green-500 text-white hover:bg-green-600'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
@@ -1831,6 +2173,14 @@ export default function BookingWidget({
                     <span>Trả xe</span>
                     <span className="font-medium">{displayDate(returnDate)} · {returnHour}:00</span>
                   </div>
+                  {holidayBookingPolicy.matchedWindow && (
+                    <div className="flex justify-between text-amber-700">
+                      <span>Combo lễ</span>
+                      <span className="font-medium text-right max-w-[55%]">
+                        {formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-gray-600">
                     <span>Địa điểm</span>
                     <span className="font-medium text-right max-w-[55%]">
@@ -1944,16 +2294,16 @@ export default function BookingWidget({
                         setPromoResult(null);
                       }}
                       onKeyDown={e => e.key === 'Enter' && void validatePromo()}
-                      placeholder="SUMMER10"
+                      placeholder={holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'SUMMER10'}
                       type="text"
-                      disabled={Boolean(promoResult)}
+                      disabled={Boolean(promoResult) || holidayPromoBlocked}
                       className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-gray-50 disabled:text-gray-400"
                       autoCapitalize="characters"
                     />
                     <button
                       type="button"
                       onClick={() => void validatePromo()}
-                      disabled={promoLoading || Boolean(promoResult)}
+                      disabled={promoLoading || Boolean(promoResult) || holidayPromoBlocked}
                       className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
                         promoResult
                           ? 'bg-green-100 text-green-700 border border-green-200 cursor-default'
@@ -1976,10 +2326,13 @@ export default function BookingWidget({
                       </button>
                     </div>
                   )}
+                  {holidayPromoBlocked && (
+                    <p className="text-xs text-amber-700 font-medium mt-1">{holidayPromoBlockMessage}</p>
+                  )}
                   {promoError && (
                     <p className="text-xs text-red-500 font-medium mt-1">{promoError}</p>
                   )}
-                  {!promoResult && activeSuggestedCodes.length > 0 && (
+                  {!promoResult && !holidayPromoBlocked && activeSuggestedCodes.length > 0 && (
                     <div className="mt-2 space-y-1.5">
                       <p className="text-xs text-gray-400 font-medium">Mã của bạn:</p>
                       {activeSuggestedCodes.map(c => (
@@ -2234,6 +2587,13 @@ export default function BookingWidget({
 
                     <span className="text-slate-500">Trả xe</span>
                     <span className="font-semibold text-slate-900">{returnHour} giờ ngày {displayDateSlash(returnDate)}</span>
+
+                    {holidayBookingPolicy.matchedWindow && (
+                      <>
+                        <span className="text-slate-500">Combo lễ</span>
+                        <span className="font-semibold text-amber-700">{formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}</span>
+                      </>
+                    )}
 
                     <span className="text-slate-500">Số ngày thuê</span>
                     <span className="font-semibold text-slate-900">{rentalDays} ngày</span>

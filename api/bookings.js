@@ -67,6 +67,7 @@ const ALLOWED_ORIGINS = new Set([
 const PAYMENT_PROOF_SIGNED_URL_TTL_SECONDS = 3600;
 const CUSTOMER_SELECT =
   'id, full_name, loyalty_tier, referral_code, first_seen_at, last_rental_at, email, phone, normalized_phone, status';
+const HOLIDAY_PRICING_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function extractPaymentProofStoragePath(fileUrl = '') {
   const marker = '/object/public/payment-proofs/';
@@ -266,6 +267,155 @@ function assertBookingPhone(data, phone) {
     return { ok: false, status: 403, error: 'Mã booking hoặc số điện thoại không đúng' };
   }
   return { ok: true };
+}
+
+function normalizeHolidayDate(value) {
+  const date = String(value || '').trim();
+  return HOLIDAY_PRICING_DATE_PATTERN.test(date) ? date : '';
+}
+
+function parseHolidayDate(dateStr) {
+  const [year, month, day] = String(dateStr).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function toHolidayDateStr(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function addHolidayDays(date, count) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + count);
+  return next;
+}
+
+function getBillableHolidayDateStrings(pickupDateValue, pickupHourValue, returnDateValue) {
+  const pickupDate = normalizeHolidayDate(pickupDateValue);
+  const returnDate = normalizeHolidayDate(returnDateValue);
+  if (!pickupDate || !returnDate) return [];
+
+  const pickup = parseHolidayDate(pickupDate);
+  const dropoff = parseHolidayDate(returnDate);
+  if (!pickup || !dropoff) return [];
+
+  const pickupHour = Number(pickupHourValue);
+  const firstBillableDay = pickupHour >= 16 && dropoff > pickup
+    ? addHolidayDays(pickup, 1)
+    : pickup;
+  const from = firstBillableDay <= dropoff ? firstBillableDay : pickup;
+  const to = firstBillableDay <= dropoff ? dropoff : pickup;
+
+  const dates = [];
+  for (let current = from, guard = 0; current <= to && guard < 370; current = addHolidayDays(current, 1), guard += 1) {
+    dates.push(toHolidayDateStr(current));
+  }
+  return dates;
+}
+
+async function loadActiveHolidayPricingRules(supabase) {
+  const { data: company, error: companyError } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('code', COMPANY_CODE)
+    .maybeSingle();
+  if (companyError) throw companyError;
+  if (!company?.id) return [];
+
+  let { data, error } = await supabase
+    .from('holiday_pricing_rules')
+    .select('id,name,start_date,end_date,adjustment_type,adjustment_value,booking_windows')
+    .eq('company_id', company.id)
+    .eq('active', true)
+    .order('start_date', { ascending: true });
+  if (error && /booking_windows|column/i.test(error.message || '')) {
+    ({ data, error } = await supabase
+      .from('holiday_pricing_rules')
+      .select('id,name,start_date,end_date,adjustment_type,adjustment_value')
+      .eq('company_id', company.id)
+      .eq('active', true)
+      .order('start_date', { ascending: true }));
+  }
+  if (error && /holiday_pricing_rules|relation|schema cache/i.test(error.message || '')) {
+    console.warn('[bookings] holiday pricing rules unavailable; continuing without holiday policy');
+    return [];
+  }
+  if (error) throw error;
+
+  return (data || []).map((rule) => ({
+    ...rule,
+    adjustment_value: Number(rule.adjustment_value),
+    booking_windows: Array.isArray(rule.booking_windows) ? rule.booking_windows : [],
+  }));
+}
+
+function formatHolidayDateForMessage(dateStr) {
+  const [, month, day] = String(dateStr).split('-');
+  return `${Number(day)}/${Number(month)}`;
+}
+
+function collectHolidayBookingWindows(rules) {
+  const seen = new Set();
+  const windows = [];
+  for (const rule of rules) {
+    for (const item of Array.isArray(rule.booking_windows) ? rule.booking_windows : []) {
+      const pickupDate = normalizeHolidayDate(item?.pickup_date);
+      const returnDate = normalizeHolidayDate(item?.return_date);
+      if (!pickupDate || !returnDate) continue;
+      const key = `${pickupDate}:${returnDate}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      windows.push({
+        pickup_date: pickupDate,
+        return_date: returnDate,
+        label: typeof item?.label === 'string' ? item.label.trim() : '',
+        rule_id: rule.id,
+        rule_name: rule.name,
+      });
+    }
+  }
+  return windows;
+}
+
+function describeHolidayBookingWindows(windows) {
+  if (!windows.length) return 'Kỳ lễ này không nhận đặt lẻ ngày. Vui lòng chọn đúng combo lễ hoặc liên hệ Car Match.';
+  const labels = windows.map((window) => (
+    window.label || `${formatHolidayDateForMessage(window.pickup_date)}–${formatHolidayDateForMessage(window.return_date)}`
+  ));
+  return `Kỳ lễ này chỉ nhận ${labels.join(', ')}. Đặt lẻ ngày không nhận.`;
+}
+
+function holidayDateCoveredByRule(rules, date) {
+  return rules.some((rule) => rule.start_date <= date && rule.end_date >= date);
+}
+
+function validateHolidayPricingSnapshot(pricing, rules, expectedHolidayDates) {
+  const expectedSet = new Set(expectedHolidayDates);
+  if (expectedSet.size === 0) return pricing.length === 0;
+  if (!pricing.length) return false;
+
+  const rulesById = new Map(rules.map((rule) => [String(rule.id), rule]));
+  const seenDates = new Set();
+
+  for (const item of pricing) {
+    const rule = rulesById.get(String(item.rule_id));
+    if (!rule) return false;
+    if (item.adjustment_type !== rule.adjustment_type) return false;
+    if (Number(item.adjustment_value) !== Number(rule.adjustment_value)) return false;
+
+    for (const date of item.dates || []) {
+      if (!expectedSet.has(date)) return false;
+      if (date < rule.start_date || date > rule.end_date) return false;
+      if (seenDates.has(date)) return false;
+      seenDates.add(date);
+    }
+  }
+
+  return seenDates.size === expectedSet.size
+    && [...expectedSet].every((date) => seenDates.has(date));
 }
 
 /**
@@ -585,6 +735,14 @@ export default async function handler(req, res) {
   for (const f of required) {
     if (!body?.[f] && body?.[f] !== 0) return res.status(400).json({ error: `Missing field: ${f}` });
   }
+  const pickupDate = normalizeHolidayDate(body.pickup_date);
+  const returnDate = normalizeHolidayDate(body.return_date);
+  if (!pickupDate || !returnDate) {
+    return res.status(400).json({ error: 'Ngày nhận/trả xe không hợp lệ' });
+  }
+  if (returnDate < pickupDate) {
+    return res.status(400).json({ error: 'Ngày trả xe phải từ ngày nhận xe trở đi' });
+  }
 
   const depositAmount = Math.max(200_000, Math.round(body.total_amount * 0.3 / 10_000) * 10_000);
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -598,8 +756,54 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Không thể tạo mã đặt xe, vui lòng thử lại' });
   }
   const locationName = body.location_name || null;
-  const pickupText = `${body.pickup_date} ${body.pickup_hour}:00`;
-  const returnText = `${body.return_date} ${body.return_hour}:00`;
+  const holidaySurcharge = Math.max(0, Number(body.holiday_surcharge) || 0);
+  const holidayPricing = Array.isArray(body.holiday_pricing)
+    ? body.holiday_pricing.slice(0, 20).map((item) => ({
+        rule_id: String(item?.rule_id || '').slice(0, 80),
+        name: String(item?.name || 'Giá lễ').slice(0, 120),
+        dates: Array.isArray(item?.dates)
+          ? item.dates.filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(String(date))).slice(0, 31)
+          : [],
+        adjustment_type: item?.adjustment_type === 'percent' ? 'percent' : 'fixed',
+        adjustment_value: Math.max(0, Number(item?.adjustment_value) || 0),
+        amount: Math.max(0, Number(item?.amount) || 0),
+      })).filter((item) => item.amount > 0 && item.dates.length > 0)
+    : [];
+
+  let holidayRules = [];
+  try {
+    holidayRules = await loadActiveHolidayPricingRules(supabase);
+  } catch (holidayError) {
+    console.error('[bookings] Holiday pricing lookup error:', holidayError.message);
+    return res.status(500).json({ error: 'Chưa kiểm tra được chính sách giá lễ, vui lòng thử lại' });
+  }
+
+  const expectedHolidayDates = getBillableHolidayDateStrings(pickupDate, body.pickup_hour, returnDate)
+    .filter((date) => holidayDateCoveredByRule(holidayRules, date));
+  const overlappingHolidayRules = holidayRules.filter((rule) => (
+    pickupDate <= rule.end_date && returnDate >= rule.start_date
+  ));
+  const allowedHolidayWindows = collectHolidayBookingWindows(overlappingHolidayRules);
+  const holidayWindowMatch = allowedHolidayWindows.find((window) => (
+    window.pickup_date === pickupDate && window.return_date === returnDate
+  ));
+
+  if (expectedHolidayDates.length > 0 && allowedHolidayWindows.length > 0 && !holidayWindowMatch) {
+    return res.status(400).json({ error: describeHolidayBookingWindows(allowedHolidayWindows) });
+  }
+  if (expectedHolidayDates.length > 0 && body.promo_code) {
+    return res.status(400).json({ error: 'Mã giảm giá không áp dụng vào ngày lễ / cao điểm' });
+  }
+  const holidayPricingSnapshotValid = validateHolidayPricingSnapshot(holidayPricing, holidayRules, expectedHolidayDates);
+  if (expectedHolidayDates.length > 0 && (holidaySurcharge <= 0 || !holidayPricingSnapshotValid)) {
+    return res.status(400).json({ error: 'Lịch này có ngày lễ/cao điểm, vui lòng tính lại giá lễ trước khi gửi đơn' });
+  }
+  if (expectedHolidayDates.length === 0 && (holidaySurcharge > 0 || holidayPricing.length > 0)) {
+    return res.status(400).json({ error: 'Phụ thu giá lễ không khớp với lịch đã chọn' });
+  }
+
+  const pickupText = `${pickupDate} ${body.pickup_hour}:00`;
+  const returnText = `${returnDate} ${body.return_hour}:00`;
   const noteLines = [
     `[ĐẶT XE TỰ LÁI] ${bookingRef}`,
     `Xe: ${body.car_name}`,
@@ -607,6 +811,7 @@ export default async function handler(req, res) {
     `Trả: ${returnText}`,
     locationName ? `Địa điểm: ${locationName}` : '',
     `Tổng dự kiến: ${Number(body.total_amount || 0).toLocaleString('vi-VN')}đ`,
+    holidaySurcharge > 0 ? `Phụ thu giá lễ: ${holidaySurcharge.toLocaleString('vi-VN')}đ` : '',
     Number(body.delivery_fee || 0) > 0 ? `Phí giao nhận xe: ${Number(body.delivery_fee).toLocaleString('vi-VN')}đ` : '',
     `Cọc VietQR: ${depositAmount.toLocaleString('vi-VN')}đ`,
     body.loyalty_discount > 0 ? `Ưu đãi ${body.loyalty_tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${Number(body.loyalty_discount).toLocaleString('vi-VN')}đ` : '',
@@ -637,6 +842,8 @@ export default async function handler(req, res) {
       delivery_mode: body.delivery_mode,
       promo_code: body.promo_code || null,
       loyalty_tier: body.loyalty_tier || null,
+      holiday_surcharge: holidaySurcharge,
+      holiday_pricing: holidayPricing,
       captured_at: new Date().toISOString(),
     },
     note: noteLines,
@@ -767,8 +974,8 @@ export default async function handler(req, res) {
         <p>Mã booking: <strong style="color:#2563eb">${bookingRef}</strong></p>
         <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0">
           <tr><td style="padding:6px 0;color:#64748b">Xe</td><td style="padding:6px 0;font-weight:600">${body.car_name}</td></tr>
-          <tr><td style="padding:6px 0;color:#64748b">Nhận xe</td><td style="padding:6px 0;font-weight:600">${body.pickup_date} ${body.pickup_hour}:00</td></tr>
-          <tr><td style="padding:6px 0;color:#64748b">Trả xe</td><td style="padding:6px 0;font-weight:600">${body.return_date} ${body.return_hour}:00</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Nhận xe</td><td style="padding:6px 0;font-weight:600">${pickupDate} ${body.pickup_hour}:00</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Trả xe</td><td style="padding:6px 0;font-weight:600">${returnDate} ${body.return_hour}:00</td></tr>
           <tr><td style="padding:6px 0;color:#64748b">Tiền cọc</td><td style="padding:6px 0;font-weight:600;color:#0891b2">${depositAmount.toLocaleString('vi-VN')}đ</td></tr>
           <tr><td style="padding:6px 0;color:#64748b">Còn lại khi nhận xe</td><td style="padding:6px 0;font-weight:600;color:#dc2626">${(Number(body.total_amount) - depositAmount).toLocaleString('vi-VN')}đ</td></tr>
         </table>
