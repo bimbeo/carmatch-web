@@ -915,11 +915,6 @@ export default function BookingWidget({
       ? Math.round((1 - priceMonth / (basePrice * 30)) * 100)
       : 0;
 
-  const handlePickupDate = (v: string) => {
-    setPickupDate(v);
-    if (v >= returnDate) setReturnDate(toDateStr(addDays(new Date(v), 1)));
-  };
-
   // ── react-day-picker range selection ──────────────────────────────────────
   // Convert blocked ranges to { from, to } Date objects for DayPicker disabled prop
   const blockedIntervals = useMemo(
@@ -1331,7 +1326,7 @@ export default function BookingWidget({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-base font-black text-gray-950">Đặt lịch thuê xe</h2>
-            <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn ngày nhận/trả xe để xem tổng dự kiến.</p>
+            <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn thời gian thuê xe để xem tổng dự kiến.</p>
           </div>
           {basePrice > 0 ? (
             <div className="shrink-0 text-right">
@@ -1412,75 +1407,8 @@ export default function BookingWidget({
         )}
       </div>
 
-      {/* ── Date/time pickers ── */}
+      {/* ── Consolidated rental time picker ── */}
       <div className="px-5 py-4 space-y-3.5">
-        {/* Pickup row */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Ngày nhận xe
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            <div className="col-span-3 relative">
-              <div className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
-                {displayDateSlash(pickupDate)}
-              </div>
-              <input
-                type="date"
-                value={pickupDate}
-                min={todayStr}
-                onChange={e => handlePickupDate(e.target.value)}
-                className="absolute inset-0 opacity-0 w-full cursor-pointer"
-              />
-            </div>
-            <div className="relative col-span-2">
-              <select
-                value={pickupHour}
-                onChange={e => setPickupHour(+e.target.value)}
-                className="w-full appearance-none border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 transition-colors pr-7"
-              >
-                {PICKUP_HOURS.map(h => (
-                  <option key={h} value={h}>{h}:00</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Return row */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Ngày trả xe
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            <div className="col-span-3 relative">
-              <div className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
-                {displayDateSlash(returnDate)}
-              </div>
-              <input
-                type="date"
-                value={returnDate}
-                min={pickupDate}
-                onChange={e => setReturnDate(e.target.value)}
-                className="absolute inset-0 opacity-0 w-full cursor-pointer"
-              />
-            </div>
-            <div className="relative col-span-2">
-              <select
-                value={returnHour}
-                onChange={e => setReturnHour(+e.target.value)}
-                className="w-full appearance-none border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 transition-colors pr-7"
-              >
-                {RETURN_HOURS.map(h => (
-                  <option key={h} value={h}>{h}:00</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Availability calendar button ── */}
         {vehicleId && (
           <div>
             <button
@@ -1491,12 +1419,30 @@ export default function BookingWidget({
                 setCalendarStartPreview(null);
                 void fetchAvailability();
               }}
-              className="flex items-center gap-2 w-full py-2.5 px-3.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 text-sm font-semibold hover:bg-brand-100 transition-colors"
+              aria-label="Chọn thời gian nhận và trả xe"
+              className="group w-full overflow-hidden rounded-2xl border border-gray-200 bg-white text-left shadow-sm transition hover:border-brand-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-200"
             >
-              <CalendarDays className="w-4 h-4 shrink-0" />
-              {availLoading ? 'Đang tải lịch xe…' : 'Chọn ngày trên lịch'}
-              <span className="ml-auto text-brand-400 text-xs font-normal">
-                {rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}
+              <span className="grid grid-cols-2 divide-x divide-gray-200">
+                <span className="px-3.5 py-3">
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-400">Nhận xe</span>
+                  <span className="mt-1 block text-sm font-black text-gray-900">
+                    {pickupHour}:00 · {displayDateSlash(pickupDate)}
+                  </span>
+                </span>
+                <span className="px-3.5 py-3">
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-400">Trả xe</span>
+                  <span className="mt-1 block text-sm font-black text-gray-900">
+                    {returnHour}:00 · {displayDateSlash(returnDate)}
+                  </span>
+                </span>
+              </span>
+              <span className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-brand-700 transition group-hover:bg-brand-50">
+                <CalendarDays className="h-4 w-4 shrink-0" />
+                {availLoading ? 'Đang tải lịch xe…' : 'Đổi thời gian trên lịch'}
+                <span className="ml-auto font-semibold text-gray-500">
+                  {rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-gray-400" />
               </span>
             </button>
             {(availLoading || availabilityUnavailable) && (

@@ -69,6 +69,56 @@ const PAYMENT_PROOF_SIGNED_URL_TTL_SECONDS = 3600;
 const CUSTOMER_SELECT =
   'id, full_name, loyalty_tier, referral_code, first_seen_at, last_rental_at, email, phone, normalized_phone, status';
 const HOLIDAY_PRICING_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ACTIVE_SCHEDULE_STATUSES = ['planned', 'confirmed', 'in_progress', 'completed'];
+const BLOCKING_SCHEDULE_TYPES = [
+  'rental', 'reserved', 'blocked', 'unavailable', 'maintenance', 'cleaning', 'inspection', 'transfer', 'charging',
+];
+
+function addCalendarDays(dateString, count) {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + count);
+  return date.toISOString().slice(0, 10);
+}
+
+function datePartInVietnam(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const vietnam = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  return vietnam.toISOString().slice(0, 10);
+}
+
+export function scheduleEventCalendarRange(event) {
+  const from = datePartInVietnam(event?.starts_at);
+  const exclusiveEnd = datePartInVietnam(event?.ends_at || event?.starts_at);
+  if (!from || !exclusiveEnd) return null;
+  const candidateTo = addCalendarDays(exclusiveEnd, -1);
+  return { from, to: candidateTo < from ? from : candidateTo };
+}
+
+export function isBoundaryScheduleConflict(event, pickupDate, returnDate) {
+  const range = scheduleEventCalendarRange(event);
+  if (!range) return false;
+  return range.to === pickupDate || range.from === returnDate;
+}
+
+function isBlockingScheduleConflict(event) {
+  if (!ACTIVE_SCHEDULE_STATUSES.includes(event?.status)) return false;
+  if (!BLOCKING_SCHEDULE_TYPES.includes(event?.event_type)) return false;
+  if (event?.note === 'FALSE' || event?.location_text === 'Chi phí') return false;
+  return true;
+}
+
+export function classifyScheduleConflicts(events, pickupDate, returnDate) {
+  const blocking = (events || []).filter(isBlockingScheduleConflict);
+  const boundary = blocking.filter((event) => (
+    isBoundaryScheduleConflict(event, pickupDate, returnDate)
+  ));
+  return {
+    blocking,
+    boundary,
+    hasHardConflict: blocking.length > boundary.length,
+  };
+}
 
 function extractPaymentProofStoragePath(fileUrl = '') {
   const marker = '/object/public/payment-proofs/';
@@ -1003,19 +1053,34 @@ export default async function handler(req, res) {
     .update({ status: 'expired', updated_at: new Date().toISOString() })
     .eq('company_id', companyId).eq('status', 'held').lt('active_until', new Date().toISOString());
 
-  const [{ data: reservationConflict, error: reservationError }, { data: scheduleConflict, error: scheduleError }] = await Promise.all([
+  const [{ data: reservationConflict, error: reservationError }, { data: scheduleConflicts, error: scheduleError }] = await Promise.all([
     supabase.from('vehicle_reservations').select('id').eq('company_id', companyId)
       .eq('vehicle_id', vehicle.id).in('status', ['held', 'confirmed'])
       .lt('starts_at', returnAt.toISOString()).gt('ends_at', pickupAt.toISOString()).limit(1).maybeSingle(),
-    supabase.from('vehicle_schedule_events').select('id').eq('company_id', companyId)
-      .eq('vehicle_id', vehicle.id).neq('status', 'cancelled')
-      .lt('starts_at', returnAt.toISOString()).gt('ends_at', pickupAt.toISOString()).limit(1).maybeSingle(),
+    supabase.from('vehicle_schedule_events')
+      .select('id,event_type,starts_at,ends_at,status,note,location_text')
+      .eq('company_id', companyId)
+      .eq('vehicle_id', vehicle.id)
+      .in('status', ACTIVE_SCHEDULE_STATUSES)
+      .in('event_type', BLOCKING_SCHEDULE_TYPES)
+      .lt('starts_at', returnAt.toISOString())
+      .gt('ends_at', pickupAt.toISOString())
+      .limit(20),
   ]);
   if (reservationError || scheduleError) {
     console.error('[bookings] Availability check error:', reservationError?.message || scheduleError?.message);
     return res.status(500).json({ error: 'Chưa kiểm tra được lịch xe, vui lòng thử lại' });
   }
-  if (reservationConflict || scheduleConflict) {
+  const {
+    blocking: blockingScheduleConflicts,
+    hasHardConflict: hasHardScheduleConflict,
+  } = classifyScheduleConflicts(scheduleConflicts, pickupDate, returnDate);
+  const canSubmitBoundaryConfirmation = requiresConfirmation
+    && blockingScheduleConflicts.length > 0
+    && !hasHardScheduleConflict;
+
+  if (reservationConflict || hasHardScheduleConflict
+      || (blockingScheduleConflicts.length > 0 && !canSubmitBoundaryConfirmation)) {
     return res.status(409).json({ error: 'Xe vừa có lịch trùng trong khoảng này. Vui lòng chọn thời gian khác.' });
   }
 
