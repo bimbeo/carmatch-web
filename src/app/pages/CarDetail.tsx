@@ -657,8 +657,8 @@ export default function CarDetail() {
             label: 'Cần xác nhận giờ',
             className: 'bg-amber-50 text-amber-800 border-amber-200',
             dotClassName: 'bg-amber-500',
-            notice: 'Ngày nhận hoặc trả đang sát lịch khác. Car Match sẽ xác nhận lại giờ trống trước khi giữ xe.',
-            noticeClassName: 'border-amber-200 bg-amber-50 text-amber-800',
+            notice: '',
+            noticeClassName: '',
           }
         : bookingAvailabilityStatus.isLoading
           ? {
@@ -754,20 +754,6 @@ export default function CarDetail() {
                 </p>
               )}
             </div>
-
-            <nav className="sticky top-20 z-20 hidden items-center gap-1 rounded-2xl border border-slate-200 bg-white/95 p-1.5 text-sm font-semibold text-slate-600 shadow-sm backdrop-blur lg:flex" aria-label="Điều hướng chi tiết xe">
-              {[
-                ['#photos', 'Ảnh xe'],
-                ['#specs', 'Thông số'],
-                ['#conditions', 'Điều kiện'],
-                ['#reviews', 'Đánh giá'],
-                ['#booking', 'Đặt xe'],
-              ].map(([href, label]) => (
-                <a key={href} href={href} className="rounded-xl px-3 py-2 transition-colors hover:bg-brand-50 hover:text-brand-700">
-                  {label}
-                </a>
-              ))}
-            </nav>
 
             {/* Gallery */}
             <section id="photos" className="scroll-mt-32">

@@ -337,12 +337,6 @@ function calculateHolidayPricing(
   };
 }
 
-function formatHolidayAdjustment(rule: HolidayPricingRule): string {
-  return rule.adjustment_type === 'percent'
-    ? `+${rule.adjustment_value}%/ngày`
-    : `+${fmtVND(rule.adjustment_value)}/ngày`;
-}
-
 function formatHolidayBookingWindow(window: HolidayBookingWindow): string {
   return window.label?.trim()
     || `${displayDateSlash(window.pickup_date)} – ${displayDateSlash(window.return_date)}`;
@@ -1441,69 +1435,6 @@ export default function BookingWidget({
           </div>
         )}
 
-        {upcomingHolidayRules.length > 0 && (
-          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-black text-amber-900">🎉 Giá dịp lễ / cao điểm</div>
-              {holidayPricing.total > 0 && (
-                <span className="whitespace-nowrap rounded-full bg-white px-2 py-1 text-[11px] font-black text-orange-700">
-                  {matchedHolidayCombo
-                    ? `+${fmtVND(Number(matchedHolidayCombo.combo_adjustment_value))}/ngày`
-                    : `+${fmtVND(holidayPricing.total)}`}
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 space-y-1">
-              {upcomingHolidayRules.map((rule) => (
-                <div key={rule.id} className="flex items-start justify-between gap-3 text-[11px] leading-4">
-                  <span className="font-medium text-amber-800">
-                    {rule.name}: {displayDateSlash(rule.start_date)} – {displayDateSlash(rule.end_date)}
-                  </span>
-                  <strong className="shrink-0 text-orange-700">
-                    {(rule.booking_windows ?? []).some((window) => Number(window.adjustment_value) > 0)
-                      ? 'Theo từng combo'
-                      : formatHolidayAdjustment(rule)}
-                  </strong>
-                </div>
-              ))}
-            </div>
-            {upcomingHolidayWindows.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5 border-t border-amber-200 pt-2">
-                {upcomingHolidayWindows.map((window) => (
-                  <span
-                    key={`${window.pickup_date}-${window.return_date}`}
-                    className="rounded-full bg-white px-2 py-1 text-[11px] font-bold text-amber-800"
-                  >
-                    {formatHolidayBookingWindow(window)}
-                  </span>
-                ))}
-              </div>
-            )}
-            {holidayPricing.total > 0 && (
-              <p className="mt-1.5 border-t border-amber-200 pt-1.5 text-[11px] font-semibold text-amber-900">
-                {matchedHolidayCombo
-                  ? `${matchedHolidayCombo.booking_window_label || 'Combo lễ'} · +${fmtVND(Number(matchedHolidayCombo.combo_adjustment_value))}/ngày × ${matchedHolidayCombo.combo_days} ngày.`
-                  : `Lịch đang chọn có ${holidayPricing.applied.reduce((sum, item) => sum + item.dates.length, 0)} ngày áp dụng giá lễ.`}
-              </p>
-            )}
-            {holidayBookingPolicy.hasHoliday && (
-              <div className={`mt-2 rounded-lg border px-2.5 py-2 text-[11px] leading-4 ${
-                holidayBookingBlocked
-                  ? 'border-red-200 bg-red-50 text-red-700'
-                  : 'border-amber-200 bg-white/70 text-amber-900'
-              }`}>
-                <p className="font-bold">
-                  {holidayBookingBlocked
-                    ? holidayComboBlockMessage
-                    : holidayBookingPolicy.isComboRestricted
-                      ? `Lịch đang chọn thuộc combo lễ hợp lệ${holidayBookingPolicy.matchedWindow ? `: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}` : ''}.`
-                      : 'Lịch đang chọn thuộc kỳ lễ / cao điểm.'}
-                </p>
-                <p className="mt-0.5">{holidayPromoBlockMessage}</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── Consolidated rental time picker ── */}
@@ -1926,10 +1857,7 @@ export default function BookingWidget({
 
           {upcomingHolidayWindows.length > 0 && (
             <div className="shrink-0 border-b border-amber-100 bg-amber-50/70 px-4 py-3 sm:px-8">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-xs font-black text-amber-900">Chọn nhanh combo lễ</p>
-                <p className="text-[11px] font-medium text-amber-700">Không cần chọn lùi ngày hôm trước</p>
-              </div>
+              <p className="mb-2 text-xs font-black text-amber-900">Chọn nhanh combo lễ</p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {upcomingHolidayWindows.map((window) => {
                   const active = pickupDate === window.pickup_date && returnDate === window.return_date;
@@ -1948,9 +1876,6 @@ export default function BookingWidget({
                       <span className="block text-xs font-black">{window.label || `Combo ${comboDays} ngày`}</span>
                       <span className={`mt-0.5 block text-[11px] font-semibold ${active ? 'text-amber-50' : 'text-amber-700'}`}>
                         {displayDateSlash(window.pickup_date)} – {displayDateSlash(window.return_date)} · {comboDays} ngày
-                        {Number(window.adjustment_value) > 0
-                          ? ` · +${fmtVND(Number(window.adjustment_value))}/ngày`
-                          : ''}
                       </span>
                     </button>
                   );
@@ -2027,10 +1952,6 @@ export default function BookingWidget({
                   <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
               </div>
-            </div>
-            <div className="mt-3 rounded-xl bg-gray-100 px-4 py-2.5 text-xs font-medium text-gray-600 sm:text-sm">
-              <div className="flex justify-between gap-4"><span>Thời gian nhận xe</span><strong>07:00 – 23:00</strong></div>
-              <div className="mt-1 flex justify-between gap-4"><span>Thời gian trả xe</span><strong>07:00 – 23:00</strong></div>
             </div>
           </div>
 
