@@ -423,6 +423,7 @@ function collectHolidayBookingWindows(rules) {
         pickup_date: pickupDate,
         return_date: returnDate,
         label: typeof item?.label === 'string' ? item.label.trim() : '',
+        adjustment_value: Math.max(0, Number(item?.adjustment_value ?? rule.adjustment_value) || 0),
         rule_id: rule.id,
         rule_name: rule.name,
       });
@@ -443,6 +444,16 @@ function holidayDateCoveredByRule(rules, date) {
   return rules.some((rule) => rule.start_date <= date && rule.end_date >= date);
 }
 
+export function findHolidayCombo(rules, pickupDate, returnDate) {
+  for (const rule of rules) {
+    const window = (Array.isArray(rule.booking_windows) ? rule.booking_windows : []).find((item) => (
+      item?.pickup_date === pickupDate && item?.return_date === returnDate
+    ));
+    if (window) return { rule, window };
+  }
+  return null;
+}
+
 function validateHolidayPricingSnapshot(pricing, rules, expectedHolidayDates) {
   const expectedSet = new Set(expectedHolidayDates);
   if (expectedSet.size === 0) return pricing.length === 0;
@@ -456,6 +467,18 @@ function validateHolidayPricingSnapshot(pricing, rules, expectedHolidayDates) {
     if (!rule) return false;
     if (item.adjustment_type !== rule.adjustment_type) return false;
     if (Number(item.adjustment_value) !== Number(rule.adjustment_value)) return false;
+    if (item.pricing_mode === 'combo') {
+      const comboWindow = (Array.isArray(rule.booking_windows) ? rule.booking_windows : []).find((window) => (
+        String(window?.label || '') === String(item.booking_window_label || '')
+        && Number(window?.adjustment_value ?? rule.adjustment_value) === Number(item.combo_adjustment_value)
+      ));
+      const comboPickup = parseHolidayDate(comboWindow?.pickup_date);
+      const comboReturn = parseHolidayDate(comboWindow?.return_date);
+      if (!comboWindow || !comboPickup || !comboReturn) return false;
+      const expectedComboDays = Math.max(1, Math.round((Date.UTC(comboReturn.getFullYear(), comboReturn.getMonth(), comboReturn.getDate())
+        - Date.UTC(comboPickup.getFullYear(), comboPickup.getMonth(), comboPickup.getDate())) / 86_400_000) + 1);
+      if (Number(item.combo_days) !== expectedComboDays) return false;
+    }
 
     for (const date of item.dates || []) {
       if (!expectedSet.has(date)) return false;
@@ -641,7 +664,41 @@ function calculateRentalAmount(pickupDate, pickupHour, returnDate, returnHour, b
     + earlyFee;
 }
 
-function calculateHolidaySurcharge(rules, dates, basePrice) {
+export function calculateRentalTimingExtras(pickupHour, returnHour, basePrice) {
+  let earlyFee = 0;
+  if (Number(pickupHour) >= 17 && Number(pickupHour) < 19) earlyFee = 100_000;
+  else if (Number(pickupHour) >= 16 && Number(pickupHour) < 17) earlyFee = 200_000;
+
+  let returnFee = 0;
+  if (Number(returnHour) >= 23) returnFee = Math.round(basePrice * 0.5);
+  else if (Number(returnHour) >= 22) returnFee = 200_000;
+  else if (Number(returnHour) >= 21) returnFee = 100_000;
+  return earlyFee + returnFee;
+}
+
+export function calculateHolidaySurcharge(
+  rules,
+  dates,
+  basePrice,
+  { pickupDate, pickupHour, returnDate, returnHour, baseAmount } = {},
+) {
+  const comboMatch = findHolidayCombo(rules, pickupDate, returnDate);
+  if (comboMatch) {
+    const pickup = parseHolidayDate(pickupDate);
+    const dropoff = parseHolidayDate(returnDate);
+    if (!pickup || !dropoff) return 0;
+    const comboDays = Math.max(1, Math.round((Date.UTC(dropoff.getFullYear(), dropoff.getMonth(), dropoff.getDate())
+      - Date.UTC(pickup.getFullYear(), pickup.getMonth(), pickup.getDate())) / 86_400_000) + 1);
+    const dailyAdjustment = Math.max(
+      0,
+      Number(comboMatch.window.adjustment_value ?? comboMatch.rule.adjustment_value) || 0,
+    );
+    const timingExtras = calculateRentalTimingExtras(pickupHour, returnHour, basePrice);
+    const baseRentalOnly = Math.max(0, Number(baseAmount) - timingExtras);
+    const comboBaseAmount = Number(basePrice) * comboDays;
+    return Math.max(0, comboBaseAmount - baseRentalOnly + dailyAdjustment * comboDays);
+  }
+
   return dates.reduce((sum, date) => {
     const amounts = rules
       .filter((rule) => rule.start_date <= date && rule.end_date >= date)
@@ -973,6 +1030,10 @@ export default async function handler(req, res) {
         adjustment_type: item?.adjustment_type === 'percent' ? 'percent' : 'fixed',
         adjustment_value: Math.max(0, Number(item?.adjustment_value) || 0),
         amount: Math.max(0, Number(item?.amount) || 0),
+        pricing_mode: item?.pricing_mode === 'combo' ? 'combo' : 'daily_adjustment',
+        booking_window_label: String(item?.booking_window_label || '').slice(0, 120) || null,
+        combo_days: Math.max(0, Number(item?.combo_days) || 0),
+        combo_adjustment_value: Math.max(0, Number(item?.combo_adjustment_value) || 0),
       })).filter((item) => item.amount > 0 && item.dates.length > 0)
     : [];
 
@@ -1000,6 +1061,13 @@ export default async function handler(req, res) {
     holidayRules,
     expectedHolidayDates,
     Number(vehicle.daily_base_price),
+    {
+      pickupDate,
+      pickupHour: body.pickup_hour,
+      returnDate,
+      returnHour: body.return_hour,
+      baseAmount: serverBaseAmount,
+    },
   );
   const overlappingHolidayRules = holidayRules.filter((rule) => (
     pickupDate <= rule.end_date && returnDate >= rule.start_date
@@ -1137,6 +1205,7 @@ export default async function handler(req, res) {
 
   const pickupText = `${pickupDate} ${body.pickup_hour}:00`;
   const returnText = `${returnDate} ${body.return_hour}:00`;
+  const holidayComboSnapshot = holidayPricing.find((item) => item.pricing_mode === 'combo') || null;
   const noteLines = [
     `[ĐẶT XE TỰ LÁI] ${bookingRef}`,
     `Xe: ${body.car_name}`,
@@ -1144,7 +1213,9 @@ export default async function handler(req, res) {
     `Trả: ${returnText}`,
     locationName ? `Địa điểm: ${locationName}` : '',
     `Tổng dự kiến: ${totalAmount.toLocaleString('vi-VN')}đ`,
-    holidaySurcharge > 0 ? `Phụ thu giá lễ: ${holidaySurcharge.toLocaleString('vi-VN')}đ` : '',
+    holidayComboSnapshot
+      ? `Mức tăng combo lễ: +${Number(holidayComboSnapshot.combo_adjustment_value).toLocaleString('vi-VN')}đ/ngày × ${holidayComboSnapshot.combo_days} ngày`
+      : holidaySurcharge > 0 ? `Phụ thu giá lễ: ${holidaySurcharge.toLocaleString('vi-VN')}đ` : '',
     deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : '',
     requiresConfirmation
       ? `Cọc dự kiến sau khi xác nhận lịch: ${depositAmount.toLocaleString('vi-VN')}đ`

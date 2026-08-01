@@ -28,6 +28,7 @@ interface HolidayBookingWindow {
   return_date: string;
   label?: string | null;
   rule_name?: string;
+  adjustment_value?: number;
 }
 
 interface HolidayPricingRule {
@@ -48,6 +49,10 @@ interface AppliedHolidayPricing {
   adjustment_type: 'fixed' | 'percent';
   adjustment_value: number;
   amount: number;
+  pricing_mode?: 'daily_adjustment' | 'combo';
+  booking_window_label?: string | null;
+  combo_days?: number;
+  combo_adjustment_value?: number;
 }
 
 export interface BookingAvailabilityStatus {
@@ -228,13 +233,71 @@ function holidayDailySurcharge(rule: HolidayPricingRule, basePrice: number): num
   return Math.max(0, Math.round((basePrice * rule.adjustment_value / 100) / 1000) * 1000);
 }
 
+function findHolidayCombo(
+  rules: HolidayPricingRule[],
+  pickupDate: string,
+  returnDate: string,
+) {
+  for (const rule of rules) {
+    const window = (rule.booking_windows ?? []).find((item) => (
+      item.pickup_date === pickupDate && item.return_date === returnDate
+    ));
+    if (window) return { rule, window };
+  }
+  return null;
+}
+
+function inclusiveDateCount(from: string, to: string): number {
+  return Math.max(1, calDaysDiff(parseDateStr(from), parseDateStr(to)) + 1);
+}
+
 function calculateHolidayPricing(
   rules: HolidayPricingRule[],
   pickupDate: string,
   pickupHour: number,
   returnDate: string,
   basePrice: number,
+  baseRentalAmount: number,
 ): { total: number; applied: AppliedHolidayPricing[]; fees: Fee[] } {
+  const comboMatch = findHolidayCombo(rules, pickupDate, returnDate);
+  if (comboMatch) {
+    const { rule, window } = comboMatch;
+    const comboDays = inclusiveDateCount(window.pickup_date, window.return_date);
+    const dailyAdjustment = Math.max(0, Number(window.adjustment_value ?? rule.adjustment_value));
+    const comboBaseAmount = basePrice * comboDays;
+    const baseDayAdjustment = Math.max(0, comboBaseAmount - Math.max(0, baseRentalAmount));
+    const peakPriceAdjustment = dailyAdjustment * comboDays;
+    const amount = baseDayAdjustment + peakPriceAdjustment;
+    const dates = getBillableDateStrings(pickupDate, pickupHour, returnDate)
+      .filter((date) => rule.start_date <= date && rule.end_date >= date);
+    const applied: AppliedHolidayPricing[] = amount > 0 ? [{
+      rule_id: rule.id,
+      name: rule.name,
+      dates,
+      adjustment_type: rule.adjustment_type,
+      adjustment_value: rule.adjustment_value,
+      amount,
+      pricing_mode: 'combo',
+      booking_window_label: window.label ?? null,
+      combo_days: comboDays,
+      combo_adjustment_value: dailyAdjustment,
+    }] : [];
+    return {
+      total: amount,
+      applied,
+      fees: amount > 0 ? [
+        ...(baseDayAdjustment > 0 ? [{
+          label: `Bổ sung đủ ${comboDays} ngày của combo`,
+          amount: baseDayAdjustment,
+        }] : []),
+        ...(peakPriceAdjustment > 0 ? [{
+          label: `🎉 ${window.label || rule.name} · +${fmtVND(dailyAdjustment)}/ngày × ${comboDays} ngày`,
+          amount: peakPriceAdjustment,
+        }] : []),
+      ] : [],
+    };
+  }
+
   const grouped = new Map<string, AppliedHolidayPricing>();
 
   for (const date of getBillableDateStrings(pickupDate, pickupHour, returnDate)) {
@@ -258,6 +321,7 @@ function calculateHolidayPricing(
         adjustment_type: selected.rule.adjustment_type,
         adjustment_value: selected.rule.adjustment_value,
         amount: selected.amount,
+        pricing_mode: 'daily_adjustment',
       });
     }
   }
@@ -746,6 +810,7 @@ export default function BookingWidget({
                 pickup_date: String(window.pickup_date || ''),
                 return_date: String(window.return_date || ''),
                 label: window.label ? String(window.label) : null,
+                adjustment_value: Number(window.adjustment_value ?? rule.adjustment_value),
               }))
             : [],
         })));
@@ -824,9 +889,11 @@ export default function BookingWidget({
       pickupHour,
       returnDate,
       basePrice,
+      rentalResult.fees[0]?.amount ?? rentalResult.total,
     ),
-    [basePrice, holidayPricingRules, pickupDate, pickupHour, returnDate],
+    [basePrice, holidayPricingRules, pickupDate, pickupHour, rentalResult.fees, rentalResult.total, returnDate],
   );
+  const matchedHolidayCombo = holidayPricing.applied.find((item) => item.pricing_mode === 'combo') ?? null;
   const upcomingHolidayRules = useMemo(
     () => holidayPricingRules.filter((rule) => rule.end_date >= todayStr).slice(0, 3),
     [holidayPricingRules, todayStr],
@@ -878,6 +945,15 @@ export default function BookingWidget({
     ? `Kỳ lễ này chỉ nhận ${holidayComboText}. Đặt lẻ ngày không nhận.`
     : 'Kỳ lễ này chỉ nhận đúng combo đã công bố. Đặt lẻ ngày không nhận.';
   const holidayPromoBlockMessage = 'Mã giảm giá không áp dụng vào ngày lễ / cao điểm.';
+  const selectedComboDays = holidayBookingPolicy.matchedWindow
+    ? inclusiveDateCount(
+        holidayBookingPolicy.matchedWindow.pickup_date,
+        holidayBookingPolicy.matchedWindow.return_date,
+      )
+    : null;
+  const selectedDurationLabel = selectedComboDays
+    ? `${selectedComboDays} ngày`
+    : rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour);
 
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
   const orderTotalBeforePromo = rentalResult.valid
@@ -942,6 +1018,11 @@ export default function BookingWidget({
       .filter((rule) => rule.start_date <= dateStr && rule.end_date >= dateStr)
       .map((rule) => ({ rule, surcharge: holidayDailySurcharge(rule, basePrice) }))
       .sort((a, b) => b.surcharge - a.surcharge)[0];
+    const comboSurcharge = holidayBookingPolicy.matchedWindow
+      && holidayBookingPolicy.matchedWindow.pickup_date <= dateStr
+      && holidayBookingPolicy.matchedWindow.return_date >= dateStr
+      ? Math.max(0, Number(holidayBookingPolicy.matchedWindow.adjustment_value) || 0)
+      : null;
     const showPrice = basePrice > 0 && !activeModifiers.disabled && !activeModifiers.blocked;
 
     return (
@@ -952,12 +1033,12 @@ export default function BookingWidget({
         </span>
         {showPrice && (
           <span className="carmatch-cal-day-price">
-            {fmtCalendarPrice(basePrice + (holidayRule?.surcharge ?? 0))}
+            {fmtCalendarPrice(basePrice + (comboSurcharge ?? holidayRule?.surcharge ?? 0))}
           </span>
         )}
       </span>
     );
-  }, [basePrice, holidayPricingRules]);
+  }, [basePrice, holidayBookingPolicy.matchedWindow, holidayPricingRules]);
 
   // Step mode: first click = pickup, second = return
   const [rangeStep, setRangeStep] = useState<'from' | 'to'>('from');
@@ -1008,6 +1089,13 @@ export default function BookingWidget({
       }
     }
   }, [pickupDate, pickupHour, rangeStep, returnHour]);
+
+  const selectHolidayCombo = useCallback((window: HolidayBookingWindow) => {
+    setPickupDate(window.pickup_date);
+    setReturnDate(window.return_date);
+    setCalendarStartPreview(null);
+    setRangeStep('from');
+  }, []);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -1286,7 +1374,8 @@ export default function BookingWidget({
   pickupDt.setHours(pickupHour, 0, 0, 0);
   const returnDt = parseDateStr(returnDate);
   returnDt.setHours(returnHour, 0, 0, 0);
-  const rentalDays = Math.max(1, Math.ceil((returnDt.getTime() - pickupDt.getTime()) / 86_400_000));
+  const actualRentalDays = Math.max(1, Math.ceil((returnDt.getTime() - pickupDt.getTime()) / 86_400_000));
+  const rentalDays = selectedComboDays ?? actualRentalDays;
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
 
@@ -1303,7 +1392,9 @@ export default function BookingWidget({
       `Số ngày thuê: ${rentalDays} ngày`,
       '',
       `Tổng giá: ${orderTotalBeforePromo.toLocaleString('vi-VN')}đ`,
-      holidayPricing.total > 0 ? `Phụ thu giá lễ: +${holidayPricing.total.toLocaleString('vi-VN')}đ` : null,
+      matchedHolidayCombo
+        ? `Mức tăng combo lễ: +${Number(matchedHolidayCombo.combo_adjustment_value).toLocaleString('vi-VN')}đ/ngày × ${matchedHolidayCombo.combo_days} ngày`
+        : holidayPricing.total > 0 ? `Phụ thu giá lễ: +${holidayPricing.total.toLocaleString('vi-VN')}đ` : null,
       loyaltyDiscountAmount > 0 ? `Ưu đãi ${loyaltyDiscount?.tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${loyaltyDiscountAmount.toLocaleString('vi-VN')}đ` : null,
       promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
       (loyaltyDiscountAmount > 0 || promoDiscount > 0) ? `Tổng sau ưu đãi: ${finalTotal.toLocaleString('vi-VN')}đ` : null,
@@ -1356,7 +1447,9 @@ export default function BookingWidget({
               <div className="text-xs font-black text-amber-900">🎉 Giá dịp lễ / cao điểm</div>
               {holidayPricing.total > 0 && (
                 <span className="whitespace-nowrap rounded-full bg-white px-2 py-1 text-[11px] font-black text-orange-700">
-                  +{fmtVND(holidayPricing.total)}
+                  {matchedHolidayCombo
+                    ? `+${fmtVND(Number(matchedHolidayCombo.combo_adjustment_value))}/ngày`
+                    : `+${fmtVND(holidayPricing.total)}`}
                 </span>
               )}
             </div>
@@ -1366,7 +1459,11 @@ export default function BookingWidget({
                   <span className="font-medium text-amber-800">
                     {rule.name}: {displayDateSlash(rule.start_date)} – {displayDateSlash(rule.end_date)}
                   </span>
-                  <strong className="shrink-0 text-orange-700">{formatHolidayAdjustment(rule)}</strong>
+                  <strong className="shrink-0 text-orange-700">
+                    {(rule.booking_windows ?? []).some((window) => Number(window.adjustment_value) > 0)
+                      ? 'Theo từng combo'
+                      : formatHolidayAdjustment(rule)}
+                  </strong>
                 </div>
               ))}
             </div>
@@ -1384,7 +1481,9 @@ export default function BookingWidget({
             )}
             {holidayPricing.total > 0 && (
               <p className="mt-1.5 border-t border-amber-200 pt-1.5 text-[11px] font-semibold text-amber-900">
-                Lịch đang chọn có {holidayPricing.applied.reduce((sum, item) => sum + item.dates.length, 0)} ngày áp dụng giá lễ.
+                {matchedHolidayCombo
+                  ? `${matchedHolidayCombo.booking_window_label || 'Combo lễ'} · +${fmtVND(Number(matchedHolidayCombo.combo_adjustment_value))}/ngày × ${matchedHolidayCombo.combo_days} ngày.`
+                  : `Lịch đang chọn có ${holidayPricing.applied.reduce((sum, item) => sum + item.dates.length, 0)} ngày áp dụng giá lễ.`}
               </p>
             )}
             {holidayBookingPolicy.hasHoliday && (
@@ -1440,7 +1539,7 @@ export default function BookingWidget({
                 <CalendarDays className="h-4 w-4 shrink-0" />
                 {availLoading ? 'Đang tải lịch xe…' : 'Đổi thời gian trên lịch'}
                 <span className="ml-auto font-semibold text-gray-500">
-                  {rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}
+                  {selectedComboDays ? `${selectedDurationLabel} combo` : selectedDurationLabel}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-gray-400" />
               </span>
@@ -1825,8 +1924,43 @@ export default function BookingWidget({
             </button>
           </div>
 
+          {upcomingHolidayWindows.length > 0 && (
+            <div className="shrink-0 border-b border-amber-100 bg-amber-50/70 px-4 py-3 sm:px-8">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-black text-amber-900">Chọn nhanh combo lễ</p>
+                <p className="text-[11px] font-medium text-amber-700">Không cần chọn lùi ngày hôm trước</p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {upcomingHolidayWindows.map((window) => {
+                  const active = pickupDate === window.pickup_date && returnDate === window.return_date;
+                  const comboDays = inclusiveDateCount(window.pickup_date, window.return_date);
+                  return (
+                    <button
+                      key={`${window.pickup_date}-${window.return_date}`}
+                      type="button"
+                      onClick={() => selectHolidayCombo(window)}
+                      className={`rounded-xl border px-3 py-2 text-left transition ${
+                        active
+                          ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
+                          : 'border-amber-200 bg-white text-amber-900 hover:border-amber-400 hover:bg-amber-50'
+                      }`}
+                    >
+                      <span className="block text-xs font-black">{window.label || `Combo ${comboDays} ngày`}</span>
+                      <span className={`mt-0.5 block text-[11px] font-semibold ${active ? 'text-amber-50' : 'text-amber-700'}`}>
+                        {displayDateSlash(window.pickup_date)} – {displayDateSlash(window.return_date)} · {comboDays} ngày
+                        {Number(window.adjustment_value) > 0
+                          ? ` · +${fmtVND(Number(window.adjustment_value))}/ngày`
+                          : ''}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ── Calendar ── */}
-          <div className="carmatch-cal overflow-x-hidden px-3 pt-3 sm:px-8 sm:pt-5">
+          <div className="carmatch-cal shrink-0 overflow-x-hidden px-3 pt-3 sm:px-8 sm:pt-5">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <p className={`text-sm font-bold ${rangeStep === 'from' ? 'text-brand-700' : 'text-emerald-700'}`}>
                 {rangeStep === 'from' ? '① Chọn ngày nhận xe' : '② Chọn ngày trả xe'}
@@ -1954,7 +2088,8 @@ export default function BookingWidget({
                 </div>
                 {rangeStep === 'from' && (
                   <div className="mt-1 text-xs font-medium text-gray-500">
-                    Thời gian thuê: <strong className="text-emerald-600">{rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour)}</strong>
+                    {selectedComboDays ? 'Số ngày combo' : 'Thời gian thuê'}:{' '}
+                    <strong className="text-emerald-600">{selectedDurationLabel}</strong>
                   </div>
                 )}
               </div>
