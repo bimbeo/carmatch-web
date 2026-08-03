@@ -122,8 +122,8 @@ export default async function handler(req, res) {
 
   const pickup = clean(req.query.pickup);
   const returnDate = clean(req.query.return);
-  const requestedPickup = requestedDateAt(pickup, req.query.pickupHour);
-  const requestedReturn = requestedDateAt(returnDate, req.query.returnHour);
+  const requestedPickup = requestedDateAt(pickup, req.query.pickupHour, 8);
+  const requestedReturn = requestedDateAt(returnDate, req.query.returnHour, 20);
   if (!requestedPickup || !requestedReturn || requestedReturn <= requestedPickup) {
     return res.status(400).json({ error: 'Invalid date range' });
   }

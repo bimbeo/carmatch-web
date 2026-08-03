@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, RotateCcw, X } from 'lucide-react';
+import { DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR } from '@/lib/rentalDuration';
 
 const HOUR_OPTIONS = Array.from({ length: 17 }, (_, index) => index + 7);
 
@@ -41,8 +42,8 @@ export default function DateRangeFilter({
   onRangeChange,
   initialPickupDate,
   initialReturnDate,
-  initialPickupHour = 20,
-  initialReturnHour = 20,
+  initialPickupHour = DEFAULT_PICKUP_HOUR,
+  initialReturnHour = DEFAULT_RETURN_HOUR,
 }: Props) {
   const today = useMemo(() => {
     const now = new Date();
@@ -116,13 +117,13 @@ export default function DateRangeFilter({
     const nextReturn = toDateStr(addDays(today, 2));
     setPickupDate(nextPickup);
     setReturnDate(nextReturn);
-    setPickupHour(20);
-    setReturnHour(20);
+    setPickupHour(DEFAULT_PICKUP_HOUR);
+    setReturnHour(DEFAULT_RETURN_HOUR);
     setError('');
     setActive(false);
     onFilter({ unavailableVehicleIds: [], unavailableModels: [] });
     onActiveChange?.(false);
-    onRangeChange?.(nextPickup, nextReturn, 20, 20);
+    onRangeChange?.(nextPickup, nextReturn, DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR);
   }
 
   return (

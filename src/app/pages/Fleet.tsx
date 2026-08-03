@@ -11,6 +11,7 @@ import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
 import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR } from '@/lib/rentalDuration';
 
 const ZALO_LINK = 'https://zalo.me/0975563290';
 const PHONE_LINK = 'tel:0975563290';
@@ -32,7 +33,7 @@ function parseSeatsFilter(value: string | null): SeatsFilter {
   return value === '4' || value === '5' || value === '7' || value === '8+' ? value : 'all';
 }
 
-function parseHour(value: string | null, fallback = 20): number {
+function parseHour(value: string | null, fallback: number): number {
   const hour = Number(value);
   return Number.isInteger(hour) && hour >= 7 && hour <= 23 ? hour : fallback;
 }
@@ -179,8 +180,8 @@ export default function Fleet() {
     return {
       pickupDate,
       returnDate,
-      pickupHour: parseHour(searchParams.get('pickupHour')),
-      returnHour: parseHour(searchParams.get('returnHour')),
+      pickupHour: parseHour(searchParams.get('pickupHour'), DEFAULT_PICKUP_HOUR),
+      returnHour: parseHour(searchParams.get('returnHour'), DEFAULT_RETURN_HOUR),
     };
   });
   const [leadArea, setLeadArea] = useState(searchParams.get('area') || '');

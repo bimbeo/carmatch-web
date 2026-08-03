@@ -6,6 +6,12 @@ import { DayPicker, type DayContentProps } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import {
+  calculateRentalBillingDays,
+  DEFAULT_PICKUP_HOUR,
+  DEFAULT_RETURN_HOUR,
+  formatRentalBillingDays,
+} from '@/lib/rentalDuration';
 import { supabase } from '@/lib/supabase';
 import { useIsMobile } from './ui/use-mobile';
 
@@ -161,36 +167,6 @@ function parseDateStr(str: string): Date {
 
 function displayDateSlash(dateStr: string): string {
   return dateStr.split('-').reverse().join('/');
-}
-
-function rentalDurationHours(
-  pickupDate: string,
-  pickupHour: number,
-  returnDate: string,
-  returnHour: number,
-): number {
-  const pickup = parseDateStr(pickupDate);
-  pickup.setHours(pickupHour, 0, 0, 0);
-  const dropoff = parseDateStr(returnDate);
-  dropoff.setHours(returnHour, 0, 0, 0);
-  return Math.max(0, Math.round((dropoff.getTime() - pickup.getTime()) / 3_600_000));
-}
-
-function rentalDurationLabel(
-  pickupDate: string,
-  pickupHour: number,
-  returnDate: string,
-  returnHour: number,
-): string {
-  const hours = rentalDurationHours(pickupDate, pickupHour, returnDate, returnHour);
-  if (hours === 24) return '1 ngày';
-  if (hours < 24) return `${hours} giờ`;
-
-  const days = Math.floor(hours / 24);
-  const remainingHours = hours % 24;
-  return remainingHours === 0
-    ? `${days} ngày`
-    : `${days} ngày ${remainingHours} giờ`;
 }
 
 /**
@@ -364,8 +340,8 @@ function getInitialBookingSelection(today: Date) {
     return {
       pickupDate: defaultPickupDate,
       returnDate: defaultReturnDate,
-      pickupHour: 20,
-      returnHour: 20,
+      pickupHour: DEFAULT_PICKUP_HOUR,
+      returnHour: DEFAULT_RETURN_HOUR,
     };
   }
 
@@ -382,16 +358,16 @@ function getInitialBookingSelection(today: Date) {
       : pickupDate === defaultPickupDate
         ? defaultReturnDate
         : toDateStr(addDays(parseDateStr(pickupDate), 1));
-  const parseHour = (key: string) => {
+  const parseHour = (key: string, fallback: number) => {
     const value = Number(params.get(key));
-    return Number.isInteger(value) && value >= 7 && value <= 23 ? value : 20;
+    return Number.isInteger(value) && value >= 7 && value <= 23 ? value : fallback;
   };
 
   return {
     pickupDate,
     returnDate,
-    pickupHour: parseHour('pickupHour'),
-    returnHour: parseHour('returnHour'),
+    pickupHour: parseHour('pickupHour', DEFAULT_PICKUP_HOUR),
+    returnHour: parseHour('returnHour', DEFAULT_RETURN_HOUR),
   };
 }
 
@@ -461,22 +437,12 @@ function calculateRental(
   else if (returnHour >= 22) lateFee = 200_000;
   else if (returnHour >= 21) lateFee = 100_000;
 
-  let baseDays: number;
-
-  if (pickupHour <= 11) {
-    baseDays = calDays + 1;
-  } else if (pickupHour <= 15) {
-    if (returnHour <= 12) {
-      baseDays = calDays;
-    } else {
-      baseDays = calDays + 0.5;
-    }
-  } else {
-    baseDays = calDays;
-    if (pickupHour >= 19 && returnHour <= 12) {
-      baseDays = calDays === 1 ? 0.7 : (calDays - 1) + 0.5;
-    }
-  }
+  const baseDays = calculateRentalBillingDays(
+    pickupDateStr,
+    pickupHour,
+    returnDateStr,
+    returnHour,
+  );
 
   let baseAmount: number;
   if (baseDays === 0.7) {
@@ -939,15 +905,8 @@ export default function BookingWidget({
     ? `Kỳ lễ này chỉ nhận ${holidayComboText}. Đặt lẻ ngày không nhận.`
     : 'Kỳ lễ này chỉ nhận đúng combo đã công bố. Đặt lẻ ngày không nhận.';
   const holidayPromoBlockMessage = 'Mã giảm giá không áp dụng vào ngày lễ / cao điểm.';
-  const selectedComboDays = holidayBookingPolicy.matchedWindow
-    ? inclusiveDateCount(
-        holidayBookingPolicy.matchedWindow.pickup_date,
-        holidayBookingPolicy.matchedWindow.return_date,
-      )
-    : null;
-  const selectedDurationLabel = selectedComboDays
-    ? `${selectedComboDays} ngày`
-    : rentalDurationLabel(pickupDate, pickupHour, returnDate, returnHour);
+  const billingDays = calculateRentalBillingDays(pickupDate, pickupHour, returnDate, returnHour);
+  const selectedDurationLabel = formatRentalBillingDays(billingDays);
 
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
   const orderTotalBeforePromo = rentalResult.valid
@@ -1054,6 +1013,8 @@ export default function BookingWidget({
     if (modifiers.disabled || modifiers.blocked) return;
     const ds = toDateStr(day);
     if (rangeStep === 'from') {
+      setPickupHour(DEFAULT_PICKUP_HOUR);
+      setReturnHour(DEFAULT_RETURN_HOUR);
       setPickupDate(ds);
       setReturnDate(toDateStr(addDays(day, 1)));
       setCalendarStartPreview(day);
@@ -1069,13 +1030,15 @@ export default function BookingWidget({
         // minimum 4-hour rental, move pickup to opening time and keep return.
         setReturnDate(ds);
         if (returnHour - pickupHour < 4) {
-          setPickupHour(7);
-          if (returnHour < 11) setReturnHour(11);
+          setPickupHour(DEFAULT_PICKUP_HOUR);
+          if (returnHour < 12) setReturnHour(12);
         }
         setCalendarStartPreview(null);
         setRangeStep('from');
       } else {
         // Clicking before pickup starts a fresh selection from that day.
+        setPickupHour(DEFAULT_PICKUP_HOUR);
+        setReturnHour(DEFAULT_RETURN_HOUR);
         setPickupDate(ds);
         setReturnDate(toDateStr(addDays(day, 1)));
         setCalendarStartPreview(day);
@@ -1085,6 +1048,8 @@ export default function BookingWidget({
   }, [pickupDate, pickupHour, rangeStep, returnHour]);
 
   const selectHolidayCombo = useCallback((window: HolidayBookingWindow) => {
+    setPickupHour(DEFAULT_PICKUP_HOUR);
+    setReturnHour(DEFAULT_RETURN_HOUR);
     setPickupDate(window.pickup_date);
     setReturnDate(window.return_date);
     setCalendarStartPreview(null);
@@ -1364,12 +1329,7 @@ export default function BookingWidget({
   const estimatedRemainingAmount = Math.max(0, finalTotal - estimatedDepositAmount);
   const promoDiscount = promoResult?.discount_amount ?? 0;
   const appliedPromo = promoResult?.code ?? '';
-  const pickupDt = parseDateStr(pickupDate);
-  pickupDt.setHours(pickupHour, 0, 0, 0);
-  const returnDt = parseDateStr(returnDate);
-  returnDt.setHours(returnHour, 0, 0, 0);
-  const actualRentalDays = Math.max(1, Math.ceil((returnDt.getTime() - pickupDt.getTime()) / 86_400_000));
-  const rentalDays = selectedComboDays ?? actualRentalDays;
+  const rentalDays = Math.max(1, Math.ceil(billingDays));
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
 
@@ -1470,7 +1430,7 @@ export default function BookingWidget({
                 <CalendarDays className="h-4 w-4 shrink-0" />
                 {availLoading ? 'Đang tải lịch xe…' : 'Đổi thời gian trên lịch'}
                 <span className="ml-auto font-semibold text-gray-500">
-                  {selectedComboDays ? `${selectedDurationLabel} combo` : selectedDurationLabel}
+                  {selectedDurationLabel}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-gray-400" />
               </span>
@@ -2009,7 +1969,7 @@ export default function BookingWidget({
                 </div>
                 {rangeStep === 'from' && (
                   <div className="mt-1 text-xs font-medium text-gray-500">
-                    {selectedComboDays ? 'Số ngày combo' : 'Thời gian thuê'}:{' '}
+                    Thời gian thuê:{' '}
                     <strong className="text-emerald-600">{selectedDurationLabel}</strong>
                   </div>
                 )}
