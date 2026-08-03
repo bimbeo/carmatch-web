@@ -118,6 +118,34 @@ function uniqueImages(urls: string[]): string[] {
   return Array.from(new Set(urls.map((url) => url.trim()).filter(Boolean)));
 }
 
+function hasVehicleImages(refs: Record<string, unknown> | null | undefined): boolean {
+  if (!refs || typeof refs !== 'object') return false;
+  if (typeof refs.coverImageUrl === 'string' && refs.coverImageUrl.trim()) return true;
+  return Array.isArray(refs.mediaFiles) && refs.mediaFiles.some(isVehicleImageMedia);
+}
+
+export function mergeLiveVehicles(
+  liveVehicles: SupabaseVehicle[],
+  snapshotVehicles: SupabaseVehicle[],
+): SupabaseVehicle[] {
+  const snapshotById = new Map(snapshotVehicles.map((vehicle) => [vehicle.id, vehicle]));
+
+  return liveVehicles.map((liveVehicle) => {
+    const snapshot = snapshotById.get(liveVehicle.id);
+    if (!snapshot) return liveVehicle;
+
+    return {
+      ...snapshot,
+      ...liveVehicle,
+      slug: snapshot.slug || liveVehicle.slug,
+      slugAliases: snapshot.slugAliases || liveVehicle.slugAliases,
+      external_refs: hasVehicleImages(liveVehicle.external_refs)
+        ? liveVehicle.external_refs
+        : snapshot.external_refs,
+    };
+  });
+}
+
 function uniquifyCarSlugs(cars: Car[]): Car[] {
   const counts = new Map<string, number>();
   cars.forEach((car) => counts.set(car.slug, (counts.get(car.slug) || 0) + 1));
@@ -267,32 +295,45 @@ export function useVehicles(): UseVehiclesResult {
     let cancelled = false;
 
     async function loadVehicles() {
-      // The build snapshot includes the optimized public vehicle photos. The
-      // live API intentionally excludes Supabase Storage URLs, so loading it
-      // first makes every card fall back to the same placeholder image.
+      let snapshotRows: SupabaseVehicle[] = Array.isArray(initialVehiclePayload)
+        ? initialVehiclePayload
+        : [];
+      let hasFallback = initialVehicles.length > 0;
+
+      // Render the optimized build snapshot immediately, then reconcile it
+      // with the live Vehicle Master below. This keeps first paint fast without
+      // making Ops changes wait for the next public-web deployment.
       try {
         const data = await fetchVehicleJson('/data/vehicles.json');
         if (cancelled) return;
+        snapshotRows = data;
+        hasFallback = data.length > 0;
         setCars(uniquifyCarSlugs(data.map(mapToCar)));
         setLoading(false);
-        setFetched(true);
-        return;
       } catch (staticError) {
         if (cancelled) return;
-        console.error('[useVehicles] Static vehicle data failed, using live API fallback', staticError);
+        console.error('[useVehicles] Static vehicle data failed, continuing with live API', staticError);
       }
 
-      // The live API keeps the fleet usable if the static snapshot is missing.
+      // Always refresh mutable fleet data. The API exposes same-origin image
+      // proxy URLs, so new photos can also appear without a full web rebuild.
       try {
         const data = await fetchVehicleJson('/api/vehicles', { cache: 'no-store' });
         if (cancelled) return;
-        setCars(uniquifyCarSlugs(data.map(mapToCar)));
+        const merged = mergeLiveVehicles(data, snapshotRows);
+        setCars(uniquifyCarSlugs(merged.map(mapToCar)));
         setLoading(false);
         setFetched(true);
         return;
       } catch (apiError) {
         if (cancelled) return;
-        console.error('[useVehicles] Live API fallback failed', apiError);
+        console.error('[useVehicles] Live vehicle refresh failed, keeping static fallback', apiError);
+      }
+
+      if (hasFallback) {
+        setLoading(false);
+        setFetched(true);
+        return;
       }
 
       if (!cancelled) {

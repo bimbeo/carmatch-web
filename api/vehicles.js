@@ -21,25 +21,38 @@ function isVehicleImageMedia(file) {
   );
 }
 
-function isSupabaseStorageUrl(url) {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.endsWith('.supabase.co') && parsed.pathname.includes('/storage/v1/');
-  } catch {
-    return false;
-  }
+function imageProxyUrl(vehicleId, params = {}) {
+  const query = new URLSearchParams({ vehicleId: String(vehicleId) });
+  if (params.mediaId) query.set('mediaId', String(params.mediaId));
+  if (params.version) query.set('v', String(params.version));
+  return `/api/vehicle-image?${query.toString()}`;
 }
 
-function pruneExternalRefs(externalRefs) {
+export function pruneExternalRefs(vehicleId, externalRefs, vehicleUpdatedAt = '') {
   const refs = externalRefs && typeof externalRefs === 'object' ? externalRefs : {};
-  const firstMediaImage = Array.isArray(refs.mediaFiles)
-    ? refs.mediaFiles.find(isVehicleImageMedia)?.fileUrl
-    : '';
-  const coverImageUrl = refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || firstMediaImage;
+  const mediaFiles = Array.isArray(refs.mediaFiles)
+    ? refs.mediaFiles
+        .filter(isVehicleImageMedia)
+        .filter((file) => file.id)
+        .slice(0, 8)
+        .map((file) => ({
+          category: 'vehicle_photos',
+          fileUrl: imageProxyUrl(vehicleId, {
+            mediaId: file.id,
+            version: file.uploadedAt || refs.mediaUpdatedAt || vehicleUpdatedAt,
+          }),
+          mimeType: file.mimeType || 'image/jpeg',
+        }))
+    : [];
+  const hasCover = Boolean(
+    refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || refs.image_url || mediaFiles[0],
+  );
+  const coverVersion = refs.vehiclePhotoUpdatedAt || refs.mediaUpdatedAt || vehicleUpdatedAt;
 
-  if (!coverImageUrl || isSupabaseStorageUrl(coverImageUrl)) return {};
-
-  return { coverImageUrl };
+  return {
+    ...(hasCover ? { coverImageUrl: imageProxyUrl(vehicleId, { version: coverVersion }) } : {}),
+    ...(mediaFiles.length > 0 ? { mediaFiles } : {}),
+  };
 }
 
 function pruneVehicle(vehicle) {
@@ -53,7 +66,7 @@ function pruneVehicle(vehicle) {
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
     rental_conditions: vehicle.rental_conditions ?? null,
-    external_refs: pruneExternalRefs(vehicle.external_refs),
+    external_refs: pruneExternalRefs(vehicle.id, vehicle.external_refs, vehicle.updated_at),
     vehicle_models: vehicle.vehicle_models
       ? {
           make: vehicle.vehicle_models.make ?? null,
@@ -82,7 +95,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('vehicles')
       .select(
-        'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
+        'id,display_name,color,model_year,daily_base_price,external_refs,updated_at,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
       )
       .eq('status', 'available')
       .eq('published', true)
