@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { pruneExternalRefs } from '../api/vehicles.js';
 import {
   isAllowedPublicVehicleImageUrl,
+  pruneExternalRefs,
   resolveVehicleImageSource,
-} from '../api/vehicle-image.js';
+} from '../api/vehicles.js';
 
 const vehicleId = '5e55fb77-5c0c-4111-a80f-85fd62a6c15b';
 const projectUrl = 'https://example.supabase.co';
@@ -29,7 +29,7 @@ test('public vehicle payload uses same-origin versioned image proxy URLs', () =>
     ],
   }, '2026-08-03T09:28:08.774Z');
 
-  assert.match(refs.coverImageUrl, /^\/api\/vehicle-image\?/);
+  assert.match(refs.coverImageUrl, /^\/api\/vehicles\?/);
   assert.match(refs.coverImageUrl, /vehicleId=5e55fb77-5c0c-4111-a80f-85fd62a6c15b/);
   assert.match(refs.coverImageUrl, /v=2026-08-03T09%3A27%3A42.641Z/);
   assert.equal(refs.mediaFiles.length, 1);
