@@ -9,7 +9,7 @@ const SUPABASE_KEY =
 
 const ACTIVE_EVENT_STATUSES = ['planned', 'confirmed', 'in_progress', 'completed'];
 const BLOCKING_EVENT_TYPES = new Set([
-  'rental', 'reserved', 'blocked', 'unavailable', 'maintenance', 'cleaning', 'inspection', 'transfer', 'charging',
+  'rental', 'blocked', 'maintenance', 'cleaning', 'inspection', 'transfer', 'charging',
 ]);
 const INACTIVE_ASSIGNMENT_STATUSES = new Set(['cancelled', 'ignored', 'needs_review', 'rejected', 'declined']);
 const VIETNAM_OFFSET = '+07:00';

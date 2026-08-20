@@ -70,8 +70,11 @@ const CUSTOMER_SELECT =
   'id, full_name, loyalty_tier, referral_code, first_seen_at, last_rental_at, email, phone, normalized_phone, status';
 const HOLIDAY_PRICING_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const ACTIVE_SCHEDULE_STATUSES = ['planned', 'confirmed', 'in_progress', 'completed'];
-const BLOCKING_SCHEDULE_TYPES = [
-  'rental', 'reserved', 'blocked', 'unavailable', 'maintenance', 'cleaning', 'inspection', 'transfer', 'charging',
+// Keep this list inside the `vehicle_schedule_event_type` enum defined by
+// 202605070003_vehicle_schedule_events.sql. PostgREST rejects the entire query
+// when even one unknown enum value is passed to `.in(...)`.
+export const BLOCKING_SCHEDULE_TYPES = [
+  'rental', 'blocked', 'maintenance', 'cleaning', 'inspection', 'transfer', 'charging',
 ];
 
 function addCalendarDays(dateString, count) {
@@ -1116,7 +1119,8 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: 'Giá xe vừa thay đổi, vui lòng tải lại để nhận báo giá mới nhất' });
   }
 
-  const requiresConfirmation = body.requires_confirmation === true;
+  let requiresConfirmation = body.requires_confirmation === true;
+  let availabilityCheckUnavailable = false;
   await supabase.from('vehicle_reservations')
     .update({ status: 'expired', updated_at: new Date().toISOString() })
     .eq('company_id', companyId).eq('status', 'held').lt('active_until', new Date().toISOString());
@@ -1136,13 +1140,17 @@ export default async function handler(req, res) {
       .limit(20),
   ]);
   if (reservationError || scheduleError) {
-    console.error('[bookings] Availability check error:', reservationError?.message || scheduleError?.message);
-    return res.status(500).json({ error: 'Chưa kiểm tra được lịch xe, vui lòng thử lại' });
+    availabilityCheckUnavailable = true;
+    requiresConfirmation = true;
+    console.error('[bookings] Availability check degraded; saving for manual confirmation:', {
+      reservation: reservationError?.message || null,
+      schedule: scheduleError?.message || null,
+    });
   }
   const {
     blocking: blockingScheduleConflicts,
     hasHardConflict: hasHardScheduleConflict,
-  } = classifyScheduleConflicts(scheduleConflicts, pickupDate, returnDate);
+  } = classifyScheduleConflicts(scheduleError ? [] : scheduleConflicts, pickupDate, returnDate);
   const canSubmitBoundaryConfirmation = requiresConfirmation
     && blockingScheduleConflicts.length > 0
     && !hasHardScheduleConflict;
@@ -1222,6 +1230,9 @@ export default async function handler(req, res) {
       : `Cọc VietQR: ${depositAmount.toLocaleString('vi-VN')}đ`,
     body.loyalty_discount > 0 ? `Ưu đãi ${body.loyalty_tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${Number(body.loyalty_discount).toLocaleString('vi-VN')}đ` : '',
     body.promo_code ? `Mã KM: ${body.promo_code} (-${Number(body.promo_discount || 0).toLocaleString('vi-VN')}đ)` : '',
+    availabilityCheckUnavailable
+      ? 'CẦN KIỂM TRA LỊCH THỦ CÔNG: dịch vụ kiểm tra lịch tự động bị gián đoạn khi khách gửi yêu cầu.'
+      : '',
     body.customer_note ? `Ghi chú khách: ${body.customer_note}` : '',
   ].filter(Boolean).join('\n');
 
@@ -1251,6 +1262,7 @@ export default async function handler(req, res) {
       loyalty_tier: body.loyalty_tier || null,
       holiday_surcharge: holidaySurcharge,
       holiday_pricing: holidayPricing,
+      availability_check_unavailable: availabilityCheckUnavailable,
       captured_at: new Date().toISOString(),
     },
     note: noteLines,
@@ -1438,6 +1450,7 @@ export default async function handler(req, res) {
     totalAmount,
     holdExpiresAt: reservationId ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null,
     paymentRequired: !requiresConfirmation,
+    requiresConfirmation,
   };
   if (idempotency.id) {
     await supabase.from('api_idempotency_keys').update({

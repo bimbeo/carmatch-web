@@ -2,10 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  BLOCKING_SCHEDULE_TYPES,
   classifyScheduleConflicts,
   isBoundaryScheduleConflict,
   scheduleEventCalendarRange,
 } from '../api/bookings.js';
+
+test('only sends valid database enum values in the blocking schedule query', () => {
+  assert.deepEqual(BLOCKING_SCHEDULE_TYPES, [
+    'rental',
+    'blocked',
+    'maintenance',
+    'cleaning',
+    'inspection',
+    'transfer',
+    'charging',
+  ]);
+});
 
 const activeRental = {
   event_type: 'rental',

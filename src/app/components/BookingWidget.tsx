@@ -735,10 +735,14 @@ export default function BookingWidget({
     if (!vehicleId) return;
     setAvailLoading(true);
     setAvailabilityUnavailable(false);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
     try {
       const from = todayStr;
       const to = toDateStr(addDays(today, 120));
-      const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`);
+      const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`, {
+        signal: controller.signal,
+      });
       if (!res.ok) throw new Error('availability request failed');
       const data = await res.json();
       setBlockedRanges(data.blockedRanges || []);
@@ -749,6 +753,7 @@ export default function BookingWidget({
       setAvailabilityUnavailable(true);
       setRequiresConfirmation(true);
     } finally {
+      window.clearTimeout(timeoutId);
       setAvailLoading(false);
     }
   }, [vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -817,18 +822,20 @@ export default function BookingWidget({
     () => categorizeConflicts(pickupDate, returnDate, blockedRanges),
     [pickupDate, returnDate, blockedRanges],
   );
-  const needsManualConfirmation = requiresConfirmation || boundaryConflicts.length > 0;
+  const needsManualConfirmation = requiresConfirmation
+    || boundaryConflicts.length > 0
+    || availabilityUnavailable;
 
   const availabilityStatus = useMemo<BookingAvailabilityStatus>(() => ({
     isLoading: availLoading,
     hasBlockedRanges: blockedRanges.length > 0,
     selectedRangeHasHardConflict: hardConflicts.length > 0,
     selectedRangeHasBoundaryConflict: boundaryConflicts.length > 0,
-    requiresConfirmation,
+    requiresConfirmation: needsManualConfirmation,
     firstHardConflict: hardConflicts[0]
       ? { from: hardConflicts[0].from, to: hardConflicts[0].to, type: hardConflicts[0].type }
       : null,
-  }), [availLoading, blockedRanges.length, boundaryConflicts, hardConflicts, requiresConfirmation]);
+  }), [availLoading, blockedRanges.length, boundaryConflicts, hardConflicts, needsManualConfirmation]);
 
   useEffect(() => {
     onAvailabilityStatusChange?.(availabilityStatus);
@@ -1163,10 +1170,6 @@ export default function BookingWidget({
   }, [initialPromoCode, totalAmount, holidayPromoBlocked]);
 
   const handleBookingSubmit = async () => {
-    if (availLoading || availabilityUnavailable) {
-      setBookingError('Chưa kiểm tra được lịch xe. Vui lòng thử lại trước khi gửi yêu cầu.');
-      return;
-    }
     if (hardConflicts.length > 0) {
       setBookingError('Xe đã có lịch trong khoảng này. Vui lòng chọn ngày khác.');
       return;
@@ -1245,17 +1248,18 @@ export default function BookingWidget({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi tạo đơn');
+      const submittedNeedsConfirmation = data.requiresConfirmation === true || needsManualConfirmation;
       setBookingRef(data.bookingRef);
       setDepositAmount(data.depositAmount);
-      setBookingNeedsConfirmation(needsManualConfirmation);
-      setBookingStep(BANK_QR_ENABLED && data.paymentRequired !== false && !needsManualConfirmation ? 2 : 3);
+      setBookingNeedsConfirmation(submittedNeedsConfirmation);
+      setBookingStep(BANK_QR_ENABLED && data.paymentRequired !== false && !submittedNeedsConfirmation ? 2 : 3);
       trackBookingSubmit('success', {
         vehicle_id: vehicleId || null,
         vehicle_name: carName,
         booking_ref: data.bookingRef,
         rental_days: rentalDays,
         total_amount: result.valid ? result.total : 0,
-          deposit_amount: needsManualConfirmation ? 0 : data.depositAmount,
+          deposit_amount: submittedNeedsConfirmation ? 0 : data.depositAmount,
         delivery_mode: deliveryMode,
         promo_code: promoForBooking?.code ?? null,
       });
@@ -1436,13 +1440,13 @@ export default function BookingWidget({
               </span>
             </button>
             {(availLoading || availabilityUnavailable) && (
-              <p className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${availabilityUnavailable ? 'text-red-600' : 'text-amber-700'}`}>
+              <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-amber-700">
                 <span className={`h-1.5 w-1.5 rounded-full ${
-                  availLoading ? 'animate-pulse bg-amber-400' : 'bg-red-500'
+                  availLoading ? 'animate-pulse bg-amber-400' : 'bg-amber-500'
                 }`} />
                 {availLoading
                   ? 'Đang tải lịch xe…'
-                  : 'Chưa tải được lịch xe — vui lòng thử lại'}
+                  : 'Lịch tự động đang tạm gián đoạn — Car Match sẽ kiểm tra thủ công trước khi giữ xe'}
               </p>
             )}
 
@@ -1747,7 +1751,7 @@ export default function BookingWidget({
             setBookingError('');
             setConfirmTransfer(false);
           }}
-          disabled={!result.valid || hardConflicts.length > 0 || availabilityUnavailable || availLoading || holidayBookingBlocked}
+          disabled={!result.valid || hardConflicts.length > 0 || holidayBookingBlocked}
           className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
@@ -1978,7 +1982,7 @@ export default function BookingWidget({
               <button
                 type="button"
                 onClick={() => setShowCalModal(false)}
-                disabled={rangeStep === 'to' || hardConflicts.length > 0 || !result.valid || availabilityUnavailable || availLoading || holidayBookingBlocked}
+                disabled={rangeStep === 'to' || hardConflicts.length > 0 || !result.valid || holidayBookingBlocked}
                 className="shrink-0 py-3.5 px-8 bg-emerald-500 text-white font-black rounded-xl text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 {holidayBookingBlocked ? 'Chọn combo lễ' : 'Tiếp tục'}
