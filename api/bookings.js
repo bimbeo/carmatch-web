@@ -960,6 +960,8 @@ export default async function handler(req, res) {
       deposit_amount: data.deposit_amount,
       note: data.note,
       status: data.status,
+      payment_required: data.status === 'new' && !paymentProofUrl,
+      requires_confirmation: data.status === 'partner_pending',
       created_at: data.created_at,
       building: data.building,
       payment_proof_url: paymentProofUrl,

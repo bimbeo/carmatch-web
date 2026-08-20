@@ -493,10 +493,11 @@ const LOCATIONS = [
 ];
 
 // ─── Bank / QR config ─────────────────────────────────────────────────────────
-const BANK_ID = import.meta.env.VITE_BANK_ID || 'MB';
-const BANK_ACCOUNT_RAW = import.meta.env.VITE_BANK_ACCOUNT || '';
+const cleanBankValue = (value: unknown) => String(value ?? '').replace(/\\[rn]/g, '').trim();
+const BANK_ID = cleanBankValue(import.meta.env.VITE_BANK_ID || 'MB');
+const BANK_ACCOUNT_RAW = cleanBankValue(import.meta.env.VITE_BANK_ACCOUNT || '');
 const BANK_ACCOUNT = BANK_ACCOUNT_RAW === '0399118989' ? '' : BANK_ACCOUNT_RAW;
-const BANK_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || 'CONG TY TNHH CAR MATCH';
+const BANK_NAME = cleanBankValue(import.meta.env.VITE_BANK_ACCOUNT_NAME || 'CONG TY TNHH CAR MATCH');
 const BANK_QR_ENABLED = Boolean(BANK_ACCOUNT);
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -2858,7 +2859,7 @@ export default function BookingWidget({
                         className="flex flex-col items-center gap-1 rounded-xl border border-cyan-200 bg-cyan-50 py-2.5 text-xs font-medium text-cyan-700 hover:bg-cyan-100 transition-colors"
                       >
                         <span className="text-base">🔍</span>
-                        <span>Xem đơn</span>
+                        <span>{bookingNeedsConfirmation ? 'Theo dõi QR' : 'Xem đơn'}</span>
                       </Link>
                     </div>
                   );
