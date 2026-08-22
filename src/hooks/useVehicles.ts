@@ -86,6 +86,11 @@ interface SupabaseVehicle {
   } | null;
 }
 
+const STATIC_VEHICLE_CACHE_TTL_MS = 60 * 60 * 1000;
+const LIVE_VEHICLE_CACHE_TTL_MS = 2 * 60 * 1000;
+const vehicleJsonCache = new Map<string, { data: SupabaseVehicle[]; expiresAt: number }>();
+const vehicleJsonRequests = new Map<string, Promise<SupabaseVehicle[]>>();
+
 declare global {
   interface Window {
     __CM_INITIAL_VEHICLES__?: SupabaseVehicle[];
@@ -262,19 +267,39 @@ export interface UseVehiclesResult {
 }
 
 async function fetchVehicleJson(path: string, init?: RequestInit): Promise<SupabaseVehicle[]> {
-  const res = await fetch(path, init);
-  if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}`);
+  const cached = vehicleJsonCache.get(path);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
 
-  const contentType = res.headers.get('content-type') || '';
-  const body = await res.text();
-  if (!contentType.includes('json') && body.trimStart().startsWith('<')) {
-    throw new Error(`Expected JSON from ${path}, received HTML`);
+  const pending = vehicleJsonRequests.get(path);
+  if (pending) return pending;
+
+  const request = (async () => {
+    const res = await fetch(path, init);
+    if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}`);
+
+    const contentType = res.headers.get('content-type') || '';
+    const body = await res.text();
+    if (!contentType.includes('json') && body.trimStart().startsWith('<')) {
+      throw new Error(`Expected JSON from ${path}, received HTML`);
+    }
+
+    const data = JSON.parse(body) as unknown;
+    if (!Array.isArray(data)) throw new Error(`Expected vehicle array from ${path}`);
+
+    const rows = data as SupabaseVehicle[];
+    const ttl = path.startsWith('/data/')
+      ? STATIC_VEHICLE_CACHE_TTL_MS
+      : LIVE_VEHICLE_CACHE_TTL_MS;
+    vehicleJsonCache.set(path, { data: rows, expiresAt: Date.now() + ttl });
+    return rows;
+  })();
+
+  vehicleJsonRequests.set(path, request);
+  try {
+    return await request;
+  } finally {
+    if (vehicleJsonRequests.get(path) === request) vehicleJsonRequests.delete(path);
   }
-
-  const data = JSON.parse(body) as unknown;
-  if (!Array.isArray(data)) throw new Error(`Expected vehicle array from ${path}`);
-
-  return data as SupabaseVehicle[];
 }
 
 export function useVehicles(): UseVehiclesResult {

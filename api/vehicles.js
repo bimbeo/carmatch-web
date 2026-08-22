@@ -199,11 +199,12 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // Keep browser staleness short while allowing Vercel's edge to absorb the
-    // repeated public reads. Ops visibility/price changes propagate in at most
-    // one minute, and stale data is only used while the edge refreshes it.
-    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
-    res.setHeader('Vercel-CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    // The build snapshot renders immediately, while the edge serves stale data
+    // during background revalidation instead of making the first visitor wait
+    // for a cold function. Availability is checked by its dedicated endpoint.
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('CDN-Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
+    res.setHeader('Vercel-CDN-Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
     res.setHeader('Server-Timing', `vehicles;dur=${Date.now() - startedAt}`);
     res.status(200).json((data || []).map(pruneVehicle));
   } catch (err) {
