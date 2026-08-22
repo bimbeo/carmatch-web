@@ -315,10 +315,11 @@ export function useVehicles(): UseVehiclesResult {
         console.error('[useVehicles] Static vehicle data failed, continuing with live API', staticError);
       }
 
-      // Always refresh mutable fleet data. The API exposes same-origin image
-      // proxy URLs, so new photos can also appear without a full web rebuild.
+      // Refresh mutable fleet data through the short-lived edge cache. The
+      // build snapshot still renders immediately, while repeated visitors no
+      // longer force a new database query on every page load.
       try {
-        const data = await fetchVehicleJson('/api/vehicles', { cache: 'no-store' });
+        const data = await fetchVehicleJson('/api/vehicles');
         if (cancelled) return;
         const merged = mergeLiveVehicles(data, snapshotRows);
         setCars(uniquifyCarSlugs(merged.map(mapToCar)));

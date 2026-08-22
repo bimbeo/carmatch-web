@@ -173,6 +173,7 @@ function pruneVehicle(vehicle) {
 }
 
 export default async function handler(req, res) {
+  const startedAt = Date.now();
   if (req.query?.cleanXe === '1') {
     res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     res.writeHead(301, { Location: 'https://www.carmatch.vn/xe' });
@@ -198,9 +199,12 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // Vehicle visibility and rental policy are edited from the internal app.
-    // Never let the CDN keep showing a hidden vehicle or outdated pricing rules.
-    res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    // Keep browser staleness short while allowing Vercel's edge to absorb the
+    // repeated public reads. Ops visibility/price changes propagate in at most
+    // one minute, and stale data is only used while the edge refreshes it.
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Vercel-CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Server-Timing', `vehicles;dur=${Date.now() - startedAt}`);
     res.status(200).json((data || []).map(pruneVehicle));
   } catch (err) {
     console.error('[api/vehicles]', err);
