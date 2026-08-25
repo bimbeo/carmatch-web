@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { ArrowRight, CalendarDays, Fuel, Users, Zap } from 'lucide-react';
+import { ArrowRight, CalendarDays, Fuel, Gauge, Truck, Users, Zap } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
 import { trackVehicleClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
@@ -25,27 +25,77 @@ interface CarCardProps {
   compact?: boolean;
   mode?: 'standard' | 'listing';
   source?: string;
+  rentalRange?: {
+    pickupDate: string;
+    returnDate: string;
+    pickupHour: number;
+    returnHour: number;
+  };
+  availabilityChecked?: boolean;
 }
 
-const PRESERVED_QUERY_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'promo'];
+const PRESERVED_QUERY_KEYS = [
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'promo',
+  'area',
+  'from',
+  'to',
+  'pickupHour',
+  'returnHour',
+];
 
-function withPreservedCampaign(path: string, search: string, hash = '') {
+function withPreservedCampaign(
+  path: string,
+  search: string,
+  hash = '',
+  extraParams: Record<string, string> = {},
+) {
   const current = new URLSearchParams(search);
   const next = new URLSearchParams();
   PRESERVED_QUERY_KEYS.forEach((key) => {
     const value = current.get(key);
     if (value) next.set(key, value);
   });
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value) next.set(key, value);
+  });
   const query = next.toString();
   return `${path}${query ? `?${query}` : ''}${hash}`;
 }
 
-export default function CarCard({ car, compact = false, mode = 'standard', source = 'vehicle_card' }: CarCardProps) {
+export default function CarCard({
+  car,
+  compact = false,
+  mode = 'standard',
+  source = 'vehicle_card',
+  rentalRange,
+  availabilityChecked = false,
+}: CarCardProps) {
   const location = useLocation();
   const badge = fuelBadge[car.fuel];
   const vehicleLinkLabel = [car.name, car.description, car.plateNumber].filter(Boolean).join(' - ');
-  const detailHref = withPreservedCampaign(`/xe/${car.slug}`, location.search);
-  const bookingHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '#booking');
+  const rentalParams: Record<string, string> = rentalRange
+    ? {
+        from: rentalRange.pickupDate,
+        to: rentalRange.returnDate,
+        pickupHour: String(rentalRange.pickupHour),
+        returnHour: String(rentalRange.returnHour),
+      }
+    : {};
+  const detailHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '', rentalParams);
+  const bookingHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '#booking', rentalParams);
+  const rentalDays = rentalRange
+    ? Math.max(
+        1,
+        Math.round(
+          (new Date(`${rentalRange.returnDate}T00:00:00`).getTime() -
+            new Date(`${rentalRange.pickupDate}T00:00:00`).getTime()) /
+            86_400_000,
+        ),
+      )
+    : 0;
   const trackCar = (action: string) => trackVehicleClick(action, {
     source,
     vehicle_id: car.id,
@@ -118,13 +168,38 @@ export default function CarCard({ car, compact = false, mode = 'standard', sourc
             )}
           </div>
 
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-slate-600">
+              <Truck className="h-3.5 w-3.5 text-brand-500" />
+              Giao tận nơi
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-slate-600">
+              <Gauge className="h-3.5 w-3.5 text-brand-500" />
+              {car.kmPerDay} km/ngày
+            </span>
+          </div>
+
+          {availabilityChecked && (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Còn lịch ngày đã chọn
+            </div>
+          )}
+
           <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
             <div>
               {car.price > 0 ? (
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-xl font-semibold tracking-tight text-brand-600">{formatPrice(car.price)}</span>
-                  <span className="text-sm font-medium text-slate-500">/ngày</span>
-                </div>
+                <>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xl font-semibold tracking-tight text-brand-600">{formatPrice(car.price)}</span>
+                    <span className="text-sm font-medium text-slate-500">/ngày</span>
+                  </div>
+                  {rentalRange && (
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      Tạm tính {rentalDays} ngày: {formatPrice(car.price * rentalDays)}
+                    </p>
+                  )}
+                </>
               ) : (
                 <span className="text-base font-semibold text-brand-600">Liên hệ báo giá</span>
               )}

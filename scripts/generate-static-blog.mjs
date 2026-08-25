@@ -23,10 +23,19 @@ import {
   safeJsonLdStringify,
 } from '../src/lib/seoSchemas.ts';
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
+import {
+  cacheStaticImageUrls,
+  cacheVehicleCoverImages,
+  cacheVehicleGalleryImages,
+} from './vehicle-cover-cache.mjs';
+import { sanitizeBlogHtml } from '../server/blog/sanitize.js';
 
 process.env.NODE_ENV ||= 'production';
 
 let generatedTripDestinations = fallbackTripDestinations;
+let vehicleCoverCacheUrls = new Map();
+let vehicleGalleryCacheUrls = new Map();
+let staticImageCacheUrls = new Map();
 import { travelCollections as fallbackTravelCollections } from '../src/data/travelCollections.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -101,9 +110,13 @@ const rentalReturnPolicy = {
   returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
 };
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createSupabaseClient(supabaseUrl, supabaseAnonKey) : null;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseServerKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseServerKey
+  ? createSupabaseClient(supabaseUrl, supabaseServerKey)
+  : null;
 
 function categoryLabel(slug = '') {
   return slug
@@ -125,7 +138,7 @@ function mapSupabasePost(row) {
     author: normalizeRequiredText(row.author, 'Car Match'),
     updatedAt: row.updated_at || row.published_at || row.created_at,
     body: [],
-    bodyHtml: normalizeRequiredText(row.content_html),
+    bodyHtml: sanitizeBlogHtml(normalizeRequiredText(row.content_html)),
     seoTitle: normalizeOptionalText(row.seo_title),
     seoDescription: normalizeOptionalText(row.seo_description),
     canonicalUrl: row.canonical_url || undefined,
@@ -313,7 +326,7 @@ function mergeBySlug(primary, fallback) {
 const blogMeta = {
   title: 'Blog Kinh Nghiệm Thuê Xe Tự Lái | Car Match Hà Nội',
   description:
-    'Kinh nghiệm thuê xe tự lái Hà Nội: giấy tờ cần chuẩn bị, đặt cọc, bảo hiểm, chọn xe phù hợp và dịch vụ giao xe tận sảnh chung cư.',
+    'Kinh nghiệm thuê xe tự lái Hà Nội: giấy tờ cần chuẩn bị, đặt cọc, chọn xe phù hợp và dịch vụ giao xe tận sảnh chung cư.',
   canonical: `${siteUrl}/blog`,
 };
 
@@ -758,7 +771,7 @@ const routeMeta = [
     path: '/faq',
     title: 'Câu Hỏi Thường Gặp — Car Match',
     description:
-      'Giải đáp câu hỏi thường gặp về đặt xe online, thanh toán, nhận xe, giấy tờ, bảo hiểm và phụ phí khi thuê xe tại Car Match.',
+      'Giải đáp câu hỏi thường gặp về đặt xe online, thanh toán, nhận xe, giấy tờ và phụ phí khi thuê xe tại Car Match.',
     canonical: `${siteUrl}/faq`,
     priority: '0.5',
     changefreq: 'monthly',
@@ -767,7 +780,7 @@ const routeMeta = [
     path: '/chinh-sach',
     title: 'Chính Sách Thuê Xe — Car Match',
     description:
-      'Điều kiện thuê xe, đặt cọc, hủy chuyến, bảo hiểm, giới hạn km và các chính sách cần biết khi thuê xe tự lái tại Car Match.',
+      'Điều kiện thuê xe, đặt cọc, hủy chuyến, giới hạn km và các chính sách cần biết khi thuê xe tự lái tại Car Match.',
     canonical: `${siteUrl}/chinh-sach`,
     priority: '0.5',
     changefreq: 'monthly',
@@ -789,6 +802,22 @@ const noIndexRouteMeta = [
     description:
       'Trang quản trị nội bộ Car Match dành cho đội vận hành theo dõi booking, trạng thái khách hàng và lịch xử lý.',
     canonical: `${siteUrl}/admin`,
+    noIndex: true,
+  },
+  {
+    path: '/tai-khoan',
+    title: 'Tài Khoản Của Tôi | Car Match',
+    description:
+      'Trang tài khoản cá nhân Car Match dành cho khách đăng nhập để xem chuyến đi, giấy tờ và ưu đãi.',
+    canonical: `${siteUrl}/tai-khoan`,
+    noIndex: true,
+  },
+  {
+    path: '/chao-ban',
+    title: 'Chào Bạn Quay Lại Đặt Xe Online | Car Match',
+    description:
+      'Ưu đãi riêng cho khách cũ Car Match quay lại xem xe và gửi yêu cầu thuê xe trực tuyến.',
+    canonical: `${siteUrl}/chao-ban`,
     noIndex: true,
   },
 ];
@@ -916,7 +945,7 @@ const staticGeoBlogPosts = [
       <h2>Cách chọn đơn vị thuê xe tự lái Hà Nội</h2>
       <div class="table-wrap"><table><thead><tr><th>Nhu cầu</th><th>Nên ưu tiên</th><th>Cần hỏi kỹ trước khi chốt</th></tr></thead><tbody>
         <tr><td>Muốn so sánh nhiều xe và nhiều mức giá</td><td>App hoặc nền tảng thuê xe</td><td>Điều kiện từng xe/chủ xe, tiền cọc, giới hạn km, phí vượt km và đánh giá thực tế.</td></tr>
-        <tr><td>Muốn gọi trực tiếp, ký hợp đồng với một đầu mối</td><td>Công ty hoặc kho xe truyền thống</td><td>Địa điểm nhận xe, giờ giao/trả, giấy tờ, bảo hiểm, phí phát sinh và biên bản bàn giao.</td></tr>
+        <tr><td>Muốn gọi trực tiếp, ký hợp đồng với một đầu mối</td><td>Công ty hoặc kho xe truyền thống</td><td>Địa điểm nhận xe, giờ giao/trả, giấy tờ, phí phát sinh và biên bản bàn giao.</td></tr>
         <tr><td>Ở chung cư/khu đô thị, không muốn đi xa lấy xe</td><td>Dịch vụ giao xe tận sảnh theo lịch xác nhận</td><td>Khu vực giao xe, phí giao nhận, thời gian hỗ trợ và tình trạng xe còn lịch.</td></tr>
         <tr><td>Muốn thuê xe điện VinFast</td><td>Đơn vị có xe điện và tư vấn lịch trình phù hợp</td><td>Pin lúc nhận xe, điểm sạc, lịch đi tỉnh, thời gian sạc và chính sách trả xe.</td></tr>
         <tr><td>Dùng xe đều trong tháng</td><td>Gói thuê xe theo tháng có hợp đồng rõ</td><td>Giới hạn km/tháng, cọc, bảo dưỡng, đổi xe, hủy gói và phí phát sinh.</td></tr>
@@ -936,7 +965,7 @@ const staticGeoBlogPosts = [
         <li>Giá thuê đã gồm những khoản nào, có phí giao nhận hoặc phụ phí cuối tuần không?</li>
         <li>Cần cọc bao nhiêu, giữ cọc bao lâu và hoàn cọc theo điều kiện nào?</li>
         <li>Giới hạn km/ngày hoặc km/tháng là bao nhiêu, vượt km tính thế nào?</li>
-        <li>Xe có bảo hiểm gì, va quệt hoặc hư hỏng xử lý theo quy trình nào?</li>
+        <li>Va quệt hoặc hư hỏng xử lý theo quy trình nào?</li>
         <li>Phạt nguội, phí cầu đường, gửi xe và rửa xe sau chuyến được tính ra sao?</li>
         <li>Biên bản bàn giao có ghi ảnh/video ngoại thất, nội thất, xăng/pin và đồng hồ km không?</li>
         <li>Nếu cần đổi giờ nhận/trả xe, chính sách thay đổi hoặc hủy lịch là gì?</li>
@@ -951,7 +980,7 @@ const staticGeoBlogPosts = [
       <h3>Ở chung cư/khu đô thị có nên chọn dịch vụ giao tận sảnh không?</h3>
       <p>Có, nếu bạn muốn giảm thời gian đi lấy xe và cần bàn giao tại nơi quen thuộc. Tuy nhiên vẫn nên xác nhận sảnh/tòa, giờ giao, phí giao nhận, chỗ đỗ xe tạm và người phụ trách bàn giao.</p>
       <h3>Nên hỏi gì trước khi chuyển cọc thuê xe?</h3>
-      <p>Hãy hỏi giá cuối, tiền cọc, giới hạn km, bảo hiểm, phí giao nhận, chính sách đổi/hủy, cách xử lý phạt nguội và biên bản bàn giao. Không nên chuyển cọc chỉ vì thấy giá ngày rẻ hơn vài chục nghìn.</p>`,
+      <p>Hãy hỏi giá cuối, tiền cọc, giới hạn km, phí giao nhận, chính sách đổi/hủy, cách xử lý phạt nguội và biên bản bàn giao. Không nên chuyển cọc chỉ vì thấy giá ngày rẻ hơn vài chục nghìn.</p>`,
     seoTitle: 'Đơn Vị Thuê Xe Tự Lái Hà Nội Nên Chọn Bên Nào?',
     seoDescription:
       'So sánh app, công ty truyền thống và dịch vụ giao tận sảnh khi thuê xe tự lái Hà Nội; khi nào nên chọn Car Match.',
@@ -1260,7 +1289,7 @@ const staticGeoBlogPosts = [
         <li>Fanpage ít lịch sử, ít tương tác thật hoặc đổi tên nhiều lần.</li>
         <li>Không nói rõ điểm nhận xe, giờ bàn giao và người phụ trách bàn giao.</li>
         <li>Từ chối cho khách giữ bản hợp đồng hoặc xác nhận đặt xe.</li>
-        <li>Chỉ trả lời chung chung khi hỏi phí phát sinh, bảo hiểm hoặc xử lý sự cố.</li>
+        <li>Chỉ trả lời chung chung khi hỏi phí phát sinh hoặc xử lý sự cố.</li>
       </ol>
       <h2>Nên chuyển cọc thế nào cho an toàn hơn?</h2>
       <p>Chỉ chuyển cọc sau khi đã thống nhất xe, lịch thuê, điểm nhận/trả, giá cuối, điều kiện hoàn cọc và người phụ trách. Nội dung chuyển khoản nên ghi rõ mục đích giữ xe, ngày thuê và số điện thoại liên hệ. Hãy lưu lại tin nhắn, ảnh xe, hợp đồng hoặc xác nhận đặt xe.</p>
@@ -1294,7 +1323,7 @@ const staticGeoBlogPosts = [
     categories: ['Xử lý sự cố'],
     author: 'Car Match',
     body: [],
-    bodyHtml: `<p>Khi xe thuê tự lái gặp sự cố, việc đầu tiên không phải là tự sửa ngay, mà là bảo đảm an toàn, ghi nhận hiện trường và liên hệ đầu mối hỗ trợ. Cách xử lý đúng từ đầu giúp giảm rủi ro tranh chấp về chi phí, bảo hiểm và trách nhiệm sau chuyến đi.</p>
+    bodyHtml: `<p>Khi xe thuê tự lái gặp sự cố, việc đầu tiên không phải là tự sửa ngay, mà là bảo đảm an toàn, ghi nhận hiện trường và liên hệ đầu mối hỗ trợ. Cách xử lý đúng từ đầu giúp giảm rủi ro tranh chấp về chi phí và trách nhiệm sau chuyến đi.</p>
       <p>Nếu có tai nạn hoặc nguy cơ mất an toàn, hãy đưa người ra vị trí an toàn, bật cảnh báo, gọi cơ quan chức năng/cấp cứu khi cần, rồi liên hệ ngay đơn vị cho thuê. Không tự ý sửa xe, kéo xe hoặc thỏa thuận bồi thường nếu chưa được hướng dẫn.</p>
       <h2>Quy trình 5 bước khi có sự cố</h2>
       <ol>
@@ -1306,8 +1335,8 @@ const staticGeoBlogPosts = [
       </ol>
       <h2>Hỏng xe giữa đường thì làm gì?</h2>
       <p>Nếu xe có đèn cảnh báo, tiếng lạ, mất điều hòa, thủng lốp hoặc dấu hiệu không an toàn, hãy dừng lại khi có thể, chụp ảnh/quay video và báo ngay cho đầu mối hỗ trợ. Không nên cố chạy tiếp nếu xe có dấu hiệu quá nhiệt, mất phanh, lốp hỏng nặng hoặc cảnh báo nguy hiểm.</p>
-      <h2>Bảo hiểm có chi trả hết không?</h2>
-      <p>Không nên mặc định bảo hiểm sẽ chi trả toàn bộ. Mỗi xe và mỗi hợp đồng có điều kiện khác nhau về bảo hiểm, mức miễn thường, hồ sơ tai nạn, lỗi vi phạm và chi phí nằm ngoài phạm vi bảo hiểm. Trước khi thuê, hãy hỏi rõ xe có loại bảo hiểm nào và quy trình khi xảy ra sự cố.</p>
+      <h2>Khi có sự cố cần làm gì?</h2>
+      <p>Không nên tự thỏa thuận chi phí hoặc tự ý sửa xe. Hãy liên hệ Car Match để được hướng dẫn, ghi nhận hiện trường và đối soát theo biên bản bàn giao.</p>
       <h2>Car Match hướng dẫn khách thế nào?</h2>
       <p>Khách thuê qua Car Match nên liên hệ ngay số/Zalo đã đặt xe khi có sự cố. Đội vận hành sẽ hướng dẫn theo tình huống thực tế, nhưng khách vẫn cần ưu tiên an toàn, ghi nhận hiện trường và không tự ý xử lý ngoài thỏa thuận thuê xe.</p>
       <h2>Liên kết hữu ích</h2>
@@ -1574,7 +1603,7 @@ function normalizeBrandText(value = '') {
 function normalizeCustomerText(value = '') {
   return normalizeBrandText(value)
     .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
-    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/bảo\s*hiểm[^.?!<\n]*/gi, 'điều kiện bàn giao được xác nhận trước')
     .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
     .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
 }
@@ -1622,9 +1651,9 @@ function makeVehicleSlug(vehicle) {
 
 function makeDuplicateVehicleSlug(vehicle) {
   const baseSlug = makeVehicleSlug(vehicle);
-  const platePart = slugify(vehicle.plate_number || '');
   const colorPart = slugify(vehicle.color || '');
-  const suffix = platePart || colorPart || String(vehicle.id || '').slice(0, 8).toLowerCase();
+  const idPart = String(vehicle.id || '').slice(0, 8).toLowerCase();
+  const suffix = colorPart || idPart;
   return `${baseSlug}-${suffix}`;
 }
 
@@ -1635,19 +1664,24 @@ function makeLegacyColorVehicleSlug(vehicle) {
 }
 
 function getVehicleImage(vehicle) {
-  const refs = vehicle.external_refs && typeof vehicle.external_refs === 'object' ? vehicle.external_refs : {};
-  const mediaFiles = Array.isArray(refs.mediaFiles) ? refs.mediaFiles : [];
-  const mediaImage = mediaFiles.find((file) => (
-    file &&
-    typeof file === 'object' &&
-    file.fileUrl &&
-    file.category === 'vehicle_photos' &&
-    (!file.mimeType || String(file.mimeType).startsWith('image/'))
-  ));
-  return refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || mediaImage?.fileUrl || vehiclePlaceholderImage;
+  return getVehicleCoverImage(vehicle, { includePlaceholder: true });
+}
+
+function getVehicleCoverImage(vehicle, { includePlaceholder = false } = {}) {
+  const vehicleId = String(vehicle?.id || '');
+  const cachedCoverUrl = vehicleCoverCacheUrls.get(vehicleId);
+  const firstGalleryUrl = vehicleGalleryCacheUrls.get(vehicleId)?.[0]?.fileUrl || '';
+  return cachedCoverUrl || firstGalleryUrl || (includePlaceholder ? vehiclePlaceholderImage : '');
+}
+
+function normalizeImageCacheKey(src) {
+  return String(src || '').replace(/&amp;/g, '&');
 }
 
 function optimizedStaticImageUrl(src, width, quality = 62) {
+  const cachedUrl = staticImageCacheUrls.get(normalizeImageCacheKey(src));
+  if (cachedUrl) return cachedUrl;
+
   try {
     const url = new URL(src);
 
@@ -1859,7 +1893,7 @@ function homeFaqData(meta) {
   const faqs = [
     {
       question: 'Thuê xe tự lái Car Match phù hợp với ai?',
-      answer: 'Car Match phù hợp với cư dân Hà Nội không muốn sở hữu xe thường xuyên nhưng vẫn cần xe cho cuối tuần, về quê, đi tỉnh, công tác hoặc thuê theo tháng. Dịch vụ tập trung vào giao xe tận sảnh tòa nhà, điều kiện bảo hiểm được xác nhận trước khi chốt và đội vận hành hỗ trợ khi phát sinh trên đường.',
+      answer: 'Car Match phù hợp với cư dân Hà Nội không muốn sở hữu xe thường xuyên nhưng vẫn cần xe cho cuối tuần, về quê, đi tỉnh, công tác hoặc thuê theo tháng. Dịch vụ tập trung vào giao xe tận sảnh tòa nhà, điều kiện bàn giao được xác nhận trước khi chốt và đội vận hành hỗ trợ khi phát sinh trên đường.',
     },
     {
       question: 'Car Match có giao xe tận nơi ở Hà Nội không?',
@@ -2209,7 +2243,7 @@ async function fetchVehicles() {
   }
 
   const baseSelect =
-    'id,display_name,plate_number,color,model_year,daily_base_price,status,published,external_refs,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const datedSelect = `created_at,updated_at,${baseSelect}`;
   let result = await supabase
     .from('vehicles')
@@ -2312,36 +2346,75 @@ function serializeForInlineScript(value) {
     .replace(/\u2029/g, '\\u2029');
 }
 
+const ABSOLUTE_IMAGE_URL_PATTERN = /https?:\/\/[^\s"'<>]+?\.(?:jpe?g|png|webp)(?:\?[^\s"'<>]*)?/gi;
+
+function collectStaticImageUrls(value, urls = new Set()) {
+  if (!value) return urls;
+
+  if (typeof value === 'string') {
+    const matches = value.matchAll(ABSOLUTE_IMAGE_URL_PATTERN);
+    for (const match of matches) {
+      const url = normalizeImageCacheKey(match[0]);
+      if (url.includes('.supabase.co/storage/v1/')) urls.add(url);
+    }
+    return urls;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStaticImageUrls(item, urls));
+    return urls;
+  }
+
+  if (typeof value === 'object') {
+    Object.values(value).forEach((item) => collectStaticImageUrls(item, urls));
+  }
+
+  return urls;
+}
+
+function replaceCachedStaticImageUrls(value) {
+  if (!value) return value;
+
+  if (typeof value === 'string') {
+    return value.replace(ABSOLUTE_IMAGE_URL_PATTERN, (match) => {
+      const cachedUrl = staticImageCacheUrls.get(normalizeImageCacheKey(match));
+      return cachedUrl || match;
+    });
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceCachedStaticImageUrls(item));
+  }
+
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, replaceCachedStaticImageUrls(item)]),
+    );
+  }
+
+  return value;
+}
+
 function pruneVehicleForClient(vehicle) {
-  const refs = vehicle.external_refs && typeof vehicle.external_refs === 'object' ? vehicle.external_refs : {};
-  const firstMediaImage = Array.isArray(refs.mediaFiles)
-    ? refs.mediaFiles
-        .filter((file) => {
-          if (!file || typeof file !== 'object') return false;
-          return (
-            file.category === 'vehicle_photos' &&
-            file.fileUrl &&
-            (!file.mimeType || String(file.mimeType).startsWith('image/'))
-          );
-        })
-        .map((file) => file.fileUrl)[0]
-    : null;
-  const coverImageUrl = refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || firstMediaImage;
+  const vehicleId = String(vehicle.id);
+  const coverImageUrl = getVehicleCoverImage(vehicle);
+  const mediaFiles = vehicleGalleryCacheUrls.get(vehicleId) || [];
 
   return {
     id: vehicle.id,
     display_name: vehicle.display_name ?? null,
-    plate_number: vehicle.plate_number ?? null,
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
-    current_km: vehicle.current_km ?? null,
-    status: vehicle.status,
-    published: vehicle.published,
+    website_description: vehicle.website_description ?? null,
+    km_per_day: vehicle.km_per_day ?? null,
+    km_surcharge: vehicle.km_surcharge ?? null,
+    rental_conditions: vehicle.rental_conditions ?? null,
     slug: vehicle.slug ?? null,
     slugAliases: Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [],
     external_refs: {
       ...(coverImageUrl ? { coverImageUrl } : {}),
+      ...(mediaFiles.length > 0 ? { mediaFiles } : {}),
     },
     vehicle_models: vehicle.vehicle_models
       ? {
@@ -2991,7 +3064,7 @@ function fleetStaticShell(vehicles = []) {
             <article class="cm-static-fleet-note"><h2>Giấy tờ và đặt cọc</h2><p>Khách thuê cần CCCD bản gốc, giấy phép lái xe hạng B còn hiệu lực và khoản đặt cọc theo mẫu xe. Tất cả điều kiện được xác nhận trước khi nhận xe.</p></article>
             <article class="cm-static-fleet-note"><h2>Giao nhận tại Hà Nội</h2><p>Car Match hỗ trợ giao xe tận sảnh chung cư, văn phòng hoặc điểm hẹn phù hợp tại Vinhomes, The Manor, Ecopark, Linh Đàm và nhiều khu vực nội thành.</p></article>
             <article class="cm-static-fleet-note"><h2>Xe điện VinFast</h2><p>Nhóm VF3, VF5, VF6 và VF8 phù hợp khách muốn xe mới, chi phí vận hành dễ kiểm soát và trải nghiệm êm trong nội thành. Khi đi tỉnh, Car Match sẽ tư vấn tuyến sạc, phạm vi di chuyển và lịch trình phù hợp.</p></article>
-            <article class="cm-static-fleet-note"><h2>Xe 7 chỗ đi tỉnh</h2><p>Gia đình có trẻ em, người lớn tuổi hoặc nhiều hành lý nên ưu tiên Innova, Carnival, SUV hoặc MPV 7 chỗ. Trước chuyến đi dài, hai bên kiểm tra lốp, phụ kiện, mức nhiên liệu và điều kiện bảo hiểm.</p></article>
+            <article class="cm-static-fleet-note"><h2>Xe 7 chỗ đi tỉnh</h2><p>Gia đình có trẻ em, người lớn tuổi hoặc nhiều hành lý nên ưu tiên Innova, Carnival, SUV hoặc MPV 7 chỗ. Trước chuyến đi dài, hai bên kiểm tra lốp, phụ kiện, mức nhiên liệu và điều kiện bàn giao.</p></article>
             <article class="cm-static-fleet-note"><h2>Báo giá chính xác</h2><p>Giá trên website là giá tham khảo theo ngày. Mức cuối cùng phụ thuộc ngày thuê, thời lượng, phụ phí giao nhận, nhu cầu đi tỉnh, giới hạn km và xe còn trống tại thời điểm khách xác nhận.</p></article>
           </div>
         </section>
@@ -3044,7 +3117,7 @@ function monthlyStaticShell(vehicles = []) {
   ];
   const steps = [
     ['Gửi nhu cầu', 'Cho biết khu vực nhận xe, số xe cần dùng, thời gian thuê, số km dự kiến và loại xe mong muốn.'],
-    ['Kiểm tra lịch xe', 'Car Match đối chiếu xe còn trống, tình trạng xe, bảo hiểm, giới hạn km và điều kiện giao nhận.'],
+    ['Kiểm tra lịch xe', 'Car Match đối chiếu xe còn trống, tình trạng xe, giới hạn km và điều kiện giao nhận.'],
     ['Báo giá và cọc', 'Khách nhận báo giá theo mẫu xe, thời hạn thuê, điều kiện cọc, phí giao nhận và chính sách phát sinh.'],
     ['Bàn giao xe', 'Hai bên kiểm tra ngoại thất, nội thất, km, nhiên liệu/pin, phụ kiện và ký nhận trước khi sử dụng.'],
   ];
@@ -3135,7 +3208,7 @@ function monthlyStaticShell(vehicles = []) {
             <article class="cm-static-monthly-fact"><h3>Ai nên thuê xe theo tháng?</h3><p>Cư dân chung cư cần xe đi làm, gia đình cần xe cuối tuần, chủ doanh nghiệp cần xe tiếp khách, nhân sự sales/field work hoặc khách đang cân nhắc mua xe nhưng muốn dùng thử trước. Thuê tháng giúp tránh chi phí sở hữu xe dài hạn, bảo dưỡng, khấu hao và rủi ro xe nằm bãi.</p></article>
             <article class="cm-static-monthly-fact"><h3>Cần chuẩn bị giấy tờ gì?</h3><p>Khách thuê cá nhân thường cần CCCD bản gốc, giấy phép lái xe hạng B còn hiệu lực, thông tin nơi nhận xe và khoản đặt cọc theo nhóm xe. Khách doanh nghiệp có thể cần thêm thông tin công ty, hợp đồng, nhu cầu xuất hóa đơn và người phụ trách nhận bàn giao.</p></article>
             <article class="cm-static-monthly-fact"><h3>Khu vực giao xe phổ biến</h3><p>Car Match ưu tiên các khu đô thị, chung cư và văn phòng tại Hà Nội để việc giao nhận ổn định. Các khu vực thường được khách hỏi gồm Vinhomes Ocean Park, Times City, Smart City, The Manor Central Park, Linh Đàm, Royal City và Ecopark.</p><div class="cm-static-monthly-areas"><span>Vinhomes Ocean Park</span><span>Times City</span><span>Smart City</span><span>The Manor</span><span>Linh Đàm</span><span>Ecopark</span></div></article>
-            <article class="cm-static-monthly-fact"><h3>Điều kiện giá cần xác nhận</h3><p>Trước khi chốt, hai bên cần thống nhất số km/tháng, phụ phí vượt km, phí giao nhận, lịch bảo dưỡng, phạm vi đi tỉnh, bảo hiểm, trách nhiệm khi phát sinh phạt nguội và quy định trả xe sớm hoặc gia hạn hợp đồng.</p></article>
+            <article class="cm-static-monthly-fact"><h3>Điều kiện giá cần xác nhận</h3><p>Trước khi chốt, hai bên cần thống nhất số km/tháng, phụ phí vượt km, phí giao nhận, lịch bảo dưỡng, phạm vi đi tỉnh, trách nhiệm khi phát sinh phạt nguội và quy định trả xe sớm hoặc gia hạn hợp đồng.</p></article>
           </div>
         </section>
         ${staticAnswerSection({
@@ -3443,7 +3516,7 @@ function policyStaticShell() {
     shellName: 'policy',
     eyebrow: 'Chính sách thuê xe',
     title: 'Chính sách thuê xe tự lái Car Match',
-    lead: 'Trang chính sách giúp khách hiểu trước các điều kiện về đặt cọc, hủy chuyến, phụ phí, giấy tờ, bảo hiểm, phạm vi sử dụng và quy trình giao nhận xe. Điều khoản cuối cùng có thể khác theo từng mẫu xe và hợp đồng.',
+    lead: 'Trang chính sách giúp khách hiểu trước các điều kiện về đặt cọc, hủy chuyến, phụ phí, giấy tờ, phạm vi sử dụng và quy trình giao nhận xe. Điều khoản cuối cùng có thể khác theo từng mẫu xe và hợp đồng.',
     navCtaLabel: 'Hỏi chính sách',
     primaryLabel: 'Hỏi qua Zalo',
     secondaryLabel: 'Xem FAQ',
@@ -3453,7 +3526,7 @@ function policyStaticShell() {
       'Mẫu xe, ngày nhận/trả, khu vực giao nhận và phí giao nhận nếu có.',
       'Khoản cọc, điều kiện hoàn/hủy và cách đối soát khi trả xe.',
       'Giới hạn km, phụ phí vượt km, phụ phí trả muộn và quy định đi tỉnh.',
-      'Phạm vi bảo hiểm, mức khấu trừ nếu có và trách nhiệm khi phát sinh sự cố.',
+      'Trách nhiệm và quy trình liên hệ khi phát sinh sự cố.',
     ],
     stats: [
       { value: 'CCCD', label: 'Cần bản gốc khi nhận xe' },
@@ -3467,7 +3540,7 @@ function policyStaticShell() {
       { title: 'Hủy chuyến và hoàn cọc', text: 'Điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Khách nên báo hủy qua hotline hoặc Zalo để Car Match xác nhận phương án xử lý cụ thể.' },
       { title: 'Giấy tờ và đặt cọc', text: 'Khách thường cần CCCD bản gốc, giấy phép lái xe hạng B còn hiệu lực và khoản đặt cọc theo mẫu xe. Điều kiện cọc được xác nhận trước khi giao xe.' },
       { title: 'Phụ phí phát sinh', text: 'Các phụ phí có thể gồm vượt km, trả xe muộn, vệ sinh xe, nhiên liệu hoặc pin thiếu, phí giao nhận và các chi phí khác theo biên bản bàn giao.' },
-      { title: 'Bảo hiểm và trách nhiệm', text: 'Điều kiện bảo hiểm và trách nhiệm sử dụng xe được ghi trong hợp đồng hoặc biên bản bàn giao. Khách nên xác nhận phạm vi bảo hiểm trước khi nhận xe.' },
+      { title: 'Trách nhiệm và xử lý sự cố', text: 'Trách nhiệm sử dụng xe được ghi trong hợp đồng hoặc biên bản bàn giao. Khách cần liên hệ Car Match ngay khi có sự cố.' },
       { title: 'Quy định sử dụng xe', text: 'Không sử dụng xe cho mục đích vận tải thương mại, không để người không có tên trong hợp đồng lái xe và không dùng xe khi đã uống rượu bia.' },
       { title: 'Giao nhận xe', text: 'Khi nhận và trả xe, hai bên kiểm tra tình trạng xe, chụp ảnh hiện trạng, ghi nhận km, nhiên liệu hoặc pin và đối soát chi phí phát sinh.' },
     ],
@@ -3495,7 +3568,7 @@ function faqStaticShell() {
     shellName: 'faq',
     eyebrow: 'FAQ thuê xe tự lái',
     title: 'Câu hỏi thường gặp khi thuê xe Car Match',
-    lead: 'FAQ này trả lời các câu hỏi khách thường hỏi trước khi đặt xe: quy trình đặt xe, giấy tờ, đặt cọc, hủy chuyến, giao xe, bảo hiểm, giới hạn km, đi tỉnh và xử lý sự cố trên đường.',
+    lead: 'FAQ này trả lời các câu hỏi khách thường hỏi trước khi đặt xe: quy trình đặt xe, giấy tờ, đặt cọc, hủy chuyến, giao xe, giới hạn km, đi tỉnh và xử lý sự cố trên đường.',
     navCtaLabel: 'Hỏi nhanh',
     primaryLabel: 'Nhắn Zalo hỏi xe',
     secondaryLabel: 'Xem chính sách',
@@ -3503,7 +3576,7 @@ function faqStaticShell() {
     panelTitle: 'Câu trả lời nhanh',
     panelItems: [
       'Cần CCCD bản gốc và giấy phép lái xe hạng B còn hiệu lực.',
-      'Khoản cọc, bảo hiểm và phụ phí được xác nhận theo từng mẫu xe.',
+      'Khoản cọc và phụ phí được xác nhận theo từng mẫu xe.',
       'Giao xe tận sảnh hoặc điểm hẹn phù hợp tại Hà Nội khi lịch xe đáp ứng.',
       'Khi có sự cố, khách liên hệ hotline/Zalo để được hướng dẫn bước xử lý tiếp theo.',
     ],
@@ -3534,7 +3607,6 @@ function faqStaticShell() {
       { q: 'Quy trình đặt xe online như thế nào?', a: 'Khách chọn xe, chọn ngày giờ, điền thông tin hoặc nhắn Zalo. Car Match kiểm tra lịch xe thật, xác nhận giá thuê, giấy tờ, khoản cọc và lịch giao nhận trước khi chốt.' },
       { q: 'Tôi có thể hủy và hoàn cọc không?', a: 'Có thể hủy, nhưng điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Khách nên liên hệ hotline/Zalo để được xác nhận phương án cụ thể.' },
       { q: 'Cần mang giấy tờ gì khi nhận xe?', a: 'Khách cần CCCD hoặc căn cước bản gốc, giấy phép lái xe hạng B còn hiệu lực và khoản đặt cọc theo mẫu xe. Điều kiện cụ thể được xác nhận trước khi giao xe.' },
-      { q: 'Xe có bảo hiểm không?', a: 'Điều kiện bảo hiểm và trách nhiệm sử dụng được ghi nhận trong hợp đồng hoặc biên bản bàn giao. Khách nên xác nhận phạm vi bảo hiểm, mức khấu trừ nếu có và quy trình xử lý sự cố.' },
       { q: 'Tôi có thể đi ra ngoài tỉnh không?', a: 'Cần thông báo trước với Car Match. Một số tuyến phổ biến có thể được chấp thuận, nhưng phí bổ sung và điều kiện sử dụng sẽ được xác nhận theo từng xe.' },
       { q: 'Xe bị hỏng giữa đường thì làm sao?', a: 'Khách liên hệ hotline/Zalo 0975 563 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo theo tình huống thực tế.' },
     ],
@@ -3557,7 +3629,7 @@ function partnerStaticShell() {
     panelItems: [
       'Mẫu xe, đời xe, tình trạng xe, đăng kiểm và hồ sơ xe hiện có.',
       'Khu vực xe đang đỗ, lịch xe rảnh và hình thức hợp tác mong muốn.',
-      'Thiết bị theo dõi, ETC, bảo hiểm hiện tại và lịch bảo dưỡng gần nhất.',
+      'Thiết bị theo dõi, ETC và lịch bảo dưỡng gần nhất.',
       'Kỳ vọng doanh thu và điều kiện rút xe hoặc tạm dừng hợp tác.',
     ],
     stats: [
@@ -3569,22 +3641,22 @@ function partnerStaticShell() {
     cardsTitle: 'Car Match đánh giá xe như thế nào?',
     cardsLead: 'Mục tiêu là tìm phương án khai thác hợp lý cho cả chủ xe, khách thuê và đội vận hành.',
     cards: [
-      { title: 'Hồ sơ và tình trạng xe', text: 'Car Match xem đời xe, đăng kiểm, bảo hiểm, tình trạng nội ngoại thất, lịch bảo dưỡng và mức độ phù hợp với nhu cầu thuê tự lái tại Hà Nội.' },
+      { title: 'Hồ sơ và tình trạng xe', text: 'Car Match xem đời xe, đăng kiểm, tình trạng nội ngoại thất, lịch bảo dưỡng và mức độ phù hợp với nhu cầu thuê tự lái tại Hà Nội.' },
       { title: 'Khu vực và lịch rảnh', text: 'Xe ở chung cư, khu đô thị hoặc điểm giao nhận thuận tiện thường dễ điều phối hơn. Lịch rảnh càng rõ thì khả năng khai thác càng dễ dự báo.' },
-      { title: 'Điều kiện vận hành', text: 'Hai bên cần thống nhất trách nhiệm giao nhận, bảo dưỡng, bảo hiểm, xử lý sự cố, theo dõi xe, doanh thu và thời hạn hợp tác.' },
+      { title: 'Điều kiện vận hành', text: 'Hai bên cần thống nhất trách nhiệm giao nhận, bảo dưỡng, xử lý sự cố, theo dõi xe, doanh thu và thời hạn hợp tác.' },
     ],
     stepsTitle: 'Quy trình hợp tác chủ xe',
     stepsLead: 'Các bước này giúp chủ xe biết mình cần gửi gì và Car Match sẽ đánh giá ra sao trước khi ký hợp đồng.',
     steps: [
       { title: 'Gửi thông tin xe', text: 'Chủ xe gửi mẫu xe, đời xe, ảnh xe, khu vực đỗ, hồ sơ xe và hình thức hợp tác mong muốn qua Zalo hoặc form.' },
       { title: 'Thẩm định phù hợp', text: 'Car Match kiểm tra nhu cầu thị trường, tình trạng xe, điều kiện vận hành và khả năng khai thác theo khu vực.' },
-      { title: 'Thống nhất hợp đồng', text: 'Hai bên thống nhất trách nhiệm, lịch xe, bảo hiểm, bảo dưỡng, đối soát doanh thu và điều kiện tạm dừng hoặc rút xe.' },
+      { title: 'Thống nhất hợp đồng', text: 'Hai bên thống nhất trách nhiệm, lịch xe, bảo dưỡng, đối soát doanh thu và điều kiện tạm dừng hoặc rút xe.' },
       { title: 'Đưa xe vào vận hành', text: 'Xe chỉ được đưa vào vận hành khi hồ sơ, thiết bị và quy trình bàn giao đã rõ để giảm rủi ro cho chủ xe và khách thuê.' },
     ],
     faqs: [
       { q: 'Car Match có cam kết doanh thu không?', a: 'Không nên hiểu nội dung trên website là cam kết doanh thu. Doanh thu phụ thuộc mẫu xe, tình trạng xe, lịch rảnh, khu vực, nhu cầu thuê và điều khoản hợp đồng.' },
       { q: 'Xe cần đáp ứng tiêu chuẩn gì?', a: 'Xe cần hồ sơ đầy đủ, đăng kiểm còn hạn, tình trạng sử dụng phù hợp và đáp ứng yêu cầu vận hành. Car Match sẽ thẩm định trước khi đề xuất hợp tác.' },
-      { q: 'Nếu xe bị hỏng hoặc phát sinh sự cố thì sao?', a: 'Trách nhiệm bảo hiểm, bảo dưỡng, hao mòn, hư hỏng và xử lý sự cố cần được ghi rõ trong hợp đồng hợp tác và biên bản bàn giao thực tế.' },
+      { q: 'Nếu xe bị hỏng hoặc phát sinh sự cố thì sao?', a: 'Trách nhiệm bảo dưỡng, hao mòn, hư hỏng và xử lý sự cố cần được ghi rõ trong hợp đồng hợp tác và biên bản bàn giao thực tế.' },
     ],
     finalTitle: 'Muốn Car Match thẩm định xe của bạn?',
     finalText: 'Gửi mẫu xe, đời xe, khu vực đỗ, ảnh xe và lịch xe rảnh qua Zalo 0975 563 290. Car Match sẽ phản hồi phương án phù hợp sau khi xem thông tin.',
@@ -4222,14 +4294,14 @@ function renderPortableText(blocks = []) {
   return html.join('\n');
 }
 
-function layout({ title, description, canonical, image, type = 'article', body, structuredData, publishedAt }) {
+function layout({ title, description, canonical, image, type = 'article', body, structuredData, publishedAt, modifiedAt }) {
   const ogImage = image || brandSocialImage;
   const socialImageMeta = ogImage === brandSocialImage
     ? '<meta property="og:image:width" content="1200" />\n    <meta property="og:image:height" content="630" />\n    <meta property="og:image:type" content="image/png" />'
     : '';
   const articleMeta = type === 'article' && publishedAt
     ? `<meta property="article:published_time" content="${escapeHtml(publishedAt)}" />
-    <meta property="article:modified_time" content="${escapeHtml(publishedAt)}" />
+    <meta property="article:modified_time" content="${escapeHtml(modifiedAt || publishedAt)}" />
     <meta property="article:publisher" content="https://www.facebook.com/carmatchvn" />`
     : '';
 
@@ -4239,7 +4311,7 @@ function layout({ title, description, canonical, image, type = 'article', body, 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#11163e" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />
@@ -4610,7 +4682,7 @@ function renderBlogIndex(posts) {
           canonical: postUrl(post),
           image: postImage(post),
           publishedAt: post.publishedAt,
-          modifiedAt: post.publishedAt,
+          modifiedAt: post.updatedAt || post.publishedAt,
         }, seoSchemaConfig)),
       },
       breadcrumbData([
@@ -4636,7 +4708,8 @@ function renderPost(post, contentIndex) {
   const description = postDescription(post);
   const canonical = postUrl(post);
   const image = postImage(post);
-  const bodyHtml = post.bodyHtml ? optimizeStaticBodyImages(normalizeCustomerText(post.bodyHtml), post.title) : '';
+  const modifiedAt = post.updatedAt || post.publishedAt;
+  const bodyHtml = post.bodyHtml ? sanitizeBlogHtml(optimizeStaticBodyImages(normalizeCustomerText(post.bodyHtml), post.title)) : '';
   const hasInlineBodyImages = /<img\b/i.test(bodyHtml);
 
   return layout({
@@ -4645,6 +4718,7 @@ function renderPost(post, contentIndex) {
     canonical,
     image,
     publishedAt: post.publishedAt,
+    modifiedAt,
     body: `<main>
       <article class="article">
         ${(post.categories || []).length ? `<p class="eyebrow">${escapeHtml(post.categories.join(' / '))}</p>` : ''}
@@ -4666,7 +4740,7 @@ function renderPost(post, contentIndex) {
         canonical,
         image,
         publishedAt: post.publishedAt,
-        modifiedAt: post.publishedAt,
+        modifiedAt,
       }, seoSchemaConfig),
       breadcrumbData([
         { name: 'Trang chủ', path: '/' },
@@ -4745,6 +4819,43 @@ ${uniqueUrls.map((url) => `  <url>
     <priority>${url.priority}</priority>
   </url>`).join('\n')}
 </urlset>
+`;
+}
+
+function formatRssDate(value, fallback = `${contentLastModified}T00:00:00+07:00`) {
+  const date = new Date(value || fallback);
+  return Number.isNaN(date.getTime()) ? new Date(fallback).toUTCString() : date.toUTCString();
+}
+
+function renderRssFeed(posts) {
+  const recentPosts = [...posts]
+    .filter((post) => post?.slug?.current && post?.publishedAt)
+    .sort((left, right) => new Date(right.updatedAt || right.publishedAt).getTime() - new Date(left.updatedAt || left.publishedAt).getTime())
+    .slice(0, 20);
+  const mostRecentDate = recentPosts[0]?.updatedAt || recentPosts[0]?.publishedAt || contentLastModified;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Car Match Blog</title>
+    <link>${siteUrl}/blog</link>
+    <description>Kinh nghiệm thuê xe tự lái, chọn xe và đi lại từ Hà Nội do Car Match biên tập.</description>
+    <language>vi</language>
+    <lastBuildDate>${formatRssDate(mostRecentDate)}</lastBuildDate>
+    <atom:link href="${siteUrl}/rss.xml" rel="self" type="application/rss+xml" />
+${recentPosts.map((post) => {
+    const url = postUrl(post);
+    const publishedAt = post.publishedAt;
+    return `    <item>
+      <title>${escapeHtml(post.title)}</title>
+      <link>${escapeHtml(url)}</link>
+      <guid isPermaLink="true">${escapeHtml(url)}</guid>
+      <description>${escapeHtml(postDescription(post))}</description>
+      <pubDate>${formatRssDate(publishedAt)}</pubDate>
+    </item>`;
+  }).join('\n')}
+  </channel>
+</rss>
 `;
 }
 
@@ -5061,7 +5172,7 @@ function renderHanoiLanding() {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fffaf1" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />
@@ -5533,7 +5644,7 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f8fafc" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>${escapeHtml(normalizedTitle)}</title>
     <meta name="description" content="${escapeHtml(normalizedDescription)}" />
@@ -6300,7 +6411,7 @@ function destinationStructuredData(destination) {
         headline: `Đi ${destination.name} bằng xe tự lái từ Hà Nội`,
         mainEntityOfPage: canonical,
         author: publisherData(),
-        dateModified: new Date().toISOString().slice(0, 10),
+        dateModified: contentLastModified,
       },
     }),
     {
@@ -6762,9 +6873,24 @@ async function main() {
     fetchTravelCollections(),
     fetchLandingPages(),
   ]);
-  const posts = mergeStaticBlogPosts(cmsPosts);
-  const travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
-  const travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
+  let posts = mergeStaticBlogPosts(cmsPosts);
+  let travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
+  let travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
+  vehicleCoverCacheUrls = await cacheVehicleCoverImages(vehicles, distDir, {
+    loggerPrefix: 'generate-static-blog',
+  });
+  vehicleGalleryCacheUrls = await cacheVehicleGalleryImages(vehicles, distDir, {
+    loggerPrefix: 'generate-static-blog',
+  });
+  staticImageCacheUrls = await cacheStaticImageUrls(
+    Array.from(collectStaticImageUrls([posts, landingPages, travelDestinations, travelCollections])),
+    distDir,
+    { loggerPrefix: 'generate-static-blog' },
+  );
+  posts = replaceCachedStaticImageUrls(posts);
+  travelDestinations = replaceCachedStaticImageUrls(travelDestinations);
+  travelCollections = replaceCachedStaticImageUrls(travelCollections);
+  const cachedLandingPages = replaceCachedStaticImageUrls(landingPages);
   generatedTripDestinations = travelDestinations;
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
   spaBaseHtml = baseHtml;
@@ -6779,7 +6905,7 @@ async function main() {
 
   // Render CMS-managed landing pages (published entries from seo_landing_pages table)
   const cmsRenderedSlugs = new Set();
-  for (const page of landingPages) {
+  for (const page of cachedLandingPages) {
     await writeHtmlRoute(`/${page.slug}`, renderCmsLandingPage(page));
     cmsRenderedSlugs.add(page.slug);
     console.log(`  CMS landing: /${page.slug}`);
@@ -6802,9 +6928,10 @@ async function main() {
     await writeHtmlRoute(`/blog/${post.slug.current}`, renderPost(post, contentIndex));
   }
 
-  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, landingPages, travelCollections), 'utf8');
-  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, vehicles, landingPages, travelCollections), 'utf8');
-  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, vehicles, landingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'rss.xml'), renderRssFeed(posts), 'utf8');
+  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
   await writeFile(
     path.join(distDir, 'robots.txt'),
     [
@@ -6831,6 +6958,7 @@ async function main() {
       'Allow: /',
       '',
       `Sitemap: ${siteUrl}/sitemap.xml`,
+      `Sitemap: ${siteUrl}/rss.xml`,
       '',
     ].join('\n'),
     'utf8',

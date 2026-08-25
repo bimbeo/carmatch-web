@@ -2,11 +2,18 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag, ImageIcon, Upload, Copy, Check } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
+import { DayPicker, type DayContentProps } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import {
+  calculateRentalBillingDays,
+  DEFAULT_PICKUP_HOUR,
+  DEFAULT_RETURN_HOUR,
+  formatRentalBillingDays,
+} from '@/lib/rentalDuration';
 import { supabase } from '@/lib/supabase';
+import { useIsMobile } from './ui/use-mobile';
 
 const ZALO_NUMBER = '0975563290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
@@ -20,6 +27,47 @@ interface BlockedRange {
   to: string;   // YYYY-MM-DD
   type: string; // rental | blocked | maintenance | ...
   allDay: boolean;
+}
+
+interface HolidayBookingWindow {
+  pickup_date: string;
+  return_date: string;
+  label?: string | null;
+  rule_name?: string;
+  adjustment_value?: number;
+}
+
+interface HolidayPricingRule {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  adjustment_type: 'fixed' | 'percent';
+  adjustment_value: number;
+  booking_windows?: HolidayBookingWindow[];
+  note?: string | null;
+}
+
+interface AppliedHolidayPricing {
+  rule_id: string;
+  name: string;
+  dates: string[];
+  adjustment_type: 'fixed' | 'percent';
+  adjustment_value: number;
+  amount: number;
+  pricing_mode?: 'daily_adjustment' | 'combo';
+  booking_window_label?: string | null;
+  combo_days?: number;
+  combo_adjustment_value?: number;
+}
+
+export interface BookingAvailabilityStatus {
+  isLoading: boolean;
+  hasBlockedRanges: boolean;
+  selectedRangeHasHardConflict: boolean;
+  selectedRangeHasBoundaryConflict: boolean;
+  requiresConfirmation: boolean;
+  firstHardConflict: Pick<BlockedRange, 'from' | 'to' | 'type'> | null;
 }
 
 /**
@@ -97,6 +145,13 @@ function fmtVND(n: number): string {
   return n.toLocaleString('vi-VN') + 'đ';
 }
 
+function fmtCalendarPrice(n: number): string {
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}tr`;
+  }
+  return `${Math.round(n / 1_000)}K`;
+}
+
 /** Display YYYY-MM-DD as "T6 22/5" — parse manually to avoid UTC offset bug */
 function displayDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -112,6 +167,208 @@ function parseDateStr(str: string): Date {
 
 function displayDateSlash(dateStr: string): string {
   return dateStr.split('-').reverse().join('/');
+}
+
+/**
+ * Khoảng ngày được tô trên lịch là các ngày tính tiền xe, không phải cả hai
+ * mốc bàn giao. Với ca nhận từ 16:00, ngày nhận chỉ là tối bàn giao trước;
+ * ngày xe đầu tiên được tính từ ngày hôm sau.
+ */
+function getBillableDayRange(
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+): { from: Date; to?: Date } {
+  const pickup = parseDateStr(pickupDate);
+  const dropoff = parseDateStr(returnDate);
+  const firstBillableDay = pickupHour >= 16 && dropoff > pickup
+    ? addDays(pickup, 1)
+    : pickup;
+
+  return firstBillableDay <= dropoff
+    ? { from: firstBillableDay, to: dropoff }
+    : { from: pickup };
+}
+
+function getBillableDateStrings(
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+): string[] {
+  const range = getBillableDayRange(pickupDate, pickupHour, returnDate);
+  const to = range.to ?? range.from;
+  const dates: string[] = [];
+  for (let current = range.from, guard = 0; current <= to && guard < 370; current = addDays(current, 1), guard += 1) {
+    dates.push(toDateStr(current));
+  }
+  return dates;
+}
+
+function holidayDailySurcharge(rule: HolidayPricingRule, basePrice: number): number {
+  if (rule.adjustment_type === 'fixed') return Math.max(0, rule.adjustment_value);
+  return Math.max(0, Math.round((basePrice * rule.adjustment_value / 100) / 1000) * 1000);
+}
+
+function findHolidayCombo(
+  rules: HolidayPricingRule[],
+  pickupDate: string,
+  returnDate: string,
+) {
+  for (const rule of rules) {
+    const window = (rule.booking_windows ?? []).find((item) => (
+      item.pickup_date === pickupDate && item.return_date === returnDate
+    ));
+    if (window) return { rule, window };
+  }
+  return null;
+}
+
+function inclusiveDateCount(from: string, to: string): number {
+  return Math.max(1, calDaysDiff(parseDateStr(from), parseDateStr(to)) + 1);
+}
+
+function calculateHolidayPricing(
+  rules: HolidayPricingRule[],
+  pickupDate: string,
+  pickupHour: number,
+  returnDate: string,
+  basePrice: number,
+  baseRentalAmount: number,
+): { total: number; applied: AppliedHolidayPricing[]; fees: Fee[] } {
+  const comboMatch = findHolidayCombo(rules, pickupDate, returnDate);
+  if (comboMatch) {
+    const { rule, window } = comboMatch;
+    const comboDays = inclusiveDateCount(window.pickup_date, window.return_date);
+    const dailyAdjustment = Math.max(0, Number(window.adjustment_value ?? rule.adjustment_value));
+    const comboBaseAmount = basePrice * comboDays;
+    const baseDayAdjustment = Math.max(0, comboBaseAmount - Math.max(0, baseRentalAmount));
+    const peakPriceAdjustment = dailyAdjustment * comboDays;
+    const amount = baseDayAdjustment + peakPriceAdjustment;
+    const dates = getBillableDateStrings(pickupDate, pickupHour, returnDate)
+      .filter((date) => rule.start_date <= date && rule.end_date >= date);
+    const applied: AppliedHolidayPricing[] = amount > 0 ? [{
+      rule_id: rule.id,
+      name: rule.name,
+      dates,
+      adjustment_type: rule.adjustment_type,
+      adjustment_value: rule.adjustment_value,
+      amount,
+      pricing_mode: 'combo',
+      booking_window_label: window.label ?? null,
+      combo_days: comboDays,
+      combo_adjustment_value: dailyAdjustment,
+    }] : [];
+    return {
+      total: amount,
+      applied,
+      fees: amount > 0 ? [
+        ...(baseDayAdjustment > 0 ? [{
+          label: `Bổ sung đủ ${comboDays} ngày của combo`,
+          amount: baseDayAdjustment,
+        }] : []),
+        ...(peakPriceAdjustment > 0 ? [{
+          label: `🎉 ${window.label || rule.name} · +${fmtVND(dailyAdjustment)}/ngày × ${comboDays} ngày`,
+          amount: peakPriceAdjustment,
+        }] : []),
+      ] : [],
+    };
+  }
+
+  const grouped = new Map<string, AppliedHolidayPricing>();
+
+  for (const date of getBillableDateStrings(pickupDate, pickupHour, returnDate)) {
+    const candidates = rules
+      .filter((rule) => rule.start_date <= date && rule.end_date >= date)
+      .map((rule) => ({ rule, amount: holidayDailySurcharge(rule, basePrice) }))
+      .filter((candidate) => candidate.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+    const selected = candidates[0];
+    if (!selected) continue;
+
+    const existing = grouped.get(selected.rule.id);
+    if (existing) {
+      existing.dates.push(date);
+      existing.amount += selected.amount;
+    } else {
+      grouped.set(selected.rule.id, {
+        rule_id: selected.rule.id,
+        name: selected.rule.name,
+        dates: [date],
+        adjustment_type: selected.rule.adjustment_type,
+        adjustment_value: selected.rule.adjustment_value,
+        amount: selected.amount,
+        pricing_mode: 'daily_adjustment',
+      });
+    }
+  }
+
+  const applied = [...grouped.values()];
+  return {
+    total: applied.reduce((sum, item) => sum + item.amount, 0),
+    applied,
+    fees: applied.map((item) => ({
+      label: `🎉 Phụ thu ${item.name} (${item.dates.length} ngày)`,
+      amount: item.amount,
+    })),
+  };
+}
+
+function formatHolidayBookingWindow(window: HolidayBookingWindow): string {
+  return window.label?.trim()
+    || `${displayDateSlash(window.pickup_date)} – ${displayDateSlash(window.return_date)}`;
+}
+
+function bookingRangeOverlapsHoliday(rule: HolidayPricingRule, pickupDate: string, returnDate: string): boolean {
+  return pickupDate <= rule.end_date && returnDate >= rule.start_date;
+}
+
+function dedupeHolidayBookingWindows(windows: HolidayBookingWindow[]): HolidayBookingWindow[] {
+  const seen = new Set<string>();
+  return windows.filter((window) => {
+    const key = `${window.pickup_date}:${window.return_date}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function getInitialBookingSelection(today: Date) {
+  const todayStr = toDateStr(today);
+  const defaultPickupDate = toDateStr(addDays(today, 1));
+  const defaultReturnDate = toDateStr(addDays(today, 2));
+  if (typeof window === 'undefined') {
+    return {
+      pickupDate: defaultPickupDate,
+      returnDate: defaultReturnDate,
+      pickupHour: DEFAULT_PICKUP_HOUR,
+      returnHour: DEFAULT_RETURN_HOUR,
+    };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const requestedPickup = params.get('from');
+  const pickupDate =
+    requestedPickup && /^\d{4}-\d{2}-\d{2}$/.test(requestedPickup) && requestedPickup >= todayStr
+      ? requestedPickup
+      : defaultPickupDate;
+  const requestedReturn = params.get('to');
+  const returnDate =
+    requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn > pickupDate
+      ? requestedReturn
+      : pickupDate === defaultPickupDate
+        ? defaultReturnDate
+        : toDateStr(addDays(parseDateStr(pickupDate), 1));
+  const parseHour = (key: string, fallback: number) => {
+    const value = Number(params.get(key));
+    return Number.isInteger(value) && value >= 7 && value <= 23 ? value : fallback;
+  };
+
+  return {
+    pickupDate,
+    returnDate,
+    pickupHour: parseHour('pickupHour', DEFAULT_PICKUP_HOUR),
+    returnHour: parseHour('returnHour', DEFAULT_RETURN_HOUR),
+  };
 }
 
 function getInitialPromoCodeFromUrl(): string {
@@ -180,22 +437,12 @@ function calculateRental(
   else if (returnHour >= 22) lateFee = 200_000;
   else if (returnHour >= 21) lateFee = 100_000;
 
-  let baseDays: number;
-
-  if (pickupHour <= 11) {
-    baseDays = calDays + 1;
-  } else if (pickupHour <= 15) {
-    if (returnHour <= 12) {
-      baseDays = calDays;
-    } else {
-      baseDays = calDays + 0.5;
-    }
-  } else {
-    baseDays = calDays;
-    if (pickupHour >= 19 && returnHour <= 12) {
-      baseDays = calDays === 1 ? 0.7 : (calDays - 1) + 0.5;
-    }
-  }
+  const baseDays = calculateRentalBillingDays(
+    pickupDateStr,
+    pickupHour,
+    returnDateStr,
+    returnHour,
+  );
 
   let baseAmount: number;
   if (baseDays === 0.7) {
@@ -246,10 +493,11 @@ const LOCATIONS = [
 ];
 
 // ─── Bank / QR config ─────────────────────────────────────────────────────────
-const BANK_ID = import.meta.env.VITE_BANK_ID || 'MB';
-const BANK_ACCOUNT_RAW = import.meta.env.VITE_BANK_ACCOUNT || '';
+const cleanBankValue = (value: unknown) => String(value ?? '').replace(/\\[rn]/g, '').trim();
+const BANK_ID = cleanBankValue(import.meta.env.VITE_BANK_ID || 'MB');
+const BANK_ACCOUNT_RAW = cleanBankValue(import.meta.env.VITE_BANK_ACCOUNT || '');
 const BANK_ACCOUNT = BANK_ACCOUNT_RAW === '0399118989' ? '' : BANK_ACCOUNT_RAW;
-const BANK_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || 'CONG TY TNHH CAR MATCH';
+const BANK_NAME = cleanBankValue(import.meta.env.VITE_BANK_ACCOUNT_NAME || 'CONG TY TNHH CAR MATCH');
 const BANK_QR_ENABLED = Boolean(BANK_ACCOUNT);
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -268,6 +516,7 @@ interface Props {
   kmPerDay?: number;
   kmSurcharge?: number;
   relatedCars?: RelatedCar[];
+  onAvailabilityStatusChange?: (status: BookingAvailabilityStatus) => void;
 }
 
 function copyToClipboard(text: string): Promise<void> {
@@ -320,14 +569,26 @@ function ReferralCopyBlock({ referralCode, rewardAmount }: { referralCode: strin
   );
 }
 
-export default function BookingWidget({ basePrice, carName, priceMonth, vehicleId, carSlug, kmPerDay = 300, kmSurcharge = 3000, relatedCars = [] }: Props) {
+export default function BookingWidget({
+  basePrice,
+  carName,
+  priceMonth,
+  vehicleId,
+  carSlug,
+  kmPerDay = 300,
+  kmSurcharge = 3000,
+  relatedCars = [],
+  onAvailabilityStatusChange,
+}: Props) {
+  const isMobile = useIsMobile();
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
-  const [pickupDate, setPickupDate] = useState(toDateStr(addDays(today, 1)));
-  const [pickupHour, setPickupHour] = useState(20);
-  const [returnDate, setReturnDate] = useState(toDateStr(addDays(today, 2)));
-  const [returnHour, setReturnHour] = useState(20);
+  const initialBookingSelection = useMemo(() => getInitialBookingSelection(today), [today]);
+  const [pickupDate, setPickupDate] = useState(initialBookingSelection.pickupDate);
+  const [pickupHour, setPickupHour] = useState(initialBookingSelection.pickupHour);
+  const [returnDate, setReturnDate] = useState(initialBookingSelection.returnDate);
+  const [returnHour, setReturnHour] = useState(initialBookingSelection.returnHour);
   const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>('self');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('times-city');
@@ -337,8 +598,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   // ── Availability ──────────────────────────────────────────────────────────
   const [blockedRanges, setBlockedRanges] = useState<BlockedRange[]>([]);
   const [availLoading, setAvailLoading] = useState(false);
+  const [availabilityUnavailable, setAvailabilityUnavailable] = useState(false);
   const [showCalModal, setShowCalModal] = useState(false);
   const [requiresConfirmation, setRequiresConfirmation] = useState(false);
+  const [holidayPricingRules, setHolidayPricingRules] = useState<HolidayPricingRule[]>([]);
 
   // ── Promo code ────────────────────────────────────────────────────────────
   const [promoCode, setPromoCode] = useState(initialPromoCode);
@@ -363,6 +626,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   }>>([]);
   const [promoListLoading, setPromoListLoading] = useState(false);
   const promoAutoAppliedRef = useRef(false);
+  const bookingIdempotencyRef = useRef('');
 
   // ── Loyalty auto-discount ─────────────────────────────────────────────────
   const [referralCredit, setReferralCredit] = useState(0);
@@ -385,6 +649,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [bookingError, setBookingError] = useState('');
   const [bookingRef, setBookingRef] = useState('');
   const [depositAmount, setDepositAmount] = useState(0);
+  const [bookingNeedsConfirmation, setBookingNeedsConfirmation] = useState(false);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
@@ -393,12 +658,30 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const [customerReferralCode, setCustomerReferralCode] = useState('');
   const [activeSuggestedCodes, setActiveSuggestedCodes] = useState<Array<{ code: string; discount_value: number; expires_at: string }>>([]);
   const [recentBookingsCount, setRecentBookingsCount] = useState(0);
-  const [insuranceAddon, setInsuranceAddon] = useState(false);
-  const [showInsuranceDetail, setShowInsuranceDetail] = useState(false);
   const [confirmTransfer, setConfirmTransfer] = useState(false);
   const [pointsPerTenK, setPointsPerTenK] = useState(1); // default 1 pt per 10k VND (overridden by DB setting)
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    bookingIdempotencyRef.current = '';
+  }, [
+    vehicleId,
+    pickupDate,
+    pickupHour,
+    returnDate,
+    returnHour,
+    deliveryMode,
+    deliveryAddress,
+    selectedLocation,
+    customerName,
+    customerPhone,
+    customerEmail,
+    customerNote,
+    promoResult?.code,
+    promoResult?.discount_amount,
+    loyaltyDiscount?.discount_amount,
+  ]);
 
   function handleProofSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -452,18 +735,26 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
     setAvailLoading(true);
+    setAvailabilityUnavailable(false);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
     try {
       const from = todayStr;
       const to = toDateStr(addDays(today, 120));
-      const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`);
-      if (!res.ok) return;
+      const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error('availability request failed');
       const data = await res.json();
       setBlockedRanges(data.blockedRanges || []);
       setRequiresConfirmation(data.requires_confirmation === true);
+      setAvailabilityUnavailable(data.availability_unavailable === true);
       if (data.recent_bookings_count > 0) setRecentBookingsCount(data.recent_bookings_count);
     } catch {
-      // graceful
+      setAvailabilityUnavailable(true);
+      setRequiresConfirmation(true);
     } finally {
+      window.clearTimeout(timeoutId);
       setAvailLoading(false);
     }
   }, [vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -471,6 +762,27 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   useEffect(() => {
     void fetchAvailability();
   }, [fetchAvailability]);
+
+  useEffect(() => {
+    fetch('/api/holiday-pricing')
+      .then((response) => response.ok ? response.json() : null)
+      .then((json) => {
+        const rules = Array.isArray(json?.rules) ? json.rules : [];
+        setHolidayPricingRules(rules.map((rule: HolidayPricingRule) => ({
+          ...rule,
+          adjustment_value: Number(rule.adjustment_value),
+          booking_windows: Array.isArray(rule.booking_windows)
+            ? rule.booking_windows.map((window) => ({
+                pickup_date: String(window.pickup_date || ''),
+                return_date: String(window.return_date || ''),
+                label: window.label ? String(window.label) : null,
+                adjustment_value: Number(window.adjustment_value ?? rule.adjustment_value),
+              }))
+            : [],
+        })));
+      })
+      .catch(() => setHolidayPricingRules([]));
+  }, []);
 
   // Fetch points_per_10k from DB on mount so preview is accurate before phone is entered
   useEffect(() => {
@@ -511,6 +823,24 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     () => categorizeConflicts(pickupDate, returnDate, blockedRanges),
     [pickupDate, returnDate, blockedRanges],
   );
+  const needsManualConfirmation = requiresConfirmation
+    || boundaryConflicts.length > 0
+    || availabilityUnavailable;
+
+  const availabilityStatus = useMemo<BookingAvailabilityStatus>(() => ({
+    isLoading: availLoading,
+    hasBlockedRanges: blockedRanges.length > 0,
+    selectedRangeHasHardConflict: hardConflicts.length > 0,
+    selectedRangeHasBoundaryConflict: boundaryConflicts.length > 0,
+    requiresConfirmation: needsManualConfirmation,
+    firstHardConflict: hardConflicts[0]
+      ? { from: hardConflicts[0].from, to: hardConflicts[0].to, type: hardConflicts[0].type }
+      : null,
+  }), [availLoading, blockedRanges.length, boundaryConflicts, hardConflicts, needsManualConfirmation]);
+
+  useEffect(() => {
+    onAvailabilityStatusChange?.(availabilityStatus);
+  }, [availabilityStatus, onAvailabilityStatusChange]);
 
   // Giữ biến `conflicts` để tương thích với calendar modifiers bên dưới
   const conflicts = [...hardConflicts, ...boundaryConflicts];
@@ -520,11 +850,76 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     [pickupDate, pickupHour, returnDate, returnHour, basePrice],
   );
 
+  const holidayPricing = useMemo(
+    () => calculateHolidayPricing(
+      holidayPricingRules,
+      pickupDate,
+      pickupHour,
+      returnDate,
+      basePrice,
+      rentalResult.fees[0]?.amount ?? rentalResult.total,
+    ),
+    [basePrice, holidayPricingRules, pickupDate, pickupHour, rentalResult.fees, rentalResult.total, returnDate],
+  );
+  const matchedHolidayCombo = holidayPricing.applied.find((item) => item.pricing_mode === 'combo') ?? null;
+  const upcomingHolidayRules = useMemo(
+    () => holidayPricingRules.filter((rule) => rule.end_date >= todayStr).slice(0, 3),
+    [holidayPricingRules, todayStr],
+  );
+  const upcomingHolidayWindows = useMemo(
+    () => dedupeHolidayBookingWindows(
+      upcomingHolidayRules.flatMap((rule) => (
+        rule.booking_windows ?? []
+      ).map((window) => ({
+        ...window,
+        rule_name: rule.name,
+      })).filter((window) => window.pickup_date && window.return_date)),
+    ),
+    [upcomingHolidayRules],
+  );
+  const holidayBookingPolicy = useMemo(() => {
+    const overlappingRules = holidayPricingRules.filter((rule) => (
+      bookingRangeOverlapsHoliday(rule, pickupDate, returnDate)
+    ));
+    const restrictedRules = overlappingRules.filter((rule) => (rule.booking_windows?.length ?? 0) > 0);
+    const windows = dedupeHolidayBookingWindows(
+      restrictedRules.flatMap((rule) => (
+        rule.booking_windows ?? []
+      ).map((window) => ({
+        ...window,
+        rule_name: rule.name,
+      })).filter((window) => window.pickup_date && window.return_date)),
+    );
+    const matchedWindow = windows.find((window) => (
+      window.pickup_date === pickupDate && window.return_date === returnDate
+    )) ?? null;
+
+    return {
+      hasHoliday: overlappingRules.length > 0,
+      isComboRestricted: restrictedRules.length > 0,
+      allowed: restrictedRules.length === 0 || Boolean(matchedWindow),
+      matchedWindow,
+      windows,
+    };
+  }, [holidayPricingRules, pickupDate, returnDate]);
+  const holidayPromoBlocked = holidayBookingPolicy.hasHoliday;
+  const holidayBookingBlocked = holidayBookingPolicy.hasHoliday
+    && holidayBookingPolicy.isComboRestricted
+    && !holidayBookingPolicy.allowed;
+  const holidayComboText = holidayBookingPolicy.windows
+    .map(formatHolidayBookingWindow)
+    .join(', ');
+  const holidayComboBlockMessage = holidayComboText
+    ? `Kỳ lễ này chỉ nhận ${holidayComboText}. Đặt lẻ ngày không nhận.`
+    : 'Kỳ lễ này chỉ nhận đúng combo đã công bố. Đặt lẻ ngày không nhận.';
+  const holidayPromoBlockMessage = 'Mã giảm giá không áp dụng vào ngày lễ / cao điểm.';
+  const billingDays = calculateRentalBillingDays(pickupDate, pickupHour, returnDate, returnHour);
+  const selectedDurationLabel = formatRentalBillingDays(billingDays);
+
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
-  // 10% tổng giá thuê xe, làm tròn đến 1.000đ
-  const insuranceFeeAmount = rentalResult.valid ? Math.round(rentalResult.total * 0.1 / 1000) * 1000 : 0;
-  const insuranceFee = insuranceAddon ? insuranceFeeAmount : 0;
-  const orderTotalBeforePromo = rentalResult.valid ? rentalResult.total + deliveryFee + insuranceFee : 0;
+  const orderTotalBeforePromo = rentalResult.valid
+    ? rentalResult.total + holidayPricing.total + deliveryFee
+    : 0;
   const totalAmount = orderTotalBeforePromo;
   const loyaltyDiscountAmount = loyaltyDiscount?.discount_amount ?? 0;
 
@@ -532,9 +927,6 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     if (!rentalResult.valid) return rentalResult;
     const extraFees: Fee[] = deliveryMode === 'delivery'
       ? [{ label: 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
-      : [];
-    const insuranceFees: Fee[] = insuranceAddon
-      ? [{ label: 'Bảo hiểm chuyến đi', amount: insuranceFee }]
       : [];
     const loyaltyFee: Fee[] = loyaltyDiscount
       ? [{ label: loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết', amount: -loyaltyDiscountAmount, highlight: true }]
@@ -544,20 +936,21 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       : [];
     return {
       ...rentalResult,
-      fees: [...rentalResult.fees, ...extraFees, ...insuranceFees, ...loyaltyFee, ...promoFee],
+      fees: [...rentalResult.fees, ...holidayPricing.fees, ...extraFees, ...loyaltyFee, ...promoFee],
       total: Math.max(0, orderTotalBeforePromo - loyaltyDiscountAmount - (promoResult?.discount_amount ?? 0)),
     };
-  }, [rentalResult, deliveryMode, deliveryFee, insuranceAddon, insuranceFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
+  }, [rentalResult, holidayPricing.fees, deliveryMode, deliveryFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
+
+  useEffect(() => {
+    if (!holidayPromoBlocked) return;
+    setPromoResult(null);
+    setPromoError('');
+  }, [holidayPromoBlocked]);
 
   const savings =
     priceMonth && basePrice > 0
       ? Math.round((1 - priceMonth / (basePrice * 30)) * 100)
       : 0;
-
-  const handlePickupDate = (v: string) => {
-    setPickupDate(v);
-    if (v >= returnDate) setReturnDate(toDateStr(addDays(new Date(v), 1)));
-  };
 
   // ── react-day-picker range selection ──────────────────────────────────────
   // Convert blocked ranges to { from, to } Date objects for DayPicker disabled prop
@@ -573,14 +966,54 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     }),
     [blockedRanges],
   );
+  const holidayPricingIntervals = useMemo(
+    () => holidayPricingRules.map((rule) => ({
+      from: parseDateStr(rule.start_date),
+      to: parseDateStr(rule.end_date),
+    })),
+    [holidayPricingRules],
+  );
+  const CalendarDayContent = useCallback(({ date, activeModifiers }: DayContentProps) => {
+    const dateStr = toDateStr(date);
+    const holidayRule = holidayPricingRules
+      .filter((rule) => rule.start_date <= dateStr && rule.end_date >= dateStr)
+      .map((rule) => ({ rule, surcharge: holidayDailySurcharge(rule, basePrice) }))
+      .sort((a, b) => b.surcharge - a.surcharge)[0];
+    const comboSurcharge = holidayBookingPolicy.matchedWindow
+      && holidayBookingPolicy.matchedWindow.pickup_date <= dateStr
+      && holidayBookingPolicy.matchedWindow.return_date >= dateStr
+      ? Math.max(0, Number(holidayBookingPolicy.matchedWindow.adjustment_value) || 0)
+      : null;
+    const showPrice = basePrice > 0 && !activeModifiers.disabled && !activeModifiers.blocked;
 
-  const selectedRange = useMemo(() => ({
-    from: parseDateStr(pickupDate),
-    to: parseDateStr(returnDate),
-  }), [pickupDate, returnDate]);
+    return (
+      <span className="carmatch-cal-day-content">
+        <span className="carmatch-cal-day-number">
+          {date.getDate()}
+          {holidayRule && <span className="carmatch-cal-day-spark" aria-hidden="true">◆</span>}
+        </span>
+        {showPrice && (
+          <span className="carmatch-cal-day-price">
+            {fmtCalendarPrice(basePrice + (comboSurcharge ?? holidayRule?.surcharge ?? 0))}
+          </span>
+        )}
+      </span>
+    );
+  }, [basePrice, holidayBookingPolicy.matchedWindow, holidayPricingRules]);
 
   // Step mode: first click = pickup, second = return
   const [rangeStep, setRangeStep] = useState<'from' | 'to'>('from');
+  const [calendarStartPreview, setCalendarStartPreview] = useState<Date | null>(null);
+
+  // Keep the visual range anchored to the exact dates the customer clicked,
+  // as Mioto does. Billable dates remain a separate pricing concern handled
+  // by getBillableDayRange/getBillableDateStrings.
+  const selectedRange = useMemo(
+    () => rangeStep === 'to' && calendarStartPreview
+      ? { from: calendarStartPreview }
+      : { from: parseDateStr(pickupDate), to: parseDateStr(returnDate) },
+    [calendarStartPreview, pickupDate, rangeStep, returnDate],
+  );
 
   // Use onDayClick instead of onSelect — onSelect has stale-range issues in v8
   // when an existing range is already selected and user starts fresh
@@ -588,31 +1021,63 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     if (modifiers.disabled || modifiers.blocked) return;
     const ds = toDateStr(day);
     if (rangeStep === 'from') {
+      setPickupHour(DEFAULT_PICKUP_HOUR);
+      setReturnHour(DEFAULT_RETURN_HOUR);
       setPickupDate(ds);
       setReturnDate(toDateStr(addDays(day, 1)));
+      setCalendarStartPreview(day);
       setRangeStep('to');
     } else {
       if (ds > pickupDate) {
         setReturnDate(ds);
+        setCalendarStartPreview(null);
+        setRangeStep('from');
+      } else if (ds === pickupDate) {
+        // Mioto-style same-day rental: a second click on the start date
+        // completes a one-cell range. If the current hours cannot form the
+        // minimum 4-hour rental, move pickup to opening time and keep return.
+        setReturnDate(ds);
+        if (returnHour - pickupHour < 4) {
+          setPickupHour(DEFAULT_PICKUP_HOUR);
+          if (returnHour < 12) setReturnHour(12);
+        }
+        setCalendarStartPreview(null);
         setRangeStep('from');
       } else {
-        // clicked same day or before pickup → restart from this day
+        // Clicking before pickup starts a fresh selection from that day.
+        setPickupHour(DEFAULT_PICKUP_HOUR);
+        setReturnHour(DEFAULT_RETURN_HOUR);
         setPickupDate(ds);
         setReturnDate(toDateStr(addDays(day, 1)));
+        setCalendarStartPreview(day);
         setRangeStep('to');
       }
     }
-  }, [rangeStep, pickupDate]);
+  }, [pickupDate, pickupHour, rangeStep, returnHour]);
+
+  const selectHolidayCombo = useCallback((window: HolidayBookingWindow) => {
+    setPickupHour(DEFAULT_PICKUP_HOUR);
+    setReturnHour(DEFAULT_RETURN_HOUR);
+    setPickupDate(window.pickup_date);
+    setReturnDate(window.return_date);
+    setCalendarStartPreview(null);
+    setRangeStep('from');
+  }, []);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
+    if (holidayPromoBlocked) {
+      setPromoResult(null);
+      setPromoError(holidayPromoBlockMessage);
+      return;
+    }
     setPromoLoading(true);
     setPromoError('');
     setPromoResult(null);
     try {
       const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
       const res = await fetch(
-        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}&pickup_date=${pickupDate}${phoneParam}`,
+        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`,
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
@@ -658,27 +1123,34 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   const fetchPromoList = useCallback(async () => {
     setPromoListLoading(true);
     try {
-      const res = await fetch(`/api/promo-list?total=${totalAmount}`);
+      const res = await fetch(`/api/promo-list?total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}`);
       const json = await res.json();
       if (res.ok) setPromoList(json.promos || []);
     } catch { /* silent */ } finally {
       setPromoListLoading(false);
     }
-  }, [totalAmount]);
+  }, [pickupDate, returnDate, totalAmount]);
 
   const openPromoModal = () => {
+    if (holidayPromoBlocked) return;
     setShowPromoModal(true);
     void fetchPromoList();
   };
 
   const applyPromoFromList = async (code: string) => {
+    if (holidayPromoBlocked) {
+      setPromoCode(code);
+      setPromoResult(null);
+      setPromoError(holidayPromoBlockMessage);
+      return;
+    }
     setPromoCode(code);
     setPromoLoading(true);
     setPromoError('');
     setPromoResult(null);
     try {
       const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
-      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}&pickup_date=${pickupDate}${phoneParam}`);
+      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
       setPromoResult(json);
@@ -691,14 +1163,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
   };
 
   useEffect(() => {
-    if (!initialPromoCode || promoAutoAppliedRef.current || totalAmount <= 0) return;
+    if (!initialPromoCode || promoAutoAppliedRef.current || totalAmount <= 0 || holidayPromoBlocked) return;
     promoAutoAppliedRef.current = true;
     void applyPromoFromList(initialPromoCode);
     // Run once when the calculator has a valid amount; `applyPromoFromList` reads the latest booking state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPromoCode, totalAmount]);
+  }, [initialPromoCode, totalAmount, holidayPromoBlocked]);
 
   const handleBookingSubmit = async () => {
+    if (hardConflicts.length > 0) {
+      setBookingError('Xe đã có lịch trong khoảng này. Vui lòng chọn ngày khác.');
+      return;
+    }
     if (!customerName.trim()) { setBookingError('Vui lòng nhập họ tên'); return; }
     const phoneClean = customerPhone.trim().replace(/\s/g, '');
     if (!/^(0[3-9]\d{8})$/.test(phoneClean)) { setBookingError('Số điện thoại không hợp lệ'); return; }
@@ -706,9 +1182,19 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       setBookingError('Vui lòng nhập địa chỉ giao xe');
       return;
     }
+    if (holidayBookingBlocked) {
+      setBookingError(holidayComboBlockMessage);
+      return;
+    }
+    if (holidayPromoBlocked && promoResult) {
+      setPromoResult(null);
+      setBookingError(holidayPromoBlockMessage);
+      return;
+    }
 
     setBookingLoading(true);
     setBookingError('');
+    const promoForBooking = holidayPromoBlocked ? null : promoResult;
     trackBookingSubmit('attempt', {
       vehicle_id: vehicleId || null,
       vehicle_name: carName,
@@ -717,14 +1203,24 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       delivery_mode: deliveryMode,
       pickup_date: pickupDate,
       return_date: returnDate,
-      promo_code: promoResult?.code ?? null,
+      promo_code: promoForBooking?.code ?? null,
     });
     try {
       const loc = LOCATIONS.find(l => l.id === selectedLocation);
+      if (!bookingIdempotencyRef.current) {
+        bookingIdempotencyRef.current = typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+      }
+      const idempotencyKey = bookingIdempotencyRef.current;
       const res = await fetch('/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify({
+          idempotency_key: idempotencyKey,
           vehicle_id: vehicleId || null,
           car_slug: carSlug || null,
           car_name: carName,
@@ -740,31 +1236,33 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
           delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() : null,
           location_name: deliveryMode === 'self' ? loc?.name : deliveryAddress.trim() || 'Giao tận nơi',
           base_amount: rentalResult.valid ? rentalResult.total : 0,
+          holiday_surcharge: holidayPricing.total,
+          holiday_pricing: holidayPricing.applied,
           delivery_fee: deliveryFee,
-          insurance_addon: insuranceAddon,
-          insurance_fee: insuranceFee,
           loyalty_tier: loyaltyDiscount?.tier ?? null,
           loyalty_discount: loyaltyDiscountAmount,
-          promo_code: promoResult?.code ?? null,
-          promo_discount: promoResult?.discount_amount ?? 0,
+          promo_code: promoForBooking?.code ?? null,
+          promo_discount: promoForBooking?.discount_amount ?? 0,
           total_amount: result.valid ? result.total : 0,
-          requires_confirmation: requiresConfirmation,
+          requires_confirmation: needsManualConfirmation,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi tạo đơn');
+      const submittedNeedsConfirmation = data.requiresConfirmation === true || needsManualConfirmation;
       setBookingRef(data.bookingRef);
       setDepositAmount(data.depositAmount);
-      setBookingStep(BANK_QR_ENABLED ? 2 : 3);
+      setBookingNeedsConfirmation(submittedNeedsConfirmation);
+      setBookingStep(BANK_QR_ENABLED && data.paymentRequired !== false && !submittedNeedsConfirmation ? 2 : 3);
       trackBookingSubmit('success', {
         vehicle_id: vehicleId || null,
         vehicle_name: carName,
         booking_ref: data.bookingRef,
         rental_days: rentalDays,
         total_amount: result.valid ? result.total : 0,
-        deposit_amount: data.depositAmount,
+          deposit_amount: submittedNeedsConfirmation ? 0 : data.depositAmount,
         delivery_mode: deliveryMode,
-        promo_code: promoResult?.code ?? null,
+        promo_code: promoForBooking?.code ?? null,
       });
     } catch (e: unknown) {
       const message = (e as Error)?.message || 'Lỗi kết nối, thử lại sau';
@@ -787,6 +1285,9 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
     const locationLine = deliveryMode === 'self'
       ? `📍 Địa điểm: ${loc.name} (${loc.address})`
       : `🚗 Giao xe tận nơi (phí 100.000đ/chiều)`;
+    const holidayComboLine = holidayBookingPolicy.matchedWindow
+      ? `🎉 Combo lễ: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}\n`
+      : '';
     const promoLine = promoResult
       ? `🏷️ Mã giảm giá: ${promoResult.code} (-${fmtVND(promoResult.discount_amount)})\n`
       : '';
@@ -795,6 +1296,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       `📅 Nhận xe: ${displayDate(pickupDate)} lúc ${pickupHour}:00\n` +
       `📅 Trả xe: ${displayDate(returnDate)} lúc ${returnHour}:00\n` +
       `${locationLine}\n` +
+      `${holidayComboLine}` +
       `${promoLine}` +
       `💰 Dự kiến: ${priceText}\n\n` +
       `Anh/chị xác nhận giúp lịch xe và giá thuê ạ!`
@@ -826,13 +1328,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
   const selectedLocationInfo = LOCATIONS.find(l => l.id === selectedLocation);
   const finalTotal = result.valid ? result.total : 0;
+  const estimatedDepositAmount = finalTotal > 0
+    ? Math.max(200_000, Math.round(finalTotal * 0.3 / 10_000) * 10_000)
+    : 0;
+  const estimatedRemainingAmount = Math.max(0, finalTotal - estimatedDepositAmount);
   const promoDiscount = promoResult?.discount_amount ?? 0;
   const appliedPromo = promoResult?.code ?? '';
-  const pickupDt = parseDateStr(pickupDate);
-  pickupDt.setHours(pickupHour, 0, 0, 0);
-  const returnDt = parseDateStr(returnDate);
-  returnDt.setHours(returnHour, 0, 0, 0);
-  const rentalDays = Math.max(1, Math.ceil((returnDt.getTime() - pickupDt.getTime()) / 86_400_000));
+  const rentalDays = Math.max(1, Math.ceil(billingDays));
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
 
@@ -845,15 +1347,18 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
       `Tên xe: ${carName}`,
       `Giờ nhận xe: ${pickupHour} giờ ngày ${displayDateSlash(pickupDate)}`,
       `Giờ trả xe: ${returnHour} giờ ngày ${displayDateSlash(returnDate)}`,
+      holidayBookingPolicy.matchedWindow ? `Combo lễ: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}` : null,
       `Số ngày thuê: ${rentalDays} ngày`,
       '',
       `Tổng giá: ${orderTotalBeforePromo.toLocaleString('vi-VN')}đ`,
+      matchedHolidayCombo
+        ? `Mức tăng combo lễ: +${Number(matchedHolidayCombo.combo_adjustment_value).toLocaleString('vi-VN')}đ/ngày × ${matchedHolidayCombo.combo_days} ngày`
+        : holidayPricing.total > 0 ? `Phụ thu giá lễ: +${holidayPricing.total.toLocaleString('vi-VN')}đ` : null,
       loyaltyDiscountAmount > 0 ? `Ưu đãi ${loyaltyDiscount?.tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${loyaltyDiscountAmount.toLocaleString('vi-VN')}đ` : null,
       promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
       (loyaltyDiscountAmount > 0 || promoDiscount > 0) ? `Tổng sau ưu đãi: ${finalTotal.toLocaleString('vi-VN')}đ` : null,
       `${BANK_QR_ENABLED ? 'Đã cọc' : 'Tiền cọc dự kiến'}: ${depositAmount.toLocaleString('vi-VN')}đ`,
       deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
-      'Điều kiện bảo hiểm: xác nhận theo hợp đồng và biên bản bàn giao',
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
       `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: ${kmSurcharge.toLocaleString('vi-VN')}đ/km | 100.000đ/giờ`,
@@ -871,7 +1376,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-base font-black text-gray-950">Đặt lịch thuê xe</h2>
-            <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn ngày nhận/trả xe để xem tổng dự kiến.</p>
+            <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn thời gian thuê xe để xem tổng dự kiến.</p>
           </div>
           {basePrice > 0 ? (
             <div className="shrink-0 text-right">
@@ -894,90 +1399,57 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             </span>
           </div>
         )}
+
       </div>
 
-      {/* ── Date/time pickers ── */}
+      {/* ── Consolidated rental time picker ── */}
       <div className="px-5 py-4 space-y-3.5">
-        {/* Pickup row */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Ngày nhận xe
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            <div className="col-span-3 relative">
-              <div className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
-                {displayDateSlash(pickupDate)}
-              </div>
-              <input
-                type="date"
-                value={pickupDate}
-                min={todayStr}
-                onChange={e => handlePickupDate(e.target.value)}
-                className="absolute inset-0 opacity-0 w-full cursor-pointer"
-              />
-            </div>
-            <div className="relative col-span-2">
-              <select
-                value={pickupHour}
-                onChange={e => setPickupHour(+e.target.value)}
-                className="w-full appearance-none border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 transition-colors pr-7"
-              >
-                {PICKUP_HOURS.map(h => (
-                  <option key={h} value={h}>{h}:00</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Return row */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Ngày trả xe
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            <div className="col-span-3 relative">
-              <div className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white pointer-events-none">
-                {displayDateSlash(returnDate)}
-              </div>
-              <input
-                type="date"
-                value={returnDate}
-                min={pickupDate}
-                onChange={e => setReturnDate(e.target.value)}
-                className="absolute inset-0 opacity-0 w-full cursor-pointer"
-              />
-            </div>
-            <div className="relative col-span-2">
-              <select
-                value={returnHour}
-                onChange={e => setReturnHour(+e.target.value)}
-                className="w-full appearance-none border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100 transition-colors pr-7"
-              >
-                {RETURN_HOURS.map(h => (
-                  <option key={h} value={h}>{h}:00</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Availability calendar button ── */}
         {vehicleId && (
           <div>
             <button
               type="button"
-              onClick={() => { setShowCalModal(true); setRangeStep('from'); }}
-              className="flex items-center gap-2 w-full py-2.5 px-3.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 text-sm font-semibold hover:bg-brand-100 transition-colors"
+              onClick={() => {
+                setShowCalModal(true);
+                setRangeStep('from');
+                setCalendarStartPreview(null);
+                void fetchAvailability();
+              }}
+              aria-label="Chọn thời gian nhận và trả xe"
+              className="group w-full overflow-hidden rounded-2xl border border-gray-200 bg-white text-left shadow-sm transition hover:border-brand-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-200"
             >
-              <CalendarDays className="w-4 h-4 shrink-0" />
-              {availLoading ? 'Đang tải lịch xe…' : 'Chọn ngày trên lịch'}
-              <span className="ml-auto text-brand-400 text-xs font-normal">
-                {displayDate(pickupDate)} → {displayDate(returnDate)}
+              <span className="grid grid-cols-2 divide-x divide-gray-200">
+                <span className="px-3.5 py-3">
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-400">Nhận xe</span>
+                  <span className="mt-1 block text-sm font-black text-gray-900">
+                    {pickupHour}:00 · {displayDateSlash(pickupDate)}
+                  </span>
+                </span>
+                <span className="px-3.5 py-3">
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-400">Trả xe</span>
+                  <span className="mt-1 block text-sm font-black text-gray-900">
+                    {returnHour}:00 · {displayDateSlash(returnDate)}
+                  </span>
+                </span>
+              </span>
+              <span className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-brand-700 transition group-hover:bg-brand-50">
+                <CalendarDays className="h-4 w-4 shrink-0" />
+                {availLoading ? 'Đang tải lịch xe…' : 'Đổi thời gian trên lịch'}
+                <span className="ml-auto font-semibold text-gray-500">
+                  {selectedDurationLabel}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-gray-400" />
               </span>
             </button>
+            {(availLoading || availabilityUnavailable) && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-amber-700">
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  availLoading ? 'animate-pulse bg-amber-400' : 'bg-amber-500'
+                }`} />
+                {availLoading
+                  ? 'Đang tải lịch xe…'
+                  : 'Lịch tự động đang tạm gián đoạn — Car Match sẽ kiểm tra thủ công trước khi giữ xe'}
+              </p>
+            )}
 
             {/* Hard conflict — xe đang bận hẳn — cảnh báo đỏ + gợi xe khác */}
             {hardConflicts.length > 0 && (
@@ -1185,19 +1657,38 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={openPromoModal}
-                className="w-full px-4 py-2.5 flex items-center justify-between text-sm text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-gray-200 flex items-center justify-center">
-                    <Tag className="w-3.5 h-3.5 text-gray-500" />
-                  </div>
-                  Mã khuyến mãi
-                </span>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={openPromoModal}
+                  disabled={holidayPromoBlocked}
+                  title={holidayPromoBlocked ? holidayPromoBlockMessage : 'Mở mã khuyến mãi'}
+                  className={`w-full px-4 py-2.5 flex items-center justify-between text-sm transition-colors ${
+                    holidayPromoBlocked
+                      ? 'cursor-not-allowed bg-amber-50 text-amber-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                      holidayPromoBlocked ? 'bg-amber-100' : 'bg-gray-200'
+                    }`}>
+                      <Tag className={`w-3.5 h-3.5 ${holidayPromoBlocked ? 'text-amber-600' : 'text-gray-500'}`} />
+                    </div>
+                    Mã khuyến mãi
+                  </span>
+                  {holidayPromoBlocked ? (
+                    <span className="text-[11px] font-bold">Không áp dụng</span>
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+                {holidayPromoBlocked && (
+                  <p className="px-4 py-2 text-xs font-medium text-amber-700 bg-amber-50">
+                    {holidayPromoBlockMessage}
+                  </p>
+                )}
+              </>
             )}
 
             {/* Total row */}
@@ -1212,8 +1703,33 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 {fmtVND(result.total)}
               </span>
             </div>
+            <div className="grid grid-cols-2 gap-3 bg-slate-50 px-4 py-3 text-xs">
+              <div>
+                <div className="font-medium text-slate-500">
+                  {needsManualConfirmation ? 'Cọc sau khi xác nhận' : 'Cọc giữ xe dự kiến'}
+                </div>
+                <div className="mt-1 font-bold text-blue-700">{fmtVND(estimatedDepositAmount)}</div>
+              </div>
+              <div className="text-right">
+                <div className="font-medium text-slate-500">Còn lại khi nhận xe</div>
+                <div className="mt-1 font-bold text-slate-900">{fmtVND(estimatedRemainingAmount)}</div>
+              </div>
+            </div>
           </div>
         )}
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <div className="font-bold text-slate-800">Phụ phí có thể phát sinh</div>
+          <div className="mt-2 flex justify-between gap-3">
+            <span>Vượt {kmPerDay} km/ngày</span>
+            <span className="font-semibold text-slate-800">{fmtVND(kmSurcharge)}/km</span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span>Trả xe trễ</span>
+            <span className="font-semibold text-slate-800">100.000đ/giờ</span>
+          </div>
+          <p className="mt-2 text-[11px] leading-4 text-slate-500">Chỉ tính theo sử dụng thực tế, chưa cộng vào tổng dự kiến.</p>
+        </div>
 
         {/* ── CTAs ── */}
         {recentBookingsCount > 0 && (
@@ -1232,18 +1748,19 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             });
             setShowBookingModal(true);
             setBookingStep(1);
+            setBookingNeedsConfirmation(false);
             setBookingError('');
             setConfirmTransfer(false);
           }}
-          disabled={!result.valid}
+          disabled={!result.valid || hardConflicts.length > 0 || holidayBookingBlocked}
           className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
-          {requiresConfirmation ? 'Gửi yêu cầu giữ lịch' : 'Kiểm tra lịch & đặt xe'}
+          {holidayBookingBlocked ? 'Chọn đúng combo lễ' : needsManualConfirmation ? 'Gửi yêu cầu xác nhận lịch' : 'Kiểm tra lịch & đặt xe'}
         </button>
-        {requiresConfirmation && (
+        {needsManualConfirmation && (
           <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
-            Xe này cần xác nhận lịch với chủ xe. Car Match sẽ liên hệ bạn trong 1–2 giờ.
+            Car Match sẽ xác nhận chính xác giờ trống trước. Bạn chưa cần chuyển khoản ở bước này.
           </p>
         )}
 
@@ -1286,96 +1803,129 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
         onClick={() => setShowCalModal(false)}
       >
         <div
-          className="bg-white rounded-2xl shadow-2xl flex flex-col"
-          style={{ width: '90vw', maxWidth: 700, maxHeight: '92vh' }}
+          className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-y-auto"
+          style={{ width: '94vw', maxWidth: 900, maxHeight: '94vh' }}
           onClick={e => e.stopPropagation()}
         >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-            <div>
-              <h3 className="font-bold text-gray-900 text-base">Chọn ngày thuê xe</h3>
-              <p className={`text-xs mt-0.5 font-medium ${rangeStep === 'from' ? 'text-brand-600' : 'text-green-600'}`}>
-                {rangeStep === 'from' ? '① Chọn ngày nhận xe' : '② Chọn ngày trả xe'}
-              </p>
-            </div>
-            <button onClick={() => setShowCalModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+          <div className="relative flex items-center justify-center px-6 py-4 border-b border-gray-100 shrink-0">
+            <h3 className="text-xl font-black text-gray-950">Thời gian</h3>
+            <button
+              type="button"
+              aria-label="Đóng lịch"
+              onClick={() => setShowCalModal(false)}
+              className="absolute right-4 p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+            >
               <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>
 
+          {upcomingHolidayWindows.length > 0 && (
+            <div className="shrink-0 border-b border-amber-100 bg-amber-50/70 px-4 py-3 sm:px-8">
+              <p className="mb-2 text-xs font-black text-amber-900">Chọn nhanh combo lễ</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {upcomingHolidayWindows.map((window) => {
+                  const active = pickupDate === window.pickup_date && returnDate === window.return_date;
+                  const comboDays = inclusiveDateCount(window.pickup_date, window.return_date);
+                  return (
+                    <button
+                      key={`${window.pickup_date}-${window.return_date}`}
+                      type="button"
+                      onClick={() => selectHolidayCombo(window)}
+                      className={`rounded-xl border px-3 py-2 text-left transition ${
+                        active
+                          ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
+                          : 'border-amber-200 bg-white text-amber-900 hover:border-amber-400 hover:bg-amber-50'
+                      }`}
+                    >
+                      <span className="block text-xs font-black">{window.label || `Combo ${comboDays} ngày`}</span>
+                      <span className={`mt-0.5 block text-[11px] font-semibold ${active ? 'text-amber-50' : 'text-amber-700'}`}>
+                        {displayDateSlash(window.pickup_date)} – {displayDateSlash(window.return_date)} · {comboDays} ngày
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ── Calendar ── */}
-          <div className="carmatch-cal overflow-x-auto py-2" style={{ minHeight: 260 }}>
-            <div style={{ minWidth: 560, padding: '0 12px' }}>
+          <div className="carmatch-cal shrink-0 overflow-x-hidden px-3 pt-3 sm:px-8 sm:pt-5">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <p className={`text-sm font-bold ${rangeStep === 'from' ? 'text-brand-700' : 'text-emerald-700'}`}>
+                {rangeStep === 'from' ? '① Chọn ngày nhận xe' : '② Chọn ngày trả xe'}
+              </p>
+              <p className="hidden text-xs font-medium text-gray-400 sm:block">
+                Ngày có giá cao hơn được đánh dấu màu cam
+              </p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white px-1 py-2 shadow-sm sm:px-3 sm:py-3" style={{ minWidth: isMobile ? 300 : 680 }}>
               <DayPicker
                 mode="range"
                 selected={selectedRange}
                 onDayClick={handleDayClick}
-                numberOfMonths={2}
-                pagedNavigation
+                numberOfMonths={isMobile ? 1 : 2}
+                pagedNavigation={!isMobile}
                 locale={vi}
                 disabled={[{ before: today }, ...blockedIntervals]}
-                modifiers={{ blocked: blockedIntervals }}
-                modifiersClassNames={{ blocked: 'rdp-day_blocked' }}
+                modifiers={{ blocked: blockedIntervals, holidayPrice: holidayPricingIntervals }}
+                modifiersClassNames={{ blocked: 'rdp-day_blocked', holidayPrice: 'rdp-day_holiday_price' }}
                 fromDate={today}
                 showOutsideDays={false}
+                components={{ DayContent: CalendarDayContent }}
               />
             </div>
           </div>
 
           {/* ── Time pickers ── */}
-          <div className="px-6 py-4 border-t border-gray-100 shrink-0">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="px-4 py-4 sm:px-8 shrink-0">
+            <div className="relative grid grid-cols-2 gap-4 sm:gap-8">
               {/* Nhận xe */}
-              <div>
-                <div className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-brand-600 inline-block" />
-                  Giờ nhận xe
-                </div>
-                <div className="relative">
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <div className="text-xs font-semibold text-gray-500">Nhận xe</div>
+                <div className="relative mt-0.5">
                   <select
                     value={pickupHour}
                     onChange={e => setPickupHour(+e.target.value)}
-                    className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 pr-8 cursor-pointer"
+                    className="w-full appearance-none bg-transparent py-1 text-lg font-black text-gray-950 focus:outline-none pr-8 cursor-pointer"
                   >
                     {PICKUP_HOURS.map(h => (
                       <option key={h} value={h}>{h}:00</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">Giờ hoạt động: 07:00 – 23:00</p>
+              </div>
+
+              <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm">
+                <ChevronRight className="h-4 w-4" />
               </div>
 
               {/* Trả xe */}
-              <div>
-                <div className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                  Giờ trả xe
-                </div>
-                <div className="relative">
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <div className="text-xs font-semibold text-gray-500">Trả xe</div>
+                <div className="relative mt-0.5">
                   <select
                     value={returnHour}
                     onChange={e => setReturnHour(+e.target.value)}
-                    className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 pr-8 cursor-pointer"
+                    className="w-full appearance-none bg-transparent py-1 text-lg font-black text-gray-950 focus:outline-none pr-8 cursor-pointer"
                   >
                     {RETURN_HOURS.map(h => (
                       <option key={h} value={h}>{h}:00</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">Giờ hoạt động: 07:00 – 23:00</p>
               </div>
             </div>
           </div>
 
           {/* ── Legend ── */}
-          <div className="px-6 pb-2 flex flex-wrap gap-x-5 gap-y-1.5 shrink-0">
+          <div className="px-4 pb-3 sm:px-8 flex flex-wrap gap-x-5 gap-y-1.5 shrink-0">
             {[
-              { color: 'bg-brand-600 rounded-full', label: 'Ngày chọn' },
-              { color: 'bg-brand-100 border border-brand-200 rounded', label: 'Trong khoảng' },
+              { color: 'bg-brand-600 rounded-full', label: 'Khoảng ngày đã chọn' },
+              { color: 'bg-amber-50 border border-amber-300 rounded', label: 'Giá lễ' },
               { color: 'bg-red-100 border border-red-200 rounded', label: 'Đã có lịch (bận)' },
-              { color: 'bg-gray-200 rounded opacity-60', label: 'Không khả dụng' },
             ].map(({ color, label }) => (
               <span key={label} className="flex items-center gap-1.5 text-xs text-gray-400">
                 <span className={`w-3 h-3 inline-block shrink-0 ${color}`} />
@@ -1384,35 +1934,59 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
             ))}
           </div>
 
+          {hardConflicts.length > 0 && (
+            <div className="mx-4 mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700 sm:mx-6">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <div>
+                <div className="font-bold">Khoảng thời gian này trùng lịch xe đang bận.</div>
+                <div className="mt-0.5">Vui lòng chọn lại ngày không có ô màu đỏ trước khi xác nhận.</div>
+              </div>
+            </div>
+          )}
+
+          {holidayBookingPolicy.hasHoliday && holidayBookingPolicy.isComboRestricted && (
+            <div className={`mx-4 mb-3 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs sm:mx-6 ${
+              holidayBookingBlocked
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            }`}>
+              <Info className={`mt-0.5 h-4 w-4 shrink-0 ${holidayBookingBlocked ? 'text-red-500' : 'text-amber-500'}`} />
+              <div>
+                <div className="font-bold">
+                  {holidayBookingBlocked
+                    ? holidayComboBlockMessage
+                    : `Combo lễ hợp lệ: ${holidayBookingPolicy.matchedWindow ? formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow) : holidayComboText}`}
+                </div>
+                <div className="mt-0.5">{holidayPromoBlockMessage}</div>
+              </div>
+            </div>
+          )}
+
           {/* ── Bottom bar ── */}
-          <div className="px-6 py-4 border-t border-gray-100 shrink-0 bg-gray-50 rounded-b-2xl">
-            <div className="flex items-center gap-3">
+          <div className="px-4 py-4 sm:px-8 border-t border-gray-100 shrink-0 bg-white rounded-b-2xl">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               {/* Summary */}
-              <div className="flex-1 flex items-center gap-2 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nhận xe</div>
-                  <div className="font-bold text-gray-900 text-sm">{pickupHour}:00 · {displayDate(pickupDate)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-gray-950 text-sm sm:text-base">
+                  {rangeStep === 'to'
+                    ? `${pickupHour}:00 ${displayDate(pickupDate)} – Chọn ngày kết thúc`
+                    : `${pickupHour}:00 ${displayDate(pickupDate)} – ${returnHour}:00 ${displayDate(returnDate)}`}
                 </div>
-                <div className="flex flex-col items-center px-2 shrink-0">
-                  <div className="text-gray-300">→</div>
-                  <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                    {(() => {
-                      const d = Math.round((new Date(returnDate).getTime() - new Date(pickupDate).getTime()) / 86_400_000);
-                      return d > 0 ? `${d} ngày` : '';
-                    })()}
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trả xe</div>
-                  <div className="font-bold text-gray-900 text-sm">{returnHour}:00 · {displayDate(returnDate)}</div>
-                </div>
+                {rangeStep === 'from' && (
+                  <div className="mt-1 text-xs font-medium text-gray-500">
+                    Thời gian thuê:{' '}
+                    <strong className="text-emerald-600">{selectedDurationLabel}</strong>
+                  </div>
+                )}
               </div>
 
               <button
+                type="button"
                 onClick={() => setShowCalModal(false)}
-                className="shrink-0 py-3 px-7 bg-brand-600 text-white font-bold rounded-xl text-sm hover:bg-brand-700 active:scale-[0.98] transition-all"
+                disabled={rangeStep === 'to' || hardConflicts.length > 0 || !result.valid || holidayBookingBlocked}
+                className="shrink-0 py-3.5 px-8 bg-emerald-500 text-white font-black rounded-xl text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                Xác nhận
+                {holidayBookingBlocked ? 'Chọn combo lễ' : 'Tiếp tục'}
               </button>
             </div>
           </div>
@@ -1453,10 +2027,11 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   setPromoError('');
                 }}
                 onKeyDown={e => e.key === 'Enter' && void validatePromo()}
-                placeholder="Nhập mã khuyến mãi"
+                placeholder={holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'Nhập mã khuyến mãi'}
                 type="text"
                 autoFocus
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                disabled={holidayPromoBlocked}
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-amber-50 disabled:text-amber-700"
                 autoCapitalize="characters"
               />
               <button
@@ -1465,12 +2040,15 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   if (!promoCode.trim()) return;
                   await applyPromoFromList(promoCode.trim());
                 }}
-                disabled={promoLoading || !promoCode.trim()}
+                disabled={promoLoading || !promoCode.trim() || holidayPromoBlocked}
                 className="px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {promoLoading ? '...' : 'Áp dụng'}
               </button>
             </div>
+            {holidayPromoBlocked && (
+              <p className="text-xs text-amber-700 font-medium mt-2">{holidayPromoBlockMessage}</p>
+            )}
             {promoError && (
               <p className="text-xs text-red-500 font-medium mt-2">{promoError}</p>
             )}
@@ -1487,24 +2065,24 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 <div
                   key={item.code}
                   className={`flex items-center gap-3 px-5 py-3.5 border-b border-gray-50 last:border-0 ${
-                    !item.applicable ? 'opacity-50' : ''
+                    (!item.applicable || holidayPromoBlocked) ? 'opacity-50' : ''
                   }`}
                 >
                   {/* Icon */}
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    item.applicable ? 'bg-green-100' : 'bg-gray-100'
+                    item.applicable && !holidayPromoBlocked ? 'bg-green-100' : 'bg-gray-100'
                   }`}>
-                    <Tag className={`w-5 h-5 ${item.applicable ? 'text-green-600' : 'text-gray-400'}`} />
+                    <Tag className={`w-5 h-5 ${item.applicable && !holidayPromoBlocked ? 'text-green-600' : 'text-gray-400'}`} />
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className={`font-bold text-sm ${item.applicable ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <div className={`font-bold text-sm ${item.applicable && !holidayPromoBlocked ? 'text-gray-900' : 'text-gray-400'}`}>
                       {item.code}
                     </div>
-                    <div className={`text-xs mt-0.5 ${item.applicable ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`text-xs mt-0.5 ${item.applicable && !holidayPromoBlocked ? 'text-gray-500' : 'text-gray-400'}`}>
                       {item.description}
-                      {item.discount_amount > 0 && (
+                      {item.discount_amount > 0 && !holidayPromoBlocked && (
                         <span className="text-green-600 font-semibold"> · Tiết kiệm {fmtVND(item.discount_amount)}</span>
                       )}
                     </div>
@@ -1522,10 +2100,10 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                   {/* Button */}
                   <button
                     type="button"
-                    disabled={!item.applicable}
+                    disabled={!item.applicable || holidayPromoBlocked}
                     onClick={() => void applyPromoFromList(item.code)}
                     className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                      item.applicable
+                      item.applicable && !holidayPromoBlocked
                         ? 'bg-green-500 text-white hover:bg-green-600'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
@@ -1652,7 +2230,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     {bookingStep > s ? '✓' : s}
                   </div>
                   <span className={`text-xs font-medium hidden sm:inline ${bookingStep === s ? 'text-brand-600' : 'text-gray-400'}`}>
-                    {s === 1 ? 'Thông tin' : s === 2 ? 'Đặt cọc' : 'Xác nhận'}
+                    {s === 1
+                      ? 'Thông tin'
+                      : s === 2
+                        ? needsManualConfirmation || bookingNeedsConfirmation
+                          ? 'Xác nhận lịch'
+                          : 'Đặt cọc'
+                        : 'Hoàn tất'}
                   </span>
                   {s < 3 && <div className="w-6 h-px bg-gray-200" />}
                 </div>
@@ -1681,28 +2265,50 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     <span>Trả xe</span>
                     <span className="font-medium">{displayDate(returnDate)} · {returnHour}:00</span>
                   </div>
+                  {holidayBookingPolicy.matchedWindow && (
+                    <div className="flex justify-between text-amber-700">
+                      <span>Combo lễ</span>
+                      <span className="font-medium text-right max-w-[55%]">
+                        {formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-gray-600">
                     <span>Địa điểm</span>
                     <span className="font-medium text-right max-w-[55%]">
                       {deliveryMode === 'self' ? LOCATIONS.find(l => l.id === selectedLocation)?.name : 'Giao tận nơi'}
                     </span>
                   </div>
-                  {loyaltyDiscount && (
-                    <div className="flex justify-between text-violet-600">
-                      <span>{loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết'}</span>
-                      <span className="font-medium">-{fmtVND(loyaltyDiscountAmount)}</span>
+                  {result.valid && result.fees.map((fee, index) => (
+                    <div
+                      key={`${fee.label}-${index}`}
+                      className={`flex justify-between gap-3 ${fee.amount < 0 ? 'text-green-600' : 'text-gray-600'}`}
+                    >
+                      <span>{fee.label}</span>
+                      <span className="font-medium">{fee.amount < 0 ? '-' : ''}{fmtVND(Math.abs(fee.amount))}</span>
                     </div>
-                  )}
-                  {promoResult && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Mã {promoResult.code}</span>
-                      <span className="font-medium">-{fmtVND(promoResult.discount_amount)}</span>
-                    </div>
-                  )}
+                  ))}
                   <div className="flex justify-between pt-2 border-t border-gray-200">
                     <span className="font-bold text-gray-800">Tổng dự kiến</span>
                     <span className="font-bold text-brand-600 text-base">{result.valid ? fmtVND(result.total) : '—'}</span>
                   </div>
+                  {result.valid && (
+                    <>
+                      <div className="flex justify-between text-blue-700">
+                        <span>{needsManualConfirmation ? 'Cọc sau khi xác nhận lịch' : 'Cọc giữ xe dự kiến'}</span>
+                        <span className="font-semibold">{fmtVND(estimatedDepositAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600">
+                        <span>Còn lại khi nhận xe</span>
+                        <span className="font-semibold text-gray-900">{fmtVND(estimatedRemainingAmount)}</span>
+                      </div>
+                    </>
+                  )}
+                  {needsManualConfirmation && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                      Đây là yêu cầu xác nhận lịch. Car Match sẽ gọi lại trước khi gửi QR đặt cọc.
+                    </div>
+                  )}
                   {result.valid && result.total > 0 && (
                     <div className="text-xs text-blue-600 font-medium text-right">
                       ⭐ Tích được ~{Math.floor(result.total / 10000) * pointsPerTenK} điểm chuyến này
@@ -1794,16 +2400,16 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                         setPromoResult(null);
                       }}
                       onKeyDown={e => e.key === 'Enter' && void validatePromo()}
-                      placeholder="SUMMER10"
+                      placeholder={holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'SUMMER10'}
                       type="text"
-                      disabled={Boolean(promoResult)}
+                      disabled={Boolean(promoResult) || holidayPromoBlocked}
                       className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-gray-50 disabled:text-gray-400"
                       autoCapitalize="characters"
                     />
                     <button
                       type="button"
                       onClick={() => void validatePromo()}
-                      disabled={promoLoading || Boolean(promoResult)}
+                      disabled={promoLoading || Boolean(promoResult) || holidayPromoBlocked}
                       className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
                         promoResult
                           ? 'bg-green-100 text-green-700 border border-green-200 cursor-default'
@@ -1826,10 +2432,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                       </button>
                     </div>
                   )}
+                  {holidayPromoBlocked && (
+                    <p className="text-xs text-amber-700 font-medium mt-1">{holidayPromoBlockMessage}</p>
+                  )}
                   {promoError && (
                     <p className="text-xs text-red-500 font-medium mt-1">{promoError}</p>
                   )}
-                  {!promoResult && activeSuggestedCodes.length > 0 && (
+                  {!promoResult && !holidayPromoBlocked && activeSuggestedCodes.length > 0 && (
                     <div className="mt-2 space-y-1.5">
                       <p className="text-xs text-gray-400 font-medium">Mã của bạn:</p>
                       {activeSuggestedCodes.map(c => (
@@ -1846,99 +2455,6 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                     </div>
                   )}
                 </div>
-                {/* Add-on bảo hiểm */}
-                <div className={`rounded-xl border transition-colors overflow-hidden ${insuranceAddon ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}>
-                  {/* Hàng chọn bảo hiểm */}
-                  <label className="flex items-start gap-3 p-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={insuranceAddon}
-                      onChange={e => setInsuranceAddon(e.target.checked)}
-                      className="mt-0.5 accent-green-600 w-4 h-4 shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-gray-800">🛡️ Bảo hiểm chuyến đi</span>
-                        <span className="text-xs font-bold text-green-700 shrink-0">
-                          {rentalResult.valid ? `+${fmtVND(insuranceFeeAmount)}` : '+10% giá thuê'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Tai nạn đâm va, cháy nổ, ngập nước · Cứu hộ miễn phí 70 km
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Toggle chi tiết */}
-                  <button
-                    type="button"
-                    onClick={() => setShowInsuranceDetail(v => !v)}
-                    className="w-full flex items-center justify-between px-3 pb-2.5 text-xs text-brand-600 font-medium hover:text-brand-700 transition-colors"
-                  >
-                    <span>{showInsuranceDetail ? 'Ẩn chi tiết' : 'Xem chi tiết bảo hiểm'}</span>
-                    {showInsuranceDetail ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                  </button>
-
-                  {/* Chi tiết mở rộng */}
-                  {showInsuranceDetail && (
-                    <div className="border-t border-gray-100 bg-white px-4 py-3 space-y-3 text-xs">
-                      {/* Được bảo hiểm */}
-                      <div>
-                        <p className="font-semibold text-gray-800 mb-1.5">✅ Được bảo hiểm</p>
-                        <ul className="space-y-1 text-gray-600">
-                          <li>• Tai nạn đâm va, cháy nổ, lật đổ xe</li>
-                          <li>• Trầy xước, bóp mép dù nhẹ hay nặng</li>
-                          <li>• Thiệt hại do hành động ác ý từ bên thứ ba</li>
-                          <li>• Tổn thất động cơ do ngập nước (khấu trừ 20%)</li>
-                          <li>• Mất nguyên chiếc xe</li>
-                          <li>• Cứu hộ kéo xe miễn phí tối đa 70 km/vụ</li>
-                        </ul>
-                      </div>
-
-                      {/* Không được bảo hiểm */}
-                      <div>
-                        <p className="font-semibold text-gray-800 mb-1.5">❌ Không được bảo hiểm</p>
-                        <ul className="space-y-1 text-gray-600">
-                          <li>• Cố ý gây thiệt hại hoặc vi phạm pháp luật</li>
-                          <li>• Sử dụng sai mục đích (đua xe, chạy hàng cấm...)</li>
-                          <li>• Mất cắp phụ kiện, lốp xe riêng lẻ</li>
-                          <li>• Hao mòn tự nhiên (lốp mòn, kính mờ...)</li>
-                          <li>• Lái xe ra ngoài lãnh thổ Việt Nam</li>
-                        </ul>
-                      </div>
-
-                      {/* Mức khấu trừ — quan trọng nhất */}
-                      <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
-                        <p className="font-semibold text-amber-800 mb-1">⚠️ Mức khấu trừ khi có sự cố</p>
-                        <p className="text-amber-700 leading-relaxed">
-                          Khách chịu tối đa <strong>2.000.000đ</strong> tiền sửa xe + chi phí thuê xe trong những ngày xe nằm gara. Phần thiệt hại vượt quá do bảo hiểm chi trả.
-                        </p>
-                      </div>
-
-                      {/* Không mua bảo hiểm */}
-                      <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
-                        <p className="font-semibold text-red-800 mb-1">⛔ Nếu không mua bảo hiểm</p>
-                        <p className="text-red-700 leading-relaxed">
-                          Khách chịu <strong>100% chi phí</strong> sửa chữa khi có va chạm, trầy xước hoặc hư hỏng trong thời gian thuê.
-                        </p>
-                      </div>
-
-                      {/* Quy trình xử lý sự cố */}
-                      <div>
-                        <p className="font-semibold text-gray-800 mb-1.5">🚨 Quy trình xử lý khi xảy ra sự cố</p>
-                        <ol className="space-y-1.5 text-gray-600">
-                          <li className="flex gap-2"><span className="font-bold shrink-0">1.</span><span><strong>Giữ nguyên hiện trường</strong> và chụp ảnh xe đang bị sự cố.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">2.</span><span>Gọi cho nhân viên Car Match để được hướng dẫn liên hệ trung tâm bồi thường của nhà bảo hiểm.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">3.</span><span>Giám định viên bảo hiểm liên hệ hướng dẫn xử lý, xác minh thông tin và hiện trường.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">4.</span><span>Giám định viên và chủ xe/khách thuê cùng đưa xe ra Garage để <strong>giám định thiệt hại và ra báo giá sửa chữa</strong>.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">5.</span><span>Trung tâm bồi thường ra <strong>Biên bản giám định</strong> thiệt hại.</span></li>
-                          <li className="flex gap-2"><span className="font-bold shrink-0">6.</span><span>Garage tiến hành sửa chữa theo báo giá đã được xác nhận.</span></li>
-                        </ol>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Ghi chú (tuỳ chọn)
@@ -2143,20 +2659,30 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
               <div className="px-5 py-5 space-y-4">
                 {/* Header xác nhận */}
                 <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 mb-3">
-                    <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className={`inline-flex items-center justify-center w-14 h-14 rounded-full mb-3 ${bookingNeedsConfirmation ? 'bg-amber-100' : 'bg-green-100'}`}>
+                    <svg className={`w-7 h-7 ${bookingNeedsConfirmation ? 'text-amber-600' : 'text-green-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">Đặt xe thành công!</h3>
-                  <p className="text-sm text-slate-500 mt-1">Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút</p>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {bookingNeedsConfirmation ? 'Đã gửi yêu cầu xác nhận lịch' : 'Đặt xe thành công!'}
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {bookingNeedsConfirmation
+                      ? 'Car Match sẽ kiểm tra giờ trống và liên hệ trước khi gửi QR đặt cọc.'
+                      : 'Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút'}
+                  </p>
                 </div>
 
                 {/* Card xác nhận */}
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <span className="font-black text-slate-900 text-base">ĐƠN XÁC NHẬN ĐẶT XE</span>
-                    <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Đã đặt</span>
+                    <span className="font-black text-slate-900 text-base">
+                      {bookingNeedsConfirmation ? 'YÊU CẦU XÁC NHẬN LỊCH' : 'ĐƠN XÁC NHẬN ĐẶT XE'}
+                    </span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${bookingNeedsConfirmation ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                      {bookingNeedsConfirmation ? 'Chờ xác nhận' : 'Đã đặt'}
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
@@ -2177,6 +2703,13 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
 
                     <span className="text-slate-500">Trả xe</span>
                     <span className="font-semibold text-slate-900">{returnHour} giờ ngày {displayDateSlash(returnDate)}</span>
+
+                    {holidayBookingPolicy.matchedWindow && (
+                      <>
+                        <span className="text-slate-500">Combo lễ</span>
+                        <span className="font-semibold text-amber-700">{formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}</span>
+                      </>
+                    )}
 
                     <span className="text-slate-500">Số ngày thuê</span>
                     <span className="font-semibold text-slate-900">{rentalDays} ngày</span>
@@ -2206,7 +2739,11 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-slate-500">{BANK_QR_ENABLED ? 'Đã cọc (chuyển khoản)' : 'Tiền cọc dự kiến'}</span>
+                      <span className="text-slate-500">
+                        {bookingNeedsConfirmation
+                          ? 'Cọc sau khi xác nhận lịch'
+                          : BANK_QR_ENABLED ? 'Đã cọc (chuyển khoản)' : 'Tiền cọc dự kiến'}
+                      </span>
                       <span className="font-semibold text-blue-600">{depositAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
                     {deliveryFee > 0 && (
@@ -2215,10 +2752,12 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                         <span className="font-semibold text-slate-900">{deliveryFee.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
-                    <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1">
-                      <span className="font-bold text-slate-900">Thanh toán khi nhận xe</span>
-                      <span className="font-black text-red-600 text-base">{remainingAmount.toLocaleString('vi-VN')}đ</span>
-                    </div>
+                    {!bookingNeedsConfirmation && (
+                      <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1">
+                        <span className="font-bold text-slate-900">Thanh toán khi nhận xe</span>
+                        <span className="font-black text-red-600 text-base">{remainingAmount.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs text-slate-500">
@@ -2245,9 +2784,19 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 {/* Bước tiếp theo */}
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800 space-y-1.5">
                   <p className="font-bold text-blue-900 text-sm">Bước tiếp theo</p>
-                  <p>1️⃣ Nhân viên gọi xác nhận trong <strong>30 phút</strong> (giờ hành chính)</p>
-                  <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
-                  <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
+                  {bookingNeedsConfirmation ? (
+                    <>
+                      <p>1️⃣ Nhân viên kiểm tra xe và giờ bàn giao.</p>
+                      <p>2️⃣ Khi lịch chắc chắn, Car Match mới gửi <strong>QR cọc {depositAmount.toLocaleString('vi-VN')}đ</strong>.</p>
+                      <p>3️⃣ Khách xác nhận cọc để giữ xe.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>1️⃣ Nhân viên gọi xác nhận trong <strong>30 phút</strong> (giờ hành chính)</p>
+                      <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
+                      <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
+                    </>
+                  )}
                 </div>
 
                 {/* CTA đăng ký tài khoản — chỉ hiện khi chưa đăng nhập */}
@@ -2310,7 +2859,7 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                         className="flex flex-col items-center gap-1 rounded-xl border border-cyan-200 bg-cyan-50 py-2.5 text-xs font-medium text-cyan-700 hover:bg-cyan-100 transition-colors"
                       >
                         <span className="text-base">🔍</span>
-                        <span>Xem đơn</span>
+                        <span>{bookingNeedsConfirmation ? 'Theo dõi QR' : 'Xem đơn'}</span>
                       </Link>
                     </div>
                   );
@@ -2347,7 +2896,11 @@ export default function BookingWidget({ basePrice, carName, priceMonth, vehicleI
                 className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2"
               >
                 {bookingLoading ? <span className="animate-spin">⟳</span> : <CalendarDays className="w-4 h-4" />}
-                {bookingLoading ? 'Đang xử lý…' : BANK_QR_ENABLED ? 'Tiếp tục — Xem QR đặt cọc' : 'Gửi yêu cầu đặt xe'}
+                {bookingLoading
+                  ? 'Đang xử lý…'
+                  : needsManualConfirmation
+                    ? 'Gửi yêu cầu xác nhận lịch'
+                    : BANK_QR_ENABLED ? 'Tiếp tục — Xem QR đặt cọc' : 'Gửi yêu cầu đặt xe'}
               </button>
             )}
             {bookingStep === 2 && (

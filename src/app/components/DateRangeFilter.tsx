@@ -1,5 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, RotateCcw, X } from 'lucide-react';
+import { DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR } from '@/lib/rentalDuration';
+
+const HOUR_OPTIONS = Array.from({ length: 17 }, (_, index) => index + 7);
 
 function toDateStr(date: Date): string {
   const year = date.getFullYear();
@@ -14,99 +17,192 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
-interface Props {
-  onFilter: (unavailableModels: string[]) => void;
-  onActiveChange?: (active: boolean) => void;
+export interface AvailabilityResult {
+  unavailableVehicleIds: string[];
+  unavailableModels: string[];
 }
 
-export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
+interface Props {
+  onFilter: (availability: AvailabilityResult) => void;
+  onActiveChange?: (active: boolean) => void;
+  onRangeChange?: (pickupDate: string, returnDate: string, pickupHour: number, returnHour: number) => void;
+  initialPickupDate?: string;
+  initialReturnDate?: string;
+  initialPickupHour?: number;
+  initialReturnHour?: number;
+}
+
+function isValidDateString(value?: string): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+export default function DateRangeFilter({
+  onFilter,
+  onActiveChange,
+  onRangeChange,
+  initialPickupDate,
+  initialReturnDate,
+  initialPickupHour = DEFAULT_PICKUP_HOUR,
+  initialReturnHour = DEFAULT_RETURN_HOUR,
+}: Props) {
   const today = useMemo(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
   const todayStr = toDateStr(today);
-  const [pickupDate, setPickupDate] = useState(toDateStr(addDays(today, 1)));
-  const [returnDate, setReturnDate] = useState(toDateStr(addDays(today, 2)));
+  const defaultPickupDate = toDateStr(addDays(today, 1));
+  const safeInitialPickup =
+    isValidDateString(initialPickupDate) && initialPickupDate >= todayStr
+      ? initialPickupDate
+      : defaultPickupDate;
+  const safeInitialReturn =
+    isValidDateString(initialReturnDate) && initialReturnDate > safeInitialPickup
+      ? initialReturnDate
+      : toDateStr(addDays(new Date(`${safeInitialPickup}T00:00:00`), 1));
+  const [pickupDate, setPickupDate] = useState(safeInitialPickup);
+  const [returnDate, setReturnDate] = useState(safeInitialReturn);
+  const [pickupHour, setPickupHour] = useState(initialPickupHour);
+  const [returnHour, setReturnHour] = useState(initialReturnHour);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [active, setActive] = useState(false);
+  const latestRequest = useRef(0);
 
-  async function checkAvailability() {
+  const checkAvailability = useCallback(async () => {
     if (!pickupDate || !returnDate || returnDate <= pickupDate) {
       setError('Ngày trả phải sau ngày nhận');
       return;
     }
 
+    const requestId = ++latestRequest.current;
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams({ pickup: pickupDate, return: returnDate });
+      const params = new URLSearchParams({
+        pickup: pickupDate,
+        return: returnDate,
+        pickupHour: String(pickupHour),
+        returnHour: String(returnHour),
+      });
       const res = await fetch(`/api/availability?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Không kiểm tra được lịch xe');
-      onFilter(Array.isArray(data.unavailable_models) ? data.unavailable_models : []);
+      if (requestId !== latestRequest.current) return;
+      onFilter({
+        unavailableVehicleIds: Array.isArray(data.unavailable_vehicle_ids) ? data.unavailable_vehicle_ids : [],
+        unavailableModels: Array.isArray(data.unavailable_models) ? data.unavailable_models : [],
+      });
       setActive(true);
       onActiveChange?.(true);
     } catch (err) {
+      if (requestId !== latestRequest.current) return;
       setError(err instanceof Error ? err.message : 'Không kiểm tra được lịch xe');
-      onFilter([]);
+      onFilter({ unavailableVehicleIds: [], unavailableModels: [] });
       setActive(false);
       onActiveChange?.(false);
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
-  }
+  }, [onActiveChange, onFilter, pickupDate, pickupHour, returnDate, returnHour]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void checkAvailability();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [checkAvailability]);
 
   function reset() {
-    setPickupDate(toDateStr(addDays(today, 1)));
-    setReturnDate(toDateStr(addDays(today, 2)));
+    const nextPickup = toDateStr(addDays(today, 1));
+    const nextReturn = toDateStr(addDays(today, 2));
+    setPickupDate(nextPickup);
+    setReturnDate(nextReturn);
+    setPickupHour(DEFAULT_PICKUP_HOUR);
+    setReturnHour(DEFAULT_RETURN_HOUR);
     setError('');
     setActive(false);
-    onFilter([]);
+    onFilter({ unavailableVehicleIds: [], unavailableModels: [] });
     onActiveChange?.(false);
+    onRangeChange?.(nextPickup, nextReturn, DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR);
   }
 
   return (
     <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-slate-500">Ngày nhận xe</label>
-          <div className="relative w-full">
-            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-medium text-slate-950 pointer-events-none">
-              <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
-              {pickupDate ? pickupDate.split('-').reverse().join('/') : ''}
+          <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-slate-500">Nhận xe</label>
+          <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-2">
+            <div className="relative w-full">
+              <div className="pointer-events-none flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-medium text-slate-950">
+                <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
+                {pickupDate ? pickupDate.split('-').reverse().join('/') : ''}
+              </div>
+              <input
+                type="date"
+                min={todayStr}
+                value={pickupDate}
+                onChange={event => {
+                  const nextPickup = event.target.value;
+                  let nextReturn = returnDate;
+                  setPickupDate(nextPickup);
+                  if (nextPickup >= returnDate) {
+                    nextReturn = toDateStr(addDays(new Date(`${nextPickup}T00:00:00`), 1));
+                    setReturnDate(nextReturn);
+                  }
+                  onRangeChange?.(nextPickup, nextReturn, pickupHour, returnHour);
+                }}
+                onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
+                aria-label="Ngày nhận xe"
+                className="absolute inset-0 w-full cursor-pointer opacity-0"
+              />
             </div>
-            <input
-              type="date"
-              min={todayStr}
-              value={pickupDate}
-              onChange={event => {
-                const nextPickup = event.target.value;
-                setPickupDate(nextPickup);
-                if (nextPickup >= returnDate) {
-                  setReturnDate(toDateStr(addDays(new Date(nextPickup), 1)));
-                }
+            <select
+              value={pickupHour}
+              onChange={(event) => {
+                const nextHour = Number(event.target.value);
+                setPickupHour(nextHour);
+                onRangeChange?.(pickupDate, returnDate, nextHour, returnHour);
               }}
-              onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
-              className="absolute inset-0 opacity-0 w-full cursor-pointer"
-            />
+              aria-label="Giờ nhận xe"
+              className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-2 text-sm font-semibold text-slate-900 outline-none focus:border-brand-400"
+            >
+              {HOUR_OPTIONS.map((hour) => <option key={hour} value={hour}>{hour}:00</option>)}
+            </select>
           </div>
         </div>
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-slate-500">Ngày trả xe</label>
-          <div className="relative w-full">
-            <div className="flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-medium text-slate-950 pointer-events-none">
-              <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
-              {returnDate ? returnDate.split('-').reverse().join('/') : ''}
+          <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-slate-500">Trả xe</label>
+          <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-2">
+            <div className="relative w-full">
+              <div className="pointer-events-none flex h-12 w-full items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-medium text-slate-950">
+                <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
+                {returnDate ? returnDate.split('-').reverse().join('/') : ''}
+              </div>
+              <input
+                type="date"
+                min={pickupDate}
+                value={returnDate}
+                onChange={event => {
+                  setReturnDate(event.target.value);
+                  onRangeChange?.(pickupDate, event.target.value, pickupHour, returnHour);
+                }}
+                onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
+                aria-label="Ngày trả xe"
+                className="absolute inset-0 w-full cursor-pointer opacity-0"
+              />
             </div>
-            <input
-              type="date"
-              min={pickupDate}
-              value={returnDate}
-              onChange={event => setReturnDate(event.target.value)}
-              onClick={event => (event.currentTarget as HTMLInputElement & { showPicker?(): void }).showPicker?.()}
-              className="absolute inset-0 opacity-0 w-full cursor-pointer"
-            />
+            <select
+              value={returnHour}
+              onChange={(event) => {
+                const nextHour = Number(event.target.value);
+                setReturnHour(nextHour);
+                onRangeChange?.(pickupDate, returnDate, pickupHour, nextHour);
+              }}
+              aria-label="Giờ trả xe"
+              className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-2 text-sm font-semibold text-slate-900 outline-none focus:border-brand-400"
+            >
+              {HOUR_OPTIONS.map((hour) => <option key={hour} value={hour}>{hour}:00</option>)}
+            </select>
           </div>
         </div>
         <div className="flex gap-2">
@@ -117,7 +213,7 @@ export default function DateRangeFilter({ onFilter, onActiveChange }: Props) {
             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(13,22,71,0.16)] transition-colors hover:bg-brand-700 disabled:opacity-50 lg:flex-none"
           >
             <CalendarDays className="h-4 w-4" />
-            {loading ? 'Đang kiểm tra...' : 'Kiểm tra ngày'}
+            {loading ? 'Đang kiểm tra...' : active ? 'Cập nhật lịch' : 'Kiểm tra lịch'}
           </button>
           {active && (
             <button

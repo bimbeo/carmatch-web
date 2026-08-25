@@ -38,10 +38,6 @@ const faqGroups = [
         a: 'Tùy xe, thường 200-300 km/ngày (hiển thị trên trang xe). Vượt km: 3.000đ/km. Trả xe trễ giờ: 100.000đ/giờ.',
       },
       {
-        q: 'Xe có bảo hiểm không?',
-        a: 'Xe có điều kiện bảo hiểm và trách nhiệm sử dụng được ghi nhận trong hợp đồng/bàn giao. Trước khi nhận xe, khách nên xác nhận rõ phạm vi bảo hiểm, mức khấu trừ nếu có và trách nhiệm khi phát sinh sự cố.',
-      },
-      {
         q: 'Tôi có thể đi ra ngoài tỉnh không?',
         a: 'Cần thông báo trước với Car Match. Một số tuyến phổ biến (Hà Nội - Ninh Bình, Hà Nội - Hạ Long) được chấp thuận. Phí bổ sung theo thỏa thuận.',
       },
@@ -56,7 +52,7 @@ const faqGroups = [
 export default function FAQ() {
   useSEO({
     title: 'Câu hỏi thường gặp — Car Match',
-    description: 'Giải đáp câu hỏi thường gặp về đặt xe online, thanh toán, nhận xe, giấy tờ, bảo hiểm và phụ phí tại Car Match.',
+    description: 'Giải đáp câu hỏi thường gặp về đặt xe online, thanh toán, nhận xe, giấy tờ và phụ phí tại Car Match.',
     canonical: 'https://www.carmatch.vn/faq',
   });
 

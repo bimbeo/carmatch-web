@@ -1,11 +1,18 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["sin1"],
   "routes": [
     {
       "src": "/(.*)",
       "headers": {
         "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.google.com; frame-src 'self' https://www.google.com https://maps.google.com; worker-src 'self' blob:; manifest-src 'self'; form-action 'self' https://zalo.me; upgrade-insecure-requests",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
         "Referrer-Policy": "strict-origin-when-cross-origin",
         "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+        "X-Permitted-Cross-Domain-Policies": "none",
         "Link": "</llms.txt>; rel=\"describedby\", <https://www.carmatch.vn/sitemap.xml>; rel=\"sitemap\""
       },
       "continue": true
@@ -125,7 +132,7 @@
     {
       "src": "/xe/vinfast-vf5-2025-xam/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf5-2025-30b-25908" }
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf5-2025" }
     },
     {
       "src": "/xe/hyundai-accent-2020/?",
@@ -135,12 +142,12 @@
     {
       "src": "/xe/vf6-plus-2025/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025-30m-63654" }
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025" }
     },
     {
       "src": "/xe/vinfast-vf6-plus-2025/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025-30m-63654" }
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025" }
     },
     {
       "src": "/xe/vinfast-vf3-2025-30k-49565/?",
@@ -215,7 +222,7 @@
     {
       "src": "/sitemap\\.rss",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/sitemap.xml" }
+      "headers": { "Location": "https://www.carmatch.vn/rss.xml" }
     },
     {
       "src": "/sw\\.js",
@@ -251,8 +258,12 @@
       "src": "/api/promo-validate/?",
       "dest": "/api/promos?action=validate"
     },
-    { "src": "/tai-khoan/?", "dest": "/index.html" },
-    { "src": "/chao-ban/?", "dest": "/index.html" },
+    {
+      "src": "/api/holiday-pricing/?",
+      "dest": "/api/promos?action=holiday-pricing"
+    },
+    { "src": "/tai-khoan/?", "dest": "/tai-khoan/index.html" },
+    { "src": "/chao-ban/?", "dest": "/chao-ban/index.html" },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/xe/([^/]+)/?", "status": 404, "dest": "/404.html" },

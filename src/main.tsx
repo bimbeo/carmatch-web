@@ -55,21 +55,26 @@ async function bootApp() {
   const hadStaticShell = Boolean(root.dataset.staticShell)
   const hadPrerenderedShell = Boolean(root.dataset.prerendered)
 
-  if (hadPrerenderedShell) {
-    await preloadPrerenderedRoute()
-  }
-
-  const [{ StrictMode, createElement }, { createRoot, hydrateRoot }, { default: App }] = await Promise.all([
+  const [{ StrictMode, createElement }, { createRoot }, { default: App }] = await Promise.all([
     import('react'),
     import('react-dom/client'),
     import('./app/App'),
+    // Load the page module at the same time as React and the app shell. Waiting
+    // for it in a separate step kept the static snapshot on screen until the
+    // visitor clicked, making /xe pages visibly jump into their real UI.
+    hadPrerenderedShell ? preloadPrerenderedRoute() : Promise.resolve(),
   ])
   const app = createElement(StrictMode, null, createElement(App))
 
   if (hadPrerenderedShell) {
-    // Hydrate in-place instead of clearing DOM — avoids blank-flash on first click
+    // The SEO snapshot is handcrafted HTML rather than output from React SSR,
+    // so hydrating it always produces a mismatch and forces a second render.
+    // Mount React cleanly instead; keeping the snapshot until all route chunks
+    // have loaded still preserves the fast first paint.
+    root.replaceChildren()
     delete root.dataset.prerendered
-    hydrateRoot(root, app)
+    document.querySelectorAll('style[data-ssg]').forEach((el) => el.remove())
+    createRoot(root).render(app)
     return
   }
 
@@ -94,27 +99,10 @@ function schedulePrerenderedBoot() {
   const root = document.getElementById('root')
   if (!root?.dataset.prerendered) return false
 
-  let booted = false
-  let armed = false
-  const events = ['click'] as const
-  window.setTimeout(() => {
-    armed = true
-  }, 1500)
-
-  function cleanup() {
-    events.forEach((eventName) => window.removeEventListener(eventName, boot))
-  }
-
-  function boot() {
-    if (booted || !armed) return
-    booted = true
-    cleanup()
-    void bootApp()
-  }
-
-  events.forEach((eventName) => {
-    window.addEventListener(eventName, boot, { passive: true })
-  })
+  // Fleet and vehicle pages are pre-rendered for a fast first paint, but they
+  // are still interactive booking pages. Hydrate as soon as the DOM is ready
+  // instead of making the first visitor click trigger the real interface.
+  void bootApp()
 
   return true
 }

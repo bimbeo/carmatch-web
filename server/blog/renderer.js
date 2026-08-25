@@ -1,3 +1,5 @@
+import { sanitizeBlogHtml } from './sanitize.js';
+
 const siteUrl = 'https://www.carmatch.vn';
 const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
@@ -138,7 +140,7 @@ function normalizeBrandText(value = '') {
 function normalizeCustomerText(value = '') {
   return normalizeBrandText(value)
     .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
-    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/bảo\s*hiểm/gi, 'điều kiện bàn giao')
     .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
     .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
 }
@@ -579,7 +581,7 @@ function renderFooter() {
 
 export function renderBlogIndex(posts = []) {
   const title = 'Blog Kinh Nghiệm Thuê Xe Tự Lái | Car Match Hà Nội';
-  const description = 'Kinh nghiệm thuê xe tự lái Hà Nội: giấy tờ cần chuẩn bị, đặt cọc, bảo hiểm, chọn xe phù hợp và dịch vụ giao xe tận sảnh chung cư.';
+  const description = 'Kinh nghiệm thuê xe tự lái Hà Nội: giấy tờ cần chuẩn bị, đặt cọc, chọn xe phù hợp và dịch vụ giao xe tận sảnh chung cư.';
   const postItems = posts.map((post, index) => ({
     ...post,
     url: getPostUrl(post),
@@ -739,7 +741,7 @@ export function renderBlogPage(post) {
   const title = postTitleOverrides[post.slug.current] || `${post.seoTitle || post.title} | Car Match`;
   const description = getDescription(post);
   const image = optimizeImageUrl(post.mainImageUrl || brandSocialImage, 1400);
-  const rawBodyHtml = optimizeBodyImages(post.bodyHtml || renderPortableText(post.body), post.title);
+  const rawBodyHtml = sanitizeBlogHtml(optimizeBodyImages(post.bodyHtml || renderPortableText(post.body), post.title));
   const headings = extractHeadings(rawBodyHtml);
   const bodyHtml = addHeadingIds(rawBodyHtml, headings);
   const faqItems = extractFaqItems(bodyHtml);

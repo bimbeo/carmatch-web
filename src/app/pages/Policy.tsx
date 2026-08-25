@@ -30,10 +30,10 @@ const sections = [
     ],
   },
   {
-    title: 'Bảo hiểm',
+    title: 'Trách nhiệm & xử lý sự cố',
     items: [
-      'Điều kiện bảo hiểm và trách nhiệm sử dụng xe được ghi nhận trong hợp đồng/bàn giao',
-      'Khách nên xác nhận phạm vi bảo hiểm, mức khấu trừ nếu có và quy trình xử lý sự cố trước khi nhận xe',
+      'Trách nhiệm sử dụng xe và quy trình bàn giao được ghi nhận trước khi nhận xe',
+      'Khi có sự cố, khách cần ưu tiên an toàn và liên hệ ngay Car Match để được hướng dẫn',
       'Thiệt hại phát sinh trong thời gian thuê được đối soát theo biên bản bàn giao và thỏa thuận thuê xe',
     ],
   },
@@ -59,7 +59,7 @@ const sections = [
 export default function Policy() {
   useSEO({
     title: 'Chính sách thuê xe — Car Match',
-    description: 'Chính sách hủy, phụ phí, giấy tờ, bảo hiểm và quy trình giao nhận xe tại Car Match.',
+    description: 'Chính sách hủy, phụ phí, giấy tờ và quy trình giao nhận xe tại Car Match.',
     canonical: 'https://www.carmatch.vn/chinh-sach',
   });
 

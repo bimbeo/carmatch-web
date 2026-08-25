@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { applyCors, isPreflightAllowed, rateLimit } from './_security.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const CUSTOMER_ACCOUNT_ACTIONS = new Set(['customer', 'bookings', 'docs', 'rewards', 'submit-document']);
+const CUSTOMER_DOC_TYPES = new Set(['gplx', 'cccd_front', 'cccd_back', 'other']);
 
 const TIER_DISCOUNTS_FALLBACK = {
   vip: Number(process.env.VIP_DISCOUNT_AMOUNT || 100000),
@@ -13,6 +17,146 @@ function generateCode(prefix = 'PTS') {
   let code = prefix + '-';
   for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
+}
+
+function normalizePhone(raw = '') {
+  const digits = String(raw).replace(/\D/g, '');
+  if (digits.startsWith('84') && digits.length === 11) return `0${digits.slice(2)}`;
+  return digits;
+}
+
+function createServiceClient() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+function bearerToken(req) {
+  const header = String(req.headers.authorization || '');
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] || '';
+}
+
+function hasAnyPermission(keys = [], allowed = []) {
+  return allowed.some((key) => keys.includes(key));
+}
+
+async function getUserFromRequest(supabase, req) {
+  const token = bearerToken(req);
+  if (!token) return { error: 'Bạn cần đăng nhập lại', status: 401 };
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) return { error: 'Phiên đăng nhập đã hết hạn', status: 401 };
+  return { user: data.user };
+}
+
+async function canAccessPhone(supabase, user, phone) {
+  const normalizedPhone = normalizePhone(phone);
+  const linkedPhone = normalizePhone(user.app_metadata?.customer_phone);
+  if (normalizedPhone && linkedPhone && normalizedPhone === linkedPhone) return true;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role === 'admin' || profile?.role === 'manager') return true;
+
+  const { data: permissions } = await supabase
+    .from('user_permissions')
+    .select('permission_keys')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  return hasAnyPermission(permissions?.permission_keys || [], [
+    'page.crm-dashboard',
+    'page.account-management',
+  ]);
+}
+
+async function callRpc(supabase, name, params) {
+  const { data, error } = await supabase.rpc(name, params);
+  if (error) {
+    console.error(`[customer-discount:${name}]`, error.message);
+    throw new Error('Chưa tải được dữ liệu tài khoản');
+  }
+  return data;
+}
+
+function validateDocumentPayload(body, userId) {
+  const fileUrl = String(body.file_url || '');
+  const fileName = String(body.file_name || '');
+  const docType = String(body.doc_type || '');
+  const title = String(body.title || 'Giấy tờ');
+
+  if (!CUSTOMER_DOC_TYPES.has(docType)) return 'Loại giấy tờ không hợp lệ';
+  if (!fileUrl || !fileUrl.startsWith(`${userId}/`) || fileUrl.includes('..')) {
+    return 'Đường dẫn giấy tờ không hợp lệ';
+  }
+  if (fileUrl.length > 500 || fileName.length > 255 || title.length > 255) {
+    return 'Thông tin giấy tờ quá dài';
+  }
+  return '';
+}
+
+async function handleCustomerAccountAction(req, res, action) {
+  const supabase = createServiceClient();
+  if (!supabase) return res.status(500).json({ error: 'Service unavailable' });
+
+  const authResult = await getUserFromRequest(supabase, req);
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+
+  const body = req.body || {};
+  const phone = normalizePhone(body.phone || '');
+  if (!phone || phone.length < 9) return res.status(400).json({ error: 'Thiếu số điện thoại hợp lệ' });
+
+  const allowed = await canAccessPhone(supabase, authResult.user, phone);
+  if (!allowed) return res.status(403).json({ error: 'Bạn không có quyền xem số điện thoại này' });
+
+  try {
+    if (action === 'customer') {
+      const rows = await callRpc(supabase, 'get_customer_by_phone', { p_phone: phone });
+      return res.status(200).json({ customer: rows?.[0] || null });
+    }
+
+    if (action === 'bookings') {
+      const [bookings, webLeads] = await Promise.all([
+        callRpc(supabase, 'get_customer_bookings_by_phone', { p_phone: phone }),
+        callRpc(supabase, 'get_my_website_leads', { p_phone: phone }),
+      ]);
+      return res.status(200).json({ bookings: bookings || [], web_leads: webLeads || [] });
+    }
+
+    if (action === 'docs') {
+      const docs = await callRpc(supabase, 'get_customer_docs_by_phone', { p_phone: phone });
+      return res.status(200).json({ docs: docs || [] });
+    }
+
+    if (action === 'rewards') {
+      const rewards = await callRpc(supabase, 'get_my_referral_rewards', { p_phone: phone });
+      return res.status(200).json({ rewards: rewards || [] });
+    }
+
+    if (action === 'submit-document') {
+      const validationError = validateDocumentPayload(body, authResult.user.id);
+      if (validationError) return res.status(400).json({ error: validationError });
+
+      const docId = await callRpc(supabase, 'submit_customer_document', {
+        p_phone: phone,
+        p_file_url: String(body.file_url),
+        p_file_name: String(body.file_name || ''),
+        p_doc_type: String(body.doc_type),
+        p_title: String(body.title || 'Giấy tờ'),
+      });
+      return res.status(200).json({ doc_id: docId });
+    }
+
+    return res.status(400).json({ error: 'Action không hợp lệ' });
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Lỗi hệ thống' });
+  }
 }
 
 async function handleRedeemReferral(req, res) {
@@ -195,20 +339,31 @@ async function handleRedeem(req, res) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res, { methods: 'GET,POST,OPTIONS' });
   res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') return isPreflightAllowed(req) ? res.status(204).end() : res.status(403).end();
 
   if (req.method === 'POST') {
     const action = (req.body || {}).action;
+    if (CUSTOMER_ACCOUNT_ACTIONS.has(action)) {
+      const tokenKey = bearerToken(req).slice(-24) || undefined;
+      if (!rateLimit(req, res, {
+        id: 'customer-discount:account',
+        windowMs: 10 * 60_000,
+        max: 80,
+        key: tokenKey,
+      })) return;
+      return handleCustomerAccountAction(req, res, action);
+    }
+
+    if (!rateLimit(req, res, { id: 'customer-discount:post', windowMs: 30 * 60_000, max: 6 })) return;
     if (action === 'redeem-referral') return handleRedeemReferral(req, res);
     return handleRedeem(req, res);
   }
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (!rateLimit(req, res, { id: 'customer-discount:get', windowMs: 10 * 60_000, max: 40 })) return;
 
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Service unavailable' });
 

@@ -7,6 +7,11 @@ import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackVehicleClick, trackZaloClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
+import {
+  calculateRentalBillingDays,
+  DEFAULT_PICKUP_HOUR,
+  DEFAULT_RETURN_HOUR,
+} from '@/lib/rentalDuration';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
@@ -51,17 +56,23 @@ function createQuickSearchHref({
   fuel,
   from,
   to,
+  pickupHour,
+  returnHour,
 }: {
   seats: string;
   fuel: string;
   from: string;
   to: string;
+  pickupHour: number;
+  returnHour: number;
 }) {
   const params = new URLSearchParams();
   if (seats) params.set('seatFilter', seats);
   if (fuel) params.set('fuelFilter', fuel);
   if (from) params.set('from', from);
   if (to) params.set('to', to);
+  params.set('pickupHour', String(pickupHour));
+  params.set('returnHour', String(returnHour));
   const query = params.toString();
   return query ? `/xe?${query}` : '/xe';
 }
@@ -243,8 +254,8 @@ export default function Home() {
   const [quickFuel, setQuickFuel] = useState('');
   const [quickFromDate, setQuickFromDate] = useState('');
   const [quickToDate, setQuickToDate] = useState('');
-  const [quickFromTime, setQuickFromTime] = useState('08:00');
-  const [quickToTime, setQuickToTime] = useState('20:00');
+  const [quickFromTime, setQuickFromTime] = useState(`${String(DEFAULT_PICKUP_HOUR).padStart(2, '0')}:00`);
+  const [quickToTime, setQuickToTime] = useState(`${String(DEFAULT_RETURN_HOUR).padStart(2, '0')}:00`);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonthOffset, setCalMonthOffset] = useState(0);
   const [pickStep, setPickStep] = useState<'from' | 'to'>('from');
@@ -296,12 +307,17 @@ export default function Home() {
   const allCarsPreview = cars.slice(0, 6);
   const totalCars = Math.max(cars.length, totalVehicleHint ?? 0);
 
-  const rentalDays = useMemo(() => {
-    const f = parseDateStr(quickFromDate);
-    const t = parseDateStr(quickToDate);
-    if (!f || !t) return 1;
-    return Math.max(1, Math.round((t.getTime() - f.getTime()) / 86400000));
-  }, [quickFromDate, quickToDate]);
+  const quickPickupHour = Number(quickFromTime.slice(0, 2));
+  const quickReturnHour = Number(quickToTime.slice(0, 2));
+  const rentalDays = useMemo(
+    () => Math.max(1, Math.ceil(calculateRentalBillingDays(
+      quickFromDate,
+      quickPickupHour,
+      quickToDate,
+      quickReturnHour,
+    ))),
+    [quickFromDate, quickPickupHour, quickReturnHour, quickToDate],
+  );
 
   const hasQuickDateRange = Boolean(quickFromDate && quickToDate);
   const resolveQuickDateRange = () => {
@@ -423,6 +439,8 @@ export default function Home() {
       fuel: quickFuel,
       from: dates.from,
       to: dates.to,
+      pickupHour: quickPickupHour,
+      returnHour: quickReturnHour,
     });
     trackCtaClick('home_quick_search_submit', {
       target_path: targetPath,
@@ -861,6 +879,8 @@ export default function Home() {
                       fuel: quickFuel,
                       from: dates.from,
                       to: dates.to,
+                      pickupHour: quickPickupHour,
+                      returnHour: quickReturnHour,
                     });
                     setShowCalendar(false);
                     trackCtaClick('home_calendar_confirm', { target_path: targetPath });
@@ -1542,7 +1562,7 @@ export default function Home() {
                 {[
                   'Ước tính doanh thu theo mẫu xe và lịch khai thác',
                   'Car Match hỗ trợ điều phối vận hành theo hợp đồng',
-                  'Điều kiện bảo hiểm và bảo dưỡng được thống nhất trước',
+                  'Điều kiện vận hành và bảo dưỡng được thống nhất trước',
                   'Báo cáo doanh thu minh bạch theo kỳ đối soát',
                   'Thời hạn hợp tác và điều kiện rút xe ghi rõ trong hợp đồng',
                 ].map((item) => (

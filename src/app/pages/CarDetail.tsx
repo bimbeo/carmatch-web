@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
@@ -11,7 +11,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
-import BookingWidget from '../components/BookingWidget';
+import BookingWidget, { type BookingAvailabilityStatus } from '../components/BookingWidget';
 import CarReviews from '../components/CarReviews';
 import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick } from '@/lib/analytics';
@@ -53,6 +53,24 @@ const RENTAL_RETURN_POLICY = {
   returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
 };
 
+const DEFAULT_BOOKING_AVAILABILITY_STATUS: BookingAvailabilityStatus = {
+  isLoading: true,
+  hasBlockedRanges: false,
+  selectedRangeHasHardConflict: false,
+  selectedRangeHasBoundaryConflict: false,
+  requiresConfirmation: false,
+  firstHardConflict: null,
+};
+
+function formatBlockedRange(range: BookingAvailabilityStatus['firstHardConflict']): string | null {
+  if (!range) return null;
+  const short = (dateStr: string) => {
+    const [, month, day] = dateStr.split('-');
+    return `${Number(day)}/${Number(month)}`;
+  };
+  return `${short(range.from)} - ${short(range.to)}`;
+}
+
 /* ─── Image Gallery ─── */
 function Gallery({ images, name }: { images: string[]; name: string }) {
   const [active, setActive] = useState(0);
@@ -63,14 +81,79 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
   const prev = () => setActive((i) => (i - 1 + images.length) % images.length);
   const next = () => setActive((i) => (i + 1) % images.length);
 
+  useEffect(() => {
+    if (!lightbox) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLightbox(false);
+      if (event.key === 'ArrowLeft') setActive((index) => (index - 1 + images.length) % images.length);
+      if (event.key === 'ArrowRight') setActive((index) => (index + 1) % images.length);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length, lightbox]);
+
   return (
     <>
-      <div className="space-y-3">
+      <div className="relative hidden h-[540px] grid-cols-[1.6fr_1fr] grid-rows-2 gap-3 overflow-hidden rounded-2xl lg:grid">
+        <button
+          type="button"
+          onClick={() => { setActive(0); setLightbox(true); }}
+          className="group row-span-2 overflow-hidden bg-slate-100 text-left"
+          aria-label={`Xem ảnh chính của ${name}`}
+        >
+          <img
+            src={optimizedImageUrl(images[0], 1280, 70)}
+            srcSet={optimizedImageSrcSet(images[0], [720, 960, 1280, 1600], 70)}
+            sizes="55vw"
+            alt={`${name} - ảnh 1`}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            width={1280}
+            height={960}
+            loading="eager"
+            decoding="async"
+          />
+        </button>
+        {[1, 2].map((index) => images[index] ? (
+          <button
+            key={images[index]}
+            type="button"
+            onClick={() => { setActive(index); setLightbox(true); }}
+            className="group overflow-hidden bg-slate-100 text-left"
+            aria-label={`Xem ảnh ${index + 1} của ${name}`}
+          >
+            <img
+              src={optimizedImageUrl(images[index], 720, 66)}
+              srcSet={optimizedImageSrcSet(images[index], [480, 720, 960], 66)}
+              sizes="35vw"
+              alt={`${name} - ảnh ${index + 1}`}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              width={720}
+              height={540}
+              loading="lazy"
+              decoding="async"
+            />
+          </button>
+        ) : <div key={index} className="bg-slate-100" />)}
+        <button
+          type="button"
+          onClick={() => setLightbox(true)}
+          className="absolute bottom-4 right-4 rounded-xl border border-white/60 bg-white/95 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-lg backdrop-blur transition-colors hover:bg-white"
+        >
+          Xem tất cả {images.length} ảnh
+        </button>
+      </div>
+
+      <div className="space-y-3 lg:hidden">
         {/* Main image */}
         <div
           className="relative rounded-2xl overflow-hidden bg-slate-100 group cursor-zoom-in aspect-[4/3]"
-          onClick={() => setLightbox(true)}
         >
+          <button
+            type="button"
+            onClick={() => setLightbox(true)}
+            className="absolute inset-0 z-10"
+            aria-label={`Mở thư viện ảnh của ${name}`}
+          />
           <img
             key={`bg-${active}`}
             src={optimizedImageUrl(activeImage, 720, 45)}
@@ -99,14 +182,18 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
           {multi && (
             <>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); prev(); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
+                aria-label="Xem ảnh trước"
+                className="absolute left-3 top-1/2 z-20 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); next(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
+                aria-label="Xem ảnh tiếp theo"
+                className="absolute right-3 top-1/2 z-20 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -126,7 +213,9 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
             {images.map((img, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => setActive(i)}
+                aria-label={`Xem ảnh ${i + 1} của ${name}`}
                 className={`flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
                   i === active
                     ? 'border-brand-600 ring-2 ring-brand-100 opacity-100 scale-105'
@@ -156,23 +245,32 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setLightbox(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Thư viện ảnh ${name}`}
         >
           <button
+            type="button"
             className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center text-xl font-bold"
             onClick={() => setLightbox(false)}
+            aria-label="Đóng thư viện ảnh"
           >
             ✕
           </button>
           {multi && (
             <>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); prev(); }}
+                aria-label="Xem ảnh trước"
                 className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); next(); }}
+                aria-label="Xem ảnh tiếp theo"
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -216,7 +314,7 @@ function SpecChip({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 function vehicleSeoDescription(car: Car): string {
-  return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc/bảo hiểm và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
+  return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
 }
 
 function PromoBanner({ promos, loading }: { promos: { code: string; description: string }[]; loading: boolean }) {
@@ -260,11 +358,13 @@ function VehicleBookingPanel({
   relatedCars,
   activePromoCodes,
   promoLoading,
+  onAvailabilityStatusChange,
 }: {
   car: Car;
   relatedCars: Car[];
   activePromoCodes: { code: string; description: string }[];
   promoLoading: boolean;
+  onAvailabilityStatusChange: (status: BookingAvailabilityStatus) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -280,6 +380,7 @@ function VehicleBookingPanel({
         kmPerDay={car.kmPerDay}
         kmSurcharge={car.kmSurcharge}
         relatedCars={relatedCars.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
+        onAvailabilityStatusChange={onAvailabilityStatusChange}
       />
     </div>
   );
@@ -289,7 +390,7 @@ function VehicleSeoSummary({ car }: { car: Car }) {
   const costNotes = [
     `${car.kmPerDay} km/ngày đã gồm trong giá`,
     `Vượt km: ${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km`,
-    'Cọc, bảo hiểm và lịch giao nhận xác nhận trước khi nhận tiền',
+    'Cọc và lịch giao nhận xác nhận trước khi nhận tiền',
   ];
 
   return (
@@ -331,11 +432,41 @@ export default function CarDetail() {
     });
     return () => cancelAnimationFrame(raf);
   }, [hash, car]);
+
   const canonicalSlug = car && slug && (car.slug === slug || car.slugAliases?.includes(slug)) ? slug : car?.slug;
   const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
   const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
   const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
   const [promoLoading, setPromoLoading] = useState(false);
+  const [bookingAvailabilityStatus, setBookingAvailabilityStatus] = useState<BookingAvailabilityStatus>(
+    DEFAULT_BOOKING_AVAILABILITY_STATUS,
+  );
+
+  useEffect(() => {
+    setBookingAvailabilityStatus(DEFAULT_BOOKING_AVAILABILITY_STATUS);
+  }, [car?.id]);
+
+  const handleAvailabilityStatusChange = useCallback((next: BookingAvailabilityStatus) => {
+    setBookingAvailabilityStatus((prev) => {
+      const sameFirstConflict =
+        prev.firstHardConflict?.from === next.firstHardConflict?.from &&
+        prev.firstHardConflict?.to === next.firstHardConflict?.to &&
+        prev.firstHardConflict?.type === next.firstHardConflict?.type;
+
+      if (
+        prev.isLoading === next.isLoading &&
+        prev.hasBlockedRanges === next.hasBlockedRanges &&
+        prev.selectedRangeHasHardConflict === next.selectedRangeHasHardConflict &&
+        prev.selectedRangeHasBoundaryConflict === next.selectedRangeHasBoundaryConflict &&
+        prev.requiresConfirmation === next.requiresConfirmation &&
+        sameFirstConflict
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, []);
   const detailUrl = car ? `${SITE_URL}/xe/${canonicalSlug || car.slug}` : 'https://www.carmatch.vn/xe';
   const seoDescription = car ? vehicleSeoDescription(car) : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.';
 
@@ -502,6 +633,64 @@ export default function CarDetail() {
     'Đặt cọc giữ xe, nhận hợp đồng/điều kiện',
     'Bàn giao xe, chụp hiện trạng và bắt đầu chuyến đi',
   ];
+  const hardConflictRange = formatBlockedRange(bookingAvailabilityStatus.firstHardConflict);
+  const availabilityBadgeMeta = !car.available
+    ? {
+        label: 'Tạm ngừng cho thuê',
+        className: 'bg-slate-100 text-slate-600 border-slate-200',
+        dotClassName: 'bg-slate-400',
+        notice: 'Xe này đang tạm ngừng nhận lịch mới. Bạn có thể chọn xe tương tự hoặc nhắn Zalo để được hỗ trợ.',
+        noticeClassName: 'border-slate-200 bg-slate-50 text-slate-600',
+      }
+    : bookingAvailabilityStatus.selectedRangeHasHardConflict
+      ? {
+          label: 'Bận trong ngày đã chọn',
+          className: 'bg-red-50 text-red-700 border-red-200',
+          dotClassName: 'bg-red-500',
+          notice: hardConflictRange
+            ? `Xe đang có lịch ${hardConflictRange}. Vui lòng đổi ngày hoặc xem xe tương tự ở khung đặt lịch.`
+            : 'Xe đang bận trong khoảng ngày đang chọn. Vui lòng đổi ngày hoặc xem xe tương tự ở khung đặt lịch.',
+          noticeClassName: 'border-red-200 bg-red-50 text-red-700',
+        }
+      : bookingAvailabilityStatus.selectedRangeHasBoundaryConflict
+        ? {
+            label: 'Cần xác nhận giờ',
+            className: 'bg-amber-50 text-amber-800 border-amber-200',
+            dotClassName: 'bg-amber-500',
+            notice: '',
+            noticeClassName: '',
+          }
+        : bookingAvailabilityStatus.isLoading
+          ? {
+              label: 'Đang kiểm tra lịch',
+              className: 'bg-slate-50 text-slate-600 border-slate-200',
+              dotClassName: 'bg-slate-400 animate-pulse',
+              notice: '',
+              noticeClassName: '',
+            }
+          : bookingAvailabilityStatus.hasBlockedRanges
+            ? {
+                label: 'Có lịch bận, chọn ngày để kiểm tra',
+                className: 'bg-amber-50 text-amber-800 border-amber-200',
+                dotClassName: 'bg-amber-500',
+                notice: '',
+                noticeClassName: '',
+              }
+            : bookingAvailabilityStatus.requiresConfirmation
+              ? {
+                  label: 'Cần xác nhận lịch',
+                  className: 'bg-amber-50 text-amber-800 border-amber-200',
+                  dotClassName: 'bg-amber-500',
+                  notice: 'Xe này cần xác nhận thêm với chủ xe. Car Match sẽ kiểm tra lại lịch trước khi giữ xe cho bạn.',
+                  noticeClassName: 'border-amber-200 bg-amber-50 text-amber-800',
+                }
+            : {
+                label: 'Có thể đặt, cần xác nhận lịch',
+                className: 'bg-green-50 text-green-700 border-green-200',
+                dotClassName: 'bg-green-500',
+                notice: '',
+                noticeClassName: '',
+              };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900" style={{ fontFamily: "'Be Vietnam Pro','Inter',sans-serif" }}>
@@ -527,12 +716,10 @@ export default function CarDetail() {
             {/* Title + badges */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                {car.available && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-bold">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                    Sẵn sàng cho thuê
-                  </span>
-                )}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 border rounded-full text-xs font-bold ${availabilityBadgeMeta.className}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${availabilityBadgeMeta.dotClassName}`} />
+                  {availabilityBadgeMeta.label}
+                </span>
                 {car.popular && (
                   <span className="px-2.5 py-1 bg-brand-600 text-white rounded-full text-xs font-bold">
                     Phổ biến
@@ -561,13 +748,20 @@ export default function CarDetail() {
                   Kiểm tra lịch qua Zalo
                 </div>
               </div>
+              {availabilityBadgeMeta.notice && (
+                <p className={`mt-3 rounded-xl border px-3 py-2 text-xs font-semibold leading-relaxed ${availabilityBadgeMeta.noticeClassName}`}>
+                  {availabilityBadgeMeta.notice}
+                </p>
+              )}
             </div>
 
             {/* Gallery */}
-            <Gallery images={car.images} name={car.name} />
+            <section id="photos" className="scroll-mt-32">
+              <Gallery images={car.images} name={car.name} />
+            </section>
 
             {/* Specs grid */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+            <div id="specs" className="scroll-mt-32 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <h2 className="text-base font-bold text-gray-900 mb-4">Thông số xe</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 <SpecChip
@@ -614,6 +808,7 @@ export default function CarDetail() {
                   relatedCars={displayRelated}
                   activePromoCodes={activePromoCodes}
                   promoLoading={promoLoading}
+                  onAvailabilityStatusChange={handleAvailabilityStatusChange}
                 />
               </div>
 
@@ -701,7 +896,7 @@ export default function CarDetail() {
             )}
 
             {/* Rental conditions */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+            <div id="conditions" className="scroll-mt-32 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <h2 className="text-base font-bold text-gray-900 mb-4">Điều kiện thuê xe</h2>
               <div className="space-y-3">
                 {car.conditions.map((condition) => (
@@ -713,13 +908,13 @@ export default function CarDetail() {
               </div>
             </div>
 
-            {/* Insurance callout */}
+            {/* Handover and safety callout */}
             <div className="overflow-hidden rounded-2xl bg-brand-900 text-white shadow-sm">
               <div className="border-b border-white/10 px-5 py-5">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-100/70">Bàn giao & an toàn</p>
                 <h2 className="mt-2 text-xl font-black">Kiểm tra xe cùng bạn trước khi chạy</h2>
                 <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-white/70">
-                  Trọng tâm của Car Match là giảm tranh chấp: tình trạng xe, nhiên liệu/pin, km, phụ kiện, cọc và bảo hiểm đều được xác nhận trước khi chốt lịch.
+                  Trọng tâm của Car Match là giảm tranh chấp: tình trạng xe, nhiên liệu/pin, km, phụ kiện, cọc và lịch giao nhận đều được xác nhận trước khi chốt.
                 </p>
               </div>
               <div className="grid gap-px bg-white/10 sm:grid-cols-3">
@@ -739,7 +934,9 @@ export default function CarDetail() {
               </div>
             </div>
 
-            <CarReviews carSlug={car.slug} />
+            <div id="reviews" className="scroll-mt-32">
+              <CarReviews carSlug={car.slug} />
+            </div>
 
             {/* Back button mobile */}
             <Link

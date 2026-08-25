@@ -106,6 +106,15 @@ type LoyaltyDiscount = {
   enabled: boolean
 }
 
+type AccountApiResponse = {
+  customer?: CustomerInfo | null
+  bookings?: Booking[]
+  web_leads?: WebLead[]
+  docs?: CustomerDoc[]
+  rewards?: ReferralReward[]
+  doc_id?: string
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
@@ -146,6 +155,7 @@ const DOC_LABELS: Record<string, string> = {
 }
 
 const TIER_LABEL: Record<string, { label: string; color: string }> = {
+  lead: { label: 'Khách mới', color: 'bg-slate-100 text-slate-600' },
   new: { label: 'Khách mới', color: 'bg-slate-100 text-slate-600' },
   regular: { label: 'Khách thân thiết', color: 'bg-blue-100 text-blue-700' },
   vip: { label: 'VIP', color: 'bg-amber-100 text-amber-700' },
@@ -165,6 +175,24 @@ const SIGNED_DOC_URL_TTL_SECONDS = 30 * 60
 const REVIEW_LABELS = ['', 'Rất tệ', 'Chưa tốt', 'Ổn', 'Tốt', 'Rất hài lòng']
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function callCustomerAccountApi<T extends AccountApiResponse>(
+  session: Session,
+  action: string,
+  payload: Record<string, unknown>,
+): Promise<T> {
+  const res = await fetch('/api/customer-discount', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ action, ...payload }),
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json.error || 'Chưa tải được dữ liệu tài khoản')
+  return json as T
+}
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -1078,28 +1106,28 @@ export default function Account() {
     loadBookings()
     loadDocs()
     if (!customerInfo) {
-      supabase.rpc('get_customer_by_phone', { p_phone: phone }).then(({ data }) => {
-        if (data && (data as CustomerInfo[]).length > 0) {
-          setCustomerInfo((data as CustomerInfo[])[0])
-        }
-      })
+      callCustomerAccountApi<{ customer: CustomerInfo | null }>(session, 'customer', { phone })
+        .then(({ customer }) => {
+          if (customer) setCustomerInfo(customer)
+        })
+        .catch((err) => console.error('[account] loadCustomer error:', err))
     }
   }, [session, phone])
 
   // ── Data loaders ─────────────────────────────────────────────────────────
 
   async function loadBookings() {
+    if (!session) return
     setLoadingBookings(true)
     setBookingsError('')
     try {
-      const [crmResult, webResult] = await Promise.all([
-        supabase.rpc('get_customer_bookings_by_phone', { p_phone: phone }),
-        supabase.rpc('get_my_website_leads', { p_phone: phone }),
-      ])
-      if (crmResult.error) throw crmResult.error
-      if (webResult.error) throw webResult.error
-      setBookings((crmResult.data as Booking[]) ?? [])
-      setWebLeads((webResult.data as WebLead[]) ?? [])
+      const data = await callCustomerAccountApi<{ bookings: Booking[]; web_leads: WebLead[] }>(
+        session,
+        'bookings',
+        { phone },
+      )
+      setBookings(data.bookings ?? [])
+      setWebLeads(data.web_leads ?? [])
     } catch (err) {
       console.error('[account] loadBookings error:', err)
       setBookingsError('Chưa tải được danh sách chuyến đi. Vui lòng thử lại.')
@@ -1109,12 +1137,12 @@ export default function Account() {
   }
 
   async function loadDocs() {
+    if (!session) return
     setLoadingDocs(true)
     setDocsError('')
     try {
-      const { data, error } = await supabase.rpc('get_customer_docs_by_phone', { p_phone: phone })
-      if (error) throw error
-      setDocs((data as CustomerDoc[]) ?? [])
+      const data = await callCustomerAccountApi<{ docs: CustomerDoc[] }>(session, 'docs', { phone })
+      setDocs(data.docs ?? [])
     } catch (err) {
       console.error('[account] loadDocs error:', err)
       setDocsError('Chưa tải được giấy tờ. Vui lòng thử lại.')
@@ -1124,18 +1152,18 @@ export default function Account() {
   }
 
   async function loadBenefits() {
+    if (!session) return
     setLoadingBenefits(true)
     setBenefitsError('')
     try {
       const [promosResult, rewardsResult, discountRes] = await Promise.all([
         supabase.rpc('get_active_promos'),
-        supabase.rpc('get_my_referral_rewards', { p_phone: phone }),
+        callCustomerAccountApi<{ rewards: ReferralReward[] }>(session, 'rewards', { phone }),
         phone ? fetch(`/api/customer-discount?phone=${encodeURIComponent(phone)}&include_referral_codes=1`) : Promise.resolve(null),
       ])
       if (promosResult.error) throw promosResult.error
-      if (rewardsResult.error) throw rewardsResult.error
       setPromos((promosResult.data as PromoCode[]) ?? [])
-      setReferralRewards((rewardsResult.data as ReferralReward[]) ?? [])
+      setReferralRewards(rewardsResult.rewards ?? [])
 
       if (discountRes?.ok) {
         const discountJson = await discountRes.json()
@@ -1244,8 +1272,8 @@ export default function Account() {
     const json = await res.json()
     if (!res.ok) throw new Error(json.error || 'Chưa liên kết được số điện thoại')
 
-    await supabase.auth.refreshSession()
-    return json as { phone: string; customer: CustomerInfo }
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    return { ...(json as { phone: string; customer: CustomerInfo; created?: boolean }), session: refreshed.session ?? null }
   }
 
   async function handleLinkPhone() {
@@ -1259,6 +1287,7 @@ export default function Account() {
 
     try {
       const linked = await linkPhoneOnServer(normalized)
+      if (linked.session) setSession(linked.session)
       setCustomerInfo(linked.customer)
       setPhone(linked.phone)
     } catch (error) {
@@ -1285,6 +1314,7 @@ export default function Account() {
 
     try {
       const linked = await linkPhoneOnServer(normalized)
+      if (linked.session) setSession(linked.session)
       setPhone(linked.phone)
       setCustomerInfo(linked.customer)
       setBookings([])
@@ -1325,15 +1355,13 @@ export default function Account() {
 
       if (uploadErr) throw uploadErr
 
-      const { error: rpcErr } = await supabase.rpc('submit_customer_document', {
-        p_phone: phone,
-        p_file_url: path,
-        p_file_name: file.name,
-        p_doc_type: docType,
-        p_title: DOC_LABELS[docType] ?? 'Giấy tờ',
+      await callCustomerAccountApi<{ doc_id: string }>(session, 'submit-document', {
+        phone,
+        file_url: path,
+        file_name: file.name,
+        doc_type: docType,
+        title: DOC_LABELS[docType] ?? 'Giấy tờ',
       })
-
-      if (rpcErr) throw rpcErr
       await loadDocs()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Lỗi upload'
@@ -1464,9 +1492,9 @@ export default function Account() {
               </div>
 
               <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.08] p-4">
-                <p className="text-sm font-semibold text-white">Dành cho khách đã từng đặt xe với Car Match</p>
+                <p className="text-sm font-semibold text-white">Dành cho khách mới và khách đã từng đặt xe</p>
                 <p className="mt-1 text-xs leading-5 text-slate-400">
-                  Sau khi đăng nhập, bạn chỉ cần liên kết số điện thoại từng đặt xe để hệ thống tự nhận lịch sử và hồ sơ.
+                  Sau khi đăng nhập, nhập số điện thoại để tạo hồ sơ mới hoặc tự đồng bộ lịch sử nếu bạn đã từng thuê xe.
                 </p>
               </div>
             </section>
@@ -1553,9 +1581,9 @@ export default function Account() {
 
                 <div className="mt-8 space-y-3">
                   {[
-                    { icon: <Phone className="h-4 w-4" />, text: 'Liên kết số từng đặt xe' },
-                    { icon: <History className="h-4 w-4" />, text: 'Tự nhận lịch sử chuyến đi' },
-                    { icon: <FileText className="h-4 w-4" />, text: 'Đồng bộ giấy tờ đã gửi' },
+                    { icon: <Phone className="h-4 w-4" />, text: 'Dùng số này cho đặt xe' },
+                    { icon: <History className="h-4 w-4" />, text: 'Tự nhận lịch sử nếu có' },
+                    { icon: <FileText className="h-4 w-4" />, text: 'Tạo hồ sơ mới nếu chưa thuê' },
                   ].map((item) => (
                     <div key={item.text} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm text-slate-200">
                       <span className="text-slate-400">{item.icon}</span>
@@ -1571,15 +1599,15 @@ export default function Account() {
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
                       <Phone className="h-5 w-5" />
                     </div>
-                    <h1 className="text-2xl font-black text-slate-950 sm:text-3xl">Liên kết số điện thoại</h1>
+                    <h1 className="text-2xl font-black text-slate-950 sm:text-3xl">Xác nhận số điện thoại</h1>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Nhập đúng số điện thoại bạn đã dùng khi đặt xe với Car Match. Hệ thống sẽ tìm hồ sơ khách hàng, chuyến đi và giấy tờ đã lưu.
+                      Nhập số bạn muốn dùng với Car Match. Nếu số này đã từng đặt xe, hệ thống sẽ tự nhận lịch sử; nếu chưa, Car Match sẽ mở hồ sơ mới để bạn đặt xe và lưu giấy tờ.
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
                     <label htmlFor="account-phone" className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-                      Số điện thoại đặt xe
+                      Số điện thoại của bạn
                     </label>
                     <input
                       id="account-phone"
@@ -1601,7 +1629,7 @@ export default function Account() {
                     disabled={linkingPhone || !phoneInput.trim()}
                     className="mt-4 flex h-14 w-full items-center justify-center rounded-2xl bg-brand-700 px-5 text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-brand-800 disabled:opacity-40"
                   >
-                    {linkingPhone ? 'Đang xác nhận...' : 'Xác nhận và mở tài khoản'}
+                    {linkingPhone ? 'Đang xác nhận...' : 'Tiếp tục với số này'}
                   </button>
 
                   <button
@@ -1614,7 +1642,7 @@ export default function Account() {
                   </button>
 
                   <p className="mt-5 text-xs leading-5 text-slate-400">
-                    Nếu bạn đổi số hoặc chưa tìm thấy hồ sơ, hãy nhắn Zalo để Car Match kiểm tra và liên kết thủ công.
+                    Bạn có thể dùng số mới ngay cả khi chưa từng đặt xe. Nếu cần gộp lịch sử từ số cũ, hãy nhắn Zalo để Car Match hỗ trợ.
                   </p>
                 </div>
               </section>

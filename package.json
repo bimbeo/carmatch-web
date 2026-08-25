@@ -9,7 +9,7 @@
     "build:geo": "npm run build && npm run geo:audit",
     "build:seo": "npm run build && npm run seo:audit",
     "seo:audit": "node scripts/audit-geo-foundation.mjs",
-    "seo:index-status": "node scripts/check-search-index.mjs",
+    "seo:index-status": "node --env-file-if-exists=.env.local scripts/check-search-index.mjs",
     "geo:audit": "node scripts/audit-geo-foundation.mjs",
     "geo:crawlers": "node scripts/classify-ai-crawlers.mjs",
     "preview": "vite preview"
@@ -55,9 +55,11 @@
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
+    "isomorphic-dompurify": "^3.18.0",
     "lucide-react": "0.487.0",
     "motion": "12.23.24",
     "next-themes": "0.4.6",
+    "parse5": "^8.0.1",
     "react": "18.3.1",
     "react-day-picker": "8.10.1",
     "react-dnd": "16.0.1",
@@ -67,7 +69,7 @@
     "react-popper": "2.3.0",
     "react-resizable-panels": "2.1.7",
     "react-responsive-masonry": "2.7.1",
-    "react-router": "7.13.0",
+    "react-router": "7.18.1",
     "react-slick": "0.31.0",
     "recharts": "2.15.2",
     "sonner": "2.0.3",
@@ -81,8 +83,9 @@
     "@types/react": "18.3.1",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.7.0",
+    "sharp": "0.35.3",
     "tailwindcss": "4.1.12",
     "typescript": "5.5.3",
-    "vite": "6.3.5"
+    "vite": "6.4.3"
   }
 }

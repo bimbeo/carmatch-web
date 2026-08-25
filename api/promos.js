@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import { applyCors, isPreflightAllowed, rateLimit } from './_security.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+const COMPANY_CODE = 'carmatch';
+const HOLIDAY_PRICING_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function formatVND(value) {
   return `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -13,12 +16,56 @@ function createSupabaseClient() {
   });
 }
 
+function normalizeHolidayDate(value) {
+  const date = String(value || '').trim();
+  return HOLIDAY_PRICING_DATE_PATTERN.test(date) ? date : '';
+}
+
+async function bookingRangeTouchesHoliday(supabase, pickupDateValue, returnDateValue) {
+  const pickupDate = normalizeHolidayDate(pickupDateValue);
+  const returnDate = normalizeHolidayDate(returnDateValue || pickupDateValue);
+  if (!pickupDate || !returnDate) return false;
+
+  const from = pickupDate <= returnDate ? pickupDate : returnDate;
+  const to = pickupDate <= returnDate ? returnDate : pickupDate;
+  const { data: company, error: companyError } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('code', COMPANY_CODE)
+    .maybeSingle();
+  if (companyError) throw companyError;
+  if (!company?.id) return false;
+
+  const { data, error } = await supabase
+    .from('holiday_pricing_rules')
+    .select('id')
+    .eq('company_id', company.id)
+    .eq('active', true)
+    .lte('start_date', to)
+    .gte('end_date', from)
+    .limit(1);
+  if (error) throw error;
+
+  return (data || []).length > 0;
+}
+
 async function listPromos(req, res) {
   const totalAmount = Number(req.query.total || 0);
 
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(200).json({ promos: [] });
 
   const supabase = createSupabaseClient();
+  let holidayPromoBlocked = false;
+  try {
+    holidayPromoBlocked = await bookingRangeTouchesHoliday(
+      supabase,
+      req.query.pickup_date,
+      req.query.return_date,
+    );
+  } catch (holidayError) {
+    console.error('[promos:list] Holiday lookup error:', holidayError.message);
+  }
+
   const { data, error } = await supabase
     .from('promo_codes')
     .select('code, description, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, secret_only')
@@ -36,7 +83,10 @@ async function listPromos(req, res) {
     let applicable = true;
     let reason = null;
 
-    if (p.expires_at && new Date(p.expires_at) < now) {
+    if (holidayPromoBlocked) {
+      applicable = false;
+      reason = 'Không áp dụng vào ngày lễ / cao điểm';
+    } else if (p.expires_at && new Date(p.expires_at) < now) {
       applicable = false;
       reason = 'Đã hết hạn';
     } else if (p.uses_limit !== null && p.uses_limit !== undefined && Number(p.uses_count || 0) >= Number(p.uses_limit)) {
@@ -91,16 +141,69 @@ async function listPromos(req, res) {
   return res.status(200).json({ promos });
 }
 
+async function listHolidayPricing(_req, res) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return res.status(200).json({ rules: [] });
+  }
+
+  try {
+    const supabase = createSupabaseClient();
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('code', COMPANY_CODE)
+      .single();
+    if (companyError) throw companyError;
+
+    let { data, error } = await supabase
+      .from('holiday_pricing_rules')
+      .select('id,name,start_date,end_date,adjustment_type,adjustment_value,booking_windows,note')
+      .eq('company_id', company.id)
+      .eq('active', true)
+      .order('start_date', { ascending: true });
+    if (error && /booking_windows|column/i.test(error.message || '')) {
+      ({ data, error } = await supabase
+        .from('holiday_pricing_rules')
+        .select('id,name,start_date,end_date,adjustment_type,adjustment_value,note')
+        .eq('company_id', company.id)
+        .eq('active', true)
+        .order('start_date', { ascending: true }));
+    }
+    if (error) throw error;
+
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30, stale-while-revalidate=120');
+    return res.status(200).json({
+      rules: (data || []).map((rule) => ({
+        ...rule,
+        adjustment_value: Number(rule.adjustment_value),
+        booking_windows: Array.isArray(rule.booking_windows) ? rule.booking_windows : [],
+      })),
+    });
+  } catch (error) {
+    console.error('[holiday-pricing]', error);
+    return res.status(200).json({ rules: [] });
+  }
+}
+
 async function validatePromo(req, res) {
   const code = String(req.query.code || '').trim().toUpperCase();
   const totalAmount = Number(req.query.total || 0);
   const customerPhone = String(req.query.phone || '').trim();
   const pickupDate = String(req.query.pickup_date || '').trim();
+  const returnDate = String(req.query.return_date || pickupDate).trim();
 
   if (!code) return res.status(400).json({ error: 'Mã không hợp lệ' });
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Service unavailable' });
 
   const supabase = createSupabaseClient();
+  try {
+    if (await bookingRangeTouchesHoliday(supabase, pickupDate, returnDate)) {
+      return res.status(400).json({ error: 'Mã giảm giá không áp dụng vào ngày lễ / cao điểm' });
+    }
+  } catch (holidayError) {
+    console.error('[promos:validate] Holiday lookup error:', holidayError.message);
+  }
+
   const { data, error } = await supabase
     .from('promo_codes')
     .select('code, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, first_time_only, weekends_only, phone_restriction')
@@ -211,15 +314,16 @@ async function validatePromo(req, res) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res, { methods: 'GET,OPTIONS' });
   res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') return isPreflightAllowed(req) ? res.status(204).end() : res.status(403).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const action = String(req.query.action || '').trim();
+  const maxRequests = action === 'validate' ? 40 : action === 'holiday-pricing' ? 120 : 80;
+  if (!rateLimit(req, res, { id: `promos:${action || 'unknown'}`, windowMs: 60_000, max: maxRequests })) return;
+  if (action === 'holiday-pricing') return listHolidayPricing(req, res);
   if (action === 'list') return listPromos(req, res);
   if (action === 'validate') return validatePromo(req, res);
 

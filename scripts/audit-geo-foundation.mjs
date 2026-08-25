@@ -16,6 +16,13 @@ const ignoredHtmlFiles = new Set([
   '404.html',
 ]);
 
+const expectedNoIndexRoutes = new Set([
+  '/admin',
+  '/chao-ban',
+  '/dat-xe',
+  '/tai-khoan',
+]);
+
 function fail(message, detail = {}) {
   return { level: 'error', message, ...detail };
 }
@@ -180,6 +187,9 @@ function auditHtml(filePath, html) {
   if (indexable && aiTokenCount <= 0) {
     issues.push(fail('Indexable page is missing ai:token-count meta', { routePath }));
   }
+  if (indexable && !extractMeta(html, 'robots').toLowerCase().includes('max-image-preview:large')) {
+    issues.push(fail('Indexable page is missing max-image-preview:large robots directive', { routePath }));
+  }
   if (indexable && aiTokenCount > 30000) {
     issues.push(warn('Indexable page exceeds preferred AI token budget', { routePath, aiTokenCount }));
   }
@@ -229,6 +239,22 @@ function auditHtml(filePath, html) {
   };
 }
 
+function auditExpectedNoIndexRoutes(pageAudits) {
+  const auditsByRoute = new Map(pageAudits.map((audit) => [audit.routePath, audit]));
+  const issues = [];
+
+  for (const routePath of expectedNoIndexRoutes) {
+    const audit = auditsByRoute.get(routePath);
+    if (!audit) {
+      issues.push(fail('Required noindex route is missing from prerendered output', { routePath }));
+    } else if (audit.indexable) {
+      issues.push(fail('Required noindex route is indexable in prerendered output', { routePath }));
+    }
+  }
+
+  return issues;
+}
+
 async function auditLlms() {
   const issues = [];
   const llmsTextPath = path.join(distDir, 'llms.txt');
@@ -251,6 +277,26 @@ async function auditLlms() {
     if (!llmsText.includes(url) && !llmsFullText.includes(url)) {
       issues.push(fail('Priority GEO page missing from llms outputs', { url }));
     }
+  }
+
+  return issues;
+}
+
+async function auditRss() {
+  const issues = [];
+  const rssPath = path.join(distDir, 'rss.xml');
+  const robotsPath = path.join(distDir, 'robots.txt');
+  const [rss, robots] = await Promise.all([
+    readFile(rssPath, 'utf8').catch(() => ''),
+    readFile(robotsPath, 'utf8').catch(() => ''),
+  ]);
+
+  if (!rss.includes('<rss version="2.0"')) issues.push(fail('rss.xml is missing an RSS 2.0 root'));
+  if (!rss.includes('<title>Car Match Blog</title>')) issues.push(fail('rss.xml is missing the Car Match Blog title'));
+  if (!rss.includes(`${siteUrl}/rss.xml`)) issues.push(fail('rss.xml is missing its canonical self link'));
+  if ((rss.match(/<item>/g) || []).length === 0) issues.push(fail('rss.xml has no published blog items'));
+  if (!robots.includes(`Sitemap: ${siteUrl}/rss.xml`)) {
+    issues.push(fail('robots.txt is missing the RSS discovery link'));
   }
 
   return issues;
@@ -300,7 +346,9 @@ async function main() {
 
   const allIssues = [
     ...pageAudits.flatMap((audit) => audit.issues),
+    ...auditExpectedNoIndexRoutes(pageAudits),
     ...await auditLlms(),
+    ...await auditRss(),
     ...auditKnowledgeBase(),
     ...auditAiCrawlerPatterns(),
   ];

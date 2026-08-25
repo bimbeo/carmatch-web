@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { Menu, X, UserCircle } from 'lucide-react';
 import { trackZaloClick } from '@/lib/analytics';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
-import AuthModal from './AuthModal';
+
+const AuthModal = lazy(() => import('./AuthModal'));
 
 // Read Supabase session from localStorage synchronously to avoid auth flash on hydration
 function getStoredSession(): Session | null {
@@ -51,9 +51,24 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => listener.subscription.unsubscribe();
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    void import('@/lib/supabase').then(({ supabase }) => {
+      if (!active) return;
+      void supabase.auth.getSession().then(({ data }) => {
+        if (active) setSession(data.session);
+      });
+      const { data: listener } = supabase.auth.onAuthStateChange((_e, nextSession) => {
+        if (active) setSession(nextSession);
+      });
+      unsubscribe = () => listener.subscription.unsubscribe();
+    });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, []);
 
   return (
@@ -222,7 +237,11 @@ export default function Navbar() {
       )}
 
       {/* Auth Modal */}
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {showAuthModal && (
+        <Suspense fallback={null}>
+          <AuthModal onClose={() => setShowAuthModal(false)} />
+        </Suspense>
+      )}
     </nav>
   );
 }

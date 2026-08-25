@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { sanitizeBlogHtml } from './sanitize.js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
@@ -28,7 +29,7 @@ function normalizeBrandText(value = '') {
 function normalizeCustomerText(value = '') {
   return normalizeBrandText(value)
     .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
-    .replace(/bảo hiểm đầy đủ/gi, 'điều kiện bảo hiểm được xác nhận trước')
+    .replace(/bảo\s*hiểm/gi, 'điều kiện bàn giao')
     .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
     .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
 }
@@ -62,7 +63,7 @@ function mapSupabasePost(row) {
     categories: row.category_slug ? [categoryLabel(row.category_slug)] : [],
     author: normalizeRequiredText(row.author, 'Car Match'),
     body: [],
-    bodyHtml: normalizeRequiredText(row.content_html),
+    bodyHtml: sanitizeBlogHtml(normalizeRequiredText(row.content_html)),
     seoTitle: normalizeOptionalText(row.seo_title),
     seoDescription: normalizeOptionalText(row.seo_description),
     canonicalUrl: row.canonical_url || undefined,

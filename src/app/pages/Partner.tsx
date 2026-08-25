@@ -32,7 +32,7 @@ const residentPerks = [
   {
     icon: Shield,
     title: 'Kiểm tra khách và xe',
-    desc: 'Car Match kiểm tra thông tin khách thuê, tình trạng xe và các điều kiện bảo hiểm/trách nhiệm trước khi vận hành.',
+    desc: 'Car Match kiểm tra thông tin khách thuê, tình trạng xe và các điều kiện bàn giao/trách nhiệm trước khi vận hành.',
   },
 ];
 
@@ -80,11 +80,11 @@ const form2Steps = [
 const faqs = [
   {
     q: 'Xe tôi phải đáp ứng tiêu chuẩn gì?',
-    a: 'Xe đời 2019 trở lên, đăng kiểm còn hạn, hồ sơ đầy đủ (đăng ký, bảo hiểm). Car Match sẽ kiểm định trước khi ký hợp đồng.',
+    a: 'Xe đời 2019 trở lên, đăng kiểm còn hạn và hồ sơ xe đầy đủ. Car Match sẽ kiểm định trước khi ký hợp đồng.',
   },
   {
     q: 'Nếu xe bị hỏng hoặc tai nạn thì sao?',
-    a: 'Car Match xác nhận điều kiện đặt cọc, bảo hiểm và trách nhiệm sử dụng trước khi đưa xe vào vận hành. Thiệt hại hoặc hao mòn được xử lý theo hợp đồng hợp tác và biên bản bàn giao thực tế.',
+    a: 'Car Match xác nhận điều kiện đặt cọc và trách nhiệm sử dụng trước khi đưa xe vào vận hành. Thiệt hại hoặc hao mòn được xử lý theo hợp đồng hợp tác và biên bản bàn giao thực tế.',
   },
   {
     q: 'Hình thức tháng trả bao nhiêu tiền?',
@@ -228,7 +228,7 @@ export default function Partner() {
               Xe bạn đang "ngủ" tốn tiền mỗi tháng
             </h2>
             <p className="text-brand-200 max-w-2xl mx-auto">
-              Phí gửi xe 800K–2 triệu/tháng. Bảo hiểm. Bảo dưỡng. Trong khi xe đỗ im 20–25 ngày/tháng.<br />
+              Phí gửi xe 800K–2 triệu/tháng. Bảo dưỡng. Trong khi xe đỗ im 20–25 ngày/tháng.<br />
               Hợp tác cùng Car Match để thẩm định khả năng khai thác xe theo lịch rảnh và khu vực đỗ.
             </p>
           </div>
@@ -248,7 +248,7 @@ export default function Partner() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               {[
                 { label: 'Xe Toyota Innova 2022', sub: '7 chỗ, số tự động', accent: false },
-                { label: 'Phí cố định', sub: 'Gửi xe, bảo dưỡng, bảo hiểm', accent: false },
+                { label: 'Phí cố định', sub: 'Gửi xe, bảo dưỡng', accent: false },
                 { label: 'Lịch rảnh', sub: 'Số ngày có thể khai thác', accent: true },
                 { label: 'Theo hợp đồng', sub: 'Doanh thu sau thẩm định', accent: true },
               ].map((item) => (

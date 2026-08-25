@@ -34,7 +34,7 @@
 - Mỗi xe có trang riêng: ảnh thực, reviews, specs chi tiết
 - Social proof cực mạnh: "4.8★ từ 12,450 đánh giá"
 - CTA duy nhất: "Book now" — không gây confusion
-- Trust: bảo hiểm rõ ràng, quy trình nhận xe chi tiết
+- Trust: quy trình nhận xe chi tiết, trách nhiệm rõ ràng
 
 ### International: Hertz (hertz.com)
 ✅ **Điểm học được:**
@@ -268,7 +268,7 @@ Tier 3 (informational, SEO blog):
 9. "Hà Nội đi Ninh Bình tự lái — gợi ý lộ trình 1 ngày"
 10. "Thuê xe tháng cho startup Hà Nội — giải pháp tiết kiệm 40%"
 11. "Toyota Innova vs VinFast VF6 — nên thuê xe nào?"
-12. "Bảo hiểm thuê xe — bạn cần biết những gì?"
+12. "Xử lý sự cố khi thuê xe — bạn cần biết những gì?"
 
 ---
 
@@ -406,7 +406,7 @@ Pricing (transparent):
   - 5 chỗ (VF6, Creta): từ 18.000.000đ/tháng
   - 7 chỗ (Innova): từ 20.000.000đ/tháng  
   - Premium (Carnival, VF8): liên hệ để báo giá
-  - *Đã bao gồm bảo hiểm, không bao gồm nhiên liệu
+  - *Điều kiện bàn giao được xác nhận trước, không bao gồm nhiên liệu
 
 Use cases:
   - Công ty cần xe cho nhân viên/ban lãnh đạo
