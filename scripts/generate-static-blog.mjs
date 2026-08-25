@@ -157,7 +157,8 @@ function mapSupabasePost(row) {
 
 async function fetchBlogPosts() {
   if (!supabase) {
-    throw new Error('Supabase blog source is not configured for static generation.');
+    console.warn('[generate-static-blog] Missing Supabase server credentials — using bundled static posts.');
+    return [];
   }
 
   const { data, error } = await supabase
