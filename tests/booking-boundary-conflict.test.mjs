@@ -5,9 +5,28 @@ import {
   BLOCKING_SCHEDULE_TYPES,
   buildVehicleReservationInsert,
   classifyScheduleConflicts,
+  getBookingPriceMismatches,
   isBoundaryScheduleConflict,
   scheduleEventCalendarRange,
 } from '../api/bookings.js';
+
+test('identifies the exact stale fields in a client price snapshot', () => {
+  const serverQuote = {
+    base_amount: 1_200_000,
+    holiday_surcharge: 0,
+    delivery_fee: 0,
+    loyalty_discount: 100_000,
+    promo_discount: 0,
+    total_amount: 1_100_000,
+  };
+
+  assert.deepEqual(getBookingPriceMismatches(serverQuote, serverQuote), []);
+  assert.deepEqual(getBookingPriceMismatches({
+    ...serverQuote,
+    loyalty_discount: 0,
+    total_amount: 1_200_000,
+  }, serverQuote), ['loyalty_discount', 'total_amount']);
+});
 
 test('lets Postgres generate the reservation rental period', () => {
   const payload = buildVehicleReservationInsert({

@@ -392,6 +392,28 @@ interface CalcResult {
   note?: string;
 }
 
+interface ServerPriceQuote {
+  base_amount: number;
+  holiday_surcharge: number;
+  delivery_fee: number;
+  loyalty_discount: number;
+  promo_discount: number;
+  total_amount: number;
+}
+
+function isServerPriceQuote(value: unknown): value is ServerPriceQuote {
+  if (!value || typeof value !== 'object') return false;
+  const quote = value as Record<string, unknown>;
+  return [
+    'base_amount',
+    'holiday_surcharge',
+    'delivery_fee',
+    'loyalty_discount',
+    'promo_discount',
+    'total_amount',
+  ].every((key) => Number.isFinite(Number(quote[key])) && Number(quote[key]) >= 0);
+}
+
 function calculateRental(
   pickupDateStr: string,
   pickupHour: number,
@@ -649,6 +671,7 @@ export default function BookingWidget({
   const [bookingError, setBookingError] = useState('');
   const [bookingRef, setBookingRef] = useState('');
   const [depositAmount, setDepositAmount] = useState(0);
+  const [serverPriceQuote, setServerPriceQuote] = useState<ServerPriceQuote | null>(null);
   const [bookingNeedsConfirmation, setBookingNeedsConfirmation] = useState(false);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
@@ -942,6 +965,21 @@ export default function BookingWidget({
   }, [rentalResult, holidayPricing.fees, deliveryMode, deliveryFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
 
   useEffect(() => {
+    setServerPriceQuote(null);
+  }, [
+    vehicleId,
+    pickupDate,
+    pickupHour,
+    returnDate,
+    returnHour,
+    deliveryMode,
+    customerPhone,
+    loyaltyDiscountAmount,
+    promoResult?.code,
+    promoResult?.discount_amount,
+  ]);
+
+  useEffect(() => {
     if (!holidayPromoBlocked) return;
     setPromoResult(null);
     setPromoError('');
@@ -1213,13 +1251,15 @@ export default function BookingWidget({
           : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
       }
       const idempotencyKey = bookingIdempotencyRef.current;
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify({
+      const clientQuote: ServerPriceQuote = serverPriceQuote ?? {
+        base_amount: rentalResult.valid ? rentalResult.total : 0,
+        holiday_surcharge: holidayPricing.total,
+        delivery_fee: deliveryFee,
+        loyalty_discount: loyaltyDiscountAmount,
+        promo_discount: promoForBooking?.discount_amount ?? 0,
+        total_amount: result.valid ? result.total : 0,
+      };
+      let bookingPayload = {
           idempotency_key: idempotencyKey,
           vehicle_id: vehicleId || null,
           car_slug: carSlug || null,
@@ -1235,23 +1275,50 @@ export default function BookingWidget({
           delivery_mode: deliveryMode,
           delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() : null,
           location_name: deliveryMode === 'self' ? loc?.name : deliveryAddress.trim() || 'Giao tận nơi',
-          base_amount: rentalResult.valid ? rentalResult.total : 0,
-          holiday_surcharge: holidayPricing.total,
+          base_amount: clientQuote.base_amount,
+          holiday_surcharge: clientQuote.holiday_surcharge,
           holiday_pricing: holidayPricing.applied,
-          delivery_fee: deliveryFee,
+          delivery_fee: clientQuote.delivery_fee,
           loyalty_tier: loyaltyDiscount?.tier ?? null,
-          loyalty_discount: loyaltyDiscountAmount,
+          loyalty_discount: clientQuote.loyalty_discount,
           promo_code: promoForBooking?.code ?? null,
-          promo_discount: promoForBooking?.discount_amount ?? 0,
-          total_amount: result.valid ? result.total : 0,
+          promo_discount: clientQuote.promo_discount,
+          total_amount: clientQuote.total_amount,
           requires_confirmation: needsManualConfirmation,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Lỗi tạo đơn');
+      };
+      let res: Response;
+      let data: Record<string, unknown>;
+      for (let attempt = 0; ; attempt += 1) {
+        res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          body: JSON.stringify(bookingPayload),
+        });
+        data = await res.json();
+        const refreshedQuote = data.code === 'PRICE_CHANGED' && isServerPriceQuote(data.quote)
+          ? data.quote
+          : null;
+        if (!res.ok && refreshedQuote) {
+          setServerPriceQuote(refreshedQuote);
+          // Safe automatic recovery: only retry when the authoritative server
+          // quote does not charge the customer more than the price just shown.
+          if (attempt === 0 && refreshedQuote.total_amount <= bookingPayload.total_amount) {
+            bookingPayload = { ...bookingPayload, ...refreshedQuote };
+            continue;
+          }
+          throw new Error(
+            `Báo giá mới nhất là ${fmtVND(refreshedQuote.total_amount)}. Vui lòng kiểm tra và bấm Tiếp tục lại.`,
+          );
+        }
+        break;
+      }
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Lỗi tạo đơn');
       const submittedNeedsConfirmation = data.requiresConfirmation === true || needsManualConfirmation;
-      setBookingRef(data.bookingRef);
-      setDepositAmount(data.depositAmount);
+      setBookingRef(String(data.bookingRef || ''));
+      setDepositAmount(Number(data.depositAmount) || 0);
       setBookingNeedsConfirmation(submittedNeedsConfirmation);
       setBookingStep(BANK_QR_ENABLED && data.paymentRequired !== false && !submittedNeedsConfirmation ? 2 : 3);
       trackBookingSubmit('success', {
@@ -1260,7 +1327,7 @@ export default function BookingWidget({
         booking_ref: data.bookingRef,
         rental_days: rentalDays,
         total_amount: result.valid ? result.total : 0,
-          deposit_amount: submittedNeedsConfirmation ? 0 : data.depositAmount,
+          deposit_amount: submittedNeedsConfirmation ? 0 : Number(data.depositAmount) || 0,
         delivery_mode: deliveryMode,
         promo_code: promoForBooking?.code ?? null,
       });
@@ -1327,7 +1394,7 @@ export default function BookingWidget({
   }
 
   const selectedLocationInfo = LOCATIONS.find(l => l.id === selectedLocation);
-  const finalTotal = result.valid ? result.total : 0;
+  const finalTotal = serverPriceQuote?.total_amount ?? (result.valid ? result.total : 0);
   const estimatedDepositAmount = finalTotal > 0
     ? Math.max(200_000, Math.round(finalTotal * 0.3 / 10_000) * 10_000)
     : 0;

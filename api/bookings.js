@@ -737,6 +737,12 @@ function requestDigest(body) {
   return createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
+export function getBookingPriceMismatches(clientQuote, serverQuote, tolerance = 1_000) {
+  return Object.keys(serverQuote).filter((key) => (
+    Math.abs(Number(clientQuote?.[key] || 0) - Number(serverQuote[key] || 0)) > tolerance
+  ));
+}
+
 async function getCompanyId(supabase) {
   const { data, error } = await supabase.from('companies').select('id').eq('code', COMPANY_CODE).single();
   if (error || !data?.id) throw error || new Error('Company not found');
@@ -1134,12 +1140,27 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: error.message || 'Mã giảm giá không hợp lệ' });
   }
   const totalAmount = Math.max(0, serverBaseAmount + holidaySurcharge + deliveryFee - loyaltyDiscount - promoDiscount);
-  if (Math.abs(Number(body.base_amount) - serverBaseAmount) > 1_000
-      || Math.abs(Number(body.delivery_fee) - deliveryFee) > 1_000
-      || Math.abs(Number(body.loyalty_discount || 0) - loyaltyDiscount) > 1_000
-      || Math.abs(Number(body.promo_discount || 0) - promoDiscount) > 1_000
-      || Math.abs(Number(body.total_amount) - totalAmount) > 1_000) {
-    return res.status(409).json({ error: 'Giá xe vừa thay đổi, vui lòng tải lại để nhận báo giá mới nhất' });
+  const serverQuote = {
+    base_amount: serverBaseAmount,
+    holiday_surcharge: holidaySurcharge,
+    delivery_fee: deliveryFee,
+    loyalty_discount: loyaltyDiscount,
+    promo_discount: promoDiscount,
+    total_amount: totalAmount,
+  };
+  const priceMismatches = getBookingPriceMismatches(body, serverQuote);
+  if (priceMismatches.length > 0) {
+    console.warn('[bookings] Price snapshot mismatch', {
+      vehicleId: vehicle.id,
+      fields: priceMismatches,
+      clientTotal: Number(body.total_amount) || 0,
+      serverTotal: totalAmount,
+    });
+    return res.status(409).json({
+      code: 'PRICE_CHANGED',
+      error: 'Giá xe vừa thay đổi, vui lòng kiểm tra báo giá mới nhất',
+      quote: serverQuote,
+    });
   }
 
   let requiresConfirmation = body.requires_confirmation === true;
