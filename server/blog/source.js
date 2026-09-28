@@ -23,7 +23,10 @@ function categoryLabel(slug = '') {
 function normalizeBrandText(value = '') {
   return String(value)
     .replace(/\bCarMatch\b/g, 'Car Match')
-    .replace(/\bCARMATCH\b/g, 'CAR MATCH');
+    .replace(/\bCARMATCH\b/g, 'CAR MATCH')
+    .replace(/\+84975563290/g, '+84971163290')
+    .replace(/0975 563 290/g, '0971 163 290')
+    .replace(/0975563290/g, '0971163290');
 }
 
 function normalizeCustomerText(value = '') {
@@ -71,9 +74,9 @@ function mapSupabasePost(row) {
     ctaTitle: normalizeOptionalText(row.cta_title),
     ctaDescription: normalizeOptionalText(row.cta_description),
     ctaPrimaryLabel: normalizeOptionalText(row.cta_primary_label),
-    ctaPrimaryUrl: row.cta_primary_url || undefined,
+    ctaPrimaryUrl: normalizeOptionalText(row.cta_primary_url),
     ctaZaloLabel: normalizeOptionalText(row.cta_zalo_label),
-    ctaZaloUrl: row.cta_zalo_url || undefined,
+    ctaZaloUrl: normalizeOptionalText(row.cta_zalo_url),
     relatedDestinationSlugs: row.related_destination_slugs || [],
     relatedVehicleLinks: normalizeRelatedVehicleLinks(row.related_vehicle_links),
     relatedPostSlugs: row.related_post_slugs || [],

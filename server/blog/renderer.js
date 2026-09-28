@@ -134,7 +134,10 @@ function escapeHtml(value = '') {
 function normalizeBrandText(value = '') {
   return String(value)
     .replace(/\bCarMatch\b/g, 'Car Match')
-    .replace(/\bCARMATCH\b/g, 'CAR MATCH');
+    .replace(/\bCARMATCH\b/g, 'CAR MATCH')
+    .replace(/\+84975563290/g, '+84971163290')
+    .replace(/0975 563 290/g, '0971 163 290')
+    .replace(/0975563290/g, '0971163290');
 }
 
 function normalizeCustomerText(value = '') {

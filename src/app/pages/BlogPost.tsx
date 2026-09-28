@@ -70,7 +70,10 @@ function slugify(value: string) {
 function normalizeBrandText(value = '') {
   return String(value)
     .replace(/\bCarMatch\b/g, 'Car Match')
-    .replace(/\bCARMATCH\b/g, 'CAR MATCH');
+    .replace(/\bCARMATCH\b/g, 'CAR MATCH')
+    .replace(/\+84975563290/g, '+84971163290')
+    .replace(/0975 563 290/g, '0971 163 290')
+    .replace(/0975563290/g, '0971163290');
 }
 
 function normalizeCustomerText(value = '') {
@@ -105,7 +108,9 @@ function normalizePost(post: Post): Post {
     ctaTitle: normalizeOptionalText(post.ctaTitle),
     ctaDescription: normalizeOptionalText(post.ctaDescription),
     ctaPrimaryLabel: normalizeOptionalText(post.ctaPrimaryLabel),
+    ctaPrimaryUrl: normalizeOptionalText(post.ctaPrimaryUrl),
     ctaZaloLabel: normalizeOptionalText(post.ctaZaloLabel),
+    ctaZaloUrl: normalizeOptionalText(post.ctaZaloUrl),
     relatedVehicleLinks: post.relatedVehicleLinks?.map((link) => ({
       ...link,
       label: normalizeCustomerText(link.label || ''),
