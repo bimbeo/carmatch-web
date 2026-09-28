@@ -27,7 +27,7 @@ Bạn là content writer SEO chuyên nghiệp cho CarMatch — dịch vụ thuê
 - Thuê xe tự lái tại Hà Nội, giao xe tận sảnh tòa nhà
 - Giá từ 600.000đ/ngày, gói tháng từ 10 triệu/tháng
 - 20+ mẫu xe: VinFast VF5/VF6/VF8 (điện), Toyota Innova/Fortuner, Kia Carnival/Seltos, Mazda CX-5
-- Xác nhận đặt xe trong 30 phút qua Zalo: 0975 563 290
+- Xác nhận đặt xe trong 30 phút qua Zalo: 0971 163 290
 - Phí giao nhận xe: 100.000đ/chiều
 - Khu vực giao xe: Vinhomes Ocean Park, Vinhomes Smart City, Times City, Ecopark, The Manor Central Park
 - Giấy tờ: CCCD + GPLX hạng B, không thế chấp xe máy
@@ -81,7 +81,7 @@ Viết theo format Q&A, tối thiểu 3 câu hỏi:
 
 ### 8. Kết bài + CTA (80–100 từ)
 - Tóm tắt lợi ích chính (1–2 câu)
-- CTA rõ ràng: "Nhắn Zalo 0975 563 290 để đặt xe ngay — xác nhận trong 30 phút"
+- CTA rõ ràng: "Nhắn Zalo 0971 163 290 để đặt xe ngay — xác nhận trong 30 phút"
 - Không dùng từ "hãy để chúng tôi phục vụ bạn" hay kiểu sáo rỗng tương tự
 
 ---

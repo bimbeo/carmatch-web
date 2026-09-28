@@ -1,8 +1,8 @@
 import { MessageCircle, Phone } from 'lucide-react';
 import { trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
-const PHONE_LINK = 'tel:0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
+const PHONE_LINK = 'tel:0971163290';
 
 interface MobileConversionBarProps {
   source: string;

@@ -6,9 +6,9 @@ import MobileConversionBar from '../components/MobileConversionBar';
 import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
-const PHONE_DISPLAY = '0975 563 290';
-const PHONE_LINK = 'tel:0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
+const PHONE_DISPLAY = '0971 163 290';
+const PHONE_LINK = 'tel:0971163290';
 const EMAIL = 'info@carmatch.vn';
 const MAP_LINK = 'https://www.google.com/maps/search/?api=1&query=Car%20Match%20The%20Manor%20Central%20Park%2038%20Sunrise%20H%20Ha%20Noi';
 
@@ -59,7 +59,7 @@ export default function Contact() {
   useSEO({
     title: 'Liên hệ thuê xe tự lái Hà Nội | Car Match',
     description:
-      'Liên hệ Car Match qua Zalo 0975 563 290, hotline hoặc email để kiểm tra xe trống, giá thuê, giấy tờ và lịch giao xe tận sảnh tại Hà Nội.',
+      'Liên hệ Car Match qua Zalo 0971 163 290, hotline hoặc email để kiểm tra xe trống, giá thuê, giấy tờ và lịch giao xe tận sảnh tại Hà Nội.',
     canonical: 'https://www.carmatch.vn/lien-he',
   });
 

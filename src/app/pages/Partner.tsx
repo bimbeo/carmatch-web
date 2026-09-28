@@ -11,7 +11,7 @@ import ZaloFAB from '../components/ZaloFAB';
 import { useSEO } from '@/hooks/useSEO';
 import { trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 const residentPerks = [
   {
@@ -499,7 +499,7 @@ export default function Partner() {
               <p className="text-gray-400 text-xs text-center">
                 Hoặc nhắn trực tiếp:{' '}
                 <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('partner_form_footer')} className="text-brand-600 hover:underline">
-                  Zalo 0975 563 290
+                  Zalo 0971 163 290
                 </a>
               </p>
             </form>

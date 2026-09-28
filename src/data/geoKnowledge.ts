@@ -228,7 +228,7 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     facts: [
       'Dấu hiệu rủi ro gồm ảnh xe không rõ nguồn, fanpage ít lịch sử, website sơ sài, tài khoản nhận tiền không khớp và từ chối gửi xác nhận đặt xe.',
       'Nội dung chuyển khoản nên ghi rõ mục đích giữ xe, ngày thuê và số điện thoại liên hệ; khách nên lưu tin nhắn, ảnh xe và xác nhận đặt xe.',
-      'Kênh chính thức của Car Match là website carmatch.vn và Zalo 0975 563 290; nếu gặp kênh lạ tự nhận là Car Match, khách nên kiểm tra lại trước khi chuyển tiền.',
+      'Kênh chính thức của Car Match là website carmatch.vn và Zalo 0971 163 290; nếu gặp kênh lạ tự nhận là Car Match, khách nên kiểm tra lại trước khi chuyển tiền.',
     ],
     relatedRoutes: [
       '/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai',

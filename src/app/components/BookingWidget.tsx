@@ -15,7 +15,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useIsMobile } from './ui/use-mobile';
 
-const ZALO_NUMBER = '0975563290';
+const ZALO_NUMBER = '0971163290';
 const ZALO_LINK = `https://zalo.me/${ZALO_NUMBER}`;
 const MAX_PAYMENT_PROOF_BYTES = 8 * 1024 * 1024;
 const PAYMENT_PROOF_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
@@ -1429,7 +1429,7 @@ export default function BookingWidget({
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
       `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: ${kmSurcharge.toLocaleString('vi-VN')}đ/km | 100.000đ/giờ`,
-      'Liên hệ: Car Match Vận Hành 0975563290',
+      'Liên hệ: Car Match Vận Hành 0971163290',
     ].filter(l => l !== null).join('\n');
     try {
       await navigator.clipboard.writeText(lines);
@@ -2841,7 +2841,7 @@ export default function BookingWidget({
 
                   <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
                     <p className="font-semibold text-slate-700">Liên hệ nhận xe & xử lý sự cố</p>
-                    <p className="text-slate-500">📞 Car Match Vận Hành: <span className="font-semibold text-slate-800">0975 563 290</span></p>
+                    <p className="text-slate-500">📞 Car Match Vận Hành: <span className="font-semibold text-slate-800">0971 163 290</span></p>
                     {selectedLocationInfo?.name && (
                       <p className="text-slate-500">📍 {selectedLocationInfo.name}</p>
                     )}
@@ -2901,7 +2901,7 @@ export default function BookingWidget({
                   const loc = deliveryMode === 'self'
                     ? (LOCATIONS.find(l => l.id === selectedLocation)?.name || '')
                     : (deliveryAddress || 'Giao tận nơi');
-                  const details = `Mã đặt xe: ${bookingRef}\nXe: ${carName}\nLiên hệ Car Match: 0975563290`;
+                  const details = `Mã đặt xe: ${bookingRef}\nXe: ${carName}\nLiên hệ Car Match: 0971163290`;
                   const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Nhận xe ${carName}`)}&dates=${fmt(pickupDate, pickupHour)}/${fmt(returnDate, returnHour)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(loc)}`;
                   return (
                     <div className="grid grid-cols-3 gap-2">

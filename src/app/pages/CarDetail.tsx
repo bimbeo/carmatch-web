@@ -17,7 +17,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick } from '@/lib/analytics';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
-const ZALO_NUMBER = '0975563290';
+const ZALO_NUMBER = '0971163290';
 const SITE_URL = 'https://www.carmatch.vn';
 const HANOI_DELIVERY_DETAILS = {
   '@type': 'OfferShippingDetails',
@@ -522,7 +522,7 @@ export default function CarDetail() {
           '@type': 'Organization',
           name: 'Car Match',
           url: SITE_URL,
-          telephone: '+84975563290',
+          telephone: '+84971163290',
         },
         additionalProperty: [
           { '@type': 'PropertyValue', name: 'Số chỗ', value: `${car.seats} chỗ` },

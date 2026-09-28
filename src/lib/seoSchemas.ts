@@ -30,11 +30,11 @@ const defaultConfig: SeoSchemaConfig = {
   logoUrl: 'https://www.carmatch.vn/brand/carmatch-lockup-navy.png',
   iconUrl: 'https://www.carmatch.vn/brand/carmatch-logo-stacked-navy.png',
   socialProfiles: [
-    'https://zalo.me/0975563290',
+    'https://zalo.me/0971163290',
     'https://www.facebook.com/carmatchvn',
     'https://www.instagram.com/carmatchvn/',
   ],
-  telephone: '+84975563290',
+  telephone: '+84971163290',
   email: 'info@carmatch.vn',
   address: {
     streetAddress: '38 Sunrise H, The Manor Central Park, Định Công',

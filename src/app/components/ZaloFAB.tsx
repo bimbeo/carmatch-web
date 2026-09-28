@@ -1,6 +1,6 @@
 import { trackZaloClick } from '@/lib/analytics';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 export default function ZaloFAB() {
   return (

@@ -12,7 +12,7 @@ import { trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 const residentBenefits = [
   { icon: TrendingDown, title: 'Rẻ hơn mua xe', desc: 'Không mất tiền mua, không lo khấu hao, không tốn phí đỗ xe hàng tháng.' },
@@ -310,7 +310,7 @@ export default function B2B() {
                 Điền form báo giá
                 <ArrowRight className="h-4 w-4" />
               </a>
-              <p className="text-gray-400 text-xs text-center mt-3">Hoặc nhắn Zalo 0975 563 290 nếu cần xe gấp.</p>
+              <p className="text-gray-400 text-xs text-center mt-3">Hoặc nhắn Zalo 0971 163 290 nếu cần xe gấp.</p>
             </div>
           </div>
         </div>
@@ -692,7 +692,7 @@ export default function B2B() {
               <p className="text-gray-400 text-xs text-center">
                 Hoặc liên hệ trực tiếp:{' '}
                 <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('b2b_form_footer')} className="text-brand-600 hover:underline">
-                  Zalo 0975 563 290
+                  Zalo 0971 163 290
                 </a>
               </p>
             </form>

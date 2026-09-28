@@ -23,7 +23,7 @@ function getStoredSession(): Session | null {
   }
 }
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 const navLinks = [
   { href: '/xe', label: 'Thuê xe tự lái' },

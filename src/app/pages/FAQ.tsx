@@ -14,7 +14,7 @@ const faqGroups = [
       },
       {
         q: 'Tôi có thể hủy và hoàn cọc không?',
-        a: 'Có thể hủy, nhưng điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Khách nên liên hệ hotline/Zalo 0975 563 290 để Car Match xác nhận điều kiện cụ thể trước khi hủy.',
+        a: 'Có thể hủy, nhưng điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Khách nên liên hệ hotline/Zalo 0971 163 290 để Car Match xác nhận điều kiện cụ thể trước khi hủy.',
       },
       {
         q: 'Có thể đặt xe vào buổi tối không?',
@@ -43,7 +43,7 @@ const faqGroups = [
       },
       {
         q: 'Xe bị hỏng giữa đường thì làm sao?',
-        a: 'Liên hệ ngay hotline/Zalo 0975 563 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo và phương án hỗ trợ phù hợp với tình huống thực tế.',
+        a: 'Liên hệ ngay hotline/Zalo 0971 163 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo và phương án hỗ trợ phù hợp với tình huống thực tế.',
       },
     ],
   },

@@ -520,7 +520,7 @@ function ReviewDialog({
 
 // ─── BookingCard ──────────────────────────────────────────────────────────────
 
-const ZALO_NUMBER = '0975563290'
+const ZALO_NUMBER = '0971163290'
 
 function BookingCard({ b, phone, customerName }: { b: Booking; phone: string; customerName?: string }) {
   const colorClass = STATUS_COLOR[b.status] ?? 'bg-slate-50 text-slate-500 border-slate-200'

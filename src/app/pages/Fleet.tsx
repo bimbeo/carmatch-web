@@ -13,8 +13,8 @@ import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 import { DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR } from '@/lib/rentalDuration';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
-const PHONE_LINK = 'tel:0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
+const PHONE_LINK = 'tel:0971163290';
 
 function buildZaloHref(message: string) {
   return `${ZALO_LINK}?text=${encodeURIComponent(message)}`;

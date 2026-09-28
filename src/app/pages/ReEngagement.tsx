@@ -23,7 +23,7 @@ import { trackCtaClick, trackZaloClick } from '@/lib/analytics';
 import { useSEO } from '@/hooks/useSEO';
 
 const PROMO_CODE = 'DATWEBNGAY';
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 const CAMPAIGN_PARAMS = `utm_source=customer_reactivation&utm_medium=landing&utm_campaign=dat_web_ngay&promo=${PROMO_CODE}`;
 const FLEET_URL = `/xe?${CAMPAIGN_PARAMS}`;
 const HERO_IMAGE = cars.find((car) => car.slug === 'vinfast-vf6')?.images[0] ?? cars[0]?.images[0];

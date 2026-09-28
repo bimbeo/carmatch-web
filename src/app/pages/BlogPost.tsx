@@ -566,8 +566,8 @@ export default function BlogPost() {
                       </a>
                     )}
                     <a
-                      href={post.ctaZaloUrl || 'https://zalo.me/0975563290'}
-                      onClick={() => trackBlogClick(post.slug.current, 'cta_zalo', post.ctaZaloUrl || 'https://zalo.me/0975563290')}
+                      href={post.ctaZaloUrl || 'https://zalo.me/0971163290'}
+                      onClick={() => trackBlogClick(post.slug.current, 'cta_zalo', post.ctaZaloUrl || 'https://zalo.me/0971163290')}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-brand-700 border border-brand-200 rounded-full font-bold hover:bg-brand-100 transition-colors"

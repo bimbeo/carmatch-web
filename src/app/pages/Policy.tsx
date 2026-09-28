@@ -7,7 +7,7 @@ const sections = [
     title: 'Chính sách hủy',
     items: [
       'Điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ',
-      'Khách cần báo hủy qua hotline/Zalo 0975 563 290 để Car Match xác nhận phương án xử lý',
+      'Khách cần báo hủy qua hotline/Zalo 0971 163 290 để Car Match xác nhận phương án xử lý',
       'Trường hợp hủy sát giờ nhận xe hoặc không đến nhận xe sẽ áp dụng theo thỏa thuận trong hợp đồng',
       'Sự cố bất khả kháng được hai bên đối soát và thỏa thuận theo tình huống thực tế',
     ],

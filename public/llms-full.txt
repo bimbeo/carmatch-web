@@ -7,7 +7,7 @@ File fallback này sẽ được thay bằng bản sinh tự động trong `dist
 - Brand: Car Match
 - Website: https://www.carmatch.vn/
 - Sitemap: https://www.carmatch.vn/sitemap.xml
-- Zalo/hotline: 0975 563 290
+- Zalo/hotline: 0971 163 290
 
 ## Priority Pages
 

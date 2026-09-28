@@ -2,10 +2,10 @@ import { Link } from 'react-router';
 import { Phone, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
 import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 const FACEBOOK_LINK = 'https://www.facebook.com/carmatchvn';
 const INSTAGRAM_LINK = 'https://www.instagram.com/carmatchvn/';
-const PHONE = '0975 563 290';
+const PHONE = '0971 163 290';
 
 export default function Footer() {
   return (

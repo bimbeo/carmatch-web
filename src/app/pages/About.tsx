@@ -16,7 +16,7 @@ import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
 import { useSEO } from '@/hooks/useSEO';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 const stats = [
   { value: '20+', label: 'Mẫu xe', detail: 'Xe 4-7 chỗ, xăng và điện' },

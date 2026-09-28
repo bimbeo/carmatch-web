@@ -578,7 +578,7 @@ async function getZaloAccessToken(supabase) {
 
 async function sendZNSAdmin({ accessToken, bookingRef, carName, customerName, customerPhone, pickupText, returnText, totalAmount, depositAmount }) {
   const templateId = process.env.ZALO_ADMIN_TEMPLATE_ID;
-  const adminPhone = '0975563290';
+  const adminPhone = '0971163290';
 
   if (!accessToken || !templateId) return;
 

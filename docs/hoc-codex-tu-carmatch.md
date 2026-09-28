@@ -448,7 +448,7 @@ Trong bài này, nút `Chi tiết` và `Đặt xe` thực ra là `Link`, không 
 `a` thường dùng để đi ra ngoài app, gọi điện, gửi email, mở Zalo:
 
 ```tsx
-<a href="tel:0975563290">Gọi</a>
+<a href="tel:0971163290">Gọi</a>
 ```
 
 Trong Car Match:

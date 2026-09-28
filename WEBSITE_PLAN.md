@@ -213,8 +213,8 @@ Luồng 3: SEO (organic search)
 - FAB: Floating action button bottom-right mọi trang
 ```
 
-### Zalo Link: `https://zalo.me/0975563290`
-### SĐT: `0975 563 290`
+### Zalo Link: `https://zalo.me/0971163290`
+### SĐT: `0971 163 290`
 
 ### Trust Signals phải có:
 1. Số chuyến đã phục vụ (VD: "500+ chuyến thành công")
@@ -354,7 +354,7 @@ import ZaloFAB from './components/ZaloFAB'
 - Mobile: icon Zalo + text "Chat ngay" 
 - Desktop: chỉ icon (nhỏ gọn)
 - Animation: subtle pulse / glow màu green
-- Link: https://zalo.me/0975563290
+- Link: https://zalo.me/0971163290
 - Thêm tracking nếu có Google Analytics
 ```
 
@@ -441,7 +441,7 @@ Contact Form:
 ```
 H1: "Thuê Xe Tự Lái Hà Nội"
 Sub: "20+ mẫu xe từ 800K/ngày • Giao xe tận nơi • Đặt qua Zalo nhanh 5 phút"
-CTA1: "Đặt xe qua Zalo" → https://zalo.me/0975563290
+CTA1: "Đặt xe qua Zalo" → https://zalo.me/0971163290
 CTA2: "Xem tất cả xe" → /xe
 ```
 
@@ -520,8 +520,8 @@ CTA: "Tìm hiểu gói thuê tháng →" → /thue-xe-thang
 
 ## 13. CHECKLIST TRƯỚC KHI LIVE
 
-- [ ] Zalo link đúng: `https://zalo.me/0975563290`
-- [ ] SĐT hiển thị: `0975 563 290`
+- [ ] Zalo link đúng: `https://zalo.me/0971163290`
+- [ ] SĐT hiển thị: `0971 163 290`
 - [ ] Địa chỉ văn phòng điền đúng (hiện đang trống)
 - [ ] Email liên hệ thực (thay `info@carmatch.vn` placeholder)
 - [ ] Ảnh xe: thay Unsplash bằng ảnh thực của CarMatch

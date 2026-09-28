@@ -315,7 +315,7 @@ export default function TravelAssistant({ pageType, destinationSlug, destination
           Mở Trip Finder
         </Link>
         <a
-          href="https://zalo.me/0975563290"
+          href="https://zalo.me/0971163290"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex flex-1 items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-black text-slate-900 transition hover:border-brand-200 hover:text-brand-700"

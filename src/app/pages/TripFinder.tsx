@@ -40,7 +40,7 @@ import { trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 const tripStyles = [
   { value: 'family', label: 'Gia đình' },
@@ -1141,7 +1141,7 @@ export default function TripFinder() {
             <p className="text-gray-600 leading-relaxed mb-4">
               Khoảng cách, phí đường, điểm dừng và lịch trình được dùng để bạn có khung ngân sách ban đầu. Car Match sẽ kiểm tra lại xe trống, giá thuê, phí giao nhận và điều kiện chuyến đi trước khi xác nhận.
             </p>
-            <a href="https://zalo.me/0975563290" onClick={() => trackZaloClick('trip_finder_check_availability', {
+            <a href="https://zalo.me/0971163290" onClick={() => trackZaloClick('trip_finder_check_availability', {
               destination: tripPlan.slug,
             })} className="inline-flex rounded-2xl bg-brand-600 px-4 py-3 text-sm font-bold text-white hover:bg-brand-700">
               Nhắn Zalo để kiểm tra xe trống

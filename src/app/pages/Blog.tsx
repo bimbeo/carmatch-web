@@ -53,7 +53,7 @@ const faqItems = [
   },
   {
     question: 'Chưa thấy bài viết mới thì có đặt xe được không?',
-    answer: 'Có. Khách vẫn có thể xem danh sách xe hoặc nhắn Zalo 0975 563 290 để Car Match kiểm tra lịch xe, tư vấn giấy tờ cần chuẩn bị và gợi ý mẫu xe theo lịch trình.',
+    answer: 'Có. Khách vẫn có thể xem danh sách xe hoặc nhắn Zalo 0971 163 290 để Car Match kiểm tra lịch xe, tư vấn giấy tờ cần chuẩn bị và gợi ý mẫu xe theo lịch trình.',
   },
   {
     question: 'Car Match có tư vấn lịch trình trước khi thuê xe không?',
@@ -265,7 +265,7 @@ export default function Blog() {
               <h2 className="text-2xl font-bold text-gray-900 mb-3">Nhắn Car Match kiểm tra xe</h2>
               <p className="text-sm leading-7 text-gray-600">Đội vận hành hỗ trợ 7h-22h, ưu tiên tư vấn theo lịch trình thực tế và khu vực nhận xe tại Hà Nội.</p>
               <div className="mt-5 flex flex-wrap gap-3">
-                <a href="https://zalo.me/0975563290" rel="me noopener noreferrer" className="rounded-full bg-brand-600 px-5 py-3 text-sm font-bold text-white hover:bg-brand-700">Nhắn Zalo</a>
+                <a href="https://zalo.me/0971163290" rel="me noopener noreferrer" className="rounded-full bg-brand-600 px-5 py-3 text-sm font-bold text-white hover:bg-brand-700">Nhắn Zalo</a>
                 <a href="/xe" className="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-800 hover:border-gray-300">Xem xe</a>
               </div>
             </aside>

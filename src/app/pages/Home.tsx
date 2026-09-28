@@ -18,7 +18,7 @@ import CarCard from '../components/CarCard';
 import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 // ── Date picker helpers ───────────────────────────────────────
 const DAY_NAMES = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -1582,7 +1582,7 @@ export default function Home() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a
-                  href="https://zalo.me/0975563290"
+                  href="https://zalo.me/0971163290"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-white/20 text-white font-semibold rounded-full hover:bg-white/10 transition-colors"
@@ -1799,7 +1799,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="text-gray-600 text-sm mt-6">
-            Zalo: <span className="text-gray-600">0975 563 290</span> · Phản hồi 7h–22h
+            Zalo: <span className="text-gray-600">0971 163 290</span> · Phản hồi 7h–22h
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm">
             <span className="inline-flex items-center gap-2 font-semibold text-gray-700">

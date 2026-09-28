@@ -12,7 +12,7 @@ import Footer from '../components/Footer';
 import TravelAssistant from '../components/TravelAssistant';
 import ZaloFAB from '../components/ZaloFAB';
 
-const ZALO_LINK = 'https://zalo.me/0975563290';
+const ZALO_LINK = 'https://zalo.me/0971163290';
 
 function money(value: number) {
   return value.toLocaleString('vi-VN') + 'đ';

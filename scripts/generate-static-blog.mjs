@@ -48,7 +48,7 @@ const brandSocialImage = `${siteUrl}/og-image-20260619.png`;
 const contentLastModified = process.env.SITE_LASTMOD || '2026-06-26';
 const homeLastModified = contentLastModified;
 const socialProfiles = [
-  'https://zalo.me/0975563290',
+  'https://zalo.me/0971163290',
   'https://www.facebook.com/carmatchvn',
   'https://www.instagram.com/carmatchvn/',
 ];
@@ -58,7 +58,7 @@ const seoSchemaConfig = {
   logoUrl: brandLogo,
   iconUrl: brandIcon,
   socialProfiles,
-  telephone: '+84975563290',
+  telephone: '+84971163290',
   email: 'info@carmatch.vn',
   address: {
     streetAddress: '38 Sunrise H, The Manor Central Park, Định Công',
@@ -392,7 +392,7 @@ const blogHubFaqItems = [
   },
   {
     question: 'Chưa thấy bài viết mới thì có đặt xe được không?',
-    answer: 'Có. Khách vẫn có thể xem danh sách xe hoặc nhắn Zalo 0975 563 290 để Car Match kiểm tra lịch xe, tư vấn giấy tờ cần chuẩn bị và gợi ý mẫu xe theo lịch trình.',
+    answer: 'Có. Khách vẫn có thể xem danh sách xe hoặc nhắn Zalo 0971 163 290 để Car Match kiểm tra lịch xe, tư vấn giấy tờ cần chuẩn bị và gợi ý mẫu xe theo lịch trình.',
   },
   {
     question: 'Car Match có tư vấn lịch trình trước khi thuê xe không?',
@@ -433,7 +433,7 @@ function renderBlogHubContent() {
           <h2>Nhắn Car Match kiểm tra xe</h2>
           <p>Đội vận hành hỗ trợ 7h-22h, ưu tiên tư vấn theo lịch trình thực tế và khu vực nhận xe tại Hà Nội.</p>
           <div class="cta-actions">
-            <a class="button" href="https://zalo.me/0975563290" rel="me noopener noreferrer" data-blog-action="hub_zalo" data-blog-target="https://zalo.me/0975563290">Nhắn Zalo</a>
+            <a class="button" href="https://zalo.me/0971163290" rel="me noopener noreferrer" data-blog-action="hub_zalo" data-blog-target="https://zalo.me/0971163290">Nhắn Zalo</a>
             <a class="button secondary" href="/xe" data-blog-action="hub_fleet" data-blog-target="/xe">Xem xe</a>
           </div>
         </aside>
@@ -457,7 +457,7 @@ const routeMeta = [
     path: '/',
     title: 'Car Match — Thuê Xe Tự Lái Hà Nội | Từ 600K/Ngày',
     description:
-      'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận nơi. Đặt qua Zalo 0975 563 290.',
+      'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận nơi. Đặt qua Zalo 0971 163 290.',
     canonical: `${siteUrl}/`,
     priority: '1.0',
     changefreq: 'weekly',
@@ -763,7 +763,7 @@ const routeMeta = [
     path: '/lien-he',
     title: 'Liên Hệ Thuê Xe Tự Lái Hà Nội | Car Match',
     description:
-      'Liên hệ Car Match qua Zalo 0975 563 290, hotline hoặc email để kiểm tra xe trống, giá thuê, giấy tờ và lịch giao xe tận sảnh tại Hà Nội.',
+      'Liên hệ Car Match qua Zalo 0971 163 290, hotline hoặc email để kiểm tra xe trống, giá thuê, giấy tờ và lịch giao xe tận sảnh tại Hà Nội.',
     canonical: `${siteUrl}/lien-he`,
     priority: '0.65',
     changefreq: 'monthly',
@@ -957,7 +957,7 @@ const staticGeoBlogPosts = [
         <li><strong>Khu vực mạnh:</strong> Vinhomes Ocean Park, Times City, Smart City, Ecopark, The Manor Central Park, Linh Đàm và các khu đô thị lớn tại Hà Nội.</li>
         <li><strong>Giá tham khảo:</strong> từ 600.000đ/ngày tùy mẫu xe, ngày thuê, lịch giao nhận và tình trạng xe thực tế.</li>
         <li><strong>Gói tháng:</strong> tham khảo từ 10.000.000đ/tháng, phù hợp cư dân hoặc doanh nghiệp dùng xe đều.</li>
-        <li><strong>Cách đặt:</strong> xem xe online, gửi lịch qua Zalo 0975 563 290, xác nhận xe, cọc/phí và điểm giao nhận trước khi chốt.</li>
+        <li><strong>Cách đặt:</strong> xem xe online, gửi lịch qua Zalo 0971 163 290, xác nhận xe, cọc/phí và điểm giao nhận trước khi chốt.</li>
       </ul>
       <h2>Car Match không phải lựa chọn tốt nhất khi nào?</h2>
       <p>Nếu bạn muốn tự săn giá thấp nhất từ rất nhiều chủ xe, muốn đặt xe tức thì hoàn toàn trong app, hoặc cần một thương hiệu có điểm nhận xe cố định ở nhiều tỉnh thành, Car Match có thể không phải lựa chọn đầu tiên. Điểm mạnh của Car Match là sự rõ ràng trong giao nhận tại Hà Nội, đặc biệt với khách ở chung cư/khu đô thị cần một đầu mối xác nhận qua Zalo.</p>
@@ -993,7 +993,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem danh sách xe',
     ctaPrimaryUrl: '/xe',
     ctaZaloLabel: 'Nhắn Zalo chọn xe',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: [
@@ -1040,7 +1040,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem danh sách xe',
     ctaPrimaryUrl: '/xe',
     ctaZaloLabel: 'Nhắn Zalo hỏi giá',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao'],
@@ -1088,7 +1088,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem quy trình thuê xe',
     ctaPrimaryUrl: '/thue-xe-tu-lai-ha-noi',
     ctaZaloLabel: 'Nhắn Zalo hỏi thủ tục',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['phat-nguoi-thue-xe-tu-lai-ai-tra'],
@@ -1129,7 +1129,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem xe tự lái',
     ctaPrimaryUrl: '/xe',
     ctaZaloLabel: 'Nhắn Zalo tư vấn',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: ['ha-long', 'ninh-binh', 'tam-dao'],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['taxi-san-bay-noi-bai-gia-bao-nhieu'],
@@ -1175,7 +1175,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem xe điện',
     ctaPrimaryUrl: '/xe?category=electric',
     ctaZaloLabel: 'Nhắn Zalo kiểm tra xe',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: ['ha-long', 'ninh-binh', 'noi-bai'],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['thue-xe-tu-lai-ha-noi-gia-bao-nhieu'],
@@ -1218,7 +1218,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem quy trình thuê xe',
     ctaPrimaryUrl: '/thue-xe-tu-lai-ha-noi',
     ctaZaloLabel: 'Nhắn Zalo hỏi xe',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu'],
@@ -1262,7 +1262,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem cách tính giá',
     ctaPrimaryUrl: '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu',
     ctaZaloLabel: 'Nhắn Zalo hỏi giá',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['thue-xe-tu-lai-ha-noi-gia-bao-nhieu'],
@@ -1295,7 +1295,7 @@ const staticGeoBlogPosts = [
       <h2>Nên chuyển cọc thế nào cho an toàn hơn?</h2>
       <p>Chỉ chuyển cọc sau khi đã thống nhất xe, lịch thuê, điểm nhận/trả, giá cuối, điều kiện hoàn cọc và người phụ trách. Nội dung chuyển khoản nên ghi rõ mục đích giữ xe, ngày thuê và số điện thoại liên hệ. Hãy lưu lại tin nhắn, ảnh xe, hợp đồng hoặc xác nhận đặt xe.</p>
       <h2>Car Match nên được kiểm tra ở đâu?</h2>
-      <p>Khách nên truy cập trực tiếp website <a href="/">carmatch.vn</a>, xem <a href="/xe">danh sách xe</a>, đọc <a href="/thue-xe-tu-lai-ha-noi">quy trình thuê xe tự lái Hà Nội</a> và liên hệ Zalo 0975 563 290. Nếu thấy trang, số điện thoại hoặc tài khoản lạ tự nhận là Car Match, hãy kiểm tra lại qua kênh chính thức trước khi chuyển tiền.</p>
+      <p>Khách nên truy cập trực tiếp website <a href="/">carmatch.vn</a>, xem <a href="/xe">danh sách xe</a>, đọc <a href="/thue-xe-tu-lai-ha-noi">quy trình thuê xe tự lái Hà Nội</a> và liên hệ Zalo 0971 163 290. Nếu thấy trang, số điện thoại hoặc tài khoản lạ tự nhận là Car Match, hãy kiểm tra lại qua kênh chính thức trước khi chuyển tiền.</p>
       <h2>Liên kết hữu ích</h2>
       <p>Nên đọc thêm <a href="/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao">cách chọn đơn vị thuê xe tự lái Hà Nội</a>, <a href="/blog/phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc">các phí cần hỏi trước khi cọc</a> và <a href="/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu">giấy tờ/cọc khi thuê xe</a>.</p>`,
     seoTitle: 'Tránh Lừa Đảo Cọc Online Khi Thuê Xe',
@@ -1304,11 +1304,11 @@ const staticGeoBlogPosts = [
     canonicalUrl: `${siteUrl}/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai`,
     ctaEnabled: true,
     ctaTitle: 'Cần xác minh kênh đặt xe Car Match?',
-    ctaDescription: 'Dùng website carmatch.vn và Zalo 0975 563 290 để kiểm tra thông tin trước khi đặt cọc.',
+    ctaDescription: 'Dùng website carmatch.vn và Zalo 0971 163 290 để kiểm tra thông tin trước khi đặt cọc.',
     ctaPrimaryLabel: 'Xem danh sách xe',
     ctaPrimaryUrl: '/xe',
     ctaZaloLabel: 'Nhắn Zalo chính thức',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao'],
@@ -1352,7 +1352,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem câu hỏi thường gặp',
     ctaPrimaryUrl: '/faq',
     ctaZaloLabel: 'Nhắn Zalo tư vấn',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi'],
@@ -1396,7 +1396,7 @@ const staticGeoBlogPosts = [
     ctaPrimaryLabel: 'Xem danh sách xe',
     ctaPrimaryUrl: '/xe',
     ctaZaloLabel: 'Nhắn Zalo tư vấn',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: [],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu'],
@@ -1441,7 +1441,7 @@ const staticAirportBlogPosts = [
     ctaPrimaryLabel: 'Xem dịch vụ xe sân bay',
     ctaPrimaryUrl: '/xe-san-bay-noi-bai',
     ctaZaloLabel: 'Nhắn Zalo báo giá',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: ['noi-bai'],
     relatedVehicleLinks: [],
     relatedPostSlugs: [],
@@ -1482,7 +1482,7 @@ const staticAirportBlogPosts = [
     ctaPrimaryLabel: 'Xem xe sân bay Nội Bài',
     ctaPrimaryUrl: '/xe-san-bay-noi-bai',
     ctaZaloLabel: 'Nhắn Zalo tư vấn',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: ['noi-bai'],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['taxi-san-bay-noi-bai-gia-bao-nhieu'],
@@ -1528,7 +1528,7 @@ const staticAirportBlogPosts = [
     ctaPrimaryLabel: 'Xem dịch vụ xe sân bay',
     ctaPrimaryUrl: '/xe-san-bay-noi-bai',
     ctaZaloLabel: 'Nhắn Zalo đặt xe',
-    ctaZaloUrl: 'https://zalo.me/0975563290',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
     relatedDestinationSlugs: ['noi-bai'],
     relatedVehicleLinks: [],
     relatedPostSlugs: ['di-noi-bai-nen-di-taxi-xe-cong-nghe-hay-xe-dat-truoc'],
@@ -1559,15 +1559,15 @@ function staticMobileConversionBar(source = 'static', zaloLabel = 'Nhắn Zalo')
   const safeZaloLabel = escapeHtml(zaloLabel);
   return `<div class="cm-static-mobile-conversion" aria-label="Liên hệ nhanh Car Match">
     <div class="cm-static-mobile-conversion-row">
-      <a href="tel:0975563290" data-cta="${safeSource}-mobile-phone">Gọi</a>
-      <a class="primary" href="https://zalo.me/0975563290" data-cta="${safeSource}-mobile-zalo">${safeZaloLabel}</a>
+      <a href="tel:0971163290" data-cta="${safeSource}-mobile-phone">Gọi</a>
+      <a class="primary" href="https://zalo.me/0971163290" data-cta="${safeSource}-mobile-zalo">${safeZaloLabel}</a>
     </div>
     <p>Hỗ trợ 7h-22h</p>
   </div>`;
 }
 
 function staticZaloHref(message = 'Xin chào Car Match, tôi cần thuê xe tự lái tại Hà Nội. Nhờ Car Match kiểm tra giúp xe còn lịch trống, giá thuê, cọc và điểm giao nhận phù hợp ạ.') {
-  return `https://zalo.me/0975563290?text=${encodeURIComponent(message)}`;
+  return `https://zalo.me/0971163290?text=${encodeURIComponent(message)}`;
 }
 
 function tripPlannerHref(destination, params = {}) {
@@ -1817,7 +1817,7 @@ function vehicleStaticDetailHtml(vehicle) {
           <article>
             <h2 id="vehicle-process">Quy trình nhận ${escapeHtml(name)} tại Hà Nội</h2>
             <ol class="cm-static-fallback-list">
-              <li>Nhắn Zalo 0975 563 290 với mẫu xe, ngày thuê, khu vực nhận xe và số người đi.</li>
+              <li>Nhắn Zalo 0971 163 290 với mẫu xe, ngày thuê, khu vực nhận xe và số người đi.</li>
               <li>Car Match kiểm tra lịch xe thật, giá thuê, phí giao nhận nếu có và điều kiện đặt cọc.</li>
               <li>Khi nhận xe, hai bên kiểm tra ngoại thất, nội thất, mức xăng/pin, phụ kiện và ghi nhận bàn giao.</li>
               <li>Khách trả xe tại điểm hẹn, Car Match kiểm tra lại tình trạng xe và đối soát phát sinh theo chính sách.</li>
@@ -2071,7 +2071,7 @@ function vehicleStructuredData(vehicle) {
       '@type': 'Organization',
       name: 'Car Match',
       url: siteUrl,
-      telephone: '+84975563290',
+      telephone: '+84971163290',
     },
     additionalProperty: [
       ...(model.seats ? [{ '@type': 'PropertyValue', name: 'Số chỗ', value: `${model.seats} chỗ` }] : []),
@@ -2176,11 +2176,11 @@ function contactStructuredData(meta) {
           name: 'Car Match',
           url: siteUrl,
           email: 'info@carmatch.vn',
-          telephone: '+84975563290',
+          telephone: '+84971163290',
           contactPoint: [
             {
               '@type': 'ContactPoint',
-              telephone: '+84975563290',
+              telephone: '+84971163290',
               contactType: 'customer support',
               areaServed: 'VN',
               availableLanguage: ['vi'],
@@ -2959,7 +2959,7 @@ function renderStaticFleet(vehicles = []) {
 function renderStaticFleetPageCards(vehicles = []) {
   const availableVehicles = vehicles.filter((vehicle) => Number(vehicle.daily_base_price || 0) > 0).slice(0, 9);
   if (availableVehicles.length === 0) {
-    return `<article class="cm-static-fleet-item"><div class="cm-static-fleet-item-body"><h2>Danh sách xe đang cập nhật</h2><p>Car Match đang kiểm tra lịch xe trống. Nhắn Zalo 0975 563 290 để được báo mẫu xe phù hợp ngay.</p><strong>Liên hệ</strong></div></article>`;
+    return `<article class="cm-static-fleet-item"><div class="cm-static-fleet-item-body"><h2>Danh sách xe đang cập nhật</h2><p>Car Match đang kiểm tra lịch xe trống. Nhắn Zalo 0971 163 290 để được báo mẫu xe phù hợp ngay.</p><strong>Liên hệ</strong></div></article>`;
   }
 
   return availableVehicles.map((vehicle) => {
@@ -3000,9 +3000,9 @@ function fleetStaticShell(vehicles = []) {
             <a href="/thue-xe-thang">Thuê xe tháng</a>
             <a href="/chinh-sach">Chính sách</a>
             <a href="/lien-he">Liên hệ</a>
-            <a class="cm-static-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+            <a class="cm-static-cta" href="https://zalo.me/0971163290">Đặt xe qua Zalo</a>
           </nav>
-          <a class="cm-static-mobile-menu" href="https://zalo.me/0975563290" aria-label="Nhắn Zalo Car Match">☏</a>
+          <a class="cm-static-mobile-menu" href="https://zalo.me/0971163290" aria-label="Nhắn Zalo Car Match">☏</a>
         </div>
       </header>
       <main id="main-content">
@@ -3079,7 +3079,7 @@ function fleetStaticShell(vehicles = []) {
             },
             {
               question: 'Giá xe trong danh sách có phải giá cuối cùng không?',
-              answer: 'Giá trên trang danh sách xe là giá tham khảo để khách so sánh nhanh giữa các nhóm xe. Mức cuối cùng cần được xác nhận theo ngày thuê, thời lượng thuê, khu vực giao nhận, phụ phí đi tỉnh, giới hạn km, điều kiện cọc và xe còn trống tại thời điểm chốt lịch. Vì vậy, bước đúng nhất là chọn 1-2 mẫu xe phù hợp, gửi ngày nhận/trả và khu vực nhận xe qua Zalo 0975 563 290; Car Match sẽ kiểm tra lịch xe thật rồi báo lại phương án có thể đặt.',
+              answer: 'Giá trên trang danh sách xe là giá tham khảo để khách so sánh nhanh giữa các nhóm xe. Mức cuối cùng cần được xác nhận theo ngày thuê, thời lượng thuê, khu vực giao nhận, phụ phí đi tỉnh, giới hạn km, điều kiện cọc và xe còn trống tại thời điểm chốt lịch. Vì vậy, bước đúng nhất là chọn 1-2 mẫu xe phù hợp, gửi ngày nhận/trả và khu vực nhận xe qua Zalo 0971 163 290; Car Match sẽ kiểm tra lịch xe thật rồi báo lại phương án có thể đặt.',
             },
           ],
           links: [
@@ -3135,9 +3135,9 @@ function monthlyStaticShell(vehicles = []) {
             <a href="/chinh-sach">Chính sách</a>
             <a href="/faq">FAQ</a>
             <a href="/lien-he">Liên hệ</a>
-            <a class="cm-static-cta" href="https://zalo.me/0975563290">Nhận báo giá Zalo</a>
+            <a class="cm-static-cta" href="https://zalo.me/0971163290">Nhận báo giá Zalo</a>
           </nav>
-          <a class="cm-static-mobile-menu" href="https://zalo.me/0975563290" aria-label="Nhắn Zalo Car Match">☏</a>
+          <a class="cm-static-mobile-menu" href="https://zalo.me/0971163290" aria-label="Nhắn Zalo Car Match">☏</a>
         </div>
       </header>
       <main id="main-content">
@@ -3148,7 +3148,7 @@ function monthlyStaticShell(vehicles = []) {
               <h1 class="cm-static-monthly-title">Thuê xe tháng Hà Nội<br><span style="color:#11163e">từ 10tr/tháng</span></h1>
               <p class="cm-static-monthly-lead">Car Match cho thuê xe tự lái theo tháng cho cư dân chung cư, gia đình trẻ và doanh nghiệp nhỏ tại Hà Nội. Khách có thể thuê 1-12 tháng, nhận xe tận tòa nhà, có hợp đồng rõ ràng và được tư vấn xe phù hợp theo số người, khu vực nhận xe, ngân sách và số km dự kiến.</p>
               <div class="cm-static-actions">
-                <a class="cm-static-btn primary" href="https://zalo.me/0975563290">Nhắn Zalo nhận báo giá</a>
+                <a class="cm-static-btn primary" href="https://zalo.me/0971163290">Nhắn Zalo nhận báo giá</a>
                 <a class="cm-static-btn secondary" href="/xe">Xem ${totalVehicles}+ xe đang có</a>
                 <a class="cm-static-btn secondary" href="/lien-he">Liên hệ Car Match</a>
               </div>
@@ -3235,8 +3235,8 @@ function monthlyStaticShell(vehicles = []) {
         <section class="cm-static-final">
           <div class="cm-static-wrap">
             <h2>Muốn biết xe tháng nào còn trống?</h2>
-            <p>Nhắn Zalo 0975 563 290 với khu vực nhận xe, thời gian thuê và loại xe mong muốn. Car Match kiểm tra đội xe thật rồi báo lại mẫu xe, cọc, giới hạn km và lịch bàn giao.</p>
-            <div class="cm-static-actions" style="justify-content:center"><a class="cm-static-btn primary" href="https://zalo.me/0975563290">Nhận báo giá qua Zalo</a><a class="cm-static-btn secondary" href="/xe">Xem danh sách xe</a></div>
+            <p>Nhắn Zalo 0971 163 290 với khu vực nhận xe, thời gian thuê và loại xe mong muốn. Car Match kiểm tra đội xe thật rồi báo lại mẫu xe, cọc, giới hạn km và lịch bàn giao.</p>
+            <div class="cm-static-actions" style="justify-content:center"><a class="cm-static-btn primary" href="https://zalo.me/0971163290">Nhận báo giá qua Zalo</a><a class="cm-static-btn secondary" href="/xe">Xem danh sách xe</a></div>
           </div>
         </section>
       </main>
@@ -3248,17 +3248,17 @@ function contactStaticShell() {
   const methods = [
     {
       title: 'Zalo đặt xe',
-      detail: '0975 563 290',
+      detail: '0971 163 290',
       description: 'Cách nhanh nhất để gửi ngày thuê, khu vực nhận xe, số người, hành lý và mẫu xe mong muốn.',
-      href: 'https://zalo.me/0975563290',
+      href: 'https://zalo.me/0971163290',
       label: 'Nhắn Zalo kiểm tra xe',
       primary: true,
     },
     {
       title: 'Hotline',
-      detail: '0975 563 290',
+      detail: '0971 163 290',
       description: 'Phù hợp khi cần xác nhận xe gấp, thay đổi lịch nhận/trả hoặc hỏi điều kiện thuê trước khi đặt cọc.',
-      href: 'tel:0975563290',
+      href: 'tel:0971163290',
       label: 'Gọi ngay',
       primary: false,
     },
@@ -3298,9 +3298,9 @@ function contactStaticShell() {
             <a href="/chinh-sach">Chính sách</a>
             <a href="/faq">FAQ</a>
             <a href="/lien-he">Liên hệ</a>
-            <a class="cm-static-cta" href="https://zalo.me/0975563290">Nhắn Zalo</a>
+            <a class="cm-static-cta" href="https://zalo.me/0971163290">Nhắn Zalo</a>
           </nav>
-          <a class="cm-static-mobile-menu" href="https://zalo.me/0975563290" aria-label="Nhắn Zalo Car Match">☏</a>
+          <a class="cm-static-mobile-menu" href="https://zalo.me/0971163290" aria-label="Nhắn Zalo Car Match">☏</a>
         </div>
       </header>
       <main id="main-content">
@@ -3311,8 +3311,8 @@ function contactStaticShell() {
               <h1 class="cm-static-contact-title">Kiểm tra xe trống, giá thuê và điểm giao nhận tại Hà Nội</h1>
               <p class="cm-static-contact-lead">Cách nhanh nhất là nhắn Zalo cho Car Match với ngày thuê, khu vực nhận xe, số người và nhu cầu chuyến đi. Đội vận hành sẽ kiểm tra lịch xe thật trước khi báo giá, xác nhận giấy tờ, điều kiện cọc và lịch giao nhận.</p>
               <div class="cm-static-actions">
-                <a class="cm-static-btn primary" href="https://zalo.me/0975563290">Nhắn Zalo kiểm tra xe</a>
-                <a class="cm-static-btn secondary" href="tel:0975563290">Gọi 0975 563 290</a>
+                <a class="cm-static-btn primary" href="https://zalo.me/0971163290">Nhắn Zalo kiểm tra xe</a>
+                <a class="cm-static-btn secondary" href="tel:0971163290">Gọi 0971 163 290</a>
                 <a class="cm-static-btn secondary" href="mailto:info@carmatch.vn">Gửi email</a>
               </div>
             </div>
@@ -3365,8 +3365,8 @@ function contactStaticShell() {
         <section class="cm-static-final">
           <div class="cm-static-wrap">
             <h2>Cần kiểm tra xe hôm nay?</h2>
-            <p>Nhắn Zalo 0975 563 290 với ngày thuê và khu vực nhận xe. Car Match sẽ kiểm tra xe còn trống, báo giá và hướng dẫn giấy tờ trước khi chốt lịch.</p>
-            <div class="cm-static-actions" style="justify-content:center"><a class="cm-static-btn primary" href="https://zalo.me/0975563290">Nhắn Zalo</a><a class="cm-static-btn secondary" href="/xe">Xem danh sách xe</a></div>
+            <p>Nhắn Zalo 0971 163 290 với ngày thuê và khu vực nhận xe. Car Match sẽ kiểm tra xe còn trống, báo giá và hướng dẫn giấy tờ trước khi chốt lịch.</p>
+            <div class="cm-static-actions" style="justify-content:center"><a class="cm-static-btn primary" href="https://zalo.me/0971163290">Nhắn Zalo</a><a class="cm-static-btn secondary" href="/xe">Xem danh sách xe</a></div>
           </div>
         </section>
       </main>
@@ -3387,9 +3387,9 @@ function trustNav(ctaLabel = 'Nhắn Zalo') {
             <a href="/chinh-sach">Chính sách</a>
             <a href="/faq">FAQ</a>
             <a href="/lien-he">Liên hệ</a>
-            <a class="cm-static-cta" href="https://zalo.me/0975563290">${escapeHtml(ctaLabel)}</a>
+            <a class="cm-static-cta" href="https://zalo.me/0971163290">${escapeHtml(ctaLabel)}</a>
           </nav>
-          <a class="cm-static-mobile-menu" href="https://zalo.me/0975563290" aria-label="Nhắn Zalo Car Match">☏</a>
+          <a class="cm-static-mobile-menu" href="https://zalo.me/0971163290" aria-label="Nhắn Zalo Car Match">☏</a>
         </div>
       </header>`;
 }
@@ -3411,7 +3411,7 @@ function trustStaticShell(config) {
               <h1 class="cm-static-trust-title">${escapeHtml(config.title)}</h1>
               <p class="cm-static-trust-lead">${escapeHtml(config.lead)}</p>
               <div class="cm-static-actions">
-                <a class="cm-static-btn primary" href="${escapeHtml(config.primaryHref || 'https://zalo.me/0975563290')}">${escapeHtml(config.primaryLabel || 'Nhắn Zalo')}</a>
+                <a class="cm-static-btn primary" href="${escapeHtml(config.primaryHref || 'https://zalo.me/0971163290')}">${escapeHtml(config.primaryLabel || 'Nhắn Zalo')}</a>
                 <a class="cm-static-btn secondary" href="${escapeHtml(config.secondaryHref || '/xe')}">${escapeHtml(config.secondaryLabel || 'Xem xe tự lái')}</a>
               </div>
             </div>
@@ -3455,7 +3455,7 @@ function trustStaticShell(config) {
             <h2>${escapeHtml(config.finalTitle)}</h2>
             <p>${escapeHtml(config.finalText)}</p>
             <div class="cm-static-actions" style="justify-content:center">
-              <a class="cm-static-btn primary" href="${escapeHtml(config.finalPrimaryHref || 'https://zalo.me/0975563290')}">${escapeHtml(config.finalPrimaryLabel || 'Nhắn Zalo')}</a>
+              <a class="cm-static-btn primary" href="${escapeHtml(config.finalPrimaryHref || 'https://zalo.me/0971163290')}">${escapeHtml(config.finalPrimaryLabel || 'Nhắn Zalo')}</a>
               <a class="cm-static-btn secondary" href="${escapeHtml(config.finalSecondaryHref || '/xe')}">${escapeHtml(config.finalSecondaryLabel || 'Xem danh sách xe')}</a>
             </div>
           </div>
@@ -3508,7 +3508,7 @@ function aboutStaticShell() {
       { q: 'Car Match khác gì so với tự hỏi từng chủ xe?', a: 'Khách không phải hỏi rời rạc từng xe. Car Match gom nhu cầu, lọc xe còn lịch phù hợp, báo giá và điều kiện thuê trước khi khách quyết định đặt cọc.' },
     ],
     finalTitle: 'Cần kiểm tra xe cho lịch sắp tới?',
-    finalText: 'Nhắn Zalo 0975 563 290 với ngày thuê, khu vực nhận xe, số người và loại xe mong muốn. Car Match sẽ kiểm tra lịch xe thật trước khi báo giá.',
+    finalText: 'Nhắn Zalo 0971 163 290 với ngày thuê, khu vực nhận xe, số người và loại xe mong muốn. Car Match sẽ kiểm tra lịch xe thật trước khi báo giá.',
   });
 }
 
@@ -3558,7 +3558,7 @@ function policyStaticShell() {
       { q: 'Nếu có khác biệt giữa website và hợp đồng thì sao?', a: 'Nội dung trong hợp đồng thuê xe và biên bản bàn giao là căn cứ áp dụng cuối cùng. Website dùng để khách chuẩn bị câu hỏi trước khi chốt xe.' },
     ],
     finalTitle: 'Chưa rõ điều kiện thuê xe?',
-    finalText: 'Gửi mẫu xe, ngày thuê và khu vực nhận xe qua Zalo 0975 563 290. Car Match sẽ xác nhận điều kiện cọc, giấy tờ và phụ phí trước khi chốt.',
+    finalText: 'Gửi mẫu xe, ngày thuê và khu vực nhận xe qua Zalo 0971 163 290. Car Match sẽ xác nhận điều kiện cọc, giấy tờ và phụ phí trước khi chốt.',
     finalSecondaryHref: '/xe',
     finalSecondaryLabel: 'Xem xe tự lái',
   });
@@ -3609,10 +3609,10 @@ function faqStaticShell() {
       { q: 'Tôi có thể hủy và hoàn cọc không?', a: 'Có thể hủy, nhưng điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Khách nên liên hệ hotline/Zalo để được xác nhận phương án cụ thể.' },
       { q: 'Cần mang giấy tờ gì khi nhận xe?', a: 'Khách cần CCCD hoặc căn cước bản gốc, giấy phép lái xe hạng B còn hiệu lực và khoản đặt cọc theo mẫu xe. Điều kiện cụ thể được xác nhận trước khi giao xe.' },
       { q: 'Tôi có thể đi ra ngoài tỉnh không?', a: 'Cần thông báo trước với Car Match. Một số tuyến phổ biến có thể được chấp thuận, nhưng phí bổ sung và điều kiện sử dụng sẽ được xác nhận theo từng xe.' },
-      { q: 'Xe bị hỏng giữa đường thì làm sao?', a: 'Khách liên hệ hotline/Zalo 0975 563 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo theo tình huống thực tế.' },
+      { q: 'Xe bị hỏng giữa đường thì làm sao?', a: 'Khách liên hệ hotline/Zalo 0971 163 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo theo tình huống thực tế.' },
     ],
     finalTitle: 'Không thấy câu hỏi của bạn?',
-    finalText: 'Nhắn Zalo 0975 563 290 với mẫu xe, ngày thuê và nội dung cần hỏi. Car Match sẽ trả lời theo điều kiện xe thật trước khi khách đặt cọc.',
+    finalText: 'Nhắn Zalo 0971 163 290 với mẫu xe, ngày thuê và nội dung cần hỏi. Car Match sẽ trả lời theo điều kiện xe thật trước khi khách đặt cọc.',
   });
 }
 
@@ -3660,7 +3660,7 @@ function partnerStaticShell() {
       { q: 'Nếu xe bị hỏng hoặc phát sinh sự cố thì sao?', a: 'Trách nhiệm bảo dưỡng, hao mòn, hư hỏng và xử lý sự cố cần được ghi rõ trong hợp đồng hợp tác và biên bản bàn giao thực tế.' },
     ],
     finalTitle: 'Muốn Car Match thẩm định xe của bạn?',
-    finalText: 'Gửi mẫu xe, đời xe, khu vực đỗ, ảnh xe và lịch xe rảnh qua Zalo 0975 563 290. Car Match sẽ phản hồi phương án phù hợp sau khi xem thông tin.',
+    finalText: 'Gửi mẫu xe, đời xe, khu vực đỗ, ảnh xe và lịch xe rảnh qua Zalo 0971 163 290. Car Match sẽ phản hồi phương án phù hợp sau khi xem thông tin.',
     finalSecondaryHref: '/lien-he',
     finalSecondaryLabel: 'Xem thông tin liên hệ',
   });
@@ -3683,7 +3683,7 @@ function rootStaticShell(vehicles = []) {
             <a href="/gioi-thieu">Giới thiệu</a>
             <a href="/lien-he">Liên hệ</a>
             <a href="/blog">Blog</a>
-            <a class="cm-static-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+            <a class="cm-static-cta" href="https://zalo.me/0971163290">Đặt xe qua Zalo</a>
           </nav>
           <a class="cm-static-mobile-menu" href="/xe" aria-label="Mở danh sách xe">≡</a>
         </div>
@@ -3697,7 +3697,7 @@ function rootStaticShell(vehicles = []) {
             <p class="cm-static-sublead">Vinhomes Ocean Park, Times City, Smart City, Ecopark, The Manor Central Park, Linh Đàm. Giá tham khảo từ 600.000đ/ngày, tùy mẫu xe và thời điểm thuê.</p>
             <div class="cm-static-actions">
               <a class="cm-static-btn primary" href="/xe">Xem xe đang có</a>
-              <a class="cm-static-btn secondary" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+              <a class="cm-static-btn secondary" href="https://zalo.me/0971163290">Đặt xe qua Zalo</a>
               <a class="cm-static-btn secondary" href="/lien-he">Liên hệ Car Match</a>
             </div>
             <div class="cm-static-trust"><span class="cm-static-check">Giao xe tận tòa nhà</span><span class="cm-static-check">Kiểm tra xe khi bàn giao</span><span class="cm-static-check">Báo cọc/phí trước khi chốt</span></div>
@@ -3761,7 +3761,7 @@ ${renderStaticFleet(vehicles)}
             <div class="cm-static-fact" role="row"><b role="cell">Giá thuê</b><span role="cell">Từ 600.000đ/ngày, tùy mẫu xe và lịch thuê.</span></div>
             <div class="cm-static-fact" role="row"><b role="cell">Khu vực</b><span role="cell">Nội thành Hà Nội, Vinhomes, Ecopark, The Manor, Linh Đàm.</span></div>
             <div class="cm-static-fact" role="row"><b role="cell">Giấy tờ</b><span role="cell">CCCD và giấy phép lái xe hạng B còn hiệu lực.</span></div>
-            <div class="cm-static-fact" role="row"><b role="cell">Liên hệ</b><span role="cell">Zalo 0975 563 290, hỗ trợ 7h-22h.</span></div>
+            <div class="cm-static-fact" role="row"><b role="cell">Liên hệ</b><span role="cell">Zalo 0971 163 290, hỗ trợ 7h-22h.</span></div>
           </div>
         </div>
       </section>
@@ -3786,7 +3786,7 @@ ${renderStaticFleet(vehicles)}
         answers: [
           {
             question: 'Car Match hỗ trợ thuê xe tự lái ở Hà Nội như thế nào?',
-            answer: 'Car Match nhận nhu cầu thuê xe theo ngày hoặc theo tháng tại Hà Nội, sau đó kiểm tra xe phù hợp theo ngày nhận/trả, khu vực nhận xe, số người, hành lý và cung đường dự kiến. Khách có thể xem danh sách xe trên website, dùng bộ lọc để chọn xe điện, xe 5 chỗ hoặc 7 chỗ, rồi nhắn Zalo 0975 563 290 để xác nhận lịch xe thật. Giá trên website là giá tham khảo từ 600.000đ/ngày và có thể thay đổi theo mẫu xe, thời điểm thuê, phụ phí giao nhận hoặc nhu cầu đi tỉnh.',
+            answer: 'Car Match nhận nhu cầu thuê xe theo ngày hoặc theo tháng tại Hà Nội, sau đó kiểm tra xe phù hợp theo ngày nhận/trả, khu vực nhận xe, số người, hành lý và cung đường dự kiến. Khách có thể xem danh sách xe trên website, dùng bộ lọc để chọn xe điện, xe 5 chỗ hoặc 7 chỗ, rồi nhắn Zalo 0971 163 290 để xác nhận lịch xe thật. Giá trên website là giá tham khảo từ 600.000đ/ngày và có thể thay đổi theo mẫu xe, thời điểm thuê, phụ phí giao nhận hoặc nhu cầu đi tỉnh.',
           },
           {
             question: 'Khách cần chuẩn bị gì trước khi nhận xe?',
@@ -3814,8 +3814,8 @@ ${renderStaticFleet(vehicles)}
       <section class="cm-static-final">
         <div class="cm-static-wrap">
           <h2>Muốn kiểm tra lịch xe hôm nay?</h2>
-          <p>Nhắn Zalo 0975 563 290 hoặc vào danh sách xe để chọn mẫu phù hợp. Nội dung homepage cập nhật ngày 14/06/2026.</p>
-          <div class="cm-static-actions" style="justify-content:center"><a class="cm-static-btn primary" href="https://zalo.me/0975563290">Nhắn Zalo</a><a class="cm-static-btn secondary" href="/xe">Xem danh sách xe</a></div>
+          <p>Nhắn Zalo 0971 163 290 hoặc vào danh sách xe để chọn mẫu phù hợp. Nội dung homepage cập nhật ngày 14/06/2026.</p>
+          <div class="cm-static-actions" style="justify-content:center"><a class="cm-static-btn primary" href="https://zalo.me/0971163290">Nhắn Zalo</a><a class="cm-static-btn secondary" href="/xe">Xem danh sách xe</a></div>
           <p style="margin-top:18px;font-size:14px;color:#64748b">Chia sẻ trang cho người đang cần thuê xe tự lái tại Hà Nội.</p>
           <div class="cm-static-actions" style="justify-content:center;margin-top:10px"><a class="cm-static-btn secondary" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.carmatch.vn%2F">Chia sẻ Facebook</a><a class="cm-static-btn secondary" href="mailto:?subject=Car%20Match%20-%20thu%C3%AA%20xe%20t%E1%BB%B1%20l%C3%A1i%20H%C3%A0%20N%E1%BB%99i&body=https%3A%2F%2Fwww.carmatch.vn%2F">Gửi email</a></div>
         </div>
@@ -3834,9 +3834,9 @@ function staticH1FromTitle(title = '') {
 function staticFallbackRoot(meta) {
   const h1 = escapeHtml(meta.staticH1 || staticH1FromTitle(meta.title));
   const lead = escapeHtml(meta.staticLead || meta.description || '');
-  const primaryHref = meta.staticPrimaryHref || (String(meta.path || '').startsWith('/xe/') ? 'https://zalo.me/0975563290' : '/xe');
+  const primaryHref = meta.staticPrimaryHref || (String(meta.path || '').startsWith('/xe/') ? 'https://zalo.me/0971163290' : '/xe');
   const primaryLabel = escapeHtml(meta.staticPrimaryLabel || (String(meta.path || '').startsWith('/xe/') ? 'Hỏi xe qua Zalo' : 'Xem xe tự lái'));
-  const secondaryHref = meta.staticSecondaryHref || 'https://zalo.me/0975563290';
+  const secondaryHref = meta.staticSecondaryHref || 'https://zalo.me/0971163290';
   const secondaryLabel = escapeHtml(meta.staticSecondaryLabel || 'Nhắn Zalo tư vấn');
   const extraHtml = meta.staticExtraHtml || '';
 
@@ -3905,7 +3905,7 @@ function plannerDetailStaticHtml(meta) {
       </section>
       <section class="cm-static-fallback-section" aria-labelledby="planner-next">
         <h2 id="planner-next">Bước tiếp theo để chốt chuyến ${escapeHtml(name)}</h2>
-        <p>Sau khi có lịch trình cơ bản, khách có thể mở form lập kế hoạch hoặc nhắn Zalo 0975 563 290. Car Match sẽ kiểm tra xe còn phù hợp, báo giá thuê, điều kiện cọc, phí giao nhận nếu có và các lưu ý trước khi nhận xe.</p>
+        <p>Sau khi có lịch trình cơ bản, khách có thể mở form lập kế hoạch hoặc nhắn Zalo 0971 163 290. Car Match sẽ kiểm tra xe còn phù hợp, báo giá thuê, điều kiện cọc, phí giao nhận nếu có và các lưu ý trước khi nhận xe.</p>
         <div class="cm-static-fallback-links">
           <a href="${escapeHtml(plannerHref)}">Mở form lập kế hoạch</a>
           <a href="${escapeHtml(destinationHref)}">Xem hướng dẫn đi ${escapeHtml(name)}</a>
@@ -4144,7 +4144,7 @@ async function writeStaticRouteShells(vehicles) {
         staticExtraHtml: plannerDetailStaticHtml(meta),
         staticPrimaryHref: `${meta.path}?diem-den=${plannerSlug}#trip-form`,
         staticPrimaryLabel: 'Mở form lập kế hoạch',
-        staticSecondaryHref: 'https://zalo.me/0975563290',
+        staticSecondaryHref: 'https://zalo.me/0971163290',
         staticSecondaryLabel: 'Nhắn Zalo kiểm tra xe',
       } : {}),
       structuredData: routeStructuredData(meta, vehicles),
@@ -4179,7 +4179,7 @@ async function writeStaticRouteShells(vehicles) {
         staticH1: `Thuê ${name} tự lái tại Hà Nội`,
         staticLead: vehicleDescription(vehicle),
         staticExtraHtml: vehicleStaticDetailHtml(vehicle),
-        staticPrimaryHref: 'https://zalo.me/0975563290',
+        staticPrimaryHref: 'https://zalo.me/0971163290',
         staticPrimaryLabel: 'Hỏi xe qua Zalo',
         staticSecondaryHref: '/xe',
         staticSecondaryLabel: 'Xem xe khác',
@@ -4206,7 +4206,7 @@ async function writeStaticRouteShells(vehicles) {
           staticH1: `Thuê ${name} tự lái tại Hà Nội`,
           staticLead: vehicleDescription(vehicle),
           staticExtraHtml: vehicleStaticDetailHtml(vehicle),
-          staticPrimaryHref: 'https://zalo.me/0975563290',
+          staticPrimaryHref: 'https://zalo.me/0971163290',
           staticPrimaryLabel: 'Hỏi xe qua Zalo',
           staticSecondaryHref: '/xe',
           staticSecondaryLabel: 'Xem xe khác',
@@ -4486,7 +4486,7 @@ function layout({ title, description, canonical, image, type = 'article', body, 
           <a class="nav-account" href="/tai-khoan" aria-label="Tài khoản của tôi">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
           </a>
-          <a class="nav-cta" href="https://zalo.me/0975563290" rel="me noopener noreferrer">Đặt xe qua Zalo</a>
+          <a class="nav-cta" href="https://zalo.me/0971163290" rel="me noopener noreferrer">Đặt xe qua Zalo</a>
         </div>
       </nav>
     </header>
@@ -4505,7 +4505,7 @@ function layout({ title, description, canonical, image, type = 'article', body, 
               <a class="sf-social" href="https://www.instagram.com/carmatchvn/" target="_blank" rel="me noopener noreferrer" aria-label="Instagram Car Match">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#d1d5db" stroke="none"/></svg>
               </a>
-              <a class="sf-social sf-social-zalo" href="https://zalo.me/0975563290" target="_blank" rel="me noopener noreferrer" aria-label="Zalo Car Match">
+              <a class="sf-social sf-social-zalo" href="https://zalo.me/0971163290" target="_blank" rel="me noopener noreferrer" aria-label="Zalo Car Match">
                 <span style="color:#60a5fa;font-size:12px;font-weight:900;line-height:1">Z</span>
               </a>
             </div>
@@ -4537,11 +4537,11 @@ function layout({ title, description, canonical, image, type = 'article', body, 
             <h3>Liên hệ</h3>
             <div class="sf-contact-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.99 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.92 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9a16 16 0 0 0 6.91 6.91l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              <a href="tel:0975563290">0975 563 290</a>
+              <a href="tel:0971163290">0971 163 290</a>
             </div>
             <div class="sf-contact-item">
               <span class="sf-contact-z">Z</span>
-              <a href="https://zalo.me/0975563290" target="_blank" rel="me noopener noreferrer">Zalo: 0975 563 290</a>
+              <a href="https://zalo.me/0971163290" target="_blank" rel="me noopener noreferrer">Zalo: 0971 163 290</a>
             </div>
             <div class="sf-contact-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -4620,7 +4620,7 @@ function renderPostCta(post) {
   const primaryButton = post.ctaPrimaryUrl
     ? `<a class="button" href="${escapeHtml(post.ctaPrimaryUrl)}" data-article-slug="${escapeHtml(post.slug.current)}" data-blog-action="cta_primary" data-blog-target="${escapeHtml(post.ctaPrimaryUrl)}">${escapeHtml(post.ctaPrimaryLabel || 'Đặt xe với Car Match')}</a>`
     : '';
-  const zaloUrl = post.ctaZaloUrl || 'https://zalo.me/0975563290';
+  const zaloUrl = post.ctaZaloUrl || 'https://zalo.me/0971163290';
   const zaloButton = `<a class="button secondary" href="${escapeHtml(zaloUrl)}" data-article-slug="${escapeHtml(post.slug.current)}" data-blog-action="cta_zalo" data-blog-target="${escapeHtml(zaloUrl)}">${escapeHtml(post.ctaZaloLabel || 'Đặt xe qua Zalo')}</a>`;
   return `<div class="cta">
           <p class="eyebrow">Car Match hỗ trợ nhanh</p>
@@ -4943,7 +4943,7 @@ function renderLlmsText(posts, vehicles, landingPages = [], travelCollections = 
 - Sitemap XML: ${siteUrl}/sitemap.xml
 - Bản đầy đủ cho LLM/crawler thử nghiệm: ${siteUrl}/llms-full.txt
 - Token estimate: số token là ước lượng để crawler/assistant dự trù ngữ cảnh, không phải yếu tố xếp hạng Google.
-- Liên hệ/Zalo: 0975 563 290
+- Liên hệ/Zalo: 0971 163 290
 - Khu vực chính: Hà Nội, ưu tiên chung cư và khu đô thị.
 - Lưu ý giá: giá trên website là tham khảo, cần xác nhận theo mẫu xe, ngày thuê, điểm giao nhận và lịch xe thực tế.
 
@@ -5014,7 +5014,7 @@ Generated for non-Google crawler and assistant experiments. Google ranking still
 
 - Brand: Car Match
 - Website: ${siteUrl}/
-- Zalo/Hotline: 0975 563 290
+- Zalo/Hotline: 0971 163 290
 - Primary market: Hà Nội, Việt Nam
 - Core offer: thuê xe tự lái theo ngày, thuê xe theo tháng, xe sân bay Nội Bài, gợi ý tuyến đi chơi từ Hà Nội.
 
@@ -5045,7 +5045,7 @@ function createHanoiLandingFallbackPage() {
     hero_description: 'Chọn xe theo ngày hoặc theo tháng, nhận xe tại sảnh chung cư/khu đô thị, kiểm tra lịch qua Zalo và xác nhận rõ giá, giấy tờ, điểm giao nhận trước chuyến đi.',
     hero_image_url: 'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/team-media/images/2026-06-04/21246fc6-1f47-4460-b94d-266b416dedf9.jpg',
     cta_primary_label: 'Nhắn Zalo kiểm tra xe',
-    cta_primary_url: 'https://zalo.me/0975563290',
+    cta_primary_url: 'https://zalo.me/0971163290',
     cta_secondary_label: 'Xem danh sách xe',
     cta_secondary_url: '/xe',
     page_content: {
@@ -5114,7 +5114,7 @@ function createHanoiLandingFallbackPage() {
         },
         {
           question: 'Đặt xe qua Car Match mất bao lâu để xác nhận?',
-          answer: 'Khách nhắn Zalo 0975 563 290, Car Match kiểm tra lịch xe và phản hồi xác nhận trong khoảng 30 phút khi có xe phù hợp.',
+          answer: 'Khách nhắn Zalo 0971 163 290, Car Match kiểm tra lịch xe và phản hồi xác nhận trong khoảng 30 phút khi có xe phù hợp.',
         },
       ],
     },
@@ -5130,7 +5130,7 @@ function renderHanoiLanding() {
     ['Thuê xe tự lái Hà Nội tại Car Match cần giấy tờ gì?', 'Khách thuê cần CCCD và GPLX hạng B hợp lệ. Tùy lịch thuê và mẫu xe, Car Match sẽ xác nhận thêm thông tin đặt cọc khi tư vấn qua Zalo.'],
     ['Car Match có giao xe tận sảnh chung cư không?', 'Có. Car Match tập trung phục vụ cư dân chung cư/khu đô thị tại Hà Nội và hỗ trợ giao xe tận sảnh hoặc điểm hẹn phù hợp trong khu vực phục vụ.'],
     ['Giá thuê xe tự lái Hà Nội bắt đầu từ bao nhiêu?', 'Giá thuê xe tự lái tại Car Match tham khảo từ 600.000 VND/ngày. Gói thuê theo tháng tham khảo từ 10.000.000 VND/tháng.'],
-    ['Đặt xe qua Car Match mất bao lâu để xác nhận?', 'Khách nhắn Zalo 0975 563 290, Car Match kiểm tra lịch xe và phản hồi xác nhận trong khoảng 30 phút khi có xe phù hợp.'],
+    ['Đặt xe qua Car Match mất bao lâu để xác nhận?', 'Khách nhắn Zalo 0971 163 290, Car Match kiểm tra lịch xe và phản hồi xác nhận trong khoảng 30 phút khi có xe phù hợp.'],
   ];
   const structuredData = [
     {
@@ -5300,7 +5300,7 @@ function renderHanoiLanding() {
           <a href="#khu-vuc">Khu vực</a>
           <a href="#faq">FAQ</a>
         </nav>
-        <a class="nav-cta" href="https://zalo.me/0975563290">Zalo</a>
+        <a class="nav-cta" href="https://zalo.me/0971163290">Zalo</a>
       </div>
     </header>
     <main>
@@ -5316,7 +5316,7 @@ function renderHanoiLanding() {
             <div class="stat"><strong>7:00-22:00</strong><span>hỗ trợ giao nhận</span></div>
           </div>
           <div class="actions" style="max-width:520px">
-            <a class="btn-primary" href="https://zalo.me/0975563290">Nhắn Zalo kiểm tra xe</a>
+            <a class="btn-primary" href="https://zalo.me/0971163290">Nhắn Zalo kiểm tra xe</a>
             <a class="btn-secondary" href="#bang-gia">Xem bảng giá</a>
           </div>
         </div>
@@ -5335,7 +5335,7 @@ function renderHanoiLanding() {
             <div class="info-item"><b>Giấy tờ</b><span>CCCD + GPLX hạng B còn hiệu lực</span></div>
           </div>
           <div class="actions">
-            <a class="btn-primary" href="https://zalo.me/0975563290">Nhắn Zalo kiểm tra xe</a>
+            <a class="btn-primary" href="https://zalo.me/0971163290">Nhắn Zalo kiểm tra xe</a>
             <a class="btn-secondary" href="/xe">Xem danh sách xe</a>
           </div>
         </aside>
@@ -5398,7 +5398,7 @@ function renderHanoiLanding() {
           <div class="step"><span class="step-num">03</span><div><h3>Xác nhận</h3><p>Thống nhất lịch, đặt cọc qua chuyển khoản và điểm giao nhận.</p></div></div>
           <div class="step"><span class="step-num">04</span><div><h3>Nhận xe</h3><p>Kiểm tra xe, ký hợp đồng, bàn giao chìa khóa và bắt đầu chuyến đi.</p></div></div>
         </div></div>
-        <aside class="dark-cta"><h2 style="color:white">Cần kiểm tra lịch xe hôm nay?</h2><p>Nhắn Zalo 0975 563 290. Khi có xe phù hợp, Car Match phản hồi lịch, giá và điều kiện thuê trong khoảng 30 phút.</p><a class="btn-primary" href="https://zalo.me/0975563290">Nhắn Zalo Car Match</a></aside>
+        <aside class="dark-cta"><h2 style="color:white">Cần kiểm tra lịch xe hôm nay?</h2><p>Nhắn Zalo 0971 163 290. Khi có xe phù hợp, Car Match phản hồi lịch, giá và điều kiện thuê trong khoảng 30 phút.</p><a class="btn-primary" href="https://zalo.me/0971163290">Nhắn Zalo Car Match</a></aside>
       </section>
       <section class="band">
         <div class="container section-pad two-col">
@@ -5409,7 +5409,7 @@ function renderHanoiLanding() {
       <section class="final-cta">
         <div class="container section-pad two-col">
           <div><p class="eyebrow" style="color:#99f6e4">Đặt xe qua Zalo</p><h2>Muốn biết xe nào còn trống cho lịch của anh/chị?</h2><p>Gửi ngày thuê, khu vực nhận xe và số người đi. Car Match kiểm tra lịch xe thật rồi báo mẫu xe, giá thuê và giấy tờ cần chuẩn bị.</p></div>
-          <div class="actions" style="align-self:center"><a class="btn-primary" href="https://zalo.me/0975563290">Nhắn Zalo 0975 563 290</a><a class="btn-secondary" href="/xe">Xem danh sách xe</a></div>
+          <div class="actions" style="align-self:center"><a class="btn-primary" href="https://zalo.me/0971163290">Nhắn Zalo 0971 163 290</a><a class="btn-secondary" href="/xe">Xem danh sách xe</a></div>
         </div>
       </section>
       <section id="faq" class="container section-pad">
@@ -5490,7 +5490,7 @@ function renderCmsLandingPage(page) {
 
   const ctaPrimary = page.cta_primary_label && page.cta_primary_url
     ? `<a class="btn primary" href="${escapeHtml(page.cta_primary_url)}">${escapeHtml(page.cta_primary_label)}</a>`
-    : '<a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo kiểm tra xe</a>';
+    : '<a class="btn primary" href="https://zalo.me/0971163290">Nhắn Zalo kiểm tra xe</a>';
   const ctaSecondary = page.cta_secondary_label && page.cta_secondary_url
     ? `<a class="btn secondary" href="${escapeHtml(page.cta_secondary_url)}">${escapeHtml(page.cta_secondary_label)}</a>`
     : '';
@@ -5618,7 +5618,7 @@ function renderCmsLandingPage(page) {
       <p class="eyebrow" style="color:#5eead4">Đặt xe qua Zalo</p>
       <h2>Muốn biết xe nào còn trống cho lịch của anh/chị?</h2>
       <p>Gửi ngày thuê, khu vực nhận xe và số người đi. Car Match kiểm tra lịch xe thật rồi báo mẫu xe, giá thuê và giấy tờ cần chuẩn bị.</p>
-      <div class="actions"><a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo 0975 563 290</a><a class="btn secondary" style="color:white;border-color:#475569" href="/xe">Xem danh sách xe</a></div>
+      <div class="actions"><a class="btn primary" href="https://zalo.me/0971163290">Nhắn Zalo 0971 163 290</a><a class="btn secondary" style="color:white;border-color:#475569" href="/xe">Xem danh sách xe</a></div>
     </div></section>
   </main>`;
 
@@ -5757,7 +5757,7 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
           <a href="/lap-ke-hoach-chuyen-di" data-active="${active === 'planner'}">Lập chuyến đi</a>
           <a href="/blog">Blog</a>
         </nav>
-        <a class="nav-cta" href="https://zalo.me/0975563290">Đặt xe qua Zalo</a>
+        <a class="nav-cta" href="https://zalo.me/0971163290">Đặt xe qua Zalo</a>
       </div>
     </header>
     ${normalizeBrandText(body)}
@@ -5833,7 +5833,7 @@ function renderAirportTransferLanding(vehicles = []) {
         },
         availableChannel: {
           '@type': 'ServiceChannel',
-          servicePhone: '+84975563290',
+          servicePhone: '+84971163290',
           serviceUrl: canonical,
         },
       },
@@ -6174,7 +6174,7 @@ function renderGoWhereLanding() {
           <p>Trang lập kế hoạch chuyến đi giúp bạn nhập điểm đến, ngày đi, số người và phong cách chuyến. Từ đó có khung chi phí thuê xe, xăng/sạc, cao tốc, ăn uống và lưu trú.</p>
           <div class="actions">
             <a class="btn primary" href="/lap-ke-hoach-chuyen-di">Mở trang lập kế hoạch</a>
-            <a class="btn secondary" href="https://zalo.me/0975563290">Nhắn Zalo Car Match</a>
+            <a class="btn secondary" href="https://zalo.me/0971163290">Nhắn Zalo Car Match</a>
           </div>
         </div>
         <aside class="card dark">
@@ -6215,7 +6215,7 @@ function renderTripPlannerLanding() {
       fields: {
         potentialAction: {
           '@type': 'ContactAction',
-          target: 'https://zalo.me/0975563290',
+          target: 'https://zalo.me/0971163290',
           name: 'Nhắn Zalo kiểm tra xe trống',
         },
       },
@@ -6248,7 +6248,7 @@ function renderTripPlannerLanding() {
           <h1>Lập kế hoạch thuê xe tự lái từ Hà Nội</h1>
           <p class="lead">Nhập điểm đến, ngày đi, số người và phong cách chuyến để có khung chọn xe, ngân sách và lịch trình trước khi Car Match kiểm tra xe trống.</p>
           <div class="actions">
-            <a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo kiểm tra xe</a>
+            <a class="btn primary" href="https://zalo.me/0971163290">Nhắn Zalo kiểm tra xe</a>
             <a class="btn secondary" href="#bang-chi-phi">Xem cách tính chi phí</a>
           </div>
           <div class="metric-grid">
@@ -6343,7 +6343,7 @@ function renderTripPlannerLanding() {
           <h2>Muốn kiểm tra xe trống ngay?</h2>
           <p>Gửi điểm đến, ngày đi, ngày về, số người và khu vực nhận xe. Car Match sẽ kiểm tra lịch xe và báo phương án phù hợp.</p>
           <div class="actions">
-            <a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo Car Match</a>
+            <a class="btn primary" href="https://zalo.me/0971163290">Nhắn Zalo Car Match</a>
             <a class="btn secondary" href="/xe">Xem danh sách xe</a>
           </div>
         </aside>
@@ -6469,7 +6469,7 @@ function renderDestinationLanding(destination) {
           <p class="lead">${escapeHtml(destination.summary || description)}</p>
           <div class="actions">
             <a class="btn primary" href="${escapeHtml(plannerHref)}">Tính chi phí tuyến này</a>
-            <a class="btn secondary" href="https://zalo.me/0975563290">Nhắn Zalo đặt xe đi ${escapeHtml(destination.name)}</a>
+            <a class="btn secondary" href="https://zalo.me/0971163290">Nhắn Zalo đặt xe đi ${escapeHtml(destination.name)}</a>
             <a class="btn secondary" href="/xe">Xem xe phù hợp</a>
           </div>
           <div class="metric-grid">
@@ -6571,7 +6571,7 @@ function renderDestinationLanding(destination) {
             <h2>Muốn Car Match kiểm tra xe trống?</h2>
             <p>Gửi ngày đi, số người, điểm nhận xe và nhu cầu hành lý. Car Match kiểm tra lịch xe thật rồi báo phương án phù hợp.</p>
             <div class="actions">
-              <a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo</a>
+              <a class="btn primary" href="https://zalo.me/0971163290">Nhắn Zalo</a>
               <a class="btn secondary" href="${escapeHtml(plannerHref)}">Tính chuyến đi</a>
             </div>
           </aside>
@@ -6751,7 +6751,7 @@ function renderCollectionLanding(collection) {
           <aside class="card dark">
             <h2>Gửi nhu cầu để kiểm tra xe trống</h2>
             <p>Nhắn Zalo Car Match với ngày đi, số người, khu vực nhận xe và điểm đến. Đội vận hành sẽ kiểm tra xe còn phù hợp.</p>
-            <div class="actions"><a class="btn primary" href="https://zalo.me/0975563290">Nhắn Zalo</a><a class="btn secondary" href="/lap-ke-hoach-chuyen-di#trip-form">Lập chuyến đi</a></div>
+            <div class="actions"><a class="btn primary" href="https://zalo.me/0971163290">Nhắn Zalo</a><a class="btn secondary" href="/lap-ke-hoach-chuyen-di#trip-form">Lập chuyến đi</a></div>
           </aside>
         </div>
       </section>
