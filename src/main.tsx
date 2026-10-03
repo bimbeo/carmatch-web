@@ -1,4 +1,7 @@
 import './styles/index.css'
+import { StrictMode, createElement } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './app/App'
 
 const chunkErrorPattern = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i
 const reloadKey = 'carmatch-chunk-reload-attempted'
@@ -55,22 +58,14 @@ async function bootApp() {
   const hadStaticShell = Boolean(root.dataset.staticShell)
   const hadPrerenderedShell = Boolean(root.dataset.prerendered)
 
-  const [{ StrictMode, createElement }, { createRoot }, { default: App }] = await Promise.all([
-    import('react'),
-    import('react-dom/client'),
-    import('./app/App'),
-    // Load the page module at the same time as React and the app shell. Waiting
-    // for it in a separate step kept the static snapshot on screen until the
-    // visitor clicked, making /xe pages visibly jump into their real UI.
-    hadPrerenderedShell ? preloadPrerenderedRoute() : Promise.resolve(),
-  ])
+  // Route chunks remain lazy, but React and the app shell are statically linked
+  // so Vite can emit modulepreload hints and avoid a late import waterfall.
+  if (hadPrerenderedShell) await preloadPrerenderedRoute()
   const app = createElement(StrictMode, null, createElement(App))
 
   if (hadPrerenderedShell) {
-    // The SEO snapshot is handcrafted HTML rather than output from React SSR,
-    // so hydrating it always produces a mismatch and forces a second render.
-    // Mount React cleanly instead; keeping the snapshot until all route chunks
-    // have loaded still preserves the fast first paint.
+    // Browser DOM normalization can make the SEO snapshot differ from the
+    // original React tree, so mount cleanly instead of risking hydration errors.
     root.replaceChildren()
     delete root.dataset.prerendered
     document.querySelectorAll('style[data-ssg]').forEach((el) => el.remove())
