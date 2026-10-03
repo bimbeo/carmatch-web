@@ -108,44 +108,11 @@ function schedulePrerenderedBoot() {
 }
 
 function scheduleHomeBoot() {
-  const root = document.getElementById('root')
-
-  // Production pages normally ship with a pre-rendered home shell, which can
-  // stay visible until the visitor interacts. Development and degraded builds
-  // may only contain an empty root; delaying React there creates a blank page
-  // for up to 20 seconds.
-  if (root && !root.dataset.prerendered && !root.dataset.staticShell) {
-    void bootApp()
-    return
-  }
-
-  let booted = false
-  let timer: number | undefined
-  const events = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'] as const
-
-  function cleanup() {
-    if (timer) window.clearTimeout(timer)
-    events.forEach((eventName) => window.removeEventListener(eventName, boot))
-  }
-
-  function boot() {
-    if (booted) return
-    booted = true
-    cleanup()
-    void bootApp()
-  }
-
-  events.forEach((eventName) => {
-    window.addEventListener(eventName, boot, { once: true, passive: true })
-  })
-
-  window.addEventListener(
-    'load',
-    () => {
-      timer = window.setTimeout(boot, 20000)
-    },
-    { once: true },
-  )
+  // Keep the pre-rendered HTML visible while the React chunks download, then
+  // mount immediately. Deferring this work until scroll/pointer interaction
+  // caused the hero heading to be replaced several seconds after first paint,
+  // resetting LCP and making the first click wait for the whole app to boot.
+  void bootApp()
 }
 
 function discardWrongHomePrerender() {
