@@ -149,7 +149,7 @@ export default function Fleet() {
 
   useSEO({
     title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
-    description: 'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Lọc theo ngày, số chỗ, nhiên liệu và nhắn Zalo để Car Match kiểm tra lịch.',
+    description: 'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Chọn ngày, xem xe còn lịch và đặt trực tiếp trên website Car Match.',
     canonical: 'https://www.carmatch.vn/xe',
     noIndex: hasQueryParams,
   });
@@ -174,9 +174,9 @@ export default function Fleet() {
         : defaultPickup;
     const requestedReturn = searchParams.get('to');
     const returnDate =
-      requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn > pickupDate
+      requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn >= pickupDate
         ? requestedReturn
-        : toLocalDateStr(addLocalDays(new Date(`${pickupDate}T00:00:00`), 1));
+        : pickupDate;
     return {
       pickupDate,
       returnDate,
@@ -330,25 +330,31 @@ export default function Fleet() {
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-0" style={{ fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif" }}>
       <Navbar />
       <ZaloFAB />
-      <MobileConversionBar source="fleet" />
+      <MobileConversionBar
+        source="fleet"
+        primaryHref="#fleet-results"
+        primaryLabel="Xem xe & đặt trực tiếp"
+        primaryKind="direct"
+        note="Chọn xe để xem tổng giá theo lịch"
+      />
 
       {/* ── Header ── */}
       <main id="main-content">
-      <div className="border-b border-slate-100 bg-white pt-24 pb-8 sm:pb-10">
+      <div className="border-b border-slate-100 bg-white pt-24 pb-4 sm:pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-brand-600">Đội xe Car Match</p>
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
                 Thuê Xe Tự Lái Hà Nội
               </h1>
               <p className="mt-3 text-base font-medium text-slate-500">
                 {loading
                   ? 'Đang tải danh sách xe...'
-                  : `${cars.length} mẫu xe — Giao tận tòa nhà · Đặt qua Zalo · Xác nhận 30 phút`}
+                  : `${cars.length} mẫu xe — Chọn lịch · Xem tổng giá · Đặt trực tiếp`}
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:w-[420px]">
+            <div className="hidden grid-cols-3 gap-2 sm:grid sm:w-[420px]">
               {[
                 [loading ? '...' : `${cars.length}`, 'mẫu xe'],
                 [`${totalFuelCounts['Điện'] || 0}`, 'xe điện'],
@@ -364,7 +370,7 @@ export default function Fleet() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-7">
         {querySummary.length > 0 && (
           <div className="mb-5 grid gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
@@ -372,15 +378,12 @@ export default function Fleet() {
               <p className="mt-1 text-sm leading-relaxed text-gray-600">{querySummary.join(' · ')}</p>
             </div>
             <a
-              href={fleetZaloHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackZaloClick('fleet_query_summary')}
+              href="#fleet-results"
+              onClick={() => trackCtaClick('fleet_query_results', { target_path: '#fleet-results' })}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
-              data-cta="fleet-query-zalo"
+              data-cta="fleet-query-results"
             >
-              <MessageCircle className="h-4 w-4" />
-              Kiểm tra lịch qua Zalo
+              Xem xe còn lịch
             </a>
           </div>
         )}
@@ -606,6 +609,8 @@ export default function Fleet() {
             </div>
           </div>
         )}
+
+        <div id="fleet-results" className="scroll-mt-24" />
 
         {/* ── Grid ── */}
         {loading ? (

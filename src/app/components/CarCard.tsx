@@ -4,6 +4,7 @@ import { Car, formatPrice } from '@/data/cars';
 import { trackVehicleClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
+import { calculateRentalBillingDays, formatRentalBillingDays } from '@/lib/rentalDuration';
 
 const fuelBadge: Record<Car['fuel'], { class: string; icon: React.ReactNode }> = {
   'Điện': {
@@ -87,15 +88,14 @@ export default function CarCard({
   const detailHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '', rentalParams);
   const bookingHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '#booking', rentalParams);
   const rentalDays = rentalRange
-    ? Math.max(
-        1,
-        Math.round(
-          (new Date(`${rentalRange.returnDate}T00:00:00`).getTime() -
-            new Date(`${rentalRange.pickupDate}T00:00:00`).getTime()) /
-            86_400_000,
-        ),
+    ? calculateRentalBillingDays(
+        rentalRange.pickupDate,
+        rentalRange.pickupHour,
+        rentalRange.returnDate,
+        rentalRange.returnHour,
       )
     : 0;
+  const showModelYear = Boolean(car.model_year && !/\b20\d{2}\b/.test(car.name));
   const trackCar = (action: string) => trackVehicleClick(action, {
     source,
     vehicle_id: car.id,
@@ -160,10 +160,10 @@ export default function CarCard({
             </span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
             <span>{car.transmission}</span>
-            {car.model_year && (
+            {showModelYear && (
               <>
                 <span className="h-1 w-1 rounded-full bg-slate-300" />
-                <span>{car.model_year}</span>
+                <span>Đời {car.model_year}</span>
               </>
             )}
           </div>
@@ -196,7 +196,7 @@ export default function CarCard({
                   </div>
                   {rentalRange && (
                     <p className="mt-1 text-xs font-medium text-slate-500">
-                      Tạm tính {rentalDays} ngày: {formatPrice(car.price * rentalDays)}
+                      Tạm tính {formatRentalBillingDays(rentalDays).toLowerCase()}: {formatPrice(car.price * rentalDays)}
                     </p>
                   )}
                 </>
@@ -269,10 +269,10 @@ export default function CarCard({
           </span>
           <span className="text-gray-300">•</span>
           <span>{car.transmission}</span>
-          {car.model_year && (
+          {showModelYear && (
             <>
               <span className="text-gray-300">•</span>
-              <span>{car.model_year}</span>
+              <span>Đời {car.model_year}</span>
             </>
           )}
         </div>

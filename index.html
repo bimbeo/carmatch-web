@@ -12,7 +12,7 @@
 
     <!-- Primary SEO -->
     <title>Car Match — Thuê Xe Tự Lái Hà Nội | Từ 600K/Ngày</title>
-    <meta name="description" content="Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận nơi. Đặt qua Zalo 0971 163 290." />
+    <meta name="description" content="Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe từ 600K/ngày, giao xe tận nơi. Chọn lịch, xem tổng giá và đặt trực tiếp trên website." />
     <meta name="keywords" content="thuê xe tự lái hà nội, thuê xe điện hà nội, thuê xe vinfast, thuê xe 7 chỗ hà nội, thuê xe theo tháng hà nội, carmatch" />
     <meta name="robots" content="index, follow" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -40,7 +40,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Car Match — Thuê Xe Tự Lái Hà Nội" />
-    <meta name="twitter:description" content="20+ mẫu xe từ 600K/ngày. Giao xe tận nơi. Đặt qua Zalo 0971 163 290." />
+    <meta name="twitter:description" content="20+ mẫu xe từ 600K/ngày. Chọn lịch, xem tổng giá và đặt trực tiếp trên website; Zalo hỗ trợ khi cần." />
     <meta name="twitter:image" content="https://www.carmatch.vn/og-image-20260619.png" />
     <meta name="twitter:image:alt" content="Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư" />
 
@@ -154,7 +154,7 @@
     ]
     </script>
 
-    <!-- Google Analytics 4: queue events immediately, load the library after user intent -->
+    <!-- Google Analytics 4: queue immediately; load after intent or a short idle fallback -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
@@ -179,6 +179,12 @@
         events.forEach(function (eventName) {
           window.addEventListener(eventName, load, { once: true, passive: true });
         });
+
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(load, { timeout: 4000 });
+        } else {
+          window.setTimeout(load, 3500);
+        }
       })();
     </script>
   </head>

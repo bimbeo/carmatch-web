@@ -1,5 +1,5 @@
-import { MessageCircle, Phone } from 'lucide-react';
-import { trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { CalendarDays, MessageCircle, Phone } from 'lucide-react';
+import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 
 const ZALO_LINK = 'https://zalo.me/0971163290';
 const PHONE_LINK = 'tel:0971163290';
@@ -11,6 +11,9 @@ interface MobileConversionBarProps {
   phoneHref?: string;
   phoneLabel?: string;
   note?: string;
+  primaryHref?: string;
+  primaryLabel?: string;
+  primaryKind?: 'zalo' | 'direct';
 }
 
 export default function MobileConversionBar({
@@ -19,8 +22,15 @@ export default function MobileConversionBar({
   zaloLabel = 'Nhắn Zalo',
   phoneHref = PHONE_LINK,
   phoneLabel = 'Gọi',
-  note = 'Hỗ trợ 7h-22h',
+  note = '',
+  primaryHref,
+  primaryLabel,
+  primaryKind = 'zalo',
 }: MobileConversionBarProps) {
+  const directBooking = primaryKind === 'direct';
+  const actionHref = primaryHref || zaloHref;
+  const actionLabel = primaryLabel || zaloLabel;
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur sm:hidden">
       <div className="mx-auto flex max-w-md items-center gap-3">
@@ -35,18 +45,25 @@ export default function MobileConversionBar({
           {phoneLabel}
         </a>
         <a
-          href={zaloHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackZaloClick(`${source}_mobile_bar`)}
+          href={actionHref}
+          target={directBooking ? undefined : '_blank'}
+          rel={directBooking ? undefined : 'noopener noreferrer'}
+          onClick={() => {
+            if (directBooking) {
+              trackCtaClick(`${source}_mobile_direct_booking`, { target_path: actionHref });
+            } else {
+              trackZaloClick(`${source}_mobile_bar`);
+            }
+          }}
           className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-black text-white shadow-sm transition-colors hover:bg-brand-700"
-          aria-label={`${zaloLabel} Car Match`}
-          data-cta={`${source}-mobile-zalo`}
+          aria-label={directBooking ? actionLabel : `${actionLabel} Car Match`}
+          data-cta={directBooking ? `${source}-mobile-direct-booking` : `${source}-mobile-zalo`}
         >
-          <MessageCircle className="h-4 w-4" />
-          {zaloLabel}
+          {directBooking ? <CalendarDays className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+          {actionLabel}
         </a>
       </div>
+      {note && <p className="mt-1.5 text-center text-[11px] font-medium text-slate-500">{note}</p>}
     </div>
   );
 }

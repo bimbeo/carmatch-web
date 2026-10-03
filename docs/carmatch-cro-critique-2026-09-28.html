@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CarMatch — CRO critique & completion audit 03/10/2026</title>
+  <style>
+    :root { color-scheme: light; --ink:#132238; --muted:#65758b; --line:#dfe7ef; --brand:#0ea5a8; --paper:#f7f9fb; --amber:#b45309; --red:#b42318; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(1120px,calc(100% - 32px)); margin:32px auto 64px; }
+    header,.panel { background:#fff; border:1px solid var(--line); border-radius:20px; box-shadow:0 12px 36px rgba(25,42,70,.06); }
+    header { padding:34px; display:grid; gap:20px; grid-template-columns:1.4fr .8fr; }
+    h1 { margin:0; max-width:760px; font-size:clamp(30px,5vw,54px); line-height:1.05; letter-spacing:-.04em; }
+    h2 { margin:0 0 16px; font-size:24px; letter-spacing:-.02em; }
+    h3 { margin:0 0 7px; font-size:16px; }
+    p { margin:0; }
+    .eyebrow { color:var(--brand); font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .lede { margin-top:16px; color:var(--muted); font-size:17px; max-width:760px; }
+    .verdict { align-self:stretch; padding:20px; border-radius:16px; background:#10263c; color:#fff; }
+    .verdict strong { display:block; font-size:42px; line-height:1; margin:8px 0 12px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
+    .panel { padding:26px; }
+    .span2 { grid-column:1/-1; }
+    .radar-wrap { display:grid; grid-template-columns:300px 1fr; align-items:center; gap:20px; }
+    .score-list { display:grid; gap:12px; }
+    .score { display:grid; grid-template-columns:150px 1fr 34px; gap:10px; align-items:center; }
+    .track { height:7px; overflow:hidden; border-radius:99px; background:#edf1f5; }
+    .fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#0ea5a8,#2563eb); }
+    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .card { border:1px solid var(--line); border-radius:14px; padding:16px; }
+    .card p,.note { color:var(--muted); font-size:13px; }
+    .priority { display:inline-flex; padding:3px 8px; margin-bottom:9px; border-radius:999px; background:#fff3e8; color:var(--amber); font-size:11px; font-weight:800; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:13px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+    td:first-child { font-weight:750; white-space:nowrap; }
+    a { color:#087f83; }
+    ul { margin:8px 0 0; padding-left:20px; }
+    li+li { margin-top:6px; }
+    .callout { padding:17px 18px; border-left:4px solid var(--brand); background:#ecfeff; border-radius:0 12px 12px 0; }
+    .danger { border-left-color:var(--red); background:#fff4f2; }
+    footer { margin-top:18px; color:var(--muted); font-size:12px; text-align:center; }
+    @media(max-width:760px){ header,.grid,.radar-wrap,.cards{grid-template-columns:1fr}.span2{grid-column:auto}header{padding:24px}.panel{padding:20px}.score{grid-template-columns:120px 1fr 30px}.radar-wrap svg{margin:auto}table{font-size:12px}th,td{padding:9px 6px} }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <div class="eyebrow">Conversion completion audit · 03/10/2026</div>
+        <h1>Đợt CRO nền tảng đã hoàn thiện ở local: giá, lịch, CTA và đo funnel hiện nhất quán từ trang chủ đến form đặt xe.</h1>
+        <p class="lede">Đánh giá dựa trên website production, dữ liệu Search Console do CarMatch cung cấp, benchmark các nền tảng thuê xe lớn và kiểm thử local trên desktop/mobile. Trọng tâm: minh bạch giá, trạng thái lịch, độ tin cậy và khả năng đo lường.</p>
+      </div>
+      <aside class="verdict">
+        <span>Điểm sau đợt tối ưu local</span>
+        <strong>7.4/10</strong>
+        <p>Luồng quyết định đã rõ và có thể dùng. Điểm còn thiếu chủ yếu là dữ liệu tin cậy có kiểm chứng, cấu hình conversion trong GA4 và thử nghiệm thực tế sau deploy.</p>
+      </aside>
+    </header>
+
+    <section class="grid">
+      <article class="panel span2 radar-wrap">
+        <svg width="300" height="300" viewBox="0 0 300 300" role="img" aria-label="Radar chart điểm đánh giá 5 chiều">
+          <g transform="translate(150 150)" fill="none" stroke="#dfe7ef">
+            <polygon points="0,-110 104.6,-34 64.7,89 -64.7,89 -104.6,-34" />
+            <polygon points="0,-82.5 78.5,-25.5 48.5,66.8 -48.5,66.8 -78.5,-25.5" />
+            <polygon points="0,-55 52.3,-17 32.3,44.5 -32.3,44.5 -52.3,-17" />
+            <polygon points="0,-27.5 26.2,-8.5 16.2,22.3 -16.2,22.3 -26.2,-8.5" />
+            <path d="M0-110V0M104.6-34L0 0M64.7 89L0 0M-64.7 89L0 0M-104.6-34L0 0" />
+            <polygon points="0,-88 83.7,-27.2 51.8,71.2 -51.8,71.2 -52.3,-17" fill="rgba(14,165,168,.2)" stroke="#0ea5a8" stroke-width="3" />
+          </g>
+          <g fill="#40536b" font-size="11" font-weight="700" text-anchor="middle">
+            <text x="150" y="20">Triết lý 8</text><text x="266" y="113">Phân cấp 8</text><text x="233" y="270">Chi tiết 8</text><text x="68" y="270">Chức năng 8</text><text x="32" y="113">Khác biệt 5</text>
+          </g>
+        </svg>
+        <div>
+          <h2>5 chiều đánh giá</h2>
+          <div class="score-list">
+            <div class="score"><span>Design philosophy</span><div class="track"><div class="fill" style="width:80%"></div></div><b>8</b></div>
+            <div class="score"><span>Visual hierarchy</span><div class="track"><div class="fill" style="width:80%"></div></div><b>8</b></div>
+            <div class="score"><span>Craft & detail</span><div class="track"><div class="fill" style="width:80%"></div></div><b>8</b></div>
+            <div class="score"><span>Functionality</span><div class="track"><div class="fill" style="width:80%"></div></div><b>8</b></div>
+            <div class="score"><span>Innovation</span><div class="track"><div class="fill" style="width:50%"></div></div><b>5</b></div>
+          </div>
+          <p class="note" style="margin-top:14px">Bản local đã xử lý ma sát lớn nhất: khách biết đúng giá một ngày, đúng trạng thái đặt và đúng thời điểm phải cọc. Không cộng điểm cho social proof chưa có dữ liệu kiểm chứng.</p>
+        </div>
+      </article>
+
+      <article class="panel span2">
+        <h2>Bằng chứng theo 5 chiều</h2>
+        <div class="cards">
+          <div class="card"><h3>Design philosophy · 8</h3><p><b>Evidence:</b> toàn funnel dùng cùng một mô hình ngày–giờ–giá–trạng thái. <b>Keep:</b> ngôn ngữ trực tiếp. <b>Fix:</b> chưa có review thật. <b>Quick win:</b> lấy phản hồi sau chuyến từ CRM.</p></div>
+          <div class="card"><h3>Visual hierarchy · 8</h3><p><b>Evidence:</b> tổng giá, cọc, số còn lại và CTA nằm cùng khối quyết định trên desktop/mobile. <b>Keep:</b> CTA cố định mobile. <b>Fix:</b> trang dài. <b>Quick win:</b> theo dõi scroll-to-booking.</p></div>
+          <div class="card"><h3>Craft & detail · 8</h3><p><b>Evidence:</b> giá 600.000đ/ngày nay mở thành 600.000đ cho 08:00–20:00, không còn tự thành hai ngày. <b>Keep:</b> phụ phí rõ. <b>Fix:</b> ảnh một số xe chưa đồng đều. <b>Quick win:</b> checklist ảnh chuẩn.</p></div>
+          <div class="card"><h3>Functionality · 8</h3><p><b>Evidence:</b> trạng thái tải lịch khóa CTA; xe đồng bộ và xe cần xác nhận có CTA riêng; form mobile đã kiểm thử. <b>Keep:</b> báo giá phía server. <b>Fix:</b> cần giám sát lỗi API. <b>Quick win:</b> dashboard availability errors.</p></div>
+          <div class="card"><h3>Innovation · 5</h3><p><b>Evidence:</b> có ưu đãi và loyalty nhưng chưa tạo lợi thế khác biệt rõ. <b>Keep:</b> giao tận tòa nhà. <b>Fix:</b> chưa cá nhân hóa theo khu vực/chuyến đi. <b>Quick win:</b> gợi ý xe từ mục đích chuyến.</p></div>
+        </div>
+      </article>
+
+      <article class="panel span2">
+        <h2>Benchmark: các nền tảng lớn làm gì trước CTA</h2>
+        <table>
+          <thead><tr><th>Nền tảng</th><th>Mẫu thiết kế chuyển đổi</th><th>Điều CarMatch nên học</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://www.mioto.vn/">Mioto</a></td><td>Chọn địa điểm/thời gian trước; thẻ xe có đặt nhanh, miễn thế chấp; trang chi tiết có tổng giá, bảo hiểm, phí, chủ xe và review.</td><td>Đưa trạng thái đặt và tổng giá lên trước; bổ sung bằng chứng vận hành có thật.</td></tr>
+            <tr><td><a href="https://sigo.vn/">Sigo</a></td><td>Kho xe theo thành phố, hỗ trợ trực tiếp, quy trình chủ xe duyệt rồi mới cọc.</td><td>Gọi đúng tên “yêu cầu kiểm tra lịch” cho xe chưa đồng bộ.</td></tr>
+            <tr><td><a href="https://turo.com/us/en/car-rental/united-states/delivery">Turo</a></td><td>Ngày, điểm giao xe và tổng giá là một phần của quyết định trước khi tiếp tục; chính sách hủy được đặt gần giao dịch.</td><td>Giảm bất ngờ về giao xe, cọc và hủy.</td></tr>
+            <tr><td><a href="https://getaround.com/how-it-works">Getaround</a></td><td>Phân biệt rõ Instant Booking với request; bảo hiểm và hỗ trợ là lớp giảm rủi ro.</td><td>Tách hai trạng thái thành hai CTA và hai kỳ vọng phản hồi khác nhau.</td></tr>
+            <tr><td><a href="https://www.enterprise.com/en/car-rental.html">Enterprise</a></td><td>Luồng bắt đầu từ địa điểm/ngày/giờ; thông điệp thanh toán và thay đổi lịch rõ ràng.</td><td>Neo giá quảng cáo vào một khoảng thuê hợp lý ngay từ mặc định.</td></tr>
+            <tr><td><a href="https://www.rentalcars.com/">Rentalcars</a> / <a href="https://www.discovercars.com/?IsSameLocation=true">DiscoverCars</a></td><td>Nhấn mạnh không phí ẩn, hủy miễn phí và review đã xác minh.</td><td>Hiển thị cam kết giá/hủy bằng dữ liệu thật, không dùng social proof giả.</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="panel">
+        <h2>Keep</h2>
+        <div class="cards" style="grid-template-columns:1fr">
+          <div class="card"><h3>Khung tính giá chi tiết</h3><p>Đã có giá thuê, giao xe, ưu đãi, cọc và số tiền còn lại.</p></div>
+          <div class="card"><h3>CTA mobile cố định</h3><p>Giữ hành động chính trong tầm tay khi khách đọc trang dài.</p></div>
+          <div class="card"><h3>Thông số và quy trình bàn giao</h3><p>Giảm câu hỏi lặp lại trước khi liên hệ.</p></div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Đã fix trong đợt này</h2>
+        <div class="cards" style="grid-template-columns:1fr">
+          <div class="card"><span class="priority">DONE</span><h3>Giá mặc định lệch giá quảng cáo</h3><p>Trang chủ, danh sách và chi tiết cùng mặc định 08:00–20:00 trong một ngày; URL khách tự chọn vẫn được giữ nguyên.</p></div>
+          <div class="card"><span class="priority">DONE</span><h3>Trạng thái đặt xe mâu thuẫn</h3><p>Đã tách “Có thể đặt ngay” và “Yêu cầu kiểm tra lịch”; CTA bị khóa trong lúc API lịch đang tải.</p></div>
+          <div class="card"><span class="priority">DONE</span><h3>Thiếu dữ liệu funnel</h3><p>Đã bổ sung view_item, begin_checkout, validation error và generate_lead; GA có idle fallback khoảng 4 giây.</p></div>
+          <div class="card"><span class="priority">DONE</span><h3>Cam kết hủy không đúng chính sách</h3><p>Đã bỏ tuyên bố hoàn 100% trước 24 giờ và thay bằng điều kiện theo xe/lịch thuê như trang chính sách.</p></div>
+          <div class="card"><span class="priority">DONE</span><h3>Traffic Google vào URL VF3 cũ</h3><p>Đã thêm redirect 301 từ hai slug VF3 2024 có trong Search Console sang trang VF3 hiện hành.</p></div>
+        </div>
+      </article>
+
+      <article class="panel span2">
+        <h2>Hoàn tất local và việc còn lại sau deploy</h2>
+        <div class="callout">
+          <strong>Đã xác minh local:</strong> build production thành công, 7/7 test tính thời gian qua, và Playwright desktop/mobile xác nhận VF3 hiển thị 1 ngày — 600.000đ cùng form đặt xe đúng chính sách.
+          <ul>
+            <li>Deploy và kiểm tra redirect/CTA trên production.</li>
+            <li>Trong GA4, đánh dấu <code>generate_lead</code> là key event và tạo funnel view_item → begin_checkout → generate_lead.</li>
+            <li>Theo dõi tối thiểu 2–4 tuần: tỷ lệ mở form, hoàn tất lead, click Zalo/gọi và lỗi lịch.</li>
+            <li>Chỉ thêm review/huy hiệu khi dữ liệu được liên kết với booking thật.</li>
+          </ul>
+        </div>
+        <div class="callout danger" style="margin-top:12px">
+          <strong>Không nên làm ngay:</strong> gắn review, số lượt đặt hoặc huy hiệu “đã xác minh” nếu chưa có dữ liệu thật. Đây là lớp niềm tin mạnh nhưng chỉ hiệu quả lâu dài khi có thể kiểm chứng.
+        </div>
+      </article>
+    </section>
+    <footer>CarMatch CRO completion audit — tài liệu nội bộ, cập nhật theo bản local ngày 03/10/2026. Chưa phản ánh production trước khi deploy.</footer>
+  </main>
+</body>
+</html>

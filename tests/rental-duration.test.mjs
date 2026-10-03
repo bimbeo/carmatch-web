@@ -13,6 +13,16 @@ test('calendar selection defaults to 08:00 pickup and 20:00 return', () => {
   assert.equal(DEFAULT_RETURN_HOUR, 20);
 });
 
+test('same-day 08:00 through 20:00 counts one rental day', () => {
+  const days = calculateRentalBillingDays('2026-10-04', 8, '2026-10-04', 20);
+  assert.equal(days, 1);
+  assert.equal(formatRentalBillingDays(days), '1 ngày');
+});
+
+test('same-day rental shorter than four hours is invalid', () => {
+  assert.equal(calculateRentalBillingDays('2026-10-04', 17, '2026-10-04', 20), 0);
+});
+
 test('29/8 through 2/9 counts five days when pickup is 08:00', () => {
   const days = calculateRentalBillingDays('2026-08-29', 8, '2026-09-02', 20);
   assert.equal(days, 5);

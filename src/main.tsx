@@ -108,6 +108,17 @@ function schedulePrerenderedBoot() {
 }
 
 function scheduleHomeBoot() {
+  const root = document.getElementById('root')
+
+  // Production pages normally ship with a pre-rendered home shell, which can
+  // stay visible until the visitor interacts. Development and degraded builds
+  // may only contain an empty root; delaying React there creates a blank page
+  // for up to 20 seconds.
+  if (root && !root.dataset.prerendered && !root.dataset.staticShell) {
+    void bootApp()
+    return
+  }
+
   let booted = false
   let timer: number | undefined
   const events = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'] as const

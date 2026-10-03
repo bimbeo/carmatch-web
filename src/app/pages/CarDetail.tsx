@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
@@ -11,11 +11,15 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
-import BookingWidget, { type BookingAvailabilityStatus } from '../components/BookingWidget';
+import BookingWidget, {
+  type BookingAvailabilityStatus,
+  type BookingSummary,
+} from '../components/BookingWidget';
 import CarReviews from '../components/CarReviews';
 import { useSEO } from '@/hooks/useSEO';
-import { trackCtaClick, trackPhoneClick } from '@/lib/analytics';
+import { trackCtaClick, trackPhoneClick, trackVehicleDetailView } from '@/lib/analytics';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
+import { formatRentalBillingDays } from '@/lib/rentalDuration';
 
 const ZALO_NUMBER = '0971163290';
 const SITE_URL = 'https://www.carmatch.vn';
@@ -359,12 +363,14 @@ function VehicleBookingPanel({
   activePromoCodes,
   promoLoading,
   onAvailabilityStatusChange,
+  onBookingSummaryChange,
 }: {
   car: Car;
   relatedCars: Car[];
   activePromoCodes: { code: string; description: string }[];
   promoLoading: boolean;
   onAvailabilityStatusChange: (status: BookingAvailabilityStatus) => void;
+  onBookingSummaryChange: (summary: BookingSummary) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -381,6 +387,7 @@ function VehicleBookingPanel({
         kmSurcharge={car.kmSurcharge}
         relatedCars={relatedCars.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
         onAvailabilityStatusChange={onAvailabilityStatusChange}
+        onBookingSummaryChange={onBookingSummaryChange}
       />
     </div>
   );
@@ -399,7 +406,7 @@ function VehicleSeoSummary({ car }: { car: Car }) {
       <h2 className="mt-2 text-lg font-black text-gray-950">Thuê {car.name} tự lái tại Hà Nội</h2>
       <p className="mt-2 text-sm leading-6 text-gray-600">
         {car.name} phù hợp khách cần xe {car.seats} chỗ, {car.fuel.toLowerCase()}, {car.transmission.toLowerCase()} để đi nội thành,
-        đi tỉnh ngắn ngày hoặc nhận xe tại sảnh chung cư/khu đô thị theo lịch hẹn. Car Match kiểm tra lịch xe trống qua Zalo trước khi chốt cọc.
+        đi tỉnh ngắn ngày hoặc nhận xe tại sảnh chung cư/khu đô thị theo lịch hẹn. Lịch xe, tổng giá và điều kiện cọc được hiển thị trước khi gửi yêu cầu.
       </p>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         {costNotes.map((note) => (
@@ -441,9 +448,25 @@ export default function CarDetail() {
   const [bookingAvailabilityStatus, setBookingAvailabilityStatus] = useState<BookingAvailabilityStatus>(
     DEFAULT_BOOKING_AVAILABILITY_STATUS,
   );
+  const [bookingSummary, setBookingSummary] = useState<BookingSummary | null>(null);
+  const trackedVehicleViewRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!car || trackedVehicleViewRef.current === car.id) return;
+    trackedVehicleViewRef.current = car.id;
+    trackVehicleDetailView({
+      vehicle_id: car.id,
+      vehicle_slug: car.slug,
+      vehicle_name: car.name,
+      value: car.price,
+      currency: 'VND',
+      items: [{ item_id: car.id, item_name: car.name, price: car.price }],
+    });
+  }, [car]);
 
   useEffect(() => {
     setBookingAvailabilityStatus(DEFAULT_BOOKING_AVAILABILITY_STATUS);
+    setBookingSummary(null);
   }, [car?.id]);
 
   const handleAvailabilityStatusChange = useCallback((next: BookingAvailabilityStatus) => {
@@ -629,7 +652,9 @@ export default function CarDetail() {
   };
   const bookingProcess = [
     'Chọn ngày, giờ nhận/trả xe',
-    'Car Match xác nhận lịch trống qua Zalo',
+    bookingAvailabilityStatus.requiresConfirmation
+      ? 'Car Match phản hồi tình trạng xe trong 30 phút'
+      : 'Hệ thống giữ lịch xe trong 15 phút',
     'Đặt cọc giữ xe, nhận hợp đồng/điều kiện',
     'Bàn giao xe, chụp hiện trạng và bắt đầu chuyến đi',
   ];
@@ -678,18 +703,18 @@ export default function CarDetail() {
               }
             : bookingAvailabilityStatus.requiresConfirmation
               ? {
-                  label: 'Cần xác nhận lịch',
+                  label: 'Yêu cầu kiểm tra lịch',
                   className: 'bg-amber-50 text-amber-800 border-amber-200',
                   dotClassName: 'bg-amber-500',
-                  notice: 'Xe này cần xác nhận thêm với chủ xe. Car Match sẽ kiểm tra lại lịch trước khi giữ xe cho bạn.',
+                  notice: 'Xe này cần kiểm tra thêm với chủ xe. Car Match phản hồi trong 30 phút và chỉ gửi QR cọc sau khi lịch được xác nhận.',
                   noticeClassName: 'border-amber-200 bg-amber-50 text-amber-800',
                 }
             : {
-                label: 'Có thể đặt, cần xác nhận lịch',
+                label: 'Có thể đặt ngay',
                 className: 'bg-green-50 text-green-700 border-green-200',
                 dotClassName: 'bg-green-500',
-                notice: '',
-                noticeClassName: '',
+                notice: 'Lịch đang trống theo hệ thống. Gửi thông tin để giữ xe 15 phút và xem hướng dẫn đặt cọc.',
+                noticeClassName: 'border-green-200 bg-green-50 text-green-800',
               };
 
   return (
@@ -745,7 +770,7 @@ export default function CarDetail() {
                 <span className="text-gray-300">·</span>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  Kiểm tra lịch qua Zalo
+                  {bookingAvailabilityStatus.requiresConfirmation ? 'Phản hồi lịch trong 30 phút' : 'Đặt trực tiếp trên web'}
                 </div>
               </div>
               {availabilityBadgeMeta.notice && (
@@ -809,6 +834,7 @@ export default function CarDetail() {
                   activePromoCodes={activePromoCodes}
                   promoLoading={promoLoading}
                   onAvailabilityStatusChange={handleAvailabilityStatusChange}
+                  onBookingSummaryChange={setBookingSummary}
                 />
               </div>
 
@@ -975,7 +1001,17 @@ export default function CarDetail() {
       {/* ── STICKY MOBILE BOTTOM BAR ─────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg px-4 py-3 flex items-center gap-3 lg:hidden z-40">
         <div className="flex-1">
-          {car.price > 0 ? (
+          {bookingSummary?.valid && bookingSummary.totalAmount > 0 ? (
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold text-brand-600">{formatPrice(bookingSummary.totalAmount)}</span>
+                <span className="text-gray-400 text-xs">tổng</span>
+              </div>
+              <div className="text-[11px] font-medium text-gray-500">
+                {formatRentalBillingDays(bookingSummary.billingDays)} · {bookingSummary.pickupDate.split('-').reverse().join('/')} → {bookingSummary.returnDate.split('-').reverse().join('/')}
+              </div>
+            </div>
+          ) : car.price > 0 ? (
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold text-brand-600">{formatPrice(car.price)}</span>
               <span className="text-gray-400 text-xs">/ngày</span>
@@ -983,7 +1019,11 @@ export default function CarDetail() {
           ) : (
             <span className="text-base font-bold text-brand-600">Liên hệ báo giá</span>
           )}
-          <div className="text-xs text-gray-400">Xác nhận trong 30 phút</div>
+          {!bookingSummary?.valid && (
+            <div className="text-xs text-gray-400">
+              {bookingAvailabilityStatus.requiresConfirmation ? 'Phản hồi trong 30 phút' : 'Chọn lịch để xem tổng giá'}
+            </div>
+          )}
         </div>
         <a
           href={`tel:${ZALO_NUMBER}`}
@@ -1002,7 +1042,7 @@ export default function CarDetail() {
           className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors shadow-sm"
         >
           <CalendarDays className="w-4 h-4" />
-          Chọn lịch
+          {bookingAvailabilityStatus.requiresConfirmation ? 'Kiểm tra lịch' : 'Đặt xe'}
         </button>
       </div>
 

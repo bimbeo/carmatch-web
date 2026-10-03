@@ -457,7 +457,7 @@ const routeMeta = [
     path: '/',
     title: 'Car Match — Thuê Xe Tự Lái Hà Nội | Từ 600K/Ngày',
     description:
-      'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận nơi. Đặt qua Zalo 0971 163 290.',
+      'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe từ 600K/ngày, giao xe tận nơi. Chọn lịch, xem tổng giá và đặt trực tiếp trên website.',
     canonical: `${siteUrl}/`,
     priority: '1.0',
     changefreq: 'weekly',
@@ -466,7 +466,7 @@ const routeMeta = [
     path: '/xe',
     title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
     description:
-      'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Lọc theo ngày, số chỗ, nhiên liệu và nhắn Zalo để Car Match kiểm tra lịch.',
+      'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Lọc theo ngày, xem tổng giá và đặt trực tiếp trên website.',
     canonical: `${siteUrl}/xe`,
     priority: '0.9',
     changefreq: 'daily',
@@ -1956,14 +1956,14 @@ function homeStructuredData(meta, vehicles) {
         },
         potentialAction: [
           {
-            '@type': 'ContactAction',
-            name: 'Nhắn Zalo kiểm tra xe trống',
-            target: staticZaloHref(),
+            '@type': 'ViewAction',
+            name: 'Chọn lịch và đặt xe trực tiếp',
+            target: `${siteUrl}/xe`,
           },
           {
-            '@type': 'ViewAction',
-            name: 'Xem danh sách xe tự lái',
-            target: `${siteUrl}/xe`,
+            '@type': 'ContactAction',
+            name: 'Nhắn Zalo để được hỗ trợ',
+            target: staticZaloHref(),
           },
         ],
         subjectOf: {
@@ -1971,7 +1971,7 @@ function homeStructuredData(meta, vehicles) {
           name: 'Quy trình thuê xe tự lái qua Car Match',
           itemListElement: [
             'Chọn mẫu xe, ngày nhận và ngày trả xe trên website',
-            'Nhắn Zalo để Car Match kiểm tra lịch xe trống và điều kiện thuê',
+            'Xem xe còn lịch, tổng giá và gửi yêu cầu đặt trực tiếp trên website',
             'Xác nhận cọc, giấy tờ và điểm giao nhận trước khi nhận xe',
             'Hai bên kiểm tra xe cùng nhau khi bàn giao và khi trả xe',
           ].map((name, index) => ({

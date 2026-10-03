@@ -321,7 +321,8 @@ export default function BookingConfirm() {
               )}
 
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                <strong>Chính sách hủy:</strong> Hủy trước 24h — hoàn 100% cọc. Hủy trong 24h — mất cọc.
+                <strong>Chính sách hủy:</strong> Điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ.
+                Vui lòng xem trang chính sách hoặc liên hệ Car Match để xác nhận.
               </div>
 
               <a

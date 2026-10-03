@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CarMatch — UI/UX Audit 03.10.2026</title>
+  <style>
+    :root{--ink:#0b1739;--muted:#61708d;--line:#dce4ef;--paper:#f4f7fb;--card:#fff;--blue:#1766ff;--green:#00a66a;--amber:#f59e0b;--red:#e5484d;--violet:#7c3aed}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+    main{max-width:1180px;margin:0 auto;padding:48px 24px 80px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--blue)}
+    h1{font-size:clamp(34px,6vw,70px);line-height:1.02;letter-spacing:-.055em;margin:12px 0 18px;max-width:900px}h2{font-size:28px;letter-spacing:-.035em;margin:0 0 18px}h3{font-size:18px;margin:0 0 8px}p{margin:0;color:var(--muted)}
+    .hero{background:linear-gradient(135deg,#fff 0%,#edf4ff 70%,#e9fff6 100%);border:1px solid var(--line);border-radius:28px;padding:42px;box-shadow:0 18px 60px rgba(11,23,57,.08)}
+    .verdict{display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:#fff4d9;color:#8b5700;padding:9px 14px;font-weight:800;border:1px solid #f5d681}.dot{width:9px;height:9px;border-radius:50%;background:var(--amber)}
+    .summary{font-size:19px;max-width:800px}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:32px}.kpi{background:rgba(255,255,255,.82);border:1px solid var(--line);border-radius:18px;padding:18px}.kpi strong{font-size:36px;display:block;line-height:1}.kpi span{font-size:13px;color:var(--muted);font-weight:700}
+    section{margin-top:34px}.panel{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(11,23,57,.045)}
+    .score-grid{display:grid;grid-template-columns:350px 1fr;gap:28px;align-items:center}.radar{width:100%;height:auto}.legend{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.legend div{display:flex;justify-content:space-between;gap:18px;padding:12px 14px;border-radius:13px;background:#f7f9fc;border:1px solid var(--line);font-size:14px}.legend b{color:var(--blue)}
+    .dimension-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.dimension{border:1px solid var(--line);border-radius:20px;padding:22px;background:#fff}.dimension:last-child{grid-column:1/-1}.score{float:right;display:inline-grid;place-items:center;width:52px;height:52px;border-radius:50%;background:#eef4ff;color:var(--blue);font-size:20px;font-weight:900}.band{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .dimension ul,.task ul{padding-left:20px;margin:14px 0 0}.dimension li,.task li{margin:8px 0;color:#33415c}.label{font-weight:900;color:var(--ink)}
+    table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}td:first-child{font-weight:800}.good{color:var(--green);font-weight:800}.warn{color:#a86500;font-weight:800}.bad{color:var(--red);font-weight:800}
+    .tasks{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.task{border:1px solid var(--line);border-radius:20px;padding:22px;background:#fff}.priority{display:inline-block;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:900}.p0{background:#ffe8e8;color:#b42318}.p1{background:#fff3d6;color:#8b5700}.p2{background:#e8f1ff;color:#175cd3}
+    .quote{margin-top:18px;border-left:4px solid var(--blue);padding:14px 18px;background:#f4f8ff;border-radius:0 14px 14px 0;color:#263755}
+    .foot{font-size:13px;color:var(--muted);margin-top:28px}.check{list-style:none!important;padding-left:0!important}.check li:before{content:"□";font-weight:900;margin-right:9px;color:var(--blue)}
+    @media(max-width:800px){main{padding:18px 14px 48px}.hero,.panel{padding:22px;border-radius:20px}.kpis,.dimension-grid,.tasks{grid-template-columns:1fr}.score-grid{grid-template-columns:1fr}.dimension:last-child{grid-column:auto}.legend{grid-template-columns:1fr}h1{font-size:42px}}
+  </style>
+</head>
+<body><main>
+  <header class="hero">
+    <div class="eyebrow">UI/UX Audit · Production + Local CRO</div>
+    <h1>Đẹp và có độ tin cậy thị giác — nhưng chưa tối ưu xong để đặt xe trực tiếp.</h1>
+    <div class="verdict"><span class="dot"></span> Kết luận: tốt về UI, còn ma sát lớn về UX/CRO</div>
+    <p class="summary" style="margin-top:18px">Website production đã đạt chất lượng hình ảnh chuyên nghiệp và dùng tốt trên desktop/mobile. Tuy nhiên, lỗi ngày–giá, thông điệp đặt xe không nhất quán và mật độ nội dung trên mobile vẫn làm giảm niềm tin đúng lúc khách chuẩn bị chuyển đổi.</p>
+    <div class="kpis">
+      <div class="kpi"><strong>8/10</strong><span>UI / thẩm mỹ</span></div>
+      <div class="kpi"><strong>6/10</strong><span>UX / chuyển đổi production</span></div>
+      <div class="kpi"><strong>7.5/10</strong><span>Sau bản CRO local đang chờ deploy</span></div>
+    </div>
+  </header>
+
+  <section class="panel">
+    <h2>Radar 5 chiều</h2>
+    <div class="score-grid">
+      <svg class="radar" viewBox="0 0 360 330" role="img" aria-label="Biểu đồ radar điểm UI UX CarMatch">
+        <g transform="translate(180 165)" fill="none" stroke="#dce4ef">
+          <polygon points="0,-130 123.64,-40.17 76.41,105.17 -76.41,105.17 -123.64,-40.17"/>
+          <polygon points="0,-104 98.91,-32.13 61.13,84.13 -61.13,84.13 -98.91,-32.13"/>
+          <polygon points="0,-78 74.18,-24.10 45.85,63.10 -45.85,63.10 -74.18,-24.10"/>
+          <polygon points="0,-52 49.45,-16.07 30.56,42.07 -30.56,42.07 -49.45,-16.07"/>
+          <line x1="0" y1="0" x2="0" y2="-130"/><line x1="0" y1="0" x2="123.64" y2="-40.17"/><line x1="0" y1="0" x2="76.41" y2="105.17"/><line x1="0" y1="0" x2="-76.41" y2="105.17"/><line x1="0" y1="0" x2="-123.64" y2="-40.17"/>
+          <polygon points="0,-91 98.91,-32.13 45.85,63.10 -45.85,63.10 -61.82,-20.09" fill="rgba(23,102,255,.18)" stroke="#1766ff" stroke-width="3"/>
+          <g fill="#1766ff" stroke="white" stroke-width="2"><circle cx="0" cy="-91" r="5"/><circle cx="98.91" cy="-32.13" r="5"/><circle cx="45.85" cy="63.10" r="5"/><circle cx="-45.85" cy="63.10" r="5"/><circle cx="-61.82" cy="-20.09" r="5"/></g>
+        </g>
+        <g font-size="12" font-weight="800" fill="#33415c"><text x="180" y="18" text-anchor="middle">Triết lý</text><text x="335" y="118" text-anchor="end">Phân cấp</text><text x="280" y="312" text-anchor="middle">Chi tiết</text><text x="80" y="312" text-anchor="middle">Chức năng</text><text x="25" y="118">Đổi mới</text></g>
+      </svg>
+      <div class="legend">
+        <div><span>Triết lý nhất quán</span><b>7/10</b></div><div><span>Phân cấp thị giác</span><b>8/10</b></div><div><span>Hoàn thiện chi tiết</span><b>6/10</b></div><div><span>Chức năng</span><b>6/10</b></div><div><span>Đổi mới</span><b>5/10</b></div><div><span>Điểm trung bình</span><b>6.4/10</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dimension-grid">
+    <article class="dimension"><span class="score">7</span><div class="band">Triết lý nhất quán</div><h3>Thương hiệu rõ, chiến lược CTA còn chia đôi</h3><ul><li><span class="label">Giữ:</span> navy–blue, khoảng trắng và giọng điệu thân thiện tạo cảm giác đáng tin.</li><li><span class="label">Sửa:</span> “Đặt trực tiếp” và “kiểm tra qua Zalo” đang cùng đóng vai CTA chính.</li><li><span class="label">Quick win:</span> dùng “Đặt xe trên web” làm primary; Zalo chỉ là hỗ trợ.</li></ul></article>
+    <article class="dimension"><span class="score">8</span><div class="band">Phân cấp thị giác</div><h3>Hero, card và trang chi tiết dễ đọc</h3><ul><li><span class="label">Giữ:</span> tiêu đề mạnh, CTA rõ, lưới xe dễ quét trên desktop.</li><li><span class="label">Sửa:</span> mobile trang danh sách dùng hết màn đầu cho thống kê và bộ lọc, chưa thấy chiếc xe nào.</li><li><span class="label">Quick win:</span> thu gọn thống kê và bộ lọc thành một hàng tóm tắt.</li></ul></article>
+    <article class="dimension"><span class="score">6</span><div class="band">Hoàn thiện chi tiết</div><h3>Component đẹp nhưng dữ liệu hiển thị làm mất niềm tin</h3><ul><li><span class="label">Giữ:</span> bo góc, spacing, trạng thái nút và responsive nhất quán.</li><li><span class="label">Sửa:</span> tên xe “2025” nhưng metadata có nơi ghi 2024/2026; mobile sticky hiện giá/ngày thay vì tổng đã chọn.</li><li><span class="label">Quick win:</span> chuẩn hóa “đời xe/năm đăng ký” và luôn hiển thị tổng tiền theo lịch.</li></ul></article>
+    <article class="dimension"><span class="score">6</span><div class="band">Chức năng</div><h3>Luồng duyệt xe tốt, bước quyết định còn lỗi</h3><ul><li><span class="label">Giữ:</span> menu mobile, bộ lọc, gallery và form đều hoạt động.</li><li><span class="label">Sửa:</span> production đổi lịch trong ngày thành 2 ngày, từ 600.000đ lên 1.200.000đ.</li><li><span class="label">Quick win:</span> deploy bản CRO local đã sửa ngày–giá, booking mode, loading và tracking.</li></ul></article>
+    <article class="dimension"><span class="score">5</span><div class="band">Đổi mới</div><h3>Đủ hiện đại, chưa có lợi thế UX riêng khó sao chép</h3><ul><li><span class="label">Giữ:</span> lập chuyến đi và định vị phục vụ di chuyển đô thị là hướng khác biệt tốt.</li><li><span class="label">Sửa:</span> các khối “sắp ra mắt/đang khảo sát” chiếm sự chú ý trước khi luồng thuê xe cốt lõi hoàn thiện.</li><li><span class="label">Quick win:</span> đưa dịch vụ tương lai xuống cuối/trang riêng; tập trung bằng chứng xe thật, lịch thật, giá thật.</li></ul></article>
+  </section>
+
+  <section class="panel">
+    <h2>Production so với bản CRO local</h2>
+    <table><thead><tr><th>Điểm chạm</th><th>Production hiện tại</th><th>Bản local đang có</th><th>Trạng thái</th></tr></thead><tbody>
+      <tr><td>Ngày &amp; tổng giá</td><td>Link cùng ngày bị đổi thành 2 ngày; 600.000đ thành 1.200.000đ</td><td>Giữ đúng ngày/giờ và tính 1 ngày 600.000đ</td><td class="bad">P0 — chưa deploy</td></tr>
+      <tr><td>Loại đặt xe</td><td>“Có thể đặt” nhưng vẫn “cần xác nhận qua Zalo”</td><td>Tách “đặt ngay/giữ lịch” và “yêu cầu xác nhận”</td><td class="warn">Đã sửa local</td></tr>
+      <tr><td>Chính sách trước CTA</td><td>Thông tin cọc/hủy chưa đủ nhất quán</td><td>Tổng giá, cọc, hủy và thời gian phản hồi gần CTA</td><td class="warn">Đã sửa local</td></tr>
+      <tr><td>Đo lường funnel</td><td>Khó xác định khách rơi ở bước nào</td><td>view_item, begin_checkout, validation_error, generate_lead</td><td class="warn">Cần cấu hình GA4 + deploy</td></tr>
+      <tr><td>Năm/đời xe</td><td>Một số card có tên và metadata năm không khớp</td><td>Chưa được giải quyết trong đợt CRO</td><td class="bad">P0 — còn tồn</td></tr>
+      <tr><td>Mobile danh sách</td><td>Xe đầu tiên nằm dưới màn đầu</td><td>Chưa thay đổi cấu trúc đáng kể</td><td class="warn">P1 — còn tồn</td></tr>
+    </tbody></table>
+    <p class="quote"><strong>Điểm mấu chốt:</strong> bản local giúp giảm một phần ma sát quan trọng, nhưng không thể gọi là “đã tối ưu hoàn toàn” cho tới khi triển khai, chuẩn hóa dữ liệu xe và đo funnel bằng dữ liệu thật ít nhất 2–4 tuần.</p>
+  </section>
+
+  <section class="tasks">
+    <article class="task"><span class="priority p0">P0 · Trước tiên</span><h3 style="margin-top:12px">Bảo toàn niềm tin tại bước đặt</h3><ul class="check"><li>Deploy bản sửa ngày–giá và trạng thái đặt xe.</li><li>Chuẩn hóa đời xe/năm đăng ký trên card và detail.</li><li>Mobile sticky hiển thị tổng tiền, số ngày và đúng loại đặt.</li></ul></article>
+    <article class="task"><span class="priority p1">P1 · Tăng chuyển đổi</span><h3 style="margin-top:12px">Rút ngắn đường tới chiếc xe</h3><ul class="check"><li>Ưu tiên CTA “Đặt trực tiếp trên web”; Zalo là hỗ trợ.</li><li>Cho xe đầu tiên xuất hiện ngay màn đầu mobile.</li><li>Gắn nguồn xác minh cho testimonial và số chuyến.</li></ul></article>
+    <article class="task"><span class="priority p2">P2 · Tinh gọn</span><h3 style="margin-top:12px">Giảm nhiễu và học từ dữ liệu</h3><ul class="check"><li>Đưa dịch vụ tương lai ra khỏi luồng thuê chính.</li><li>Giảm menu desktop còn 5–6 mục ưu tiên.</li><li>Đo funnel, Core Web Vitals và A/B test 2–4 tuần.</li></ul></article>
+  </section>
+
+  <p class="foot">Audit ngày 03/10/2026 trên production www.carmatch.vn ở desktop 1440×1000 và mobile 390×844; đối chiếu với thay đổi CRO đang có trong local repository. Đây là đánh giá heuristic + kiểm thử trình duyệt, chưa thay thế nghiên cứu người dùng hoặc dữ liệu funnel sau deploy.</p>
+</main></body></html>

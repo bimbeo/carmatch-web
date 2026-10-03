@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, RotateCcw, X } from 'lucide-react';
-import { DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR } from '@/lib/rentalDuration';
+import { CalendarDays, ChevronDown, ChevronUp, RotateCcw, X } from 'lucide-react';
+import {
+  calculateRentalBillingDays,
+  DEFAULT_PICKUP_HOUR,
+  DEFAULT_RETURN_HOUR,
+} from '@/lib/rentalDuration';
 
 const HOUR_OPTIONS = Array.from({ length: 17 }, (_, index) => index + 7);
 
@@ -56,9 +60,9 @@ export default function DateRangeFilter({
       ? initialPickupDate
       : defaultPickupDate;
   const safeInitialReturn =
-    isValidDateString(initialReturnDate) && initialReturnDate > safeInitialPickup
+    isValidDateString(initialReturnDate) && initialReturnDate >= safeInitialPickup
       ? initialReturnDate
-      : toDateStr(addDays(new Date(`${safeInitialPickup}T00:00:00`), 1));
+      : safeInitialPickup;
   const [pickupDate, setPickupDate] = useState(safeInitialPickup);
   const [returnDate, setReturnDate] = useState(safeInitialReturn);
   const [pickupHour, setPickupHour] = useState(initialPickupHour);
@@ -66,11 +70,16 @@ export default function DateRangeFilter({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [active, setActive] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const latestRequest = useRef(0);
 
   const checkAvailability = useCallback(async () => {
-    if (!pickupDate || !returnDate || returnDate <= pickupDate) {
-      setError('Ngày trả phải sau ngày nhận');
+    if (!pickupDate || !returnDate || returnDate < pickupDate) {
+      setError('Ngày trả không được trước ngày nhận');
+      return;
+    }
+    if (calculateRentalBillingDays(pickupDate, pickupHour, returnDate, returnHour) <= 0) {
+      setError('Thời gian thuê tối thiểu là 4 giờ');
       return;
     }
 
@@ -114,7 +123,7 @@ export default function DateRangeFilter({
 
   function reset() {
     const nextPickup = toDateStr(addDays(today, 1));
-    const nextReturn = toDateStr(addDays(today, 2));
+    const nextReturn = nextPickup;
     setPickupDate(nextPickup);
     setReturnDate(nextReturn);
     setPickupHour(DEFAULT_PICKUP_HOUR);
@@ -128,7 +137,32 @@ export default function DateRangeFilter({
 
   return (
     <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+      <button
+        type="button"
+        onClick={() => setMobileExpanded((expanded) => !expanded)}
+        className="flex w-full items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-left sm:hidden"
+        aria-expanded={mobileExpanded}
+        aria-controls="fleet-date-filter-fields"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">
+          <CalendarDays className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Lịch thuê đang chọn</span>
+          <span className="mt-0.5 block truncate text-sm font-bold text-slate-900">
+            {pickupDate.split('-').reverse().join('/')} {pickupHour}:00 → {returnDate.split('-').reverse().join('/')} {returnHour}:00
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-600">
+          Đổi lịch
+          {mobileExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </span>
+      </button>
+
+      <div
+        id="fleet-date-filter-fields"
+        className={`${mobileExpanded ? 'mt-3 grid' : 'hidden'} gap-3 sm:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end`}
+      >
         <div className="flex-1">
           <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-slate-500">Nhận xe</label>
           <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-2">
@@ -145,8 +179,8 @@ export default function DateRangeFilter({
                   const nextPickup = event.target.value;
                   let nextReturn = returnDate;
                   setPickupDate(nextPickup);
-                  if (nextPickup >= returnDate) {
-                    nextReturn = toDateStr(addDays(new Date(`${nextPickup}T00:00:00`), 1));
+                  if (nextPickup > returnDate) {
+                    nextReturn = nextPickup;
                     setReturnDate(nextReturn);
                   }
                   onRangeChange?.(nextPickup, nextReturn, pickupHour, returnHour);
@@ -208,7 +242,10 @@ export default function DateRangeFilter({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => void checkAvailability()}
+            onClick={() => {
+              void checkAvailability();
+              setMobileExpanded(false);
+            }}
             disabled={loading}
             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(13,22,71,0.16)] transition-colors hover:bg-brand-700 disabled:opacity-50 lg:flex-none"
           >

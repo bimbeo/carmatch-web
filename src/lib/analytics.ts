@@ -70,8 +70,28 @@ export function trackVehicleClick(action: string, payload: AnalyticsPayload = {}
   });
 }
 
+export function trackVehicleDetailView(payload: AnalyticsPayload = {}) {
+  trackEvent('cm_vehicle_detail_view', payload);
+  trackEvent('view_item', payload);
+}
+
+export function trackBookingStart(payload: AnalyticsPayload = {}) {
+  trackEvent('cm_booking_start', payload);
+  trackEvent('begin_checkout', payload);
+}
+
+export function trackBookingValidationError(reason: string, payload: AnalyticsPayload = {}) {
+  trackEvent('cm_booking_validation_error', {
+    reason,
+    ...payload,
+  });
+}
+
 export function trackBookingSubmit(status: 'attempt' | 'success' | 'error', payload: AnalyticsPayload = {}) {
   trackEvent(`cm_booking_submit_${status}`, payload);
+  if (status === 'success') {
+    trackEvent('generate_lead', payload);
+  }
 }
 
 export function trackLeadSubmit(status: 'attempt' | 'success' | 'error', payload: AnalyticsPayload = {}) {

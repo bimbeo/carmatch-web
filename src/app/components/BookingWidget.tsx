@@ -5,7 +5,14 @@ import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, C
 import { DayPicker, type DayContentProps } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
-import { trackBookingSubmit, trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import {
+  trackBookingStart,
+  trackBookingSubmit,
+  trackBookingValidationError,
+  trackCtaClick,
+  trackPhoneClick,
+  trackZaloClick,
+} from '@/lib/analytics';
 import {
   calculateRentalBillingDays,
   DEFAULT_PICKUP_HOUR,
@@ -68,6 +75,16 @@ export interface BookingAvailabilityStatus {
   selectedRangeHasBoundaryConflict: boolean;
   requiresConfirmation: boolean;
   firstHardConflict: Pick<BlockedRange, 'from' | 'to' | 'type'> | null;
+}
+
+export interface BookingSummary {
+  valid: boolean;
+  totalAmount: number;
+  billingDays: number;
+  pickupDate: string;
+  returnDate: string;
+  pickupHour: number;
+  returnHour: number;
 }
 
 /**
@@ -335,7 +352,9 @@ function dedupeHolidayBookingWindows(windows: HolidayBookingWindow[]): HolidayBo
 function getInitialBookingSelection(today: Date) {
   const todayStr = toDateStr(today);
   const defaultPickupDate = toDateStr(addDays(today, 1));
-  const defaultReturnDate = toDateStr(addDays(today, 2));
+  // Most organic visitors compare the advertised daily price first. Default to
+  // a same-day rental so the initial estimate is one day instead of 36 hours.
+  const defaultReturnDate = defaultPickupDate;
   if (typeof window === 'undefined') {
     return {
       pickupDate: defaultPickupDate,
@@ -353,11 +372,9 @@ function getInitialBookingSelection(today: Date) {
       : defaultPickupDate;
   const requestedReturn = params.get('to');
   const returnDate =
-    requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn > pickupDate
+    requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn >= pickupDate
       ? requestedReturn
-      : pickupDate === defaultPickupDate
-        ? defaultReturnDate
-        : toDateStr(addDays(parseDateStr(pickupDate), 1));
+      : pickupDate;
   const parseHour = (key: string, fallback: number) => {
     const value = Number(params.get(key));
     return Number.isInteger(value) && value >= 7 && value <= 23 ? value : fallback;
@@ -539,6 +556,7 @@ interface Props {
   kmSurcharge?: number;
   relatedCars?: RelatedCar[];
   onAvailabilityStatusChange?: (status: BookingAvailabilityStatus) => void;
+  onBookingSummaryChange?: (summary: BookingSummary) => void;
 }
 
 function copyToClipboard(text: string): Promise<void> {
@@ -601,6 +619,7 @@ export default function BookingWidget({
   kmSurcharge = 3000,
   relatedCars = [],
   onAvailabilityStatusChange,
+  onBookingSummaryChange,
 }: Props) {
   const isMobile = useIsMobile();
   // Local midnight — avoids toISOString UTC offset shifting day back in GMT+7
@@ -619,7 +638,7 @@ export default function BookingWidget({
 
   // ── Availability ──────────────────────────────────────────────────────────
   const [blockedRanges, setBlockedRanges] = useState<BlockedRange[]>([]);
-  const [availLoading, setAvailLoading] = useState(false);
+  const [availLoading, setAvailLoading] = useState(Boolean(vehicleId));
   const [availabilityUnavailable, setAvailabilityUnavailable] = useState(false);
   const [showCalModal, setShowCalModal] = useState(false);
   const [requiresConfirmation, setRequiresConfirmation] = useState(false);
@@ -1062,7 +1081,7 @@ export default function BookingWidget({
       setPickupHour(DEFAULT_PICKUP_HOUR);
       setReturnHour(DEFAULT_RETURN_HOUR);
       setPickupDate(ds);
-      setReturnDate(toDateStr(addDays(day, 1)));
+      setReturnDate(ds);
       setCalendarStartPreview(day);
       setRangeStep('to');
     } else {
@@ -1086,7 +1105,7 @@ export default function BookingWidget({
         setPickupHour(DEFAULT_PICKUP_HOUR);
         setReturnHour(DEFAULT_RETURN_HOUR);
         setPickupDate(ds);
-        setReturnDate(toDateStr(addDays(day, 1)));
+        setReturnDate(ds);
         setCalendarStartPreview(day);
         setRangeStep('to');
       }
@@ -1209,24 +1228,33 @@ export default function BookingWidget({
   }, [initialPromoCode, totalAmount, holidayPromoBlocked]);
 
   const handleBookingSubmit = async () => {
+    const rejectBooking = (reason: string, message: string) => {
+      setBookingError(message);
+      trackBookingValidationError(reason, {
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+        rental_days: rentalDays,
+        total_amount: finalTotal,
+      });
+    };
     if (hardConflicts.length > 0) {
-      setBookingError('Xe đã có lịch trong khoảng này. Vui lòng chọn ngày khác.');
+      rejectBooking('hard_conflict', 'Xe đã có lịch trong khoảng này. Vui lòng chọn ngày khác.');
       return;
     }
-    if (!customerName.trim()) { setBookingError('Vui lòng nhập họ tên'); return; }
+    if (!customerName.trim()) { rejectBooking('missing_name', 'Vui lòng nhập họ tên'); return; }
     const phoneClean = customerPhone.trim().replace(/\s/g, '');
-    if (!/^(0[3-9]\d{8})$/.test(phoneClean)) { setBookingError('Số điện thoại không hợp lệ'); return; }
+    if (!/^(0[3-9]\d{8})$/.test(phoneClean)) { rejectBooking('invalid_phone', 'Số điện thoại không hợp lệ'); return; }
     if (deliveryMode === 'delivery' && !deliveryAddress.trim()) {
-      setBookingError('Vui lòng nhập địa chỉ giao xe');
+      rejectBooking('missing_delivery_address', 'Vui lòng nhập địa chỉ giao xe');
       return;
     }
     if (holidayBookingBlocked) {
-      setBookingError(holidayComboBlockMessage);
+      rejectBooking('holiday_combo_mismatch', holidayComboBlockMessage);
       return;
     }
     if (holidayPromoBlocked && promoResult) {
       setPromoResult(null);
-      setBookingError(holidayPromoBlockMessage);
+      rejectBooking('holiday_promo_conflict', holidayPromoBlockMessage);
       return;
     }
 
@@ -1404,6 +1432,27 @@ export default function BookingWidget({
   const rentalDays = Math.max(1, Math.ceil(billingDays));
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
+
+  useEffect(() => {
+    onBookingSummaryChange?.({
+      valid: result.valid,
+      totalAmount: finalTotal,
+      billingDays,
+      pickupDate,
+      returnDate,
+      pickupHour,
+      returnHour,
+    });
+  }, [
+    billingDays,
+    finalTotal,
+    onBookingSummaryChange,
+    pickupDate,
+    pickupHour,
+    result.valid,
+    returnDate,
+    returnHour,
+  ]);
 
   const copyBookingConfirmation = async () => {
     const lines = [
@@ -1805,25 +1854,60 @@ export default function BookingWidget({
             {recentBookingsCount} người đặt xe này trong 7 ngày qua
           </div>
         )}
+        <div className={`rounded-xl border px-4 py-3 text-xs leading-5 ${
+          availLoading
+            ? 'border-slate-200 bg-slate-50 text-slate-700'
+            : needsManualConfirmation
+            ? 'border-amber-200 bg-amber-50 text-amber-800'
+            : 'border-green-200 bg-green-50 text-green-800'
+        }`}>
+          <div className="font-bold text-sm">
+            {availLoading
+              ? 'Đang kiểm tra lịch xe'
+              : needsManualConfirmation
+                ? 'Car Match kiểm tra lịch với chủ xe'
+                : 'Lịch đang trống theo hệ thống'}
+          </div>
+          <div className="mt-1">
+            {availLoading
+              ? 'Vui lòng chờ trong giây lát để hệ thống xác định đúng hình thức đặt xe.'
+              : needsManualConfirmation
+              ? 'Gửi yêu cầu để nhận phản hồi trong 30 phút. Bạn chưa cần chuyển khoản.'
+              : 'Gửi thông tin để giữ xe 15 phút và xem hướng dẫn đặt cọc.'}
+          </div>
+          <div className="mt-1 font-semibold">
+            Tổng giá được hiển thị rõ trước khi đặt cọc · Điều kiện hủy/hoàn cọc được xác nhận theo xe và lịch thuê.
+          </div>
+        </div>
         <button
           onClick={() => {
-            trackCtaClick('booking_widget_open_form', {
+            const analyticsPayload = {
               vehicle_id: vehicleId || null,
               vehicle_name: carName,
               rental_days: rentalDays,
               total_amount: finalTotal,
-            });
+              currency: 'VND',
+              booking_mode: needsManualConfirmation ? 'request' : 'instant',
+            };
+            trackCtaClick('booking_widget_open_form', analyticsPayload);
+            trackBookingStart(analyticsPayload);
             setShowBookingModal(true);
             setBookingStep(1);
             setBookingNeedsConfirmation(false);
             setBookingError('');
             setConfirmTransfer(false);
           }}
-          disabled={!result.valid || hardConflicts.length > 0 || holidayBookingBlocked}
+          disabled={availLoading || !result.valid || hardConflicts.length > 0 || holidayBookingBlocked}
           className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CalendarDays className="w-4 h-4" />
-          {holidayBookingBlocked ? 'Chọn đúng combo lễ' : needsManualConfirmation ? 'Gửi yêu cầu xác nhận lịch' : 'Kiểm tra lịch & đặt xe'}
+          {availLoading
+            ? 'Đang kiểm tra lịch xe…'
+            : holidayBookingBlocked
+              ? 'Chọn đúng combo lễ'
+              : needsManualConfirmation
+                ? 'Gửi yêu cầu — phản hồi trong 30 phút'
+                : 'Đặt xe & giữ lịch 15 phút'}
         </button>
         {needsManualConfirmation && (
           <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
@@ -2542,8 +2626,8 @@ export default function BookingWidget({
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs text-amber-700 flex items-start gap-2">
                   <span className="shrink-0">ℹ️</span>
                   <span>
-                    <strong>Chính sách hủy:</strong> Hủy trước 24h hoàn 100% cọc.
-                    Hủy trong 24h hoặc không đến nhận xe mất cọc.
+                    <strong>Chính sách hủy:</strong> Điều kiện hoàn cọc phụ thuộc thời điểm hủy,
+                    mẫu xe và lịch đã giữ. Vui lòng xem trang chính sách trước khi đặt.
                   </span>
                 </div>
               </div>
@@ -2555,7 +2639,7 @@ export default function BookingWidget({
                 <div className="text-center">
                   <div className="font-bold text-gray-900 text-base">Đặt cọc để giữ xe</div>
                   <p className="text-sm text-gray-500 mt-1">Chuyển khoản <strong className="text-brand-600">{fmtVND(depositAmount)}</strong> để xác nhận đơn</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Cọc trừ vào tổng tiền khi nhận xe · Hủy trước 24h hoàn 100%</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Cọc trừ vào tổng tiền khi nhận xe · Điều kiện hoàn cọc được xác nhận theo lịch thuê</p>
                   {promoResult && (
                     <p className="text-xs font-semibold text-green-600 mt-1">
                       Đã áp dụng mã {promoResult.code} — giảm {fmtVND(promoResult.discount_amount)}
@@ -2966,8 +3050,8 @@ export default function BookingWidget({
                 {bookingLoading
                   ? 'Đang xử lý…'
                   : needsManualConfirmation
-                    ? 'Gửi yêu cầu xác nhận lịch'
-                    : BANK_QR_ENABLED ? 'Tiếp tục — Xem QR đặt cọc' : 'Gửi yêu cầu đặt xe'}
+                    ? 'Gửi yêu cầu — phản hồi trong 30 phút'
+                    : BANK_QR_ENABLED ? 'Giữ xe 15 phút — Xem QR cọc' : 'Gửi yêu cầu đặt xe'}
               </button>
             )}
             {bookingStep === 2 && (
