@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash, randomUUID } from 'node:crypto';
 import { rateLimit } from './_security.js';
+import { sanitizeAttribution } from './_conversion.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
@@ -1312,6 +1313,7 @@ export default async function handler(req, res) {
       availability_check_unavailable: availabilityCheckUnavailable,
       captured_at: new Date().toISOString(),
     },
+    attribution: sanitizeAttribution(body.attribution),
     note: noteLines,
     status: requiresConfirmation ? 'partner_pending' : 'new',
   };
@@ -1329,6 +1331,7 @@ export default async function handler(req, res) {
       promo_discount_amount,
       total_amount,
       pricing_snapshot,
+      attribution,
       vehicle_id,
       ...legacyPayload
     } = leadPayload;

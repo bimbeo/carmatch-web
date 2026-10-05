@@ -1,3 +1,5 @@
+import { createAnalyticsEventId, getAttributionSnapshot } from './attribution';
+
 type AnalyticsPayload = Record<string, unknown>;
 
 declare global {
@@ -8,11 +10,49 @@ declare global {
 }
 
 const DEFAULT_CATEGORY = 'conversion';
+const FIRST_PARTY_EVENTS = new Set([
+  'view_item',
+  'begin_checkout',
+  'cm_booking_validation_error',
+  'cm_booking_submit_attempt',
+  'cm_booking_submit_success',
+  'cm_booking_submit_error',
+  'generate_lead',
+  'cm_phone_click',
+  'cm_zalo_click',
+  'cm_cta_click',
+]);
 
 function cleanPayload(payload: AnalyticsPayload): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(payload).filter((entry) => entry[1] !== undefined),
   );
+}
+
+function recordFirstPartyEvent(eventName: string, eventPayload: Record<string, unknown>) {
+  if (!FIRST_PARTY_EVENTS.has(eventName)) return;
+  const attribution = getAttributionSnapshot();
+  if (!attribution) return;
+
+  const payload = {
+    event_id: createAnalyticsEventId(),
+    event_name: eventName,
+    client_at: new Date().toISOString(),
+    page_path: window.location.pathname,
+    vehicle_id: eventPayload.vehicle_id,
+    car_slug: eventPayload.car_slug,
+    booking_ref: eventPayload.booking_ref,
+    attribution,
+    metadata: eventPayload,
+  };
+  void fetch('/api/conversion-events', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  }).catch(() => {
+    // Analytics must never interrupt the booking flow.
+  });
 }
 
 export function trackEvent(eventName: string, payload: AnalyticsPayload = {}) {
@@ -32,6 +72,7 @@ export function trackEvent(eventName: string, payload: AnalyticsPayload = {}) {
   });
 
   window.gtag?.('event', eventName, eventPayload);
+  recordFirstPartyEvent(eventName, eventPayload);
   window.dispatchEvent(new CustomEvent('carmatch:analytics', {
     detail: {
       event: eventName,

@@ -24,7 +24,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'https://www.carmatch.vn',
+        target: process.env.VITE_API_PROXY_TARGET || 'https://www.carmatch.vn',
         changeOrigin: true,
       },
     },

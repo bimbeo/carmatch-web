@@ -798,14 +798,6 @@ const noIndexRouteMeta = [
     noIndex: true,
   },
   {
-    path: '/admin',
-    title: 'Admin Dashboard | Car Match',
-    description:
-      'Trang quản trị nội bộ Car Match dành cho đội vận hành theo dõi booking, trạng thái khách hàng và lịch xử lý.',
-    canonical: `${siteUrl}/admin`,
-    noIndex: true,
-  },
-  {
     path: '/tai-khoan',
     title: 'Tài Khoản Của Tôi | Car Match',
     description:

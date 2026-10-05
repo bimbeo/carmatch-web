@@ -107,12 +107,13 @@ Recommended WAF rate limits:
     } } }
   },
   {
-    "name": "Rate limit admin auth",
+    "name": "Rate limit conversion events",
     "conditionGroup": [{ "conditions": [
-      { "type": "path", "op": "eq", "value": "/api/admin-bookings" }
+      { "type": "path", "op": "eq", "value": "/api/conversion-events" },
+      { "type": "method", "op": "eq", "value": "POST" }
     ] }],
     "action": { "mitigate": { "action": "rate_limit", "rateLimit": {
-      "algo": "fixed_window", "window": 600, "limit": 40, "keys": ["ip"], "action": "deny"
+      "algo": "fixed_window", "window": 600, "limit": 240, "keys": ["ip"], "action": "deny"
     } } }
   }
 ]
@@ -180,10 +181,8 @@ Run after deploy:
 curl -I https://www.carmatch.vn/
 curl -s https://www.carmatch.vn/.well-known/security.txt
 curl -s https://www.carmatch.vn/api/vehicles | rg "plate_number|current_km|published"
+curl -i https://www.carmatch.vn/admin
 curl -i https://www.carmatch.vn/api/admin-bookings
-curl -i -X OPTIONS https://www.carmatch.vn/api/admin-bookings \
-  -H "Origin: https://evil.example" \
-  -H "Access-Control-Request-Method: GET"
 ```
 
 Expected:
@@ -191,5 +190,4 @@ Expected:
 - Homepage has all security headers.
 - `security.txt` returns 200.
 - Vehicle API grep returns no matches.
-- Admin API returns 401 without token.
-- Evil-origin preflight returns no usable CORS allow-origin.
+- Legacy public admin page and API both return 404. Website conversion management lives only in the authenticated operations app.

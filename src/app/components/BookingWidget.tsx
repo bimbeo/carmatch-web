@@ -20,6 +20,7 @@ import {
   formatRentalBillingDays,
 } from '@/lib/rentalDuration';
 import { supabase } from '@/lib/supabase';
+import { getAttributionSnapshot } from '@/lib/attribution';
 import { useIsMobile } from './ui/use-mobile';
 
 const ZALO_NUMBER = '0971163290';
@@ -1313,6 +1314,7 @@ export default function BookingWidget({
           promo_discount: clientQuote.promo_discount,
           total_amount: clientQuote.total_amount,
           requires_confirmation: needsManualConfirmation,
+          attribution: getAttributionSnapshot(),
       };
       let res: Response;
       let data: Record<string, unknown>;

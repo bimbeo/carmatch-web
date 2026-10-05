@@ -146,6 +146,7 @@ Sau deploy, kiem tra production:
 curl -I https://www.carmatch.vn/
 curl -s https://www.carmatch.vn/.well-known/security.txt
 curl -s https://www.carmatch.vn/api/vehicles | rg "plate_number|current_km|published"
+curl -i https://www.carmatch.vn/admin
 curl -i https://www.carmatch.vn/api/admin-bookings
 ```
 
@@ -154,7 +155,7 @@ Ket qua mong doi:
 - Homepage co security headers.
 - `security.txt` tra 200.
 - API xe khong lo bien so, km hien tai, truong published/status noi bo.
-- Admin API khong co token thi tra 401.
+- Trang va API admin cu tra 404; quan ly chuyen doi website chi con trong app van hanh co dang nhap.
 - Trang chi tiet xe co nhieu anh neu xe co gallery trong database.
 
 ## 6. Nguyen tac nho ngan gon

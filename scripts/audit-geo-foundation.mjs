@@ -17,7 +17,6 @@ const ignoredHtmlFiles = new Set([
 ]);
 
 const expectedNoIndexRoutes = new Set([
-  '/admin',
   '/chao-ban',
   '/dat-xe',
   '/tai-khoan',

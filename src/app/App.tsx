@@ -17,11 +17,29 @@ const BookingConfirm = lazy(() => import('./pages/BookingConfirm'));
 const Policy = lazy(() => import('./pages/Policy'));
 const FAQ = lazy(() => import('./pages/FAQ'));
 const Contact = lazy(() => import('./pages/Contact'));
-const Admin = lazy(() => import('./pages/Admin'));
 const Account = lazy(() => import('./pages/Account'));
 const ReEngagement = lazy(() => import('./pages/ReEngagement'));
 
 const chunkReloadKey = 'carmatch-chunk-reload-attempted';
+
+function LegacyAdminRedirect() {
+  const destination = window.location.hostname === 'localhost'
+    ? 'http://localhost:5173/website-conversion'
+    : 'https://app.carmatch.vn/website-conversion';
+
+  useEffect(() => {
+    window.location.replace(destination);
+  }, [destination]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white px-6 text-center">
+      <div>
+        <p className="text-gray-700 font-medium mb-4">Đang mở trang Chuyển đổi website trong app Car Match…</p>
+        <a className="text-brand-600 font-semibold underline" href={destination}>Mở ngay</a>
+      </div>
+    </div>
+  );
+}
 
 function isRecoverableChunkError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -141,9 +159,9 @@ export default function App() {
             <Route path="/chinh-sach" element={<Policy />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/lien-he" element={<Contact />} />
-            <Route path="/admin" element={<Admin />} />
             <Route path="/tai-khoan" element={<Account />} />
             <Route path="/chao-ban" element={<ReEngagement />} />
+            <Route path="/admin" element={<LegacyAdminRedirect />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

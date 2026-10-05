@@ -75,6 +75,11 @@
       "headers": { "Location": "https://www.carmatch.vn/blog" }
     },
     {
+      "src": "/admin/?",
+      "status": 301,
+      "headers": { "Location": "https://app.carmatch.vn/website-conversion" }
+    },
+    {
       "src": "/author/([^/]+)/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/blog" }
