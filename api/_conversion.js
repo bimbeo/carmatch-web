@@ -1,14 +1,23 @@
 const TRACKED_EVENT_NAMES = new Set([
+  'session_start',
+  'page_view',
   'view_item',
   'begin_checkout',
   'cm_booking_validation_error',
   'cm_booking_submit_attempt',
   'cm_booking_submit_success',
   'cm_booking_submit_error',
+  'cm_availability_check_start',
+  'cm_availability_check_success',
+  'cm_availability_check_error',
   'generate_lead',
   'cm_phone_click',
   'cm_zalo_click',
   'cm_cta_click',
+  'cm_vehicle_click',
+  'cm_lead_submit_attempt',
+  'cm_lead_submit_success',
+  'cm_lead_submit_error',
 ]);
 
 const RESPONDED_STATUSES = new Set(['contacted', 'converted', 'lost']);

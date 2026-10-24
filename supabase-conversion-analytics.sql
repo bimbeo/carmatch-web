@@ -25,16 +25,25 @@ create table if not exists public.website_conversion_events (
   event_id text not null unique,
   session_id text not null,
   event_name text not null check (event_name in (
+    'session_start',
+    'page_view',
     'view_item',
     'begin_checkout',
     'cm_booking_validation_error',
     'cm_booking_submit_attempt',
     'cm_booking_submit_success',
     'cm_booking_submit_error',
+    'cm_availability_check_start',
+    'cm_availability_check_success',
+    'cm_availability_check_error',
     'generate_lead',
     'cm_phone_click',
     'cm_zalo_click',
-    'cm_cta_click'
+    'cm_cta_click',
+    'cm_vehicle_click',
+    'cm_lead_submit_attempt',
+    'cm_lead_submit_success',
+    'cm_lead_submit_error'
   )),
   event_at timestamptz not null default now(),
   page_path text,
@@ -62,6 +71,33 @@ create table if not exists public.website_conversion_events (
   constraint website_conversion_landing_page_length_check
     check (landing_page is null or char_length(landing_page) <= 500)
 );
+
+-- Keep an existing production table in sync when new anonymous analytics
+-- events are introduced. The table is server-only and retains its RLS policy.
+alter table public.website_conversion_events
+  drop constraint if exists website_conversion_events_event_name_check;
+alter table public.website_conversion_events
+  add constraint website_conversion_events_event_name_check check (event_name in (
+    'session_start',
+    'page_view',
+    'view_item',
+    'begin_checkout',
+    'cm_booking_validation_error',
+    'cm_booking_submit_attempt',
+    'cm_booking_submit_success',
+    'cm_booking_submit_error',
+    'cm_availability_check_start',
+    'cm_availability_check_success',
+    'cm_availability_check_error',
+    'generate_lead',
+    'cm_phone_click',
+    'cm_zalo_click',
+    'cm_cta_click',
+    'cm_vehicle_click',
+    'cm_lead_submit_attempt',
+    'cm_lead_submit_success',
+    'cm_lead_submit_error'
+  ));
 
 comment on table public.website_conversion_events is
   'Privacy-limited first-party website funnel events. Contains anonymous session and campaign attribution, never customer PII.';

@@ -1,4 +1,5 @@
 export interface AttributionSnapshot {
+  visitor_id: string;
   session_id: string;
   first_seen_at: string;
   landing_page: string;
@@ -11,9 +12,17 @@ export interface AttributionSnapshot {
   gclid: string | null;
   fbclid: string | null;
   device_type: 'mobile' | 'tablet' | 'desktop';
+  is_returning_visitor: boolean;
 }
 
-const ATTRIBUTION_KEY = 'carmatch_attribution_v1';
+type StoredSession = {
+  attribution: AttributionSnapshot;
+  last_activity_at: string;
+};
+
+const VISITOR_KEY = 'carmatch_visitor_v1';
+const SESSION_KEY = 'carmatch_session_v2';
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 function safeValue(value: string | null, maxLength = 200) {
   const normalized = value?.trim();
@@ -59,18 +68,36 @@ function getDeviceType(): AttributionSnapshot['device_type'] {
 export function getAttributionSnapshot(): AttributionSnapshot | null {
   if (typeof window === 'undefined') return null;
   try {
-    const stored = sessionStorage.getItem(ATTRIBUTION_KEY);
+    const now = new Date();
+    const visitorStored = localStorage.getItem(VISITOR_KEY);
+    const visitorId = visitorStored || createId('cmv');
+    if (!visitorStored) localStorage.setItem(VISITOR_KEY, visitorId);
+
+    const stored = localStorage.getItem(SESSION_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored) as AttributionSnapshot;
-      if (parsed.session_id) return { ...parsed, device_type: getDeviceType() };
+      const parsed = JSON.parse(stored) as StoredSession;
+      const lastActivity = new Date(parsed.last_activity_at).getTime();
+      if (
+        parsed.attribution?.session_id
+        && Number.isFinite(lastActivity)
+        && now.getTime() - lastActivity <= SESSION_TIMEOUT_MS
+      ) {
+        const attribution = { ...parsed.attribution, device_type: getDeviceType() };
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          attribution,
+          last_activity_at: now.toISOString(),
+        } satisfies StoredSession));
+        return attribution;
+      }
     }
 
     const params = new URLSearchParams(window.location.search);
     const referrerHost = getReferrerHost();
     const traffic = classifyTraffic(params, referrerHost);
     const snapshot: AttributionSnapshot = {
+      visitor_id: visitorId,
       session_id: createId('cms'),
-      first_seen_at: new Date().toISOString(),
+      first_seen_at: now.toISOString(),
       landing_page: `${window.location.pathname}${window.location.search}`.slice(0, 500),
       referrer_host: referrerHost,
       traffic_source: traffic.source,
@@ -81,8 +108,12 @@ export function getAttributionSnapshot(): AttributionSnapshot | null {
       gclid: safeValue(params.get('gclid')),
       fbclid: safeValue(params.get('fbclid')),
       device_type: getDeviceType(),
+      is_returning_visitor: Boolean(visitorStored),
     };
-    sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(snapshot));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      attribution: snapshot,
+      last_activity_at: now.toISOString(),
+    } satisfies StoredSession));
     return snapshot;
   } catch {
     return null;

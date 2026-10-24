@@ -9,6 +9,7 @@ import {
   trackBookingStart,
   trackBookingSubmit,
   trackBookingValidationError,
+  trackAvailabilityCheck,
   trackCtaClick,
   trackPhoneClick,
   trackZaloClick,
@@ -777,8 +778,14 @@ export default function BookingWidget({
 
   const fetchAvailability = useCallback(async () => {
     if (!vehicleId) return;
+    const startedAt = performance.now();
     setAvailLoading(true);
     setAvailabilityUnavailable(false);
+    trackAvailabilityCheck('start', {
+      vehicle_id: vehicleId,
+      car_slug: carSlug || null,
+      vehicle_name: carName,
+    });
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
     try {
@@ -793,14 +800,30 @@ export default function BookingWidget({
       setRequiresConfirmation(data.requires_confirmation === true);
       setAvailabilityUnavailable(data.availability_unavailable === true);
       if (data.recent_bookings_count > 0) setRecentBookingsCount(data.recent_bookings_count);
-    } catch {
+      trackAvailabilityCheck('success', {
+        vehicle_id: vehicleId,
+        car_slug: carSlug || null,
+        vehicle_name: carName,
+        duration_ms: Math.round(performance.now() - startedAt),
+        blocked_ranges: Array.isArray(data.blockedRanges) ? data.blockedRanges.length : 0,
+        requires_confirmation: data.requires_confirmation === true,
+        availability_unavailable: data.availability_unavailable === true,
+      });
+    } catch (error) {
       setAvailabilityUnavailable(true);
       setRequiresConfirmation(true);
+      trackAvailabilityCheck('error', {
+        vehicle_id: vehicleId,
+        car_slug: carSlug || null,
+        vehicle_name: carName,
+        duration_ms: Math.round(performance.now() - startedAt),
+        error_type: error instanceof DOMException && error.name === 'AbortError' ? 'timeout' : 'request_failed',
+      });
     } finally {
       window.clearTimeout(timeoutId);
       setAvailLoading(false);
     }
-  }, [vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [carName, carSlug, vehicleId]);
 
   useEffect(() => {
     void fetchAvailability();
@@ -1878,7 +1901,10 @@ export default function BookingWidget({
               : 'Gửi thông tin để giữ xe 15 phút và xem hướng dẫn đặt cọc.'}
           </div>
           <div className="mt-1 font-semibold">
-            Tổng giá được hiển thị rõ trước khi đặt cọc · Điều kiện hủy/hoàn cọc được xác nhận theo xe và lịch thuê.
+            Tổng giá được hiển thị rõ trước khi đặt cọc · Điều kiện hủy/hoàn cọc được xác nhận theo xe và lịch thuê.{' '}
+            <a href="/chinh-sach" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-brand-700">
+              Xem chính sách
+            </a>
           </div>
         </div>
         <button
@@ -2629,7 +2655,10 @@ export default function BookingWidget({
                   <span className="shrink-0">ℹ️</span>
                   <span>
                     <strong>Chính sách hủy:</strong> Điều kiện hoàn cọc phụ thuộc thời điểm hủy,
-                    mẫu xe và lịch đã giữ. Vui lòng xem trang chính sách trước khi đặt.
+                    mẫu xe và lịch đã giữ.{' '}
+                    <a href="/chinh-sach" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2 hover:text-amber-900">
+                      Xem chi tiết →
+                    </a>
                   </span>
                 </div>
               </div>

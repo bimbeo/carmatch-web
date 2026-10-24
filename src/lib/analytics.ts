@@ -11,16 +11,25 @@ declare global {
 
 const DEFAULT_CATEGORY = 'conversion';
 const FIRST_PARTY_EVENTS = new Set([
+  'session_start',
+  'page_view',
   'view_item',
   'begin_checkout',
   'cm_booking_validation_error',
   'cm_booking_submit_attempt',
   'cm_booking_submit_success',
   'cm_booking_submit_error',
+  'cm_availability_check_start',
+  'cm_availability_check_success',
+  'cm_availability_check_error',
   'generate_lead',
   'cm_phone_click',
   'cm_zalo_click',
   'cm_cta_click',
+  'cm_vehicle_click',
+  'cm_lead_submit_attempt',
+  'cm_lead_submit_success',
+  'cm_lead_submit_error',
 ]);
 
 function cleanPayload(payload: AnalyticsPayload): Record<string, unknown> {
@@ -38,12 +47,16 @@ function recordFirstPartyEvent(eventName: string, eventPayload: Record<string, u
     event_id: createAnalyticsEventId(),
     event_name: eventName,
     client_at: new Date().toISOString(),
-    page_path: window.location.pathname,
+    page_path: String(eventPayload.page_path || `${window.location.pathname}${window.location.search}`),
     vehicle_id: eventPayload.vehicle_id,
     car_slug: eventPayload.car_slug,
     booking_ref: eventPayload.booking_ref,
     attribution,
-    metadata: eventPayload,
+    metadata: {
+      ...eventPayload,
+      visitor_id: attribution.visitor_id,
+      is_returning_visitor: attribution.is_returning_visitor,
+    },
   };
   void fetch('/api/conversion-events', {
     method: 'POST',
@@ -53,6 +66,23 @@ function recordFirstPartyEvent(eventName: string, eventPayload: Record<string, u
   }).catch(() => {
     // Analytics must never interrupt the booking flow.
   });
+}
+
+export function trackPageView(payload: AnalyticsPayload = {}) {
+  if (typeof window === 'undefined') return;
+  const attribution = getAttributionSnapshot();
+  if (!attribution) return;
+  const sessionStartKey = `carmatch_session_start_${attribution.session_id}`;
+  if (!sessionStorage.getItem(sessionStartKey)) {
+    sessionStorage.setItem(sessionStartKey, '1');
+    trackEvent('session_start', {
+      landing_page: attribution.landing_page,
+      traffic_source: attribution.traffic_source,
+      traffic_medium: attribution.traffic_medium,
+      is_returning_visitor: attribution.is_returning_visitor,
+    });
+  }
+  trackEvent('page_view', payload);
 }
 
 export function trackEvent(eventName: string, payload: AnalyticsPayload = {}) {
@@ -133,6 +163,10 @@ export function trackBookingSubmit(status: 'attempt' | 'success' | 'error', payl
   if (status === 'success') {
     trackEvent('generate_lead', payload);
   }
+}
+
+export function trackAvailabilityCheck(status: 'start' | 'success' | 'error', payload: AnalyticsPayload = {}) {
+  trackEvent(`cm_availability_check_${status}`, payload);
 }
 
 export function trackLeadSubmit(status: 'attempt' | 'success' | 'error', payload: AnalyticsPayload = {}) {

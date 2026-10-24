@@ -9,6 +9,7 @@ import {
 
 test('sanitizeAttribution keeps campaign fields and excludes unknown data', () => {
   assert.deepEqual(sanitizeAttribution({
+    visitor_id: 'cmv_123456789012',
     session_id: 'cms_123456789012',
     first_seen_at: '2026-10-04T01:00:00.000Z',
     landing_page: '/xe/vinfast-vf3-2025?utm_source=google',
@@ -63,14 +64,40 @@ test('buildConversionEventInsert accepts funnel/contact events and strips invali
       metadata: { source: 'booking_widget_contact' },
     },
   }).event_name, 'cm_zalo_click');
-  assert.throws(() => buildConversionEventInsert({
+  assert.equal(buildConversionEventInsert({
     companyId: '11111111-1111-4111-8111-111111111111',
     body: {
       event_id: 'cme_123456789012',
       event_name: 'page_view',
       attribution: { session_id: 'cms_123456789012' },
     },
-  }), /Unsupported event/);
+  }).event_name, 'page_view');
+
+  assert.equal(buildConversionEventInsert({
+    companyId: '11111111-1111-4111-8111-111111111111',
+    body: {
+      event_id: 'cme_123456789014',
+      event_name: 'cm_lead_submit_success',
+      attribution: { session_id: 'cms_123456789012' },
+      metadata: { lead_type: 'b2b' },
+    },
+  }).event_name, 'cm_lead_submit_success');
+
+  const availability = buildConversionEventInsert({
+    companyId: '11111111-1111-4111-8111-111111111111',
+    body: {
+      event_id: 'cme_123456789015',
+      event_name: 'cm_availability_check_success',
+      attribution: { session_id: 'cms_123456789012', device_type: 'mobile' },
+      metadata: { duration_ms: 842, blocked_ranges: 2, requires_confirmation: false },
+    },
+  });
+  assert.equal(availability.event_name, 'cm_availability_check_success');
+  assert.deepEqual(availability.metadata, {
+    duration_ms: 842,
+    blocked_ranges: 2,
+    requires_confirmation: false,
+  });
 });
 
 test('buildLeadStatusUpdate preserves first response and records lost reason', () => {

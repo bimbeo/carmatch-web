@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useLayoutEffect, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router';
 import Home from './pages/Home';
+import { trackPageView } from '../lib/analytics';
 
 const Fleet = lazy(() => import('./pages/Fleet'));
 const CarDetail = lazy(() => import('./pages/CarDetail'));
@@ -135,11 +136,26 @@ function ScrollToTop() {
   return null;
 }
 
+function RouteAnalytics() {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    if (pathname === '/admin') return;
+    trackPageView({
+      page_path: `${pathname}${search}`,
+      page_title: document.title,
+    });
+  }, [pathname, search]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <AppErrorBoundary>
       <BrowserRouter>
         <ScrollToTop />
+        <RouteAnalytics />
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />
