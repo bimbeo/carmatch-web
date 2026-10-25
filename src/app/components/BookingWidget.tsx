@@ -688,6 +688,7 @@ export default function BookingWidget({
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerNote, setCustomerNote] = useState('');
+  const [showOptionalDetails, setShowOptionalDetails] = useState(Boolean(initialPromoCode));
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [bookingRef, setBookingRef] = useState('');
@@ -706,6 +707,7 @@ export default function BookingWidget({
   const [pointsPerTenK, setPointsPerTenK] = useState(1); // default 1 pt per 10k VND (overridden by DB setting)
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const trackedValidationReasonsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     bookingIdempotencyRef.current = '';
@@ -1254,12 +1256,15 @@ export default function BookingWidget({
   const handleBookingSubmit = async () => {
     const rejectBooking = (reason: string, message: string) => {
       setBookingError(message);
-      trackBookingValidationError(reason, {
-        vehicle_id: vehicleId || null,
-        vehicle_name: carName,
-        rental_days: rentalDays,
-        total_amount: finalTotal,
-      });
+      if (!trackedValidationReasonsRef.current.has(reason)) {
+        trackedValidationReasonsRef.current.add(reason);
+        trackBookingValidationError(reason, {
+          vehicle_id: vehicleId || null,
+          vehicle_name: carName,
+          rental_days: rentalDays,
+          total_amount: finalTotal,
+        });
+      }
     };
     if (hardConflicts.length > 0) {
       rejectBooking('hard_conflict', 'Xe đã có lịch trong khoảng này. Vui lòng chọn ngày khác.');
@@ -1268,10 +1273,6 @@ export default function BookingWidget({
     if (!customerName.trim()) { rejectBooking('missing_name', 'Vui lòng nhập họ tên'); return; }
     const phoneClean = customerPhone.trim().replace(/\s/g, '');
     if (!/^(0[3-9]\d{8})$/.test(phoneClean)) { rejectBooking('invalid_phone', 'Số điện thoại không hợp lệ'); return; }
-    if (deliveryMode === 'delivery' && !deliveryAddress.trim()) {
-      rejectBooking('missing_delivery_address', 'Vui lòng nhập địa chỉ giao xe');
-      return;
-    }
     if (holidayBookingBlocked) {
       rejectBooking('holiday_combo_mismatch', holidayComboBlockMessage);
       return;
@@ -1325,8 +1326,10 @@ export default function BookingWidget({
           return_date: returnDate,
           return_hour: returnHour,
           delivery_mode: deliveryMode,
-          delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() : null,
-          location_name: deliveryMode === 'self' ? loc?.name : deliveryAddress.trim() || 'Giao tận nơi',
+          delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() || null : null,
+          location_name: deliveryMode === 'self'
+            ? loc?.name
+            : deliveryAddress.trim() || 'Giao tận nơi · bổ sung địa chỉ khi xác nhận',
           base_amount: clientQuote.base_amount,
           holiday_surcharge: clientQuote.holiday_surcharge,
           holiday_pricing: holidayPricing.applied,
@@ -1738,9 +1741,12 @@ export default function BookingWidget({
                     <input
                       value={deliveryAddress}
                       onChange={e => setDeliveryAddress(e.target.value)}
-                      placeholder="Địa chỉ nhận xe (số nhà, đường, quận...)"
+                      placeholder="Địa chỉ nhận xe (có thể bổ sung sau)"
                       className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
                     />
+                    <p className="mt-1.5 text-[11px] leading-4 text-gray-500">
+                      Chưa nhớ địa chỉ chính xác? Bạn vẫn có thể gửi yêu cầu, Car Match sẽ xác nhận khi gọi lại.
+                    </p>
                   </>
                 )}
               </div>
@@ -1919,6 +1925,7 @@ export default function BookingWidget({
             };
             trackCtaClick('booking_widget_open_form', analyticsPayload);
             trackBookingStart(analyticsPayload);
+            trackedValidationReasonsRef.current.clear();
             setShowBookingModal(true);
             setBookingStep(1);
             setBookingNeedsConfirmation(false);
@@ -1934,8 +1941,8 @@ export default function BookingWidget({
             : holidayBookingBlocked
               ? 'Chọn đúng combo lễ'
               : needsManualConfirmation
-                ? 'Gửi yêu cầu — phản hồi trong 30 phút'
-                : 'Đặt xe & giữ lịch 15 phút'}
+                ? 'Gửi yêu cầu · Chưa cần thanh toán'
+                : 'Giữ xe 15 phút · Chưa cần thanh toán'}
         </button>
         {needsManualConfirmation && (
           <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
@@ -2554,97 +2561,103 @@ export default function BookingWidget({
                     </div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Email nhận xác nhận <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
-                  </label>
-                  <input
-                    value={customerEmail}
-                    onChange={e => setCustomerEmail(e.target.value)}
-                    placeholder="email@example.com — nhận xác nhận đặt xe"
-                    type="email"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
-                  />
+                <div className="rounded-xl border border-green-200 bg-green-50 px-3.5 py-2.5 text-xs leading-5 text-green-800">
+                  <strong>Chỉ cần họ tên và số điện thoại.</strong> Car Match sẽ xác nhận lịch, địa chỉ giao nhận và tổng tiền trước khi yêu cầu đặt cọc.
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Mã giảm giá <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      value={promoCode}
-                      onChange={e => {
-                        setPromoCode(e.target.value.toUpperCase());
-                        setPromoError('');
-                        setPromoResult(null);
-                      }}
-                      onKeyDown={e => e.key === 'Enter' && void validatePromo()}
-                      placeholder={holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'SUMMER10'}
-                      type="text"
-                      disabled={Boolean(promoResult) || holidayPromoBlocked}
-                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-gray-50 disabled:text-gray-400"
-                      autoCapitalize="characters"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void validatePromo()}
-                      disabled={promoLoading || Boolean(promoResult) || holidayPromoBlocked}
-                      className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
-                        promoResult
-                          ? 'bg-green-100 text-green-700 border border-green-200 cursor-default'
-                          : 'bg-cyan-500 text-white hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed'
-                      }`}
-                    >
-                      {promoLoading ? '...' : promoResult ? '✓ Đã áp dụng' : 'Áp dụng'}
-                    </button>
-                  </div>
-                  {promoResult && (
-                    <div className="mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 text-xs text-green-700 flex items-center justify-between gap-1.5">
-                      <span>✅ Giảm {fmtVND(promoResult.discount_amount)}</span>
-                      <button
-                        type="button"
-                        onClick={clearPromo}
-                        className="font-bold text-green-700 hover:text-red-500"
-                        aria-label="Xóa mã giảm giá"
-                      >
-                        ×
-                      </button>
+
+                <div className="rounded-xl border border-gray-200 bg-white">
+                  <button
+                    type="button"
+                    onClick={() => setShowOptionalDetails(value => !value)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    aria-expanded={showOptionalDetails}
+                  >
+                    <span>Email, mã giảm giá hoặc ghi chú</span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${showOptionalDetails ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showOptionalDetails && (
+                    <div className="space-y-4 border-t border-gray-100 px-4 py-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                          Email nhận xác nhận <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
+                        </label>
+                        <input
+                          value={customerEmail}
+                          onChange={e => setCustomerEmail(e.target.value)}
+                          placeholder="email@example.com"
+                          type="email"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                          Mã giảm giá <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            value={promoCode}
+                            onChange={e => {
+                              setPromoCode(e.target.value.toUpperCase());
+                              setPromoError('');
+                              setPromoResult(null);
+                            }}
+                            onKeyDown={e => e.key === 'Enter' && void validatePromo()}
+                            placeholder={holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'SUMMER10'}
+                            type="text"
+                            disabled={Boolean(promoResult) || holidayPromoBlocked}
+                            className="min-w-0 flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-gray-50 disabled:text-gray-400"
+                            autoCapitalize="characters"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void validatePromo()}
+                            disabled={promoLoading || Boolean(promoResult) || holidayPromoBlocked}
+                            className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                              promoResult
+                                ? 'bg-green-100 text-green-700 border border-green-200 cursor-default'
+                                : 'bg-cyan-500 text-white hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed'
+                            }`}
+                          >
+                            {promoLoading ? '...' : promoResult ? '✓ Đã áp dụng' : 'Áp dụng'}
+                          </button>
+                        </div>
+                        {promoResult && (
+                          <div className="mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 text-xs text-green-700 flex items-center justify-between gap-1.5">
+                            <span>✅ Giảm {fmtVND(promoResult.discount_amount)}</span>
+                            <button type="button" onClick={clearPromo} className="font-bold text-green-700 hover:text-red-500" aria-label="Xóa mã giảm giá">×</button>
+                          </div>
+                        )}
+                        {holidayPromoBlocked && <p className="text-xs text-amber-700 font-medium mt-1">{holidayPromoBlockMessage}</p>}
+                        {promoError && <p className="text-xs text-red-500 font-medium mt-1">{promoError}</p>}
+                        {!promoResult && !holidayPromoBlocked && activeSuggestedCodes.length > 0 && (
+                          <div className="mt-2 space-y-1.5">
+                            <p className="text-xs text-gray-400 font-medium">Mã của bạn:</p>
+                            {activeSuggestedCodes.map(c => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => void applyPromoFromList(c.code)}
+                                className="w-full flex items-center justify-between rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs hover:bg-cyan-100 transition-colors"
+                              >
+                                <span className="font-mono font-bold text-cyan-800">{c.code}</span>
+                                <span className="text-cyan-600 font-semibold">Giảm {c.discount_value.toLocaleString('vi-VN')}đ · Áp dụng →</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Ghi chú (tuỳ chọn)</label>
+                        <textarea
+                          value={customerNote}
+                          onChange={e => setCustomerNote(e.target.value)}
+                          placeholder="Yêu cầu đặc biệt hoặc địa chỉ giao xe..."
+                          rows={2}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
+                        />
+                      </div>
                     </div>
                   )}
-                  {holidayPromoBlocked && (
-                    <p className="text-xs text-amber-700 font-medium mt-1">{holidayPromoBlockMessage}</p>
-                  )}
-                  {promoError && (
-                    <p className="text-xs text-red-500 font-medium mt-1">{promoError}</p>
-                  )}
-                  {!promoResult && !holidayPromoBlocked && activeSuggestedCodes.length > 0 && (
-                    <div className="mt-2 space-y-1.5">
-                      <p className="text-xs text-gray-400 font-medium">Mã của bạn:</p>
-                      {activeSuggestedCodes.map(c => (
-                        <button
-                          key={c.code}
-                          type="button"
-                          onClick={() => void applyPromoFromList(c.code)}
-                          className="w-full flex items-center justify-between rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs hover:bg-cyan-100 transition-colors"
-                        >
-                          <span className="font-mono font-bold text-cyan-800">{c.code}</span>
-                          <span className="text-cyan-600 font-semibold">Giảm {c.discount_value.toLocaleString('vi-VN')}đ · Áp dụng →</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Ghi chú (tuỳ chọn)
-                  </label>
-                  <textarea
-                    value={customerNote}
-                    onChange={e => setCustomerNote(e.target.value)}
-                    placeholder="Yêu cầu đặc biệt, địa chỉ giao xe..."
-                    rows={2}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
-                  />
                 </div>
                 {bookingError && (
                   <p className="text-xs text-red-500 font-medium flex items-center gap-1.5">
@@ -3081,8 +3094,8 @@ export default function BookingWidget({
                 {bookingLoading
                   ? 'Đang xử lý…'
                   : needsManualConfirmation
-                    ? 'Gửi yêu cầu — phản hồi trong 30 phút'
-                    : BANK_QR_ENABLED ? 'Giữ xe 15 phút — Xem QR cọc' : 'Gửi yêu cầu đặt xe'}
+                    ? 'Gửi yêu cầu · Chưa cần thanh toán'
+                    : BANK_QR_ENABLED ? 'Giữ xe 15 phút · Xem QR cọc' : 'Gửi yêu cầu đặt xe'}
               </button>
             )}
             {bookingStep === 2 && (

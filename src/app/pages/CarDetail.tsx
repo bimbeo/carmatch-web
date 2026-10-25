@@ -1024,6 +1024,9 @@ export default function CarDetail() {
               {bookingAvailabilityStatus.requiresConfirmation ? 'Phản hồi trong 30 phút' : 'Chọn lịch để xem tổng giá'}
             </div>
           )}
+          {bookingSummary?.valid && (
+            <div className="text-[10px] font-medium text-green-700">Chưa cần thanh toán</div>
+          )}
         </div>
         <a
           href={`tel:${ZALO_NUMBER}`}
@@ -1042,7 +1045,7 @@ export default function CarDetail() {
           className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors shadow-sm"
         >
           <CalendarDays className="w-4 h-4" />
-          {bookingAvailabilityStatus.requiresConfirmation ? 'Kiểm tra lịch' : 'Đặt xe'}
+          {bookingAvailabilityStatus.requiresConfirmation ? 'Kiểm tra lịch' : 'Chọn lịch'}
         </button>
       </div>
 
