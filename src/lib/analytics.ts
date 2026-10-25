@@ -151,10 +151,13 @@ export function trackBookingStart(payload: AnalyticsPayload = {}) {
   trackEvent('begin_checkout', payload);
 }
 
+export const CURRENT_BOOKING_FORM_VERSION = 'contact-only-v2';
+
 export function trackBookingValidationError(reason: string, payload: AnalyticsPayload = {}) {
   trackEvent('cm_booking_validation_error', {
-    reason,
     ...payload,
+    reason,
+    form_version: CURRENT_BOOKING_FORM_VERSION,
   });
 }
 
