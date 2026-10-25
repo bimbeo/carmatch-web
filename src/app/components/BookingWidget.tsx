@@ -22,6 +22,11 @@ import {
 } from '@/lib/rentalDuration';
 import { supabase } from '@/lib/supabase';
 import { getAttributionSnapshot } from '@/lib/attribution';
+import {
+  experimentPayload,
+  getBookingCtaExperiment,
+  trackExperimentExposure,
+} from '@/lib/experiments';
 import { useIsMobile } from './ui/use-mobile';
 
 const ZALO_NUMBER = '0971163290';
@@ -628,6 +633,9 @@ export default function BookingWidget({
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
   const initialBookingSelection = useMemo(() => getInitialBookingSelection(today), [today]);
+  const [ctaExperiment] = useState(getBookingCtaExperiment);
+  const experimentMeta = useMemo(() => experimentPayload(ctaExperiment), [ctaExperiment]);
+  const isPriceTrustVariant = ctaExperiment.variant_id === 'price-trust';
   const [pickupDate, setPickupDate] = useState(initialBookingSelection.pickupDate);
   const [pickupHour, setPickupHour] = useState(initialBookingSelection.pickupHour);
   const [returnDate, setReturnDate] = useState(initialBookingSelection.returnDate);
@@ -708,6 +716,15 @@ export default function BookingWidget({
   const [referralRewardAmount, setReferralRewardAmount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const trackedValidationReasonsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    trackExperimentExposure(ctaExperiment, {
+      page_type: 'vehicle_detail',
+      vehicle_id: vehicleId || null,
+      car_slug: carSlug || null,
+      vehicle_name: carName,
+    });
+  }, [carName, carSlug, ctaExperiment, vehicleId]);
 
   useEffect(() => {
     bookingIdempotencyRef.current = '';
@@ -1263,6 +1280,7 @@ export default function BookingWidget({
           vehicle_name: carName,
           rental_days: rentalDays,
           total_amount: finalTotal,
+          ...experimentMeta,
         });
       }
     };
@@ -1295,6 +1313,7 @@ export default function BookingWidget({
       pickup_date: pickupDate,
       return_date: returnDate,
       promo_code: promoForBooking?.code ?? null,
+      ...experimentMeta,
     });
     try {
       const loc = LOCATIONS.find(l => l.id === selectedLocation);
@@ -1386,6 +1405,7 @@ export default function BookingWidget({
           deposit_amount: submittedNeedsConfirmation ? 0 : Number(data.depositAmount) || 0,
         delivery_mode: deliveryMode,
         promo_code: promoForBooking?.code ?? null,
+        ...experimentMeta,
       });
     } catch (e: unknown) {
       const message = (e as Error)?.message || 'Lỗi kết nối, thử lại sau';
@@ -1396,6 +1416,7 @@ export default function BookingWidget({
         rental_days: rentalDays,
         total_amount: finalTotal,
         error_message: message,
+        ...experimentMeta,
       });
     } finally {
       setBookingLoading(false);
@@ -1907,7 +1928,9 @@ export default function BookingWidget({
               : 'Gửi thông tin để giữ xe 15 phút và xem hướng dẫn đặt cọc.'}
           </div>
           <div className="mt-1 font-semibold">
-            Tổng giá được hiển thị rõ trước khi đặt cọc · Điều kiện hủy/hoàn cọc được xác nhận theo xe và lịch thuê.{' '}
+            {isPriceTrustVariant
+              ? 'Giá hiển thị là tổng dự kiến cho lịch đã chọn · Chưa thanh toán ở bước gửi yêu cầu. '
+              : 'Tổng giá được hiển thị rõ trước khi đặt cọc · Điều kiện hủy/hoàn cọc được xác nhận theo xe và lịch thuê. '}
             <a href="/chinh-sach" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-brand-700">
               Xem chính sách
             </a>
@@ -1922,6 +1945,7 @@ export default function BookingWidget({
               total_amount: finalTotal,
               currency: 'VND',
               booking_mode: needsManualConfirmation ? 'request' : 'instant',
+              ...experimentMeta,
             };
             trackCtaClick('booking_widget_open_form', analyticsPayload);
             trackBookingStart(analyticsPayload);
@@ -1941,8 +1965,8 @@ export default function BookingWidget({
             : holidayBookingBlocked
               ? 'Chọn đúng combo lễ'
               : needsManualConfirmation
-                ? 'Gửi yêu cầu · Chưa cần thanh toán'
-                : 'Giữ xe 15 phút · Chưa cần thanh toán'}
+                ? isPriceTrustVariant ? 'Kiểm tra lịch & nhận báo giá' : 'Gửi yêu cầu · Chưa cần thanh toán'
+                : isPriceTrustVariant ? 'Giữ xe theo giá trên' : 'Giữ xe 15 phút · Chưa cần thanh toán'}
         </button>
         {needsManualConfirmation && (
           <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
@@ -3094,8 +3118,10 @@ export default function BookingWidget({
                 {bookingLoading
                   ? 'Đang xử lý…'
                   : needsManualConfirmation
-                    ? 'Gửi yêu cầu · Chưa cần thanh toán'
-                    : BANK_QR_ENABLED ? 'Giữ xe 15 phút · Xem QR cọc' : 'Gửi yêu cầu đặt xe'}
+                    ? isPriceTrustVariant ? 'Gửi yêu cầu kiểm tra lịch' : 'Gửi yêu cầu · Chưa cần thanh toán'
+                    : isPriceTrustVariant
+                      ? BANK_QR_ENABLED ? 'Giữ xe theo giá trên · Xem QR cọc' : 'Gửi yêu cầu giữ xe'
+                      : BANK_QR_ENABLED ? 'Giữ xe 15 phút · Xem QR cọc' : 'Gửi yêu cầu đặt xe'}
               </button>
             )}
             {bookingStep === 2 && (

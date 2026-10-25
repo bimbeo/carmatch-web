@@ -71,6 +71,8 @@ interface SupabaseVehicle {
   current_km?: number | null;
   status?: string | null;
   published?: boolean | null;
+  inventory_count?: number | null;
+  available_inventory_count?: number | null;
   website_description?: string | null;
   km_per_day?: number | null;
   km_surcharge?: number | null;
@@ -129,14 +131,29 @@ function hasVehicleImages(refs: Record<string, unknown> | null | undefined): boo
   return Array.isArray(refs.mediaFiles) && refs.mediaFiles.some(isVehicleImageMedia);
 }
 
+function vehiclePayloadSlug(vehicle: SupabaseVehicle): string {
+  if (typeof vehicle.slug === 'string' && vehicle.slug.trim()) return vehicle.slug.trim();
+  const model = vehicle.vehicle_models;
+  return makeDisplaySlug(
+    vehicle,
+    model?.make || '',
+    model?.model || '',
+    model?.variant || '',
+  );
+}
+
 export function mergeLiveVehicles(
   liveVehicles: SupabaseVehicle[],
   snapshotVehicles: SupabaseVehicle[],
+  preservedVehicles: SupabaseVehicle[] = [],
 ): SupabaseVehicle[] {
   const snapshotById = new Map(snapshotVehicles.map((vehicle) => [vehicle.id, vehicle]));
+  const snapshotBySlug = new Map(snapshotVehicles.map((vehicle) => [vehiclePayloadSlug(vehicle), vehicle]));
+  const liveIds = new Set(liveVehicles.map((vehicle) => vehicle.id));
+  const liveSlugs = new Set(liveVehicles.map(vehiclePayloadSlug));
 
-  return liveVehicles.map((liveVehicle) => {
-    const snapshot = snapshotById.get(liveVehicle.id);
+  const merged = liveVehicles.map((liveVehicle) => {
+    const snapshot = snapshotById.get(liveVehicle.id) || snapshotBySlug.get(vehiclePayloadSlug(liveVehicle));
     if (!snapshot) return liveVehicle;
 
     return {
@@ -149,6 +166,12 @@ export function mergeLiveVehicles(
         : snapshot.external_refs,
     };
   });
+
+  for (const vehicle of preservedVehicles) {
+    if (!liveIds.has(vehicle.id) && !liveSlugs.has(vehiclePayloadSlug(vehicle))) merged.push(vehicle);
+  }
+
+  return merged;
 }
 
 function uniquifyCarSlugs(cars: Car[]): Car[] {
@@ -232,6 +255,7 @@ function mapToCar(v: SupabaseVehicle): Car {
       displaySlug,
     ].filter((slug) => slug && slug !== primarySlug)),
   );
+  const isBookable = v.status !== 'inactive' && v.status !== 'retired' && v.published !== false;
 
   return {
     id: v.id,
@@ -251,7 +275,9 @@ function mapToCar(v: SupabaseVehicle): Car {
     conditions: Array.isArray(v.rental_conditions) && v.rental_conditions.length > 0
       ? v.rental_conditions
       : DEFAULT_CONDITIONS,
-    available: v.status ? v.status === 'available' : true,
+    available: isBookable,
+    inventoryCount: v.inventory_count ?? 1,
+    availableInventoryCount: v.available_inventory_count ?? (isBookable ? 1 : 0),
     images: galleryImages.length > 0 ? galleryImages : [PLACEHOLDER_IMAGE],
     category: mapCategory(fuel),
     description: v.website_description?.trim() || undefined,
@@ -315,6 +341,8 @@ export function useVehicles(): UseVehiclesResult {
   const [loading, setLoading] = useState(initialVehicles.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [fetched, setFetched] = useState(false);
+  const preserveInitialVehicle =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/xe/');
 
   useEffect(() => {
     let cancelled = false;
@@ -333,7 +361,12 @@ export function useVehicles(): UseVehiclesResult {
         if (cancelled) return;
         snapshotRows = data;
         hasFallback = data.length > 0;
-        setCars(uniquifyCarSlugs(data.map(mapToCar)));
+        const mergedSnapshot = mergeLiveVehicles(
+          data,
+          snapshotRows,
+          preserveInitialVehicle && Array.isArray(initialVehiclePayload) ? initialVehiclePayload : [],
+        );
+        setCars(uniquifyCarSlugs(mergedSnapshot.map(mapToCar)));
         setLoading(false);
       } catch (staticError) {
         if (cancelled) return;
@@ -346,7 +379,11 @@ export function useVehicles(): UseVehiclesResult {
       try {
         const data = await fetchVehicleJson('/api/vehicles');
         if (cancelled) return;
-        const merged = mergeLiveVehicles(data, snapshotRows);
+        const merged = mergeLiveVehicles(
+          data,
+          snapshotRows,
+          preserveInitialVehicle && Array.isArray(initialVehiclePayload) ? initialVehiclePayload : [],
+        );
         setCars(uniquifyCarSlugs(merged.map(mapToCar)));
         setLoading(false);
         setFetched(true);

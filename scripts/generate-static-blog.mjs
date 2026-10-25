@@ -45,7 +45,7 @@ const siteUrl = 'https://www.carmatch.vn';
 const brandLogo = `${siteUrl}/brand/carmatch-lockup-navy.png`;
 const brandIcon = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
 const brandSocialImage = `${siteUrl}/og-image-20260619.png`;
-const contentLastModified = process.env.SITE_LASTMOD || '2026-06-26';
+const contentLastModified = process.env.SITE_LASTMOD || '2026-10-25';
 const homeLastModified = contentLastModified;
 const socialProfiles = [
   'https://zalo.me/0971163290',
@@ -1640,23 +1640,100 @@ function slugify(text, fallback = '') {
 }
 
 function makeVehicleSlug(vehicle) {
+  if (typeof vehicle?.seo_slug === 'string' && vehicle.seo_slug.trim()) {
+    return vehicle.seo_slug.trim();
+  }
   const model = vehicle.vehicle_models || {};
   const displayName = vehicle.display_name || [model.make, model.model, model.variant, vehicle.model_year].filter(Boolean).join(' ');
   return slugify(displayName, vehicle.id);
 }
 
-function makeDuplicateVehicleSlug(vehicle) {
-  const baseSlug = makeVehicleSlug(vehicle);
-  const colorPart = slugify(vehicle.color || '');
-  const idPart = String(vehicle.id || '').slice(0, 8).toLowerCase();
-  const suffix = colorPart || idPart;
-  return `${baseSlug}-${suffix}`;
+function makeGeneratedVehicleSlug(vehicle) {
+  const model = vehicle.vehicle_models || {};
+  const displayName = vehicle.display_name || [model.make, model.model, model.variant, vehicle.model_year].filter(Boolean).join(' ');
+  return slugify(displayName, vehicle.id);
 }
 
 function makeLegacyColorVehicleSlug(vehicle) {
-  const baseSlug = makeVehicleSlug(vehicle);
+  const baseSlug = makeGeneratedVehicleSlug(vehicle);
   const colorPart = slugify(vehicle.color || '');
   return colorPart ? `${baseSlug}-${colorPart}` : '';
+}
+
+function hasVehicleMedia(vehicle) {
+  const refs = vehicle?.external_refs;
+  return Boolean(
+    refs &&
+    typeof refs === 'object' &&
+    (refs.coverImageUrl || refs.vehiclePhotoUrl || refs.imageUrl || refs.image_url ||
+      (Array.isArray(refs.mediaFiles) && refs.mediaFiles.length > 0))
+  );
+}
+
+function isOperationallyBookable(vehicle) {
+  return vehicle?.status !== 'inactive' &&
+    vehicle?.status !== 'retired' &&
+    vehicle?.published !== false;
+}
+
+/**
+ * One indexed URL represents a model, not a physical inventory row. This lets
+ * Ops hide a busy vehicle without deleting the model page or creating another
+ * near-identical SEO page for every plate/color.
+ */
+function collapseVehiclesToSeoPages(vehicles = []) {
+  const groups = new Map();
+  for (const vehicle of vehicles) {
+    const slug = makeVehicleSlug(vehicle);
+    const group = groups.get(slug) || [];
+    group.push(vehicle);
+    groups.set(slug, group);
+  }
+
+  return Array.from(groups.entries()).map(([slug, group]) => {
+    // Bundled legacy snapshots predate status/published fields and contain
+    // only public bookable rows, so missing flags must remain bookable.
+    const availableRows = group.filter(isOperationallyBookable);
+    const sorted = [...group].sort((left, right) => {
+      const score = (vehicle) =>
+        (isOperationallyBookable(vehicle) ? 4 : 0) +
+        (hasVehicleMedia(vehicle) ? 2 : 0) +
+        (Number(vehicle.daily_base_price || 0) > 0 ? 1 : 0);
+      return score(right) - score(left);
+    });
+    const representative = sorted[0];
+    const preferredPriceRows = availableRows.length > 0 ? availableRows : group;
+    const prices = preferredPriceRows
+      .map((vehicle) => Number(vehicle.daily_base_price || 0))
+      .filter((price) => price > 0);
+    const updatedAt = group
+      .map((vehicle) => vehicle.updated_at || vehicle.created_at)
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    const aliases = new Set();
+    for (const vehicle of group) {
+      const generatedSlug = makeGeneratedVehicleSlug(vehicle);
+      const colorSlug = makeLegacyColorVehicleSlug(vehicle);
+      if (generatedSlug && generatedSlug !== slug) aliases.add(generatedSlug);
+      if (colorSlug && colorSlug !== slug) aliases.add(colorSlug);
+      for (const alias of vehicle.seo_slug_aliases || []) {
+        if (alias && alias !== slug) aliases.add(alias);
+      }
+    }
+
+    return {
+      ...representative,
+      slug,
+      slugAliases: Array.from(aliases),
+      status: availableRows.length > 0 ? 'available' : representative.status,
+      published: availableRows.length > 0,
+      daily_base_price: prices.length > 0 ? Math.min(...prices) : representative.daily_base_price,
+      inventory_count: group.length,
+      available_inventory_count: availableRows.length,
+      updated_at: updatedAt || representative.updated_at,
+    };
+  });
 }
 
 function getVehicleImage(vehicle) {
@@ -1788,6 +1865,11 @@ function vehicleStaticDetailHtml(vehicle) {
   const transmission = model.transmission || 'hộp số theo cấu hình xe';
   const price = vehiclePriceText(vehicle);
   const fit = vehicleFitText(vehicle);
+  const bookable = Number(vehicle.available_inventory_count || 0) > 0 ||
+    (vehicle.status === 'available' && vehicle.published !== false);
+  const availabilityCopy = bookable
+    ? 'Mẫu xe này đang có xe nhận lịch. Car Match vẫn kiểm tra ngày, giờ và điểm giao nhận thực tế trước khi xác nhận.'
+    : 'Mẫu xe này hiện tạm ngừng nhận lịch trực tiếp. Trang được giữ lại để bạn xem thông tin, giá tham khảo và chọn mẫu xe tương đương đang sẵn sàng.';
 
   return `<section class="cm-static-fallback-section" aria-labelledby="vehicle-summary">
         <div class="cm-static-fallback-grid">
@@ -1803,7 +1885,9 @@ function vehicleStaticDetailHtml(vehicle) {
               <div><dt>Nhiên liệu</dt><dd>${escapeHtml(fuel)}</dd></div>
               <div><dt>Hộp số</dt><dd>${escapeHtml(transmission)}</dd></div>
               <div><dt>Giá thuê</dt><dd>${escapeHtml(price)}</dd></div>
+              <div><dt>Tình trạng</dt><dd>${escapeHtml(bookable ? 'Đang nhận lịch' : 'Tạm ngừng nhận lịch')}</dd></div>
             </dl>
+            <p>${escapeHtml(availabilityCopy)}</p>
           </article>
         </div>
       </section>
@@ -2039,6 +2123,8 @@ function vehicleStructuredData(vehicle) {
   const vehicleNodeId = `${url}#vehicle`;
   const kmPerDay = Number(vehicle.km_per_day || 250);
   const kmSurcharge = Number(vehicle.km_surcharge || 3000);
+  const bookable = Number(vehicle.available_inventory_count || 0) > 0 ||
+    (vehicle.status === 'available' && vehicle.published !== false);
 
   const productData = buildProductCarSchema({
     name: `Thuê ${name}`,
@@ -2048,7 +2134,9 @@ function vehicleStructuredData(vehicle) {
     category: 'Xe tự lái',
     canonical: url,
     price,
-    availability: 'https://schema.org/LimitedAvailability',
+    availability: bookable
+      ? 'https://schema.org/LimitedAvailability'
+      : 'https://schema.org/OutOfStock',
     shippingDetails: hanoiDeliveryDetails,
     returnPolicy: rentalReturnPolicy,
   }, seoSchemaConfig);
@@ -2231,7 +2319,7 @@ async function fetchVehicles() {
       const response = await fetch(`${siteUrl}/api/vehicles`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      return uniqueVehicleSlugs(Array.isArray(data) ? data : []);
+      return collapseVehiclesToSeoPages(Array.isArray(data) ? data : []);
     } catch (error) {
       console.warn(`Skipped vehicle sitemap generation: ${error.message}`);
       return [];
@@ -2239,14 +2327,23 @@ async function fetchVehicles() {
   }
 
   const baseSelect =
-    'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const datedSelect = `created_at,updated_at,${baseSelect}`;
   let result = await supabase
     .from('vehicles')
-    .select(datedSelect)
+    .select(`seo_slug,seo_slug_aliases,${datedSelect}`)
     .eq('status', 'available')
     .eq('published', true)
     .order('daily_base_price', { ascending: true });
+
+  if (result.error && /seo_slug|seo_slug_aliases/i.test(result.error.message)) {
+    result = await supabase
+      .from('vehicles')
+      .select(datedSelect)
+      .eq('status', 'available')
+      .eq('published', true)
+      .order('daily_base_price', { ascending: true });
+  }
 
   if (result.error && /created_at|updated_at/i.test(result.error.message)) {
     result = await supabase
@@ -2264,44 +2361,31 @@ async function fetchVehicles() {
     return [];
   }
 
-  return uniqueVehicleSlugs(data || []);
+  return collapseVehiclesToSeoPages(data || []);
 }
 
-function uniqueVehicleSlugs(vehicles) {
-  const counts = new Map();
-  vehicles.forEach((vehicle) => {
-    const baseSlug = makeVehicleSlug(vehicle);
-    counts.set(baseSlug, (counts.get(baseSlug) || 0) + 1);
-  });
+async function fetchSeoVehicles(fallbackVehicles = []) {
+  if (!supabase) return fallbackVehicles;
 
-  const used = new Set();
-  const legacyColorUsed = new Map();
-  return vehicles.map((vehicle) => {
-    const baseSlug = makeVehicleSlug(vehicle);
-    const slugAliases = [];
-    let slug = (counts.get(baseSlug) || 0) > 1 ? makeDuplicateVehicleSlug(vehicle) : baseSlug;
-    if (slug !== baseSlug) slugAliases.push(baseSlug);
-    let index = 2;
-    while (used.has(slug)) {
-      slug = `${makeDuplicateVehicleSlug(vehicle)}-${index}`;
-      index += 1;
+  const select =
+    'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,created_at,updated_at,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select(select)
+    .eq('seo_indexable', true)
+    .order('daily_base_price', { ascending: true });
+
+  if (error) {
+    if (/seo_indexable|seo_slug/i.test(error.message)) {
+      console.warn('[generate-static-blog] Vehicle SEO lifecycle migration is pending; using active fleet pages only.');
+      return fallbackVehicles;
     }
-    used.add(slug);
+    console.warn(`Skipped hidden vehicle SEO pages: ${error.message}`);
+    return fallbackVehicles;
+  }
 
-    if ((counts.get(baseSlug) || 0) > 1) {
-      const legacyColorSlug = makeLegacyColorVehicleSlug(vehicle);
-      if (legacyColorSlug) {
-        const legacyIndex = (legacyColorUsed.get(legacyColorSlug) || 0) + 1;
-        legacyColorUsed.set(legacyColorSlug, legacyIndex);
-        const legacyAlias = legacyIndex === 1 ? legacyColorSlug : `${legacyColorSlug}-${legacyIndex}`;
-        if (legacyAlias !== slug && !slugAliases.includes(legacyAlias)) {
-          slugAliases.push(legacyAlias);
-        }
-      }
-    }
-
-    return { ...vehicle, slug, slugAliases };
-  });
+  const seoVehicles = collapseVehiclesToSeoPages(data || []);
+  return seoVehicles.length > 0 ? seoVehicles : fallbackVehicles;
 }
 
 function replaceOrInsertHead(html, pattern, replacement) {
@@ -2406,8 +2490,12 @@ function pruneVehicleForClient(vehicle) {
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
     rental_conditions: vehicle.rental_conditions ?? null,
+    status: vehicle.status ?? null,
+    published: vehicle.published ?? null,
     slug: vehicle.slug ?? null,
     slugAliases: Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [],
+    inventory_count: vehicle.inventory_count ?? 1,
+    available_inventory_count: vehicle.available_inventory_count ?? 0,
     external_refs: {
       ...(coverImageUrl ? { coverImageUrl } : {}),
       ...(mediaFiles.length > 0 ? { mediaFiles } : {}),
@@ -4082,7 +4170,7 @@ async function writeHtmlRoute(routePath, html) {
   }
 }
 
-async function writeStaticRouteShells(vehicles) {
+async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
   await writeFile(path.join(distDir, 'static-shell.css'), minifyCss(staticShellCss()), 'utf8');
   prerenderedHomeRoot = '';
@@ -4161,7 +4249,7 @@ async function writeStaticRouteShells(vehicles) {
   }
 
   try {
-    for (const vehicle of vehicles) {
+    for (const vehicle of seoVehicles) {
       const name = getVehicleName(vehicle);
       const routePath = `/xe/${vehicle.slug}`;
       await writeSpaShell(baseHtml, {
@@ -4182,9 +4270,9 @@ async function writeStaticRouteShells(vehicles) {
       }, [vehicle]);
     }
 
-    const reservedVehicleSlugs = new Set(vehicles.map((vehicle) => vehicle.slug));
+    const reservedVehicleSlugs = new Set(seoVehicles.map((vehicle) => vehicle.slug));
     const writtenAliases = new Set();
-    for (const vehicle of vehicles) {
+    for (const vehicle of seoVehicles) {
       const aliases = Array.isArray(vehicle.slugAliases) ? vehicle.slugAliases : [];
       for (const alias of aliases) {
         if (!alias || reservedVehicleSlugs.has(alias) || writtenAliases.has(alias)) continue;
@@ -6869,13 +6957,14 @@ async function main() {
     fetchTravelCollections(),
     fetchLandingPages(),
   ]);
+  const seoVehicles = await fetchSeoVehicles(vehicles);
   let posts = mergeStaticBlogPosts(cmsPosts);
   let travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
   let travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
-  vehicleCoverCacheUrls = await cacheVehicleCoverImages(vehicles, distDir, {
+  vehicleCoverCacheUrls = await cacheVehicleCoverImages(seoVehicles, distDir, {
     loggerPrefix: 'generate-static-blog',
   });
-  vehicleGalleryCacheUrls = await cacheVehicleGalleryImages(vehicles, distDir, {
+  vehicleGalleryCacheUrls = await cacheVehicleGalleryImages(seoVehicles, distDir, {
     loggerPrefix: 'generate-static-blog',
   });
   staticImageCacheUrls = await cacheStaticImageUrls(
@@ -6895,7 +6984,7 @@ async function main() {
     postTitles: new Map(posts.map((post) => [post.slug.current, post.title])),
   };
 
-  await writeStaticRouteShells(vehicles);
+  await writeStaticRouteShells(vehicles, seoVehicles);
   await writeStaticVehicleData(vehicles);
   await writeStaticBlogData(posts);
 
@@ -6924,10 +7013,10 @@ async function main() {
     await writeHtmlRoute(`/blog/${post.slug.current}`, renderPost(post, contentIndex));
   }
 
-  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, seoVehicles, cachedLandingPages, travelCollections), 'utf8');
   await writeFile(path.join(distDir, 'rss.xml'), renderRssFeed(posts), 'utf8');
-  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
-  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, vehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, seoVehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, seoVehicles, cachedLandingPages, travelCollections), 'utf8');
   await writeFile(
     path.join(distDir, 'robots.txt'),
     [

@@ -150,14 +150,9 @@
       "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025" }
     },
     {
-      "src": "/xe/vinfast-vf6-plus-2025/?",
+      "src": "/xe/vinfast-vf3-2024-xanh/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025" }
-    },
-    {
-      "src": "/xe/vinfast-vf3-2024(?:-xanh)?/?",
-      "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf3-2025" }
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf3-2024" }
     },
     {
       "src": "/xe/vinfast-vf3-2025-30k-49565/?",

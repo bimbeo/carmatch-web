@@ -98,6 +98,38 @@ test('buildConversionEventInsert accepts funnel/contact events and strips invali
     blocked_ranges: 2,
     requires_confirmation: false,
   });
+
+  const webVital = buildConversionEventInsert({
+    companyId: '11111111-1111-4111-8111-111111111111',
+    body: {
+      event_id: 'cme_123456789016',
+      event_name: 'cm_web_vital',
+      page_path: '/xe/vf3',
+      attribution: { session_id: 'cms_123456789012', device_type: 'mobile' },
+      metadata: { metric_name: 'LCP', metric_value: 2180, metric_rating: 'good' },
+    },
+  });
+  assert.equal(webVital.event_name, 'cm_web_vital');
+  assert.deepEqual(webVital.metadata, {
+    metric_name: 'LCP',
+    metric_value: 2180,
+    metric_rating: 'good',
+  });
+
+  const experiment = buildConversionEventInsert({
+    companyId: '11111111-1111-4111-8111-111111111111',
+    body: {
+      event_id: 'cme_123456789017',
+      event_name: 'cm_experiment_exposure',
+      attribution: { session_id: 'cms_123456789012' },
+      metadata: { experiment_id: 'vehicle-detail-cta-trust-v1', variant_id: 'price-trust' },
+    },
+  });
+  assert.equal(experiment.event_name, 'cm_experiment_exposure');
+  assert.deepEqual(experiment.metadata, {
+    experiment_id: 'vehicle-detail-cta-trust-v1',
+    variant_id: 'price-trust',
+  });
 });
 
 test('buildLeadStatusUpdate preserves first response and records lost reason', () => {

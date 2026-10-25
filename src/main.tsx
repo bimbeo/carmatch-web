@@ -2,9 +2,12 @@ import './styles/index.css'
 import { StrictMode, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './app/App'
+import { scheduleWebVitalsTracking } from './lib/webVitals'
 
 const chunkErrorPattern = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i
 const reloadKey = 'carmatch-chunk-reload-attempted'
+
+scheduleWebVitalsTracking()
 
 async function clearStaleAppCache() {
   if ('serviceWorker' in navigator) {

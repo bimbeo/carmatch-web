@@ -16,6 +16,8 @@ export interface Car {
   amenities: string[];
   conditions: string[];
   available: boolean;
+  inventoryCount?: number;
+  availableInventoryCount?: number;
   images: string[];
   category: 'electric' | 'gasoline' | 'diesel';
   popular?: boolean;

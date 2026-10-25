@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  collapsePublicVehicles,
   isAllowedPublicVehicleImageUrl,
   pruneExternalRefs,
   resolveVehicleImageSource,
@@ -73,4 +74,33 @@ test('vehicle image proxy only accepts public image buckets from configured Supa
     false,
   );
   assert.equal(isAllowedPublicVehicleImageUrl('javascript:alert(1)', projectUrl), false);
+});
+
+test('public catalog collapses physical inventory into one stable SEO model page', () => {
+  const vehicles = collapsePublicVehicles([
+    {
+      id: 'hidden-row',
+      display_name: 'Toyota Raize 2023',
+      seo_slug: 'toyota-raize-2023',
+      status: 'inactive',
+      published: false,
+      daily_base_price: 650000,
+      external_refs: { coverImageUrl: coverUrl },
+    },
+    {
+      id: 'bookable-row',
+      display_name: 'Toyota Raize 2023 màu đỏ',
+      seo_slug: 'toyota-raize-2023',
+      status: 'available',
+      published: true,
+      daily_base_price: 700000,
+      external_refs: {},
+    },
+  ]);
+
+  assert.equal(vehicles.length, 1);
+  assert.equal(vehicles[0].slug, 'toyota-raize-2023');
+  assert.equal(vehicles[0].id, 'bookable-row');
+  assert.equal(vehicles[0].inventory_count, 2);
+  assert.equal(vehicles[0].available_inventory_count, 1);
 });

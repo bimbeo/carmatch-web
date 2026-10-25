@@ -18,6 +18,8 @@ const TRACKED_EVENT_NAMES = new Set([
   'cm_lead_submit_attempt',
   'cm_lead_submit_success',
   'cm_lead_submit_error',
+  'cm_web_vital',
+  'cm_experiment_exposure',
 ]);
 
 const RESPONDED_STATUSES = new Set(['contacted', 'converted', 'lost']);

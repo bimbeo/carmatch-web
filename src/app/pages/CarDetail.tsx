@@ -393,6 +393,45 @@ function VehicleBookingPanel({
   );
 }
 
+function UnavailableVehiclePanel({ car, relatedCars }: { car: Car; relatedCars: Car[] }) {
+  return (
+    <aside className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">Tạm ngừng nhận lịch</p>
+      <h2 className="mt-2 text-xl font-black text-gray-950">{car.name} hiện chưa nhận đặt trực tiếp</h2>
+      <p className="mt-2 text-sm font-medium leading-6 text-gray-600">
+        Trang thông tin vẫn được giữ để bạn tham khảo mẫu xe và giá. Chọn xe tương đương đang sẵn sàng hoặc nhắn Car Match để kiểm tra phương án thay thế.
+      </p>
+      <div className="mt-4 space-y-2">
+        {relatedCars.slice(0, 3).map((related) => (
+          <Link
+            key={related.slug}
+            to={`/xe/${related.slug}`}
+            className="flex items-center justify-between rounded-xl border border-amber-100 bg-white px-3 py-3 text-sm font-bold text-gray-800 hover:border-brand-300"
+          >
+            <span>{related.name}</span>
+            <span className="text-brand-600">{formatPrice(related.price)}/ngày</span>
+          </Link>
+        ))}
+      </div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+        <Link
+          to="/xe"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white hover:bg-brand-700"
+        >
+          <CalendarDays className="h-4 w-4" />
+          Xem xe đang nhận lịch
+        </Link>
+        <a
+          href={`https://zalo.me/${ZALO_NUMBER}`}
+          className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm font-black text-amber-800 hover:bg-amber-100"
+        >
+          Nhắn Zalo kiểm tra xe
+        </a>
+      </div>
+    </aside>
+  );
+}
+
 function VehicleSeoSummary({ car }: { car: Car }) {
   const costNotes = [
     `${car.kmPerDay} km/ngày đã gồm trong giá`,
@@ -440,9 +479,13 @@ export default function CarDetail() {
     return () => cancelAnimationFrame(raf);
   }, [hash, car]);
 
-  const canonicalSlug = car && slug && (car.slug === slug || car.slugAliases?.includes(slug)) ? slug : car?.slug;
-  const relatedCars = cars.filter((c) => c.id !== car?.id && c.category === car?.category).slice(0, 3);
-  const displayRelated = relatedCars.length > 0 ? relatedCars : cars.filter((c) => c.id !== car?.id).slice(0, 3);
+  // Alias URLs remain crawlable for continuity, but every physical/color alias
+  // points to the stable model URL so they do not compete as duplicate pages.
+  const canonicalSlug = car?.slug;
+  const relatedCars = cars.filter((c) => c.available && c.id !== car?.id && c.category === car?.category).slice(0, 3);
+  const displayRelated = relatedCars.length > 0
+    ? relatedCars
+    : cars.filter((c) => c.available && c.id !== car?.id).slice(0, 3);
   const [activePromoCodes, setActivePromoCodes] = useState<{ code: string; description: string }[]>([]);
   const [promoLoading, setPromoLoading] = useState(false);
   const [bookingAvailabilityStatus, setBookingAvailabilityStatus] = useState<BookingAvailabilityStatus>(
@@ -828,14 +871,18 @@ export default function CarDetail() {
           <div className="lg:col-span-1 lg:row-span-2">
             <div className="space-y-4 lg:sticky lg:top-24">
               <div id="booking" className="scroll-mt-24">
-                <VehicleBookingPanel
-                  car={car}
-                  relatedCars={displayRelated}
-                  activePromoCodes={activePromoCodes}
-                  promoLoading={promoLoading}
-                  onAvailabilityStatusChange={handleAvailabilityStatusChange}
-                  onBookingSummaryChange={setBookingSummary}
-                />
+                {car.available ? (
+                  <VehicleBookingPanel
+                    car={car}
+                    relatedCars={displayRelated}
+                    activePromoCodes={activePromoCodes}
+                    promoLoading={promoLoading}
+                    onAvailabilityStatusChange={handleAvailabilityStatusChange}
+                    onBookingSummaryChange={setBookingSummary}
+                  />
+                ) : (
+                  <UnavailableVehiclePanel car={car} relatedCars={displayRelated} />
+                )}
               </div>
 
               <div className="hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:block">
@@ -1001,7 +1048,12 @@ export default function CarDetail() {
       {/* ── STICKY MOBILE BOTTOM BAR ─────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg px-4 py-3 flex items-center gap-3 lg:hidden z-40">
         <div className="flex-1">
-          {bookingSummary?.valid && bookingSummary.totalAmount > 0 ? (
+          {!car.available ? (
+            <div>
+              <div className="text-sm font-black text-amber-700">Tạm ngừng nhận lịch</div>
+              <div className="text-[11px] font-medium text-gray-500">Xem xe tương đương đang sẵn sàng</div>
+            </div>
+          ) : bookingSummary?.valid && bookingSummary.totalAmount > 0 ? (
             <div>
               <div className="flex items-baseline gap-1">
                 <span className="text-xl font-bold text-brand-600">{formatPrice(bookingSummary.totalAmount)}</span>
@@ -1019,12 +1071,12 @@ export default function CarDetail() {
           ) : (
             <span className="text-base font-bold text-brand-600">Liên hệ báo giá</span>
           )}
-          {!bookingSummary?.valid && (
+          {car.available && !bookingSummary?.valid && (
             <div className="text-xs text-gray-400">
               {bookingAvailabilityStatus.requiresConfirmation ? 'Phản hồi trong 30 phút' : 'Chọn lịch để xem tổng giá'}
             </div>
           )}
-          {bookingSummary?.valid && (
+          {car.available && bookingSummary?.valid && (
             <div className="text-[10px] font-medium text-green-700">Chưa cần thanh toán</div>
           )}
         </div>
@@ -1039,14 +1091,24 @@ export default function CarDetail() {
         >
           <Phone className="w-4 h-4" />
         </a>
-        <button
-          type="button"
-          onClick={scrollToBooking}
-          className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors shadow-sm"
-        >
-          <CalendarDays className="w-4 h-4" />
-          {bookingAvailabilityStatus.requiresConfirmation ? 'Kiểm tra lịch' : 'Chọn lịch'}
-        </button>
+        {car.available ? (
+          <button
+            type="button"
+            onClick={scrollToBooking}
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors shadow-sm"
+          >
+            <CalendarDays className="w-4 h-4" />
+            {bookingAvailabilityStatus.requiresConfirmation ? 'Kiểm tra lịch' : 'Chọn lịch'}
+          </button>
+        ) : (
+          <Link
+            to="/xe"
+            className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-700"
+          >
+            <CalendarDays className="h-4 w-4" />
+            Xem xe khác
+          </Link>
+        )}
       </div>
 
       <Footer />

@@ -43,7 +43,9 @@ create table if not exists public.website_conversion_events (
     'cm_vehicle_click',
     'cm_lead_submit_attempt',
     'cm_lead_submit_success',
-    'cm_lead_submit_error'
+    'cm_lead_submit_error',
+    'cm_web_vital',
+    'cm_experiment_exposure'
   )),
   event_at timestamptz not null default now(),
   page_path text,
@@ -96,7 +98,9 @@ alter table public.website_conversion_events
     'cm_vehicle_click',
     'cm_lead_submit_attempt',
     'cm_lead_submit_success',
-    'cm_lead_submit_error'
+    'cm_lead_submit_error',
+    'cm_web_vital',
+    'cm_experiment_exposure'
   ));
 
 comment on table public.website_conversion_events is
