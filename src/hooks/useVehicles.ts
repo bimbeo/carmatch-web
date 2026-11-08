@@ -68,6 +68,7 @@ interface SupabaseVehicle {
   color: string | null;
   model_year: number | null;
   daily_base_price: number | null;
+  monthly_price?: number | null;
   current_km?: number | null;
   status?: string | null;
   published?: boolean | null;
@@ -244,6 +245,7 @@ function mapToCar(v: SupabaseVehicle): Car {
   ]);
 
   const fuel = mapFuelType(vm?.fuel_type || '');
+  const seats = vm?.seats || (/^vf\s*3$/i.test(model.trim()) ? 4 : 5);
   const modelSlug = makeModelSlug(make, model, variant, v.id);
   const displaySlug = makeDisplaySlug(v, make, model, variant);
   const serverSlug = typeof v.slug === 'string' && v.slug.trim() ? v.slug : '';
@@ -265,7 +267,8 @@ function mapToCar(v: SupabaseVehicle): Car {
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
     brand: make,
     price: v.daily_base_price || 0,
-    seats: vm?.seats || 5,
+    priceMonth: v.monthly_price || undefined,
+    seats,
     fuel,
     transmission: mapTransmission(vm?.transmission || ''),
     kmPerDay: v.km_per_day ?? DEFAULT_KM_PER_DAY,

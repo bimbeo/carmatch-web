@@ -36,7 +36,7 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     title: 'Thuê xe tự lái Hà Nội',
     businessLine: 'self-drive-rental',
     audience: 'Khách cá nhân, gia đình và cư dân chung cư tại Hà Nội',
-    sourceUrl: 'https://www.carmatch.vn/thue-xe-tu-lai-ha-noi',
+    sourceUrl: 'https://www.carmatch.vn/',
     effectiveDate: '2026-06-20',
     reviewStatus: 'reviewed',
     riskLevel: 'medium',
@@ -48,7 +48,7 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
       'Car Match hỗ trợ tư vấn và kiểm tra lịch xe qua Zalo trong khung 7h-22h.',
       'Các khu vực ưu tiên gồm Vinhomes Ocean Park, Times City, Smart City, Ecopark, The Manor Central Park, Linh Đàm và các khu đô thị Hà Nội.',
     ],
-    relatedRoutes: ['/', '/thue-xe-tu-lai-ha-noi', '/xe', '/faq', '/lien-he'],
+    relatedRoutes: ['/', '/xe', '/faq', '/lien-he'],
   },
   {
     id: 'self-drive-rental-provider-comparison-hanoi',
@@ -166,6 +166,29 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
       '/xe?category=electric',
       '/xe',
       '/di-dau',
+    ],
+  },
+  {
+    id: 'electric-rental-charging-cost',
+    title: 'Phí sạc khi thuê xe điện',
+    businessLine: 'electric-self-drive-rental-support',
+    audience: 'Khách thuê xe điện cần xác nhận chi phí sạc và mức pin giao trả',
+    sourceUrl: 'https://www.carmatch.vn/blog/thue-xe-dien-ai-tra-phi-sac',
+    effectiveDate: '2026-11-08',
+    reviewStatus: 'reviewed',
+    riskLevel: 'medium',
+    summary:
+      'Không nên mặc định phí sạc đã nằm trong giá thuê hoặc ưu đãi của chủ xe tự động áp dụng cho người thuê; báo giá, xác nhận đặt xe hoặc hợp đồng là căn cứ để xác định bên thanh toán và cách đối soát.',
+    facts: [
+      'Trước khi nhận xe, hai bên cần thống nhất mức pin giao, mức pin phải trả, bên thanh toán phiên sạc và chứng từ dùng để đối soát.',
+      'Chính sách hoặc ưu đãi sạc có thể thay đổi theo thời điểm và tài khoản chủ xe, vì vậy khách cần kiểm tra điều kiện áp dụng cho chính chiếc xe thuê.',
+      'Biên bản bàn giao nên ghi mức pin, số km, dây sạc hoặc phụ kiện đi kèm; khách nên lưu ảnh đồng hồ và hóa đơn sạc phát sinh trong chuyến đi.',
+    ],
+    relatedRoutes: [
+      '/blog/thue-xe-dien-ai-tra-phi-sac',
+      '/thue-xe-dien-ha-noi',
+      '/xe?fuelFilter=%C4%90i%E1%BB%87n',
+      '/chinh-sach',
     ],
   },
   {
@@ -370,7 +393,7 @@ export const geoPriorityPages: GeoPriorityPage[] = [
     journeyStage: 'Consider',
     directAnswer:
       'Khách tại Hà Nội có thể xem xe, chọn nhu cầu và nhắn Zalo để Car Match kiểm tra lịch xe, giá thuê, cọc và điểm giao nhận phù hợp.',
-    internalLinks: ['/xe', '/thue-xe-tu-lai-ha-noi', '/xe-san-bay-noi-bai', '/thue-xe-thang'],
+    internalLinks: ['/xe', '/xe-san-bay-noi-bai', '/thue-xe-thang'],
   },
   {
     path: '/xe',
@@ -379,7 +402,7 @@ export const geoPriorityPages: GeoPriorityPage[] = [
     journeyStage: 'Consider',
     directAnswer:
       'Trang danh sách xe giúp khách xem mẫu xe, số chỗ, nhiên liệu, giá tham khảo và mở trang chi tiết trước khi hỏi lịch còn xe.',
-    internalLinks: ['/thue-xe-tu-lai-ha-noi', '/thue-xe-thang', '/faq'],
+    internalLinks: ['/', '/thue-xe-thang', '/faq'],
   },
   {
     path: '/blog/don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao',
@@ -389,10 +412,10 @@ export const geoPriorityPages: GeoPriorityPage[] = [
     directAnswer:
       'Khách nên chọn đơn vị thuê xe tự lái Hà Nội theo mô hình phù hợp: app để so nhiều xe, công ty truyền thống để làm việc trực tiếp, hoặc Car Match nếu cần giao xe tận sảnh/khu đô thị và xác nhận lịch qua Zalo.',
     internalLinks: [
-      '/thue-xe-tu-lai-ha-noi',
+      '/',
       '/xe',
       '/thue-xe-thang',
-      '/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh',
+      '/thue-xe-tu-lai-vinhomes-ocean-park',
     ],
   },
   {
@@ -440,6 +463,20 @@ export const geoPriorityPages: GeoPriorityPage[] = [
     directAnswer:
       'Xe điện tự lái phù hợp nếu lịch trình nội đô hoặc tuyến gần có điểm sạc rõ; trước khi thuê cần hỏi pin lúc nhận, điểm sạc, thời gian sạc và điều kiện trả xe.',
     internalLinks: ['/xe?category=electric', '/xe', '/di-dau', '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu'],
+  },
+  {
+    path: '/blog/thue-xe-dien-ai-tra-phi-sac',
+    topic: 'Thuê xe điện ai trả phí sạc',
+    intent: 'informational',
+    journeyStage: 'Customer',
+    directAnswer:
+      'Không nên mặc định phí sạc đã nằm trong giá thuê; bên thanh toán, mức pin giao trả và cách đối soát phải theo báo giá, xác nhận đặt xe hoặc hợp đồng của chiếc xe cụ thể.',
+    internalLinks: [
+      '/thue-xe-dien-ha-noi',
+      '/xe?fuelFilter=%C4%90i%E1%BB%87n',
+      '/chinh-sach',
+      '/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast',
+    ],
   },
   {
     path: '/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi',

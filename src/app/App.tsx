@@ -10,6 +10,9 @@ const GoWhereCollection = lazy(() => import('./pages/GoWhereCollection'));
 const GoWhereDetail = lazy(() => import('./pages/GoWhereDetail'));
 const TripFinder = lazy(() => import('./pages/TripFinder'));
 const B2B = lazy(() => import('./pages/B2B'));
+const ElectricRental = lazy(() => import('./pages/ElectricRental'));
+const SevenSeatRental = lazy(() => import('./pages/SevenSeatRental'));
+const LocalRental = lazy(() => import('./pages/LocalRental'));
 const About = lazy(() => import('./pages/About'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
@@ -167,6 +170,13 @@ export default function App() {
             <Route path="/lap-ke-hoach-chuyen-di" element={<TripFinder />} />
             <Route path="/lap-ke-hoach-chuyen-di/:slug" element={<TripFinder />} />
             <Route path="/thue-xe-thang" element={<B2B />} />
+            <Route path="/thue-xe-dien-ha-noi" element={<ElectricRental />} />
+            <Route path="/thue-xe-7-cho-tu-lai-ha-noi" element={<SevenSeatRental />} />
+            <Route path="/thue-xe-tu-lai-vinhomes-ocean-park" element={<LocalRental areaSlug="vinhomes-ocean-park" />} />
+            <Route path="/thue-xe-tu-lai-vinhomes-smart-city" element={<LocalRental areaSlug="vinhomes-smart-city" />} />
+            <Route path="/thue-xe-tu-lai-times-city" element={<LocalRental areaSlug="times-city" />} />
+            <Route path="/thue-xe-tu-lai-ecopark" element={<LocalRental areaSlug="ecopark" />} />
+            <Route path="/thue-xe-tu-lai-the-manor" element={<LocalRental areaSlug="the-manor-central-park" />} />
             <Route path="/gioi-thieu" element={<About />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />

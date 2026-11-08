@@ -40,6 +40,18 @@ function cleanPayload(payload: AnalyticsPayload): Record<string, unknown> {
   );
 }
 
+function ga4SafePayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const safePayload = { ...payload };
+  const reservedAttributionKeys = ['source', 'medium', 'campaign', 'term', 'content'];
+  for (const key of reservedAttributionKeys) {
+    if (!(key in safePayload)) continue;
+    const internalKey = `internal_${key}`;
+    if (!(internalKey in safePayload)) safePayload[internalKey] = safePayload[key];
+    delete safePayload[key];
+  }
+  return safePayload;
+}
+
 function recordFirstPartyEvent(eventName: string, eventPayload: Record<string, unknown>) {
   if (!FIRST_PARTY_EVENTS.has(eventName)) return;
   const attribution = getAttributionSnapshot();
@@ -77,12 +89,19 @@ export function trackPageView(payload: AnalyticsPayload = {}) {
   const sessionStartKey = `carmatch_session_start_${attribution.session_id}`;
   if (!sessionStorage.getItem(sessionStartKey)) {
     sessionStorage.setItem(sessionStartKey, '1');
-    trackEvent('session_start', {
+    const sessionPayload = cleanPayload({
+      event_category: DEFAULT_CATEGORY,
+      page_path: window.location.pathname,
+      page_location: window.location.href,
       landing_page: attribution.landing_page,
       traffic_source: attribution.traffic_source,
       traffic_medium: attribution.traffic_medium,
       is_returning_visitor: attribution.is_returning_visitor,
     });
+    recordFirstPartyEvent('session_start', sessionPayload);
+    window.dispatchEvent(new CustomEvent('carmatch:analytics', {
+      detail: { event: 'session_start', ...sessionPayload },
+    }));
   }
   trackEvent('page_view', payload);
 }
@@ -97,13 +116,7 @@ export function trackEvent(eventName: string, payload: AnalyticsPayload = {}) {
     ...payload,
   });
 
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    event: eventName,
-    ...eventPayload,
-  });
-
-  window.gtag?.('event', eventName, eventPayload);
+  window.gtag?.('event', eventName, ga4SafePayload(eventPayload));
   recordFirstPartyEvent(eventName, eventPayload);
   window.dispatchEvent(new CustomEvent('carmatch:analytics', {
     detail: {

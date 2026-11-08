@@ -13,7 +13,6 @@ File fallback này sẽ được thay bằng bản sinh tự động trong `dist
 
 - https://www.carmatch.vn/
 - https://www.carmatch.vn/xe
-- https://www.carmatch.vn/thue-xe-tu-lai-ha-noi
 - https://www.carmatch.vn/xe-san-bay-noi-bai
 - https://www.carmatch.vn/thue-xe-thang
 - https://www.carmatch.vn/di-dau

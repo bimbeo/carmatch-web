@@ -205,8 +205,38 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.carmatch.vn/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh</loc>
-    <lastmod>2026-05-23</lastmod>
+    <loc>https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-ocean-park</loc>
+    <lastmod>2026-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.82</priority>
+  </url>
+  <url>
+    <loc>https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-smart-city</loc>
+    <lastmod>2026-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.82</priority>
+  </url>
+  <url>
+    <loc>https://www.carmatch.vn/thue-xe-tu-lai-times-city</loc>
+    <lastmod>2026-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.82</priority>
+  </url>
+  <url>
+    <loc>https://www.carmatch.vn/thue-xe-tu-lai-ecopark</loc>
+    <lastmod>2026-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.82</priority>
+  </url>
+  <url>
+    <loc>https://www.carmatch.vn/thue-xe-tu-lai-the-manor</loc>
+    <lastmod>2026-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.82</priority>
+  </url>
+  <url>
+    <loc>https://www.carmatch.vn/blog/thue-xe-dien-ai-tra-phi-sac</loc>
+    <lastmod>2026-11-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

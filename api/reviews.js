@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 }
 
 async function handleGet(req, res) {
-  const { slug, booking_ref } = req.query;
+  const { slug, booking_ref, scope } = req.query;
 
   // Check if a specific booking already has a review
   if (booking_ref && typeof booking_ref === 'string') {
@@ -43,8 +43,6 @@ async function handleGet(req, res) {
     }
   }
 
-  if (!slug || typeof slug !== 'string') return res.status(400).json({ error: 'Missing slug' });
-
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     res.setHeader('Cache-Control', 's-maxage=60');
     return res.status(200).json([]);
@@ -54,6 +52,26 @@ async function handleGet(req, res) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+
+    if (scope === 'homepage') {
+      const { data, error } = await supabase
+        .from('vehicle_reviews')
+        .select('reviewer_name, rating, comment, trip_date, created_at')
+        .eq('status', 'approved')
+        .not('comment', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (error) {
+        console.error('[reviews:GET:homepage] Supabase error:', error.message);
+        return res.status(500).json({ error: 'Không tải được đánh giá' });
+      }
+
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+      return res.status(200).json(data || []);
+    }
+
+    if (!slug || typeof slug !== 'string') return res.status(400).json({ error: 'Missing slug' });
 
     const { data, error } = await supabase
       .from('vehicle_reviews')

@@ -216,6 +216,7 @@ function pruneVehicle(vehicle) {
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
+    monthly_price: vehicle.monthly_price ?? null,
     website_description: vehicle.website_description ?? null,
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
@@ -256,7 +257,7 @@ export default async function handler(req, res) {
       return await serveVehicleImage(req, res);
     }
     const baseSelect =
-      'id,display_name,color,model_year,daily_base_price,external_refs,updated_at,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+      'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,updated_at,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
     let result = await supabase
       .from('vehicles')
       .select(`seo_slug,${baseSelect}`)

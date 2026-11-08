@@ -6,6 +6,7 @@ import {
   geoKnowledgeBase,
   geoPriorityPages,
 } from '../src/data/geoKnowledge.ts';
+import { localRentalAreas } from '../src/data/localRentalAreas.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -21,6 +22,7 @@ const expectedNoIndexRoutes = new Set([
   '/dat-xe',
   '/tai-khoan',
 ]);
+const localRentalRoutePaths = new Set(localRentalAreas.map((area) => area.path));
 
 function fail(message, detail = {}) {
   return { level: 'error', message, ...detail };
@@ -138,7 +140,9 @@ function expectedJsonLdGroups(routePath) {
   if (routePath === '/blog') return [['Blog'], ['BreadcrumbList']];
   if (routePath.startsWith('/blog/')) return [['BlogPosting', 'Article'], ['BreadcrumbList']];
   if (routePath === '/thue-xe-thang') return [['Service'], ['FAQPage'], ['BreadcrumbList']];
-  if (routePath === '/thue-xe-tu-lai-ha-noi') return [['Service'], ['FAQPage'], ['BreadcrumbList']];
+  if (routePath === '/thue-xe-dien-ha-noi') return [['CollectionPage', 'WebPage'], ['Service'], ['FAQPage'], ['BreadcrumbList']];
+  if (routePath === '/thue-xe-7-cho-tu-lai-ha-noi') return [['CollectionPage', 'WebPage'], ['Service'], ['FAQPage'], ['BreadcrumbList']];
+  if (localRentalRoutePaths.has(routePath)) return [['AutoRental', 'LocalBusiness'], ['CollectionPage', 'WebPage'], ['Service'], ['FAQPage'], ['BreadcrumbList']];
   if (routePath === '/xe-san-bay-noi-bai') return [['Service'], ['FAQPage'], ['BreadcrumbList']];
   if (routePath === '/di-dau' || routePath.startsWith('/di-dau/chu-de/')) return [['CollectionPage', 'WebPage'], ['BreadcrumbList']];
   if (routePath.startsWith('/di-dau/')) return [['Article', 'WebPage'], ['FAQPage'], ['BreadcrumbList']];

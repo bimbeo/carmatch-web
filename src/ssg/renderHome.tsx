@@ -4,6 +4,10 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import Home from '../app/pages/Home';
 import Fleet from '../app/pages/Fleet';
 import B2B from '../app/pages/B2B';
+import ElectricRental from '../app/pages/ElectricRental';
+import SevenSeatRental from '../app/pages/SevenSeatRental';
+import LocalRental from '../app/pages/LocalRental';
+import type { LocalRentalAreaSlug } from '../data/localRentalAreas';
 import Contact from '../app/pages/Contact';
 import About from '../app/pages/About';
 import Partner from '../app/pages/Partner';
@@ -57,6 +61,48 @@ export function renderMonthlyRental(vehicles: unknown[]) {
     return renderToString(
       <MemoryRouter initialEntries={['/thue-xe-thang']}>
         <B2B />
+      </MemoryRouter>,
+    );
+  } finally {
+    delete globalThis.__CM_INITIAL_VEHICLES__;
+  }
+}
+
+export function renderElectricRental(vehicles: unknown[]) {
+  globalThis.__CM_INITIAL_VEHICLES__ = vehicles as typeof globalThis.__CM_INITIAL_VEHICLES__;
+
+  try {
+    return renderToString(
+      <MemoryRouter initialEntries={['/thue-xe-dien-ha-noi']}>
+        <ElectricRental />
+      </MemoryRouter>,
+    );
+  } finally {
+    delete globalThis.__CM_INITIAL_VEHICLES__;
+  }
+}
+
+export function renderSevenSeatRental(vehicles: unknown[]) {
+  globalThis.__CM_INITIAL_VEHICLES__ = vehicles as typeof globalThis.__CM_INITIAL_VEHICLES__;
+
+  try {
+    return renderToString(
+      <MemoryRouter initialEntries={['/thue-xe-7-cho-tu-lai-ha-noi']}>
+        <SevenSeatRental />
+      </MemoryRouter>,
+    );
+  } finally {
+    delete globalThis.__CM_INITIAL_VEHICLES__;
+  }
+}
+
+export function renderLocalRental(areaSlug: LocalRentalAreaSlug, routePath: string, vehicles: unknown[]) {
+  globalThis.__CM_INITIAL_VEHICLES__ = vehicles as typeof globalThis.__CM_INITIAL_VEHICLES__;
+
+  try {
+    return renderToString(
+      <MemoryRouter initialEntries={[routePath]}>
+        <LocalRental areaSlug={areaSlug} />
       </MemoryRouter>,
     );
   } finally {

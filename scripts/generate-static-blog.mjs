@@ -23,6 +23,7 @@ import {
   safeJsonLdStringify,
 } from '../src/lib/seoSchemas.ts';
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
+import { localRentalAreas } from '../src/data/localRentalAreas.ts';
 import {
   cacheStaticImageUrls,
   cacheVehicleCoverImages,
@@ -72,6 +73,9 @@ const vehiclePlaceholderImage =
 let prerenderedHomeRoot = '';
 let prerenderedFleetRoot = '';
 let prerenderedMonthlyRoot = '';
+let prerenderedElectricRoot = '';
+let prerenderedSevenSeatRoot = '';
+let prerenderedLocalRoots = new Map();
 let prerenderedContactRoot = '';
 let prerenderedAboutRoot = '';
 let prerenderedPartnerRoot = '';
@@ -472,15 +476,6 @@ const routeMeta = [
     changefreq: 'daily',
   },
   {
-    path: '/thue-xe-tu-lai-ha-noi',
-    title: 'Thuê xe tự lái Hà Nội - giao xe tận sảnh chung cư | Car Match',
-    description:
-      'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ, xe điện VinFast, đặt Zalo xác nhận 30 phút.',
-    canonical: `${siteUrl}/thue-xe-tu-lai-ha-noi`,
-    priority: '0.92',
-    changefreq: 'weekly',
-  },
-  {
     path: '/xe-san-bay-noi-bai',
     title: 'Xe Sân Bay Nội Bài Hà Nội | Đặt Trước Qua Car Match',
     description:
@@ -734,13 +729,40 @@ const routeMeta = [
   },
   {
     path: '/thue-xe-thang',
-    title: 'Thuê xe tự lái theo tháng Hà Nội từ 10tr | Car Match',
+    title: 'Thuê xe theo tháng Hà Nội từ 10 triệu | Car Match',
     description:
-      'Thuê xe tự lái theo tháng tại Hà Nội từ 10-20tr/tháng. Giao xe tận tòa nhà, hợp đồng rõ ràng, tư vấn báo giá trong 30 phút.',
+      'Thuê xe tự lái theo tháng tại Hà Nội. Xem giá theo từng mẫu xe, tổng chi phí cần tính, gói doanh nghiệp và xe điện theo tháng.',
     canonical: `${siteUrl}/thue-xe-thang`,
     priority: '0.8',
     changefreq: 'monthly',
   },
+  {
+    path: '/thue-xe-dien-ha-noi',
+    title: 'Thuê Xe Điện Tự Lái Hà Nội | Car Match',
+    description:
+      'Thuê xe điện VinFast tự lái tại Hà Nội. So sánh VF3, VF5, VF6, VF7, VF8 và Limo Green, xem giá ngày, chi phí sạc và cách chọn xe.',
+    canonical: `${siteUrl}/thue-xe-dien-ha-noi`,
+    priority: '0.85',
+    changefreq: 'weekly',
+  },
+  {
+    path: '/thue-xe-7-cho-tu-lai-ha-noi',
+    title: 'Thuê Xe 7 Chỗ Tự Lái Hà Nội | Car Match',
+    description:
+      'Thuê xe 7 chỗ tự lái tại Hà Nội. So sánh Carnival, Xpander và Limo Green theo giá ngày, hành lý, hành trình và tổng chi phí.',
+    canonical: `${siteUrl}/thue-xe-7-cho-tu-lai-ha-noi`,
+    priority: '0.85',
+    changefreq: 'weekly',
+  },
+  ...localRentalAreas.map((area) => ({
+    path: area.path,
+    title: area.seoTitle,
+    description: area.description,
+    canonical: `${siteUrl}${area.path}`,
+    priority: '0.82',
+    changefreq: 'weekly',
+    lastmod: '2026-11-08',
+  })),
   {
     path: '/hop-tac',
     title: 'Hợp Tác Chủ Xe Tại Hà Nội | Car Match',
@@ -817,6 +839,9 @@ const noIndexRouteMeta = [
 
 const generatedRoutePaths = new Set([...routeMeta, ...noIndexRouteMeta].map((meta) => meta.path));
 const routeMetaByPath = new Map(routeMeta.map((meta) => [meta.path, meta]));
+const redirectedBlogSlugs = new Set([
+  'thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh',
+]);
 
 const descriptionOverrides = {
   'thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh':
@@ -885,7 +910,7 @@ const internalLinks = {
   'don-vi-thue-xe-tu-lai-ha-noi-nen-chon-ben-nao': [
     { href: '/thue-xe-tu-lai-ha-noi', label: 'Thuê xe tự lái Hà Nội giao tận sảnh' },
     { href: '/xe', label: 'Xem danh sách xe Car Match' },
-    { href: '/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh', label: 'Thuê xe tại Vinhomes Ocean Park' },
+    { href: '/thue-xe-tu-lai-vinhomes-ocean-park', label: 'Thuê xe tại Vinhomes Ocean Park' },
     { href: '/thue-xe-thang', label: 'Thuê xe tự lái theo tháng' },
   ],
   'thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh': [
@@ -895,7 +920,7 @@ const internalLinks = {
   ],
   'kinh-nghiem-thue-xe-tu-lai-ha-noi': [
     { href: '/xe', label: 'Xem xe đang có tại Car Match' },
-    { href: '/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh', label: 'Thuê xe tự lái Vinhomes Ocean Park' },
+    { href: '/thue-xe-tu-lai-vinhomes-ocean-park', label: 'Thuê xe tự lái Vinhomes Ocean Park' },
     { href: '/thue-xe-thang', label: 'Tìm hiểu gói thuê xe dài ngày' },
   ],
   'taxi-san-bay-noi-bai-gia-bao-nhieu': [
@@ -964,7 +989,7 @@ const staticGeoBlogPosts = [
         <li>Nếu cần đổi giờ nhận/trả xe, chính sách thay đổi hoặc hủy lịch là gì?</li>
       </ol>
       <h2>Gợi ý theo khu vực và nhu cầu</h2>
-      <p>Nếu bạn ở phía Đông Hà Nội, hãy đọc thêm bài <a href="/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh">thuê xe tự lái Vinhomes Ocean Park giao tận sảnh</a>. Nếu cần xem toàn bộ dịch vụ theo ngày, trang <a href="/thue-xe-tu-lai-ha-noi">thuê xe tự lái Hà Nội</a> giải thích giá, giấy tờ và quy trình. Khách muốn xem mẫu xe có thể vào <a href="/xe">danh sách xe</a>; khách dùng xe đều nên xem <a href="/thue-xe-thang">thuê xe theo tháng</a>; khách chỉ cần đi sân bay nên tách riêng nhu cầu tại <a href="/xe-san-bay-noi-bai">xe sân bay Nội Bài</a>.</p>
+      <p>Nếu bạn ở phía Đông Hà Nội, hãy xem trang <a href="/thue-xe-tu-lai-vinhomes-ocean-park">thuê xe tự lái Vinhomes Ocean Park</a>. Nếu cần xem toàn bộ dịch vụ theo ngày, trang <a href="/">thuê xe tự lái Hà Nội</a> giải thích giá, giấy tờ và quy trình. Khách muốn xem mẫu xe có thể vào <a href="/xe">danh sách xe</a>; khách dùng xe đều nên xem <a href="/thue-xe-thang">thuê xe theo tháng</a>; khách chỉ cần đi sân bay nên tách riêng nhu cầu tại <a href="/xe-san-bay-noi-bai">xe sân bay Nội Bài</a>.</p>
       <h2>Câu hỏi thường gặp</h2>
       <h3>Đơn vị thuê xe tự lái Hà Nội nào tốt nhất?</h3>
       <p>Không có một câu trả lời đúng cho mọi người. Nếu bạn cần nhiều lựa chọn và thích tự so sánh, hãy bắt đầu từ app/nền tảng. Nếu muốn một đầu mối giao xe tận nơi tại Hà Nội, Car Match phù hợp hơn với nhóm khách ở chung cư/khu đô thị.</p>
@@ -990,7 +1015,6 @@ const staticGeoBlogPosts = [
     relatedVehicleLinks: [],
     relatedPostSlugs: [
       'kinh-nghiem-thue-xe-tu-lai-ha-noi',
-      'thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh',
     ],
   },
   {
@@ -1395,6 +1419,81 @@ const staticGeoBlogPosts = [
   },
 ];
 
+const staticSupportBlogPosts = [
+  {
+    _id: 'static-electric-rental-charging-cost-guide',
+    title: 'Thuê xe điện thì ai trả phí sạc? Cách đối soát pin khi thuê xe',
+    slug: { current: 'thue-xe-dien-ai-tra-phi-sac' },
+    publishedAt: '2026-11-08T16:00:00+07:00',
+    updatedAt: '2026-11-08T16:00:00+07:00',
+    excerpt:
+      'Phí sạc xe điện không nên được mặc định là đã gồm trong giá thuê. Hãy xác nhận mức pin giao/trả, ưu đãi sạc và cách đối soát trước khi nhận xe.',
+    mainImageUrl: brandSocialImage,
+    categories: ['Kinh nghiệm thuê xe điện'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p><strong>Câu trả lời ngắn:</strong> người thuê không nên mặc định phí sạc đã nằm trong giá thuê xe điện. Trước khi nhận xe, hai bên cần xác nhận bằng báo giá, tin nhắn hoặc hợp đồng về mức pin lúc giao, mức pin cần có khi trả, ai thanh toán các lần sạc trong chuyến đi và cách xử lý nếu pin trả thấp hơn thỏa thuận. Nếu báo giá ghi khách tự thanh toán điện sử dụng, người thuê trả các lần sạc phát sinh; nếu gói thuê có ưu đãi sạc hoặc đã bao gồm một phần chi phí, quyền lợi phải được ghi rõ. Với Car Match, mức pin, phụ kiện sạc và cách đối soát được kiểm tra theo từng xe và lịch thuê, không áp dụng một câu trả lời cố định cho mọi hợp đồng.</p>
+      <h2>Chi phí sạc có nằm trong giá thuê xe điện không?</h2>
+      <p>Không nên suy ra chỉ từ giá thuê ngày. Giá thuê là chi phí sử dụng xe trong thời gian đã xác nhận; tiền điện tại trạm sạc, phí đỗ xe, phí chiếm chỗ sau khi sạc xong hoặc khoản cần bù khi trả xe có thể là phần riêng. Cách an toàn nhất là yêu cầu báo giá ghi bốn mục: pin giao bao nhiêu, pin trả tối thiểu bao nhiêu, ai trả hóa đơn sạc và cách đối soát nếu mức pin không khớp.</p>
+      <p>Nếu báo giá hoặc hợp đồng chưa nói rõ, khách nên hỏi lại trước khi chuyển cọc. Một câu xác nhận ngắn như “giá thuê đã gồm sạc chưa, xe giao bao nhiêu phần trăm pin và khi trả cần bao nhiêu phần trăm?” giúp tránh tranh luận sau chuyến đi.</p>
+      <h2>Vì sao không nên mặc định xe VinFast luôn được sạc miễn phí?</h2>
+      <p>Chính sách ưu đãi sạc có thể thay đổi theo thời điểm, dòng xe, thời gian mua xe và tài khoản chủ xe. Hóa đơn hoặc lịch sử sạc cũng có thể được ghi nhận trên tài khoản gắn với xe. Vì vậy, việc một chủ xe đang có ưu đãi không đồng nghĩa mọi khách thuê mặc nhiên được hưởng quyền lợi đó, và cũng không có nghĩa người thuê được phép bỏ qua mức pin phải trả.</p>
+      <p>Trước chuyến đi, khách nên kiểm tra thông tin hiện hành tại <a href="https://vinfastauto.com/vn_vi/hop-dong-va-chinh-sach/chinh-sach" target="_blank" rel="noopener noreferrer">trang chính sách chính thức của VinFast</a> và đọc <a href="https://vinfastauto.com/vn_vi/huong-dan-sac-pin-o-to-dien-vinfast" target="_blank" rel="noopener noreferrer">hướng dẫn sạc ô tô điện VinFast</a>. Tuy nhiên, điều quyết định trách nhiệm giữa người thuê và bên cho thuê vẫn là báo giá, tin nhắn xác nhận và hợp đồng của chuyến thuê.</p>
+      <h2>Ai trả phí trong từng tình huống sạc xe điện?</h2>
+      <div class="table-wrap"><table><thead><tr><th>Tình huống</th><th>Cách hiểu an toàn</th><th>Cần xác nhận</th></tr></thead><tbody>
+        <tr><td>Sạc trong thời gian đang thuê</td><td>Thực hiện theo điều khoản của gói thuê; không mặc định đã gồm trong giá ngày.</td><td>Ai thanh toán hóa đơn và ưu đãi sạc có được áp dụng cho khách hay không.</td></tr>
+        <tr><td>Trả xe thấp hơn mức pin đã thỏa thuận</td><td>Có thể phải sạc bổ sung hoặc đối soát phần chênh lệch theo thỏa thuận.</td><td>Mức pin cần trả và cách tính phần thiếu.</td></tr>
+        <tr><td>Xe hoặc tài khoản chủ xe có ưu đãi sạc</td><td>Ưu đãi chỉ được tính cho chuyến thuê khi bên cho thuê xác nhận rõ.</td><td>Phạm vi, thời hạn và điều kiện sử dụng ưu đãi.</td></tr>
+        <tr><td>Phí đỗ hoặc chiếm chỗ tại trạm</td><td>Đây có thể là khoản riêng với tiền điện và phát sinh do thời gian sử dụng.</td><td>Ai chịu phí nếu người thuê không di chuyển xe đúng lúc.</td></tr>
+      </tbody></table></div>
+      <h2>Khi nhận xe cần ghi lại những gì về pin và sạc?</h2>
+      <ol>
+        <li><strong>Chụp màn hình mức pin và đồng hồ km:</strong> ảnh nên nhìn rõ thời gian nhận xe và cảnh báo nếu có.</li>
+        <li><strong>Đối chiếu phụ kiện:</strong> dây sạc, bộ chuyển đổi hoặc phụ kiện đi kèm cần được ghi trong biên bản.</li>
+        <li><strong>Xác nhận mức pin phải trả:</strong> dùng con số hoặc nguyên tắc cụ thể trong tin nhắn/hợp đồng, không chỉ nói “trả như cũ”.</li>
+        <li><strong>Hỏi cách thanh toán tại trạm:</strong> ứng dụng, tài khoản, thẻ hoặc quy trình của từng xe có thể khác nhau.</li>
+        <li><strong>Lưu hóa đơn sạc:</strong> giữ ảnh hoặc lịch sử giao dịch cho tới khi hoàn tất đối soát và hoàn cọc.</li>
+      </ol>
+      <h2>Cách tính chi phí sạc mà không cần đoán giá điện</h2>
+      <p>Không cần dùng một mức giá cố định trên bài viết vì đơn giá và chương trình ưu đãi có thể thay đổi. Khách chỉ cần lập bảng gồm số tiền thực trả tại từng lần sạc, phí đỗ hoặc chiếm chỗ nếu có, và khoản bù pin khi trả xe theo hợp đồng. Tổng chi phí sử dụng xe điện trong chuyến đi được tính bằng <strong>giá thuê + giao nhận + các hóa đơn sạc thực tế + cầu đường/gửi xe + phát sinh đã thỏa thuận</strong>.</p>
+      <p>Ví dụ, nếu khách nhận xe ở mức pin A, sạc trong chuyến đi và trả ở mức pin B, hai bên không nên tự quy đổi phần chênh lệch bằng một đơn giá truyền miệng. Hãy dùng hóa đơn thực tế hoặc cách tính đã ghi trước trong hợp đồng. Nếu có ưu đãi sạc, cần ghi rõ ưu đãi đã giảm khoản nào để tránh tính trùng.</p>
+      <h2>Đi tỉnh bằng xe điện cần chuẩn bị kế hoạch sạc thế nào?</h2>
+      <p>Trước khi xuất phát, ước tính tổng quãng đường, kiểm tra điểm sạc trên tuyến và dành phần pin dự phòng cho thay đổi lịch trình. Không nên xây lịch quá sát phạm vi di chuyển lý thuyết của xe. Khi chọn trạm, hãy tính cả thời gian di chuyển tới trạm, thời gian chờ, thời gian sạc và phương án thay thế nếu trạm đang bận hoặc không phù hợp.</p>
+      <p>Khách có thể xem <a href="/thue-xe-dien-ha-noi">các mẫu xe điện tự lái tại Hà Nội</a> và mở trang xe cụ thể để đối chiếu số chỗ, giá thuê và điều kiện km. Với chuyến đi xa, nên gửi tuyến đường cho Car Match trước khi chốt để kiểm tra mẫu xe và kế hoạch sạc phù hợp, thay vì chỉ chọn theo giá ngày.</p>
+      <h2>Nếu xe báo pin thấp hoặc sạc không thành công thì làm gì?</h2>
+      <p>Hãy ưu tiên đưa xe tới vị trí an toàn, đọc cảnh báo trên màn hình và liên hệ đầu mối hỗ trợ của chuyến thuê. Không tự tháo, sửa hoặc can thiệp vào hệ thống điện và pin. Nếu đang ở trạm sạc, làm theo hướng dẫn vận hành của trạm; nếu đầu sạc, dây hoặc xe có dấu hiệu bất thường, dừng thao tác và báo hỗ trợ. Khách nên gửi vị trí, ảnh cảnh báo, mức pin còn lại và quãng đường dự kiến để bên cho thuê đánh giá phương án tiếp theo.</p>
+      <h2>Nên nhắn gì cho Car Match trước khi thuê xe điện?</h2>
+      <p>Một tin nhắn đủ dữ liệu có thể viết: “Tôi cần xe điện từ ngày… đến ngày…, nhận tại…, đi tuyến…, dự kiến… km. Nhờ xác nhận mức pin giao/trả, chi phí sạc có nằm trong giá thuê không, cách thanh toán tại trạm và phụ kiện đi kèm.” Car Match sẽ đối chiếu theo mẫu xe và lịch thực tế trước khi xác nhận.</p>
+      <p>Ngoài phí sạc, khách nên đọc <a href="/chinh-sach">chính sách thuê xe</a>, kiểm tra giới hạn km, giao nhận, cầu đường và điều kiện cọc. Nếu chưa chọn mẫu, hãy mở <a href="/xe?fuelFilter=%C4%90i%E1%BB%87n">danh sách xe điện</a> để so sánh trước khi gửi yêu cầu.</p>
+      <h2>Câu hỏi thường gặp về phí sạc xe thuê</h2>
+      <h3>Trả xe điện có phải sạc đầy 100% không?</h3>
+      <p>Không có một mức chung cho mọi xe. Khách cần trả theo mức pin hoặc nguyên tắc đã ghi trong báo giá, tin nhắn hoặc hợp đồng. Nếu chưa có con số, hãy yêu cầu xác nhận trước khi nhận xe.</p>
+      <h3>Có được dùng ưu đãi sạc của chủ xe không?</h3>
+      <p>Chỉ nên sử dụng khi bên cho thuê xác nhận quyền lợi đó áp dụng cho chuyến thuê. Chính sách ưu đãi có thể gắn với xe, tài khoản và thời hạn cụ thể.</p>
+      <h3>Hóa đơn sạc đứng tên hoặc nằm trong tài khoản chủ xe thì đối soát thế nào?</h3>
+      <p>Hai bên nên dùng lịch sử giao dịch, ảnh hóa đơn hoặc dữ liệu tài khoản để đối chiếu. Cách hoàn trả tiền sạc cần được thống nhất trước, tránh cộng một khoản ước lượng sau chuyến đi.</p>
+      <h3>Phí sạc có được trừ vào tiền cọc không?</h3>
+      <p>Chỉ thực hiện nếu thỏa thuận thuê cho phép và có số liệu đối soát rõ. Khách nên yêu cầu liệt kê khoản trừ, hóa đơn liên quan và số cọc còn lại trước khi xác nhận thanh lý.</p>`,
+    seoTitle: 'Thuê Xe Điện Ai Trả Phí Sạc?',
+    seoDescription:
+      'Thuê xe điện ai trả phí sạc? Cách xác nhận mức pin giao/trả, ưu đãi sạc, hóa đơn và đối soát trước khi nhận xe.',
+    canonicalUrl: `${siteUrl}/blog/thue-xe-dien-ai-tra-phi-sac`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần kiểm tra xe điện và điều kiện sạc?',
+    ctaDescription:
+      'Gửi ngày thuê, tuyến đi và khu vực nhận xe để Car Match kiểm tra mẫu xe, mức pin bàn giao và cách đối soát phù hợp.',
+    ctaPrimaryLabel: 'Xem xe điện tự lái',
+    ctaPrimaryUrl: '/thue-xe-dien-ha-noi',
+    ctaZaloLabel: 'Nhắn Zalo hỏi xe điện',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [
+      { url: '/xe?fuelFilter=%C4%90i%E1%BB%87n', label: 'So sánh các mẫu xe điện đang có' },
+    ],
+    relatedPostSlugs: ['co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast'],
+  },
+];
+
 const staticAirportBlogPosts = [
   {
     _id: 'static-airport-price-guide',
@@ -1527,7 +1626,7 @@ const staticAirportBlogPosts = [
   },
 ];
 
-const staticBlogPosts = [...staticGeoBlogPosts, ...staticAirportBlogPosts];
+const staticBlogPosts = [...staticSupportBlogPosts, ...staticGeoBlogPosts, ...staticAirportBlogPosts];
 
 function mergeStaticBlogPosts(posts) {
   const existingSlugs = new Set(posts.map((post) => post.slug?.current).filter(Boolean));
@@ -1706,6 +1805,9 @@ function collapseVehiclesToSeoPages(vehicles = []) {
     const prices = preferredPriceRows
       .map((vehicle) => Number(vehicle.daily_base_price || 0))
       .filter((price) => price > 0);
+    const monthlyPrices = preferredPriceRows
+      .map((vehicle) => Number(vehicle.monthly_price || 0))
+      .filter((price) => price > 0);
     const updatedAt = group
       .map((vehicle) => vehicle.updated_at || vehicle.created_at)
       .filter(Boolean)
@@ -1729,6 +1831,7 @@ function collapseVehiclesToSeoPages(vehicles = []) {
       status: availableRows.length > 0 ? 'available' : representative.status,
       published: availableRows.length > 0,
       daily_base_price: prices.length > 0 ? Math.min(...prices) : representative.daily_base_price,
+      monthly_price: monthlyPrices.length > 0 ? Math.min(...monthlyPrices) : representative.monthly_price,
       inventory_count: group.length,
       available_inventory_count: availableRows.length,
       updated_at: updatedAt || representative.updated_at,
@@ -1822,7 +1925,8 @@ function optimizeStaticBodyImages(html = '', fallbackAlt = 'Ảnh minh họa bà
 
 function getVehicleName(vehicle) {
   const model = vehicle.vehicle_models || {};
-  return vehicle.display_name || [model.make, model.model].filter(Boolean).join(' ') || 'Xe Car Match';
+  const name = vehicle.display_name || [model.make, model.model].filter(Boolean).join(' ') || 'Xe Car Match';
+  return String(name).replace(/\bvinfast\b/gi, 'VinFast');
 }
 
 function vehicleDescription(vehicle) {
@@ -1830,6 +1934,14 @@ function vehicleDescription(vehicle) {
   const price = vehicle.daily_base_price
     ? `${Number(vehicle.daily_base_price).toLocaleString('vi-VN')}đ/ngày`
     : 'giá tốt theo ngày';
+  const isVf3 = /^vf\s*3$/i.test(String(model.model || '').trim());
+  const monthlyPrice = Number(vehicle.monthly_price || 0);
+  if (isVf3) {
+    const monthlyCopy = monthlyPrice > 0
+      ? `gói tháng ${monthlyPrice.toLocaleString('vi-VN')}đ`
+      : 'giá tháng theo lịch xe';
+    return `Thuê ${getVehicleName(vehicle)} tự lái tại Hà Nội từ ${price}; ${monthlyCopy}. Xem lịch trống, tổng chi phí, hướng dẫn sạc và so sánh VF3–VF5.`;
+  }
   const seats = model.seats ? `${model.seats} chỗ` : 'nhiều lựa chọn';
   const fuel = model.fuel_type ? `, ${model.fuel_type}` : '';
   return `Thuê ${getVehicleName(vehicle)} tại Hà Nội: xe ${seats}${fuel}, ${price}. Giao nhận tại sảnh chung cư hoặc điểm hẹn theo lịch xác nhận với Car Match.`;
@@ -2063,15 +2175,28 @@ function homeStructuredData(meta, vehicles) {
   ];
 }
 
-function monthlyRentalStructuredData(meta) {
+function monthlyRentalStructuredData(meta, vehicles = []) {
+  const monthlyPrices = vehicles
+    .map((vehicle) => Number(vehicle.monthly_price || 0))
+    .filter((price) => Number.isFinite(price) && price > 0);
+  const offers = monthlyPrices.length > 0
+    ? {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'VND',
+        lowPrice: Math.min(...monthlyPrices),
+        highPrice: Math.max(...monthlyPrices),
+        offerCount: monthlyPrices.length,
+        url: meta.canonical,
+      }
+    : undefined;
   const faqs = [
     {
       question: 'Thuê xe tự lái theo tháng tại Hà Nội giá bao nhiêu?',
-      answer: 'Giá thuê xe tự lái theo tháng tại Hà Nội thường bắt đầu từ khoảng 10-12 triệu/tháng với xe nhỏ hoặc xe điện đô thị. Nhóm sedan, crossover 5 chỗ thường khoảng 14-18 triệu/tháng, còn xe 7 chỗ hoặc MPV thường từ 20 triệu/tháng tùy mẫu xe, thời gian thuê và giới hạn km.',
+      answer: 'Giá thuê xe tháng tại Car Match được hiển thị theo từng mẫu xe khi dữ liệu đã được xác nhận. Mức tham khảo hiện bắt đầu từ 10.000.000đ/tháng; giá cuối cùng phụ thuộc mẫu xe, thời hạn thuê, số km dự kiến, khu vực giao nhận và lịch xe thực tế.',
     },
     {
       question: 'Thuê xe tháng có giới hạn km không?',
-      answer: 'Có. Gói thuê xe tháng thường có giới hạn km theo hợp đồng, phổ biến khoảng 2.500-3.000 km/tháng với nhiều nhóm xe. Nếu nhu cầu đi lại cao hơn, Car Match sẽ tư vấn gói phù hợp hơn trước khi chốt hợp đồng.',
+      answer: 'Giới hạn km được xác nhận theo từng mẫu xe và hợp đồng, không áp dụng một mức chung cho toàn bộ đội xe. Khách nên gửi trước số km dự kiến để Car Match ghi rõ giới hạn và cách tính vượt km trong báo giá.',
     },
     {
       question: 'Car Match có giao xe tận tòa nhà khi thuê theo tháng không?',
@@ -2079,11 +2204,19 @@ function monthlyRentalStructuredData(meta) {
     },
     {
       question: 'Cần chuẩn bị gì để thuê xe tự lái theo tháng?',
-      answer: 'Khách thuê thường cần CCCD gắn chip, giấy phép lái xe hạng B còn hiệu lực, thông tin điểm giao nhận tại Hà Nội và khoản đặt cọc theo mẫu xe. Với khách doanh nghiệp có thể cần thêm thông tin công ty để làm hợp đồng hoặc xuất hóa đơn.',
+      answer: 'Khách thuê thường cần CCCD gắn chip, giấy phép lái xe hạng B còn hiệu lực, thông tin điểm giao nhận tại Hà Nội và khoản đặt cọc theo mẫu xe. Với khách doanh nghiệp có thể cần thêm thông tin công ty để làm hợp đồng và xác nhận nhu cầu chứng từ thanh toán.',
     },
     {
       question: 'Thuê 1 tháng có được không hay phải thuê dài hạn?',
       answer: 'Có thể thuê 1 tháng nếu có xe phù hợp và lịch xe trống. Khi thuê 3 tháng, 6 tháng hoặc thuê nhiều xe cùng lúc, đơn giá thường dễ tối ưu hơn so với thuê ngắn.',
+    },
+    {
+      question: 'Có thể thuê xe điện VinFast theo tháng không?',
+      answer: 'Có thể nếu mẫu xe điện phù hợp còn lịch. Khách nên gửi số km dự kiến, nơi sạc thường xuyên và nhu cầu đi tỉnh để Car Match tư vấn đúng mẫu, giá tháng và điều kiện sử dụng.',
+    },
+    {
+      question: 'Doanh nghiệp cần gửi gì để nhận báo giá nhiều xe?',
+      answer: 'Doanh nghiệp nên gửi số lượng xe, thời hạn thuê, nhóm xe mong muốn, khu vực giao nhận, số km dự kiến mỗi tháng, người phụ trách bàn giao và nhu cầu chứng từ thanh toán.',
     },
   ];
 
@@ -2095,20 +2228,268 @@ function monthlyRentalStructuredData(meta) {
         name: 'Hà Nội',
         addressCountry: 'VN',
       },
-      offers: {
-        '@type': 'AggregateOffer',
-        priceCurrency: 'VND',
-        lowPrice: 10000000,
-        highPrice: 25000000,
-        offerCount: 3,
-        availability: 'https://schema.org/InStock',
-        url: meta.canonical,
-      },
+      ...(offers ? { offers } : {}),
     }),
     buildFAQSchema({ title: 'FAQ thuê xe tự lái theo tháng tại Hà Nội', canonical: meta.canonical }, faqs, seoSchemaConfig),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Thuê xe tự lái theo tháng', path: '/thue-xe-thang' },
+    ]),
+  ];
+}
+
+function isElectricVehicle(vehicle) {
+  const fuel = String(vehicle?.vehicle_models?.fuel_type || vehicle?.fuel_type || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/đ/g, 'd');
+  return fuel.includes('dien') || fuel.includes('electric');
+}
+
+function electricRentalStructuredData(meta, vehicles = []) {
+  const electricVehicles = vehicles.filter(isElectricVehicle);
+  const dailyPrices = electricVehicles
+    .map((vehicle) => Number(vehicle.daily_base_price || 0))
+    .filter((price) => Number.isFinite(price) && price > 0);
+  const offers = dailyPrices.length > 0
+    ? {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'VND',
+        lowPrice: Math.min(...dailyPrices),
+        highPrice: Math.max(...dailyPrices),
+        offerCount: dailyPrices.length,
+        url: meta.canonical,
+      }
+    : undefined;
+  const faqs = [
+    {
+      question: 'Thuê xe điện tự lái tại Hà Nội giá bao nhiêu?',
+      answer: 'Giá ngày được hiển thị theo từng xe trên Car Match. Giá cuối cùng phụ thuộc mẫu xe, thời gian thuê, lịch xe thực tế và điểm giao nhận. Với giá tháng, mẫu xe chưa có dữ liệu công khai sẽ hiển thị “Liên hệ báo giá”.',
+    },
+    {
+      question: 'Nên chọn VF3, VF5, VF6, VF7, VF8 hay Limo Green?',
+      answer: 'VF3 và VF5 phù hợp nhu cầu gọn, chủ yếu đi phố; VF6 và VF7 cân bằng hơn cho gia đình; VF8 phù hợp khi ưu tiên không gian và tiện nghi; Limo Green là phương án 7 chỗ cho nhóm đông người.',
+    },
+    {
+      question: 'Chi phí sạc có nằm trong giá thuê xe không?',
+      answer: 'Không nên mặc định chi phí sạc đã nằm trong giá thuê. Car Match sẽ xác nhận mức pin khi giao và trả xe, phụ kiện sạc theo xe và cách đối soát nếu có.',
+    },
+    {
+      question: 'Thuê xe điện đi tỉnh cần lưu ý gì?',
+      answer: 'Khách nên ước tính tổng quãng đường, kiểm tra trạm sạc trên tuyến và dành khoảng dự phòng cho thay đổi lịch trình. Khi nhận xe, hai bên ghi nhận mức pin và phụ kiện đi kèm.',
+    },
+    {
+      question: 'Car Match giao xe điện ở khu vực nào?',
+      answer: 'Car Match hỗ trợ giao nhận theo lịch đã xác nhận tại Vinhomes Ocean Park, Vinhomes Smart City, Times City, Ecopark và The Manor Central Park. Với địa điểm khác tại Hà Nội, khách gửi vị trí để kiểm tra phương án.',
+    },
+  ];
+
+  return [
+    webPageData(meta, {
+      type: 'CollectionPage',
+      fields: {
+        '@id': `${meta.canonical}#collection`,
+        about: [
+          { '@type': 'Thing', name: 'Thuê xe điện tự lái Hà Nội' },
+          { '@type': 'Thing', name: 'Xe điện VinFast tự lái' },
+          { '@type': 'Thing', name: 'VF3, VF5, VF6, VF7, VF8 và Limo Green' },
+        ],
+        mainEntity: {
+          '@type': 'ItemList',
+          name: 'Các mẫu xe điện tự lái tại Car Match',
+          numberOfItems: electricVehicles.length,
+          itemListElement: electricVehicles.map((vehicle, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: getVehicleName(vehicle),
+            url: `${siteUrl}/xe/${vehicle.slug}`,
+          })),
+        },
+      },
+    }),
+    buildServiceSchema(meta, {
+      serviceType: 'Thuê xe điện tự lái tại Hà Nội',
+      areaServed: {
+        '@type': 'City',
+        name: 'Hà Nội',
+        addressCountry: 'VN',
+      },
+      ...(offers ? { offers } : {}),
+    }),
+    buildFAQSchema({ title: 'FAQ thuê xe điện tự lái tại Hà Nội', canonical: meta.canonical }, faqs, seoSchemaConfig),
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Thuê xe tự lái', path: '/xe' },
+      { name: 'Thuê xe điện tự lái Hà Nội', path: '/thue-xe-dien-ha-noi' },
+    ]),
+  ];
+}
+
+function isTargetSevenSeatVehicle(vehicle) {
+  const seats = Number(vehicle?.vehicle_models?.seats || 0);
+  const name = getVehicleName(vehicle).toLowerCase();
+  return seats === 7 && (name.includes('carnival') || name.includes('xpander') || name.includes('limo green'));
+}
+
+function sevenSeatRentalStructuredData(meta, vehicles = []) {
+  const sevenSeatVehicles = vehicles.filter(isTargetSevenSeatVehicle);
+  const dailyPrices = sevenSeatVehicles
+    .map((vehicle) => Number(vehicle.daily_base_price || 0))
+    .filter((price) => Number.isFinite(price) && price > 0);
+  const offers = dailyPrices.length > 0
+    ? {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'VND',
+        lowPrice: Math.min(...dailyPrices),
+        highPrice: Math.max(...dailyPrices),
+        offerCount: dailyPrices.length,
+        url: meta.canonical,
+      }
+    : undefined;
+  const faqs = [
+    {
+      question: 'Thuê xe 7 chỗ tự lái tại Hà Nội giá bao nhiêu?',
+      answer: 'Giá ngày được hiển thị trực tiếp theo từng xe trên Car Match. Tổng tiền cuối cùng phụ thuộc mẫu xe, ngày giờ nhận trả, lịch xe và điểm giao nhận. Giá tháng chỉ hiển thị khi dữ liệu đã được xác nhận.',
+    },
+    {
+      question: 'Nên chọn Carnival, Xpander hay Limo Green?',
+      answer: 'Xpander phù hợp gia đình cần xe 7 chỗ gọn; Limo Green phù hợp nhóm muốn xe điện và đã có kế hoạch sạc; Carnival phù hợp khi ưu tiên không gian, sự thoải mái và hành lý.',
+    },
+    {
+      question: 'Xe 7 chỗ có đủ chỗ cho 7 người và hành lý không?',
+      answer: 'Khi sử dụng đủ 7 ghế, khoang hành lý còn lại phụ thuộc từng mẫu xe, kích thước vali và cách bố trí ghế. Khách nên gửi số người và số vali trước khi đặt cọc.',
+    },
+    {
+      question: 'Thuê xe 7 chỗ đi tỉnh cần tính thêm chi phí gì?',
+      answer: 'Ngoài giá thuê, khách nên dự tính giao nhận, nhiên liệu hoặc sạc, phí cầu đường, gửi xe và khoản vượt km nếu hành trình vượt điều kiện đã xác nhận.',
+    },
+    {
+      question: 'Cần giấy tờ gì để thuê xe 7 chỗ tự lái?',
+      answer: 'Người thuê cần chuẩn bị CCCD gắn chip, giấy phép lái xe hạng B còn hiệu lực, thông tin điểm giao nhận và khoản đặt cọc theo mẫu xe.',
+    },
+  ];
+
+  return [
+    webPageData(meta, {
+      type: 'CollectionPage',
+      fields: {
+        '@id': `${meta.canonical}#collection`,
+        about: [
+          { '@type': 'Thing', name: 'Thuê xe 7 chỗ tự lái Hà Nội' },
+          { '@type': 'Thing', name: 'Kia Carnival, Mitsubishi Xpander và VinFast Limo Green' },
+          { '@type': 'Thing', name: 'Xe gia đình đi tỉnh' },
+        ],
+        mainEntity: {
+          '@type': 'ItemList',
+          name: 'Các mẫu xe 7 chỗ tự lái tại Car Match',
+          numberOfItems: sevenSeatVehicles.length,
+          itemListElement: sevenSeatVehicles.map((vehicle, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: getVehicleName(vehicle),
+            url: `${siteUrl}/xe/${vehicle.slug}`,
+          })),
+        },
+      },
+    }),
+    buildServiceSchema(meta, {
+      serviceType: 'Thuê xe 7 chỗ tự lái tại Hà Nội',
+      areaServed: {
+        '@type': 'City',
+        name: 'Hà Nội',
+        addressCountry: 'VN',
+      },
+      ...(offers ? { offers } : {}),
+    }),
+    buildFAQSchema({ title: 'FAQ thuê xe 7 chỗ tự lái tại Hà Nội', canonical: meta.canonical }, faqs, seoSchemaConfig),
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Thuê xe tự lái', path: '/xe' },
+      { name: 'Thuê xe 7 chỗ tự lái Hà Nội', path: '/thue-xe-7-cho-tu-lai-ha-noi' },
+    ]),
+  ];
+}
+
+function localRentalStructuredData(meta, vehicles = [], area) {
+  const pricedVehicles = vehicles
+    .filter((vehicle) => Number(vehicle.daily_base_price || 0) > 0)
+    .sort((a, b) => Number(a.daily_base_price) - Number(b.daily_base_price));
+  const representativeVehicles = [];
+
+  for (const keyword of area.recommendedKeywords) {
+    const match = pricedVehicles.find((vehicle) => (
+      getVehicleName(vehicle).toLowerCase().includes(keyword) &&
+      !representativeVehicles.some((item) => item.slug === vehicle.slug)
+    ));
+    if (match) representativeVehicles.push(match);
+    if (representativeVehicles.length === 3) break;
+  }
+
+  for (const vehicle of pricedVehicles) {
+    if (!representativeVehicles.some((item) => item.slug === vehicle.slug)) representativeVehicles.push(vehicle);
+    if (representativeVehicles.length === 3) break;
+  }
+
+  const dailyPrices = representativeVehicles.map((vehicle) => Number(vehicle.daily_base_price));
+  const offers = dailyPrices.length > 0
+    ? {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'VND',
+        lowPrice: Math.min(...dailyPrices),
+        highPrice: Math.max(...dailyPrices),
+        offerCount: representativeVehicles.length,
+        url: meta.canonical,
+      }
+    : undefined;
+  const areaServed = {
+    '@type': 'Place',
+    name: area.name,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: area.locality,
+      addressCountry: 'VN',
+    },
+  };
+
+  return [
+    localBusinessData(),
+    webPageData(meta, {
+      type: 'CollectionPage',
+      fields: {
+        '@id': `${meta.canonical}#collection`,
+        about: [
+          { '@type': 'Thing', name: `Thuê xe tự lái ${area.name}` },
+          { '@type': 'Thing', name: `Giao nhận xe tại ${area.locality}` },
+        ],
+        areaServed,
+        provider: { '@id': `${siteUrl}/#localbusiness` },
+        mainEntity: {
+          '@type': 'ItemList',
+          name: `Xe tự lái gợi ý tại ${area.name}`,
+          numberOfItems: representativeVehicles.length,
+          itemListElement: representativeVehicles.map((vehicle, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: getVehicleName(vehicle),
+            url: `${siteUrl}/xe/${vehicle.slug}`,
+          })),
+        },
+      },
+    }),
+    buildServiceSchema(meta, {
+      serviceType: `Thuê xe tự lái tại ${area.name}`,
+      areaServed,
+      ...(offers ? { offers } : {}),
+    }),
+    buildFAQSchema({
+      title: `FAQ thuê xe tự lái tại ${area.name}`,
+      canonical: meta.canonical,
+    }, area.faqs, seoSchemaConfig),
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Thuê xe tự lái', path: '/xe' },
+      { name: area.name, path: area.path },
     ]),
   ];
 }
@@ -2123,6 +2504,8 @@ function vehicleStructuredData(vehicle) {
   const vehicleNodeId = `${url}#vehicle`;
   const kmPerDay = Number(vehicle.km_per_day || 250);
   const kmSurcharge = Number(vehicle.km_surcharge || 3000);
+  const monthlyPrice = Number(vehicle.monthly_price || 0);
+  const seats = Number(model.seats || (/^vf\s*3$/i.test(String(model.model || '').trim()) ? 4 : 0));
   const bookable = Number(vehicle.available_inventory_count || 0) > 0 ||
     (vehicle.status === 'available' && vehicle.published !== false);
 
@@ -2157,9 +2540,12 @@ function vehicleStructuredData(vehicle) {
       telephone: '+84971163290',
     },
     additionalProperty: [
-      ...(model.seats ? [{ '@type': 'PropertyValue', name: 'Số chỗ', value: `${model.seats} chỗ` }] : []),
+      ...(seats ? [{ '@type': 'PropertyValue', name: 'Số chỗ', value: `${seats} chỗ` }] : []),
       ...(model.fuel_type ? [{ '@type': 'PropertyValue', name: 'Nhiên liệu', value: model.fuel_type }] : []),
       ...(model.transmission ? [{ '@type': 'PropertyValue', name: 'Hộp số', value: model.transmission }] : []),
+      ...(monthlyPrice > 0
+        ? [{ '@type': 'PropertyValue', name: 'Giá thuê tháng tham khảo', value: `${monthlyPrice.toLocaleString('vi-VN')}đ/tháng` }]
+        : []),
       { '@type': 'PropertyValue', name: 'Km miễn phí mỗi ngày', value: `${kmPerDay} km/ngày` },
       { '@type': 'PropertyValue', name: 'Phụ phí vượt km', value: `${kmSurcharge.toLocaleString('vi-VN')}đ/km` },
     ],
@@ -2282,7 +2668,11 @@ function contactStructuredData(meta) {
 function routeStructuredData(meta, vehicles) {
   if (meta.path === '/') return homeStructuredData(meta, vehicles);
   if (meta.path === '/xe') return fleetStructuredData(meta, vehicles);
-  if (meta.path === '/thue-xe-thang') return monthlyRentalStructuredData(meta);
+  if (meta.path === '/thue-xe-thang') return monthlyRentalStructuredData(meta, vehicles);
+  if (meta.path === '/thue-xe-dien-ha-noi') return electricRentalStructuredData(meta, vehicles);
+  if (meta.path === '/thue-xe-7-cho-tu-lai-ha-noi') return sevenSeatRentalStructuredData(meta, vehicles);
+  const localArea = localRentalAreas.find((area) => area.path === meta.path);
+  if (localArea) return localRentalStructuredData(meta, vehicles, localArea);
   if (meta.path === '/lien-he') return contactStructuredData(meta);
   if (meta.path === '/faq') return [
     faqPageData(meta),
@@ -2327,7 +2717,7 @@ async function fetchVehicles() {
   }
 
   const baseSelect =
-    'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const datedSelect = `created_at,updated_at,${baseSelect}`;
   let result = await supabase
     .from('vehicles')
@@ -2368,7 +2758,7 @@ async function fetchSeoVehicles(fallbackVehicles = []) {
   if (!supabase) return fallbackVehicles;
 
   const select =
-    'id,display_name,color,model_year,daily_base_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,created_at,updated_at,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,created_at,updated_at,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const { data, error } = await supabase
     .from('vehicles')
     .select(select)
@@ -2486,6 +2876,7 @@ function pruneVehicleForClient(vehicle) {
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
+    monthly_price: vehicle.monthly_price ?? null,
     website_description: vehicle.website_description ?? null,
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
@@ -2579,7 +2970,9 @@ async function createReactSsrRenderer() {
 }
 
 async function renderReactHomeRoot(vehicles) {
-  const initialVehicles = vehicles.slice(0, 6).map(pruneVehicleForClient);
+  // The homepage renders only six cards, but its live price guide needs the
+  // full catalog to calculate 7-seat and monthly starting prices in SSR HTML.
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
   const totalVehicles = vehicles.length;
   const vite = await createViteServer({
     appType: 'custom',
@@ -2612,6 +3005,60 @@ async function renderReactMonthlyRoot(vehicles) {
     const html = renderMonthlyRental(initialVehicles);
     const data = serializeForInlineScript(initialVehicles);
     return `<div id="root" data-prerendered="monthly">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactElectricRoot(vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderElectricRental } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderElectricRental(initialVehicles);
+    const data = serializeForInlineScript(initialVehicles);
+    return `<div id="root" data-prerendered="electric-rental">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactSevenSeatRoot(vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderSevenSeatRental } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderSevenSeatRental(initialVehicles);
+    const data = serializeForInlineScript(initialVehicles);
+    return `<div id="root" data-prerendered="seven-seat-rental">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactLocalRoot(area, vehicles) {
+  const initialVehicles = vehicles.map(pruneVehicleForClient);
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderLocalRental } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderLocalRental(area.slug, area.path, initialVehicles);
+    const data = serializeForInlineScript(initialVehicles);
+    return `<div id="root" data-prerendered="local-rental" data-local-area="${escapeHtml(area.slug)}">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
   } finally {
     await vite.close();
   }
@@ -2690,11 +3137,12 @@ function renderReactVehicleRoot(renderer, routePath, vehicles) {
   return `<div id="root" data-prerendered="vehicle">${html}</div><script>window.__CM_INITIAL_VEHICLES__=${data};</script>`;
 }
 
-function safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle) {
+function safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle, catalogVehicles = []) {
   if (!vehicleRenderer?.renderer?.renderCarDetail) return '';
 
   try {
-    return renderReactVehicleRoot(vehicleRenderer.renderer, routePath, [vehicle]);
+    const initialVehicles = catalogVehicles.length > 0 ? catalogVehicles : [vehicle];
+    return renderReactVehicleRoot(vehicleRenderer.renderer, routePath, initialVehicles);
   } catch (error) {
     console.warn(`Skipped React vehicle prerender for ${routePath}: ${error instanceof Error ? error.message : String(error)}`);
     return '';
@@ -3179,26 +3627,35 @@ function fleetStaticShell(vehicles = []) {
 
 function monthlyStaticShell(vehicles = []) {
   const totalVehicles = vehicles.length || 20;
-  const priceGroups = [
-    {
-      group: 'Xe nhỏ / xe điện đô thị',
-      price: 'Từ 10-12tr/tháng',
-      examples: 'VinFast VF3, Fadil hoặc xe đô thị tương đương',
-      fit: 'Đi làm hằng ngày, đi nội thành, gửi xe dễ, chi phí dễ kiểm soát.',
-    },
-    {
-      group: 'Sedan / Crossover 5 chỗ',
-      price: 'Khoảng 14-18tr/tháng',
-      examples: 'Mazda 3, Toyota Raize, Kia Sonet, VinFast VF5/VF6',
-      fit: 'Gia đình nhỏ, công tác linh hoạt, đi tỉnh gần Hà Nội cuối tuần.',
-    },
-    {
-      group: 'Xe 7 chỗ / MPV',
-      price: 'Từ 20tr/tháng',
-      examples: 'Toyota Innova, Kia Carnival hoặc nhóm 7 chỗ tương đương',
-      fit: 'Gia đình đông người, doanh nghiệp, đi tỉnh nhiều hành lý.',
-    },
-  ];
+  const monthlyVehicles = vehicles
+    .filter((vehicle) => Number(vehicle.monthly_price || 0) > 0)
+    .sort((a, b) => Number(a.monthly_price) - Number(b.monthly_price))
+    .slice(0, 6);
+  const monthlyStartingPrice = monthlyVehicles.length > 0
+    ? Number(monthlyVehicles[0].monthly_price)
+    : 10000000;
+  const priceGroups = monthlyVehicles.length > 0
+    ? monthlyVehicles.map((vehicle) => {
+        const model = vehicle.vehicle_models || {};
+        const seats = Number(model.seats || 0);
+        const fuel = model.fuel_type ? String(model.fuel_type) : 'nhiên liệu theo mẫu xe';
+        return {
+          group: getVehicleName(vehicle),
+          price: `${Number(vehicle.monthly_price).toLocaleString('vi-VN')}đ/tháng`,
+          examples: [seats > 0 ? `${seats} chỗ` : '', fuel].filter(Boolean).join(' · '),
+          fit: seats >= 7
+            ? 'Phù hợp gia đình đông người, doanh nghiệp hoặc hành trình có nhiều hành lý.'
+            : fuel.toLowerCase().includes('điện')
+              ? 'Phù hợp đi làm, đi phố và người có điểm sạc thuận tiện.'
+              : 'Phù hợp cá nhân, gia đình nhỏ và nhu cầu đi lại hằng ngày.',
+        };
+      })
+    : [{
+        group: 'Giá theo từng mẫu xe',
+        price: 'Liên hệ báo giá',
+        examples: 'Car Match kiểm tra giá tháng và lịch xe thật trước khi chốt.',
+        fit: 'Gửi thời hạn thuê, số km dự kiến và khu vực giao nhận để nhận phương án phù hợp.',
+      }];
   const steps = [
     ['Gửi nhu cầu', 'Cho biết khu vực nhận xe, số xe cần dùng, thời gian thuê, số km dự kiến và loại xe mong muốn.'],
     ['Kiểm tra lịch xe', 'Car Match đối chiếu xe còn trống, tình trạng xe, giới hạn km và điều kiện giao nhận.'],
@@ -3228,15 +3685,15 @@ function monthlyStaticShell(vehicles = []) {
           <div class="cm-static-monthly-grid">
             <div>
               <p class="cm-static-pill">Thuê xe tự lái theo tháng tại Hà Nội</p>
-              <h1 class="cm-static-monthly-title">Thuê xe tháng Hà Nội<br><span style="color:#11163e">từ 10tr/tháng</span></h1>
-              <p class="cm-static-monthly-lead">Car Match cho thuê xe tự lái theo tháng cho cư dân chung cư, gia đình trẻ và doanh nghiệp nhỏ tại Hà Nội. Khách có thể thuê 1-12 tháng, nhận xe tận tòa nhà, có hợp đồng rõ ràng và được tư vấn xe phù hợp theo số người, khu vực nhận xe, ngân sách và số km dự kiến.</p>
+              <h1 class="cm-static-monthly-title">Thuê xe tháng Hà Nội<br><span style="color:#11163e">từ ${escapeHtml(monthlyStartingPrice.toLocaleString('vi-VN'))}đ/tháng</span></h1>
+              <p class="cm-static-monthly-lead">Car Match cho thuê xe tự lái theo tháng cho cư dân chung cư, gia đình trẻ và doanh nghiệp nhỏ tại Hà Nội. Khách có thể thuê 1-12 tháng, xem giá theo từng mẫu xe, nhận xe tận tòa nhà và xác nhận tổng chi phí trước khi đặt cọc.</p>
               <div class="cm-static-actions">
                 <a class="cm-static-btn primary" href="https://zalo.me/0971163290">Nhắn Zalo nhận báo giá</a>
                 <a class="cm-static-btn secondary" href="/xe">Xem ${totalVehicles}+ xe đang có</a>
                 <a class="cm-static-btn secondary" href="/lien-he">Liên hệ Car Match</a>
               </div>
               <div class="cm-static-monthly-stats">
-                <div class="cm-static-monthly-stat"><strong>10-25tr</strong><span>Giá tham khảo mỗi tháng</span></div>
+                <div class="cm-static-monthly-stat"><strong>Từ ${escapeHtml((monthlyStartingPrice / 1000000).toLocaleString('vi-VN'))} triệu</strong><span>Giá tham khảo mỗi tháng</span></div>
                 <div class="cm-static-monthly-stat"><strong>1-12 tháng</strong><span>Linh hoạt thời hạn thuê</span></div>
                 <div class="cm-static-monthly-stat"><strong>30 phút</strong><span>Phản hồi báo giá khi có xe</span></div>
               </div>
@@ -3289,9 +3746,9 @@ function monthlyStaticShell(vehicles = []) {
         </section>
         <section class="cm-static-monthly-section">
           <div class="cm-static-wrap cm-static-monthly-facts">
-            <article class="cm-static-monthly-fact"><h3>Ai nên thuê xe theo tháng?</h3><p>Cư dân chung cư cần xe đi làm, gia đình cần xe cuối tuần, chủ doanh nghiệp cần xe tiếp khách, nhân sự sales/field work hoặc khách đang cân nhắc mua xe nhưng muốn dùng thử trước. Thuê tháng giúp tránh chi phí sở hữu xe dài hạn, bảo dưỡng, khấu hao và rủi ro xe nằm bãi.</p></article>
-            <article class="cm-static-monthly-fact"><h3>Cần chuẩn bị giấy tờ gì?</h3><p>Khách thuê cá nhân thường cần CCCD bản gốc, giấy phép lái xe hạng B còn hiệu lực, thông tin nơi nhận xe và khoản đặt cọc theo nhóm xe. Khách doanh nghiệp có thể cần thêm thông tin công ty, hợp đồng, nhu cầu xuất hóa đơn và người phụ trách nhận bàn giao.</p></article>
-            <article class="cm-static-monthly-fact"><h3>Khu vực giao xe phổ biến</h3><p>Car Match ưu tiên các khu đô thị, chung cư và văn phòng tại Hà Nội để việc giao nhận ổn định. Các khu vực thường được khách hỏi gồm Vinhomes Ocean Park, Times City, Smart City, The Manor Central Park, Linh Đàm, Royal City và Ecopark.</p><div class="cm-static-monthly-areas"><span>Vinhomes Ocean Park</span><span>Times City</span><span>Smart City</span><span>The Manor</span><span>Linh Đàm</span><span>Ecopark</span></div></article>
+            <article class="cm-static-monthly-fact"><h3>Ai nên thuê xe theo tháng?</h3><p>Cư dân chung cư cần xe đi làm, gia đình cần xe cuối tuần, chủ doanh nghiệp cần xe tiếp khách, nhân sự sales/field work hoặc khách đang cân nhắc mua xe nhưng muốn dùng thử trước. Thuê tháng phù hợp khi nhu cầu có thời hạn hoặc cần giữ vốn; không mặc định rẻ hơn mua xe trong mọi trường hợp.</p></article>
+            <article class="cm-static-monthly-fact"><h3>Cần chuẩn bị giấy tờ gì?</h3><p>Khách thuê cá nhân thường cần CCCD gắn chip, giấy phép lái xe hạng B còn hiệu lực, thông tin nơi nhận xe và khoản đặt cọc theo mẫu xe. Khách doanh nghiệp có thể cần thêm thông tin công ty, hợp đồng, nhu cầu chứng từ thanh toán và người phụ trách nhận bàn giao.</p></article>
+            <article class="cm-static-monthly-fact"><h3>Khu vực giao xe phổ biến</h3><p>Car Match ưu tiên các khu đô thị, chung cư và văn phòng tại Hà Nội để việc giao nhận ổn định. Các khu vực được xác nhận gồm Vinhomes Ocean Park, Times City, Vinhomes Smart City, Ecopark và The Manor Central Park.</p><div class="cm-static-monthly-areas"><span>Vinhomes Ocean Park</span><span>Times City</span><span>Vinhomes Smart City</span><span>Ecopark</span><span>The Manor Central Park</span></div></article>
             <article class="cm-static-monthly-fact"><h3>Điều kiện giá cần xác nhận</h3><p>Trước khi chốt, hai bên cần thống nhất số km/tháng, phụ phí vượt km, phí giao nhận, lịch bảo dưỡng, phạm vi đi tỉnh, trách nhiệm khi phát sinh phạt nguội và quy định trả xe sớm hoặc gia hạn hợp đồng.</p></article>
           </div>
         </section>
@@ -3305,7 +3762,7 @@ function monthlyStaticShell(vehicles = []) {
             },
             {
               question: 'Khách doanh nghiệp cần gửi thông tin gì để nhận báo giá?',
-              answer: 'Doanh nghiệp nên gửi số lượng xe cần dùng, loại xe mong muốn, thời hạn thuê, khu vực nhận xe, số km dự kiến mỗi tháng, nhu cầu xuất hóa đơn và người phụ trách bàn giao. Nếu xe dùng cho đội sales, tiếp khách hoặc vận hành nội bộ, cần nói rõ lịch chạy tỉnh, yêu cầu thương hiệu xe và giới hạn ngân sách để Car Match lọc phương án sát thực tế hơn. Báo giá cuối cùng chỉ nên chốt sau khi kiểm tra xe còn lịch trống, tình trạng xe, điều kiện cọc, phụ phí giao nhận và điều khoản hợp đồng.',
+              answer: 'Doanh nghiệp nên gửi số lượng xe cần dùng, loại xe mong muốn, thời hạn thuê, khu vực nhận xe, số km dự kiến mỗi tháng, nhu cầu chứng từ thanh toán và người phụ trách bàn giao. Nếu xe dùng cho đội sales, tiếp khách hoặc vận hành nội bộ, cần nói rõ lịch chạy tỉnh, yêu cầu thương hiệu xe và giới hạn ngân sách để Car Match lọc phương án sát thực tế hơn. Báo giá cuối cùng chỉ nên chốt sau khi kiểm tra xe còn lịch trống, tình trạng xe, điều kiện cọc, phụ phí giao nhận và điều khoản hợp đồng.',
             },
           ],
           links: [
@@ -4080,6 +4537,18 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
     html = moveStylesheetsBeforeModuleScripts(html);
     html = applyRootCriticalCss(html, Boolean(prerenderedMonthlyRoot));
     html = html.replace(/<div id="root"><\/div>/, root);
+  } else if (meta.path === '/thue-xe-dien-ha-noi' && prerenderedElectricRoot) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = applyRootCriticalCss(html, true);
+    html = html.replace(/<div id="root"><\/div>/, prerenderedElectricRoot);
+  } else if (meta.path === '/thue-xe-7-cho-tu-lai-ha-noi' && prerenderedSevenSeatRoot) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = applyRootCriticalCss(html, true);
+    html = html.replace(/<div id="root"><\/div>/, prerenderedSevenSeatRoot);
+  } else if (prerenderedLocalRoots.has(meta.path)) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = applyRootCriticalCss(html, true);
+    html = html.replace(/<div id="root"><\/div>/, prerenderedLocalRoots.get(meta.path));
   } else if (meta.path === '/lien-he') {
     const root = prerenderedContactRoot || contactStaticShell();
     html = moveStylesheetsBeforeModuleScripts(html);
@@ -4154,14 +4623,32 @@ async function writeSpaShell(baseHtml, meta, vehicles = []) {
   const routePath = meta.path === '/' ? '' : meta.path.replace(/^\/+/, '');
   const outputDir = path.join(distDir, routePath);
   await mkdir(outputDir, { recursive: true });
-  await writeFile(path.join(outputDir, 'index.html'), renderSpaShell(baseHtml, meta, vehicles), 'utf8');
+  await writeFile(
+    path.join(outputDir, 'index.html'),
+    normalizeRetiredSeoRoutes(renderSpaShell(baseHtml, meta, vehicles)),
+    'utf8',
+  );
+}
+
+function normalizeRetiredSeoRoutes(value = '') {
+  return String(value)
+    .replaceAll('https://www.carmatch.vn/thue-xe-tu-lai-ha-noi', 'https://www.carmatch.vn/')
+    .replaceAll('href="/thue-xe-tu-lai-ha-noi"', 'href="/"')
+    .replaceAll(
+      'https://www.carmatch.vn/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh',
+      'https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-ocean-park',
+    )
+    .replaceAll(
+      'href="/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh"',
+      'href="/thue-xe-tu-lai-vinhomes-ocean-park"',
+    );
 }
 
 async function writeHtmlRoute(routePath, html) {
   const cleanPath = routePath === '/' ? '' : routePath.replace(/^\/+/, '');
   const outputDir = path.join(distDir, cleanPath);
   await mkdir(outputDir, { recursive: true });
-  const finalHtml = withAiTokenMeta(html);
+  const finalHtml = normalizeRetiredSeoRoutes(withAiTokenMeta(html));
   await writeFile(path.join(outputDir, 'index.html'), finalHtml, 'utf8');
   if (cleanPath) {
     const cleanUrlFile = path.join(distDir, `${cleanPath}.html`);
@@ -4176,6 +4663,9 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
   prerenderedHomeRoot = '';
   prerenderedFleetRoot = '';
   prerenderedMonthlyRoot = '';
+  prerenderedElectricRoot = '';
+  prerenderedSevenSeatRoot = '';
+  prerenderedLocalRoots = new Map();
   prerenderedContactRoot = '';
   prerenderedAboutRoot = '';
   prerenderedPartnerRoot = '';
@@ -4196,6 +4686,26 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
     prerenderedMonthlyRoot = await renderReactMonthlyRoot(vehicles);
   } catch (error) {
     console.warn(`Skipped React monthly prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedElectricRoot = await renderReactElectricRoot(vehicles);
+  } catch (error) {
+    console.warn(`Skipped React electric rental prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedSevenSeatRoot = await renderReactSevenSeatRoot(vehicles);
+  } catch (error) {
+    console.warn(`Skipped React seven-seat rental prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  for (const area of localRentalAreas) {
+    try {
+      prerenderedLocalRoots.set(area.path, await renderReactLocalRoot(area, vehicles));
+    } catch (error) {
+      console.warn(`Skipped React local rental prerender for ${area.path}: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   try {
@@ -4258,7 +4768,7 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
         description: vehicleDescription(vehicle),
         canonical: `${siteUrl}/xe/${vehicle.slug}`,
         image: getVehicleImage(vehicle),
-        prerenderedRoot: safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle),
+        prerenderedRoot: safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle, seoVehicles),
         staticH1: `Thuê ${name} tự lái tại Hà Nội`,
         staticLead: vehicleDescription(vehicle),
         staticExtraHtml: vehicleStaticDetailHtml(vehicle),
@@ -4285,7 +4795,7 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
           description: vehicleDescription(vehicle),
           canonical: `${siteUrl}/xe/${vehicle.slug}`,
           image: getVehicleImage(vehicle),
-          prerenderedRoot: safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle),
+          prerenderedRoot: safeRenderReactVehicleRoot(vehicleRenderer, routePath, vehicle, seoVehicles),
           staticH1: `Thuê ${name} tự lái tại Hà Nội`,
           staticLead: vehicleDescription(vehicle),
           staticExtraHtml: vehicleStaticDetailHtml(vehicle),
@@ -5561,7 +6071,7 @@ function renderCmsLandingPage(page) {
       ],
       [
         'Thuê xe Vinhomes Ocean Park giao tận sảnh',
-        '/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh',
+        '/thue-xe-tu-lai-vinhomes-ocean-park',
       ],
     ];
     const geoGuideHrefs = new Set(geoGuideLinks.map(([, href]) => href));
@@ -6958,7 +7468,8 @@ async function main() {
     fetchLandingPages(),
   ]);
   const seoVehicles = await fetchSeoVehicles(vehicles);
-  let posts = mergeStaticBlogPosts(cmsPosts);
+  let posts = mergeStaticBlogPosts(cmsPosts)
+    .filter((post) => !redirectedBlogSlugs.has(post?.slug?.current));
   let travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
   let travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
   vehicleCoverCacheUrls = await cacheVehicleCoverImages(seoVehicles, distDir, {
@@ -6976,6 +7487,11 @@ async function main() {
   travelDestinations = replaceCachedStaticImageUrls(travelDestinations);
   travelCollections = replaceCachedStaticImageUrls(travelCollections);
   const cachedLandingPages = replaceCachedStaticImageUrls(landingPages);
+  const reservedLandingSlugs = new Set([
+    'thue-xe-tu-lai-ha-noi',
+    ...localRentalAreas.map((area) => area.path.replace(/^\//, '')),
+  ]);
+  const indexableLandingPages = cachedLandingPages.filter((page) => !reservedLandingSlugs.has(page.slug));
   generatedTripDestinations = travelDestinations;
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
   spaBaseHtml = baseHtml;
@@ -6989,17 +7505,9 @@ async function main() {
   await writeStaticBlogData(posts);
 
   // Render CMS-managed landing pages (published entries from seo_landing_pages table)
-  const cmsRenderedSlugs = new Set();
-  for (const page of cachedLandingPages) {
+  for (const page of indexableLandingPages) {
     await writeHtmlRoute(`/${page.slug}`, renderCmsLandingPage(page));
-    cmsRenderedSlugs.add(page.slug);
     console.log(`  CMS landing: /${page.slug}`);
-  }
-
-  // Fallback Hanoi landing only if not already rendered by CMS
-  if (!cmsRenderedSlugs.has('thue-xe-tu-lai-ha-noi')) {
-    await writeHtmlRoute('/thue-xe-tu-lai-ha-noi', renderCmsLandingPage(createHanoiLandingFallbackPage()));
-    console.log('  Fallback CMS-style landing: /thue-xe-tu-lai-ha-noi');
   }
 
   await writeReactTravelRoutes(baseHtml, vehicles, travelDestinations, travelCollections);
@@ -7013,10 +7521,18 @@ async function main() {
     await writeHtmlRoute(`/blog/${post.slug.current}`, renderPost(post, contentIndex));
   }
 
-  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, seoVehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(path.join(distDir, 'sitemap.xml'), renderSitemap(posts, seoVehicles, indexableLandingPages, travelCollections), 'utf8');
   await writeFile(path.join(distDir, 'rss.xml'), renderRssFeed(posts), 'utf8');
-  await writeFile(path.join(distDir, 'llms.txt'), renderLlmsText(posts, seoVehicles, cachedLandingPages, travelCollections), 'utf8');
-  await writeFile(path.join(distDir, 'llms-full.txt'), renderLlmsFullText(posts, seoVehicles, cachedLandingPages, travelCollections), 'utf8');
+  await writeFile(
+    path.join(distDir, 'llms.txt'),
+    normalizeRetiredSeoRoutes(renderLlmsText(posts, seoVehicles, indexableLandingPages, travelCollections)),
+    'utf8',
+  );
+  await writeFile(
+    path.join(distDir, 'llms-full.txt'),
+    normalizeRetiredSeoRoutes(renderLlmsFullText(posts, seoVehicles, indexableLandingPages, travelCollections)),
+    'utf8',
+  );
   await writeFile(
     path.join(distDir, 'robots.txt'),
     [
@@ -7049,7 +7565,7 @@ async function main() {
     'utf8',
   );
 
-  console.log(`Generated static SEO HTML for ${routeMeta.length} routes, ${vehicles.length} vehicles, ${posts.length} posts, ${landingPages.length} CMS landing pages`);
+  console.log(`Generated static SEO HTML for ${routeMeta.length} routes, ${vehicles.length} vehicles, ${posts.length} posts, ${indexableLandingPages.length} CMS landing pages`);
 }
 
 main().catch((error) => {

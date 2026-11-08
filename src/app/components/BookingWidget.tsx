@@ -807,18 +807,36 @@ export default function BookingWidget({
     });
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
+    let attempts = 0;
+    let responseStatus: number | null = null;
     try {
       const from = todayStr;
       const to = toDateStr(addDays(today, 120));
-      const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`, {
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error('availability request failed');
-      const data = await res.json();
+      let data = null;
+      while (attempts < 2 && !data) {
+        attempts += 1;
+        try {
+          const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`, {
+            signal: controller.signal,
+          });
+          responseStatus = res.status;
+          if (!res.ok) {
+            throw Object.assign(new Error('availability request failed'), { status: res.status });
+          }
+          data = await res.json();
+        } catch (error) {
+          if (controller.signal.aborted) throw error;
+          const status = Number((error as { status?: number })?.status || 0);
+          const retryable = error instanceof TypeError || status === 429 || status >= 500;
+          if (attempts < 2 && retryable) continue;
+          throw error;
+        }
+      }
+      if (!data) throw new Error('availability response missing');
       setBlockedRanges(data.blockedRanges || []);
       setRequiresConfirmation(data.requires_confirmation === true);
       setAvailabilityUnavailable(data.availability_unavailable === true);
-      if (data.recent_bookings_count > 0) setRecentBookingsCount(data.recent_bookings_count);
+      if (Number(data.recent_bookings_count) > 0) setRecentBookingsCount(Number(data.recent_bookings_count));
       trackAvailabilityCheck('success', {
         vehicle_id: vehicleId,
         car_slug: carSlug || null,
@@ -827,6 +845,8 @@ export default function BookingWidget({
         blocked_ranges: Array.isArray(data.blockedRanges) ? data.blockedRanges.length : 0,
         requires_confirmation: data.requires_confirmation === true,
         availability_unavailable: data.availability_unavailable === true,
+        attempt_count: attempts,
+        http_status: responseStatus,
       });
     } catch (error) {
       setAvailabilityUnavailable(true);
@@ -836,7 +856,13 @@ export default function BookingWidget({
         car_slug: carSlug || null,
         vehicle_name: carName,
         duration_ms: Math.round(performance.now() - startedAt),
-        error_type: error instanceof DOMException && error.name === 'AbortError' ? 'timeout' : 'request_failed',
+        error_type: error instanceof DOMException && error.name === 'AbortError'
+          ? 'timeout'
+          : responseStatus
+            ? `http_${responseStatus}`
+            : error instanceof TypeError ? 'network' : 'request_failed',
+        attempt_count: attempts,
+        http_status: responseStatus,
       });
     } finally {
       window.clearTimeout(timeoutId);

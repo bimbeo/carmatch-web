@@ -23,7 +23,7 @@ const guideTopics = [
     title: 'Chuẩn bị giấy tờ khi thuê xe',
     body: 'Khách thuê nên chuẩn bị CCCD, giấy phép lái xe hạng B và thông tin lịch trình trước khi nhắn Car Match. Việc chốt sớm ngày nhận, ngày trả, khu vực giao xe và số người đi giúp đội vận hành kiểm tra mẫu xe phù hợp nhanh hơn.',
     links: [
-      { href: '/thue-xe-tu-lai-ha-noi', label: 'Thuê xe tự lái Hà Nội' },
+      { href: '/', label: 'Thuê xe tự lái Hà Nội' },
       { href: '/chinh-sach', label: 'Điều kiện thuê xe' },
     ],
   },

@@ -7,6 +7,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackVehicleClick, trackZaloClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
+import { formatPrice, type Car as CarModel } from '@/data/cars';
 import {
   calculateRentalBillingDays,
   DEFAULT_PICKUP_HOUR,
@@ -15,6 +16,7 @@ import {
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
+import HomeReviews from '../components/HomeReviews';
 import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
 
@@ -80,22 +82,11 @@ const stats = [
 ];
 
 const residentialAreas = [
-  { name: 'Vinhomes Ocean Park', area: 'Gia Lâm' },
-  { name: 'Vinhomes Times City', area: 'Hai Bà Trưng' },
-  { name: 'Vinhomes Smart City', area: 'Nam Từ Liêm' },
-  { name: 'Vinhomes Royal City', area: 'Thanh Xuân' },
-  { name: 'Ecopark', area: 'Văn Giang, Hưng Yên' },
-  { name: 'The Manor Central Park', area: 'Hoàng Mai' },
-  { name: 'Linh Đàm', area: 'Hoàng Mai' },
-];
-
-const quickSearchAreas = [
-  'Vinhomes Ocean Park',
-  'Vinhomes Times City',
-  'Vinhomes Smart City',
-  'The Manor Central Park',
-  'Ecopark',
-  'Linh Đàm',
+  { name: 'Vinhomes Ocean Park', area: 'Gia Lâm', href: '/thue-xe-tu-lai-vinhomes-ocean-park' },
+  { name: 'Vinhomes Times City', area: 'Hai Bà Trưng', href: '/thue-xe-tu-lai-times-city' },
+  { name: 'Vinhomes Smart City', area: 'Nam Từ Liêm', href: '/thue-xe-tu-lai-vinhomes-smart-city' },
+  { name: 'Ecopark', area: 'Văn Giang, Hưng Yên', href: '/thue-xe-tu-lai-ecopark' },
+  { name: 'The Manor Central Park', area: 'Hoàng Mai', href: '/thue-xe-tu-lai-the-manor' },
 ];
 
 const quickSearchSeats = [
@@ -176,10 +167,72 @@ const quickFacts = [
   },
 ];
 
+interface HomePricingRow {
+  label: string;
+  price: string;
+  note: string;
+  href: string;
+  linkLabel: string;
+}
+
+function lowestPositivePrice(cars: CarModel[], pick: (car: CarModel) => number | undefined) {
+  const values = cars.map(pick).filter((value): value is number => typeof value === 'number' && value > 0);
+  return values.length > 0 ? Math.min(...values) : undefined;
+}
+
+function startingPrice(value: number | undefined, unit: 'ngày' | 'tháng') {
+  return value ? `Từ ${formatPrice(value)}/${unit}` : 'Chọn lịch để xem giá';
+}
+
+function buildHomePricingRows(cars: CarModel[]): HomePricingRow[] {
+  const pricedCars = cars.filter((car) => car.price > 0);
+  const electricCars = pricedCars.filter((car) => car.fuel === 'Điện');
+  const fiveSeatCars = pricedCars.filter((car) => car.seats <= 5);
+  const familyCars = pricedCars.filter((car) => car.seats >= 7);
+
+  return [
+    {
+      label: 'Xe điện đô thị',
+      price: startingPrice(lowestPositivePrice(electricCars, (car) => car.price), 'ngày'),
+      note: 'Phù hợp đi phố, đi làm và trải nghiệm xe điện VinFast.',
+      href: '/xe?fuelFilter=%C4%90i%E1%BB%87n',
+      linkLabel: 'Xem xe điện',
+    },
+    {
+      label: 'Xe 5 chỗ',
+      price: startingPrice(lowestPositivePrice(fiveSeatCars, (car) => car.price), 'ngày'),
+      note: 'Dành cho cá nhân, cặp đôi hoặc gia đình nhỏ đi ngắn ngày.',
+      href: '/xe?seatFilter=5',
+      linkLabel: 'Xem xe 5 chỗ',
+    },
+    {
+      label: 'Xe 7 chỗ và MPV',
+      price: startingPrice(lowestPositivePrice(familyCars, (car) => car.price), 'ngày'),
+      note: 'Phù hợp gia đình đông người, đi tỉnh hoặc có nhiều hành lý.',
+      href: '/xe?seatFilter=7',
+      linkLabel: 'Xem xe 7 chỗ',
+    },
+    {
+      label: 'Thuê xe theo tháng',
+      price: startingPrice(lowestPositivePrice(pricedCars, (car) => car.priceMonth) ?? 10_000_000, 'tháng'),
+      note: 'Giá phụ thuộc mẫu xe, số tháng thuê và lịch giao nhận thực tế.',
+      href: '/thue-xe-thang',
+      linkLabel: 'Xem gói thuê tháng',
+    },
+  ];
+}
+
+const priorityCommercialLinks = [
+  { label: 'Thuê Kia Carnival tại Hà Nội', href: '/xe/kia-carnival' },
+  { label: 'Thuê VinFast VF3', href: '/xe/vinfast-vf3-2024' },
+  { label: 'Bảng giá thuê xe Hà Nội', href: '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu' },
+  { label: 'Kinh nghiệm thuê xe tự lái', href: '/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi' },
+];
+
 const homeFaqs = [
   {
-    question: 'Ai phù hợp với dịch vụ thuê xe tự lái này?',
-    answer: 'Dịch vụ phù hợp nếu bạn ở Hà Nội, không muốn sở hữu xe thường xuyên nhưng vẫn cần xe cho cuối tuần, về quê, đi tỉnh, công tác hoặc thuê theo tháng. Bạn có thể nhận xe tại sảnh tòa nhà, xem trước điều kiện thuê và được hỗ trợ khi phát sinh trong chuyến đi.',
+    question: 'Thuê xe tự lái Car Match giá bao nhiêu?',
+    answer: 'Giá được công khai theo từng mẫu xe và hiện bắt đầu từ 600.000đ/ngày. Gói thuê tháng bắt đầu từ mức giá hiển thị trên trang thuê xe tháng. Tổng giá cuối cùng phụ thuộc mẫu xe, ngày thuê, thời lượng và khu vực giao nhận; bạn nên chọn lịch cụ thể để xem chi phí dự kiến.',
   },
   {
     question: 'Có thể nhận xe tận nơi ở Hà Nội không?',
@@ -300,6 +353,7 @@ export default function Home() {
   const readyCars = cars.filter((car) => car.price > 0);
   const allCarsPreview = cars.slice(0, 6);
   const totalCars = Math.max(cars.length, totalVehicleHint ?? 0);
+  const homePricingRows = useMemo(() => buildHomePricingRows(cars), [cars]);
 
   const quickPickupHour = Number(quickFromTime.slice(0, 2));
   const quickReturnHour = Number(quickToTime.slice(0, 2));
@@ -471,17 +525,17 @@ export default function Home() {
               </div>
 
               <h1 className="cm-mobile-safe-width sm:max-w-none text-[1.875rem] min-[430px]:text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Không cần sở hữu xe
+                Thuê xe tự lái Hà Nội
                 <br />
-                <span className="text-brand-600">vẫn luôn có xe dùng</span>
+                <span className="text-brand-600">giao tận sảnh theo lịch hẹn</span>
               </h1>
 
               <p className="cm-mobile-safe-width sm:max-w-none text-gray-600 text-lg sm:text-xl mb-3 leading-relaxed">
-                Thuê xe ngày hoặc theo tháng —{' '}
-                <span className="text-gray-900 font-semibold">giao tận sảnh tòa nhà</span>
+                Chọn xe, ngày nhận/trả và xem tổng giá dự kiến trước khi gửi yêu cầu.{' '}
+                <span className="text-gray-900 font-semibold">Có xe điện, xe 5 chỗ, 7 chỗ và gói thuê tháng.</span>
               </p>
               <p className="cm-mobile-safe-width sm:max-w-none text-gray-500 text-sm mb-10 leading-relaxed">
-                Vinhomes · Ecopark · The Manor · Linh Đàm · Xe điện VinFast · Đặt trực tiếp trên web
+                Giao nhận tại Vinhomes Ocean Park, Smart City, Times City, Ecopark và The Manor Central Park theo lịch đã xác nhận.
               </p>
 
               <div className="cm-mobile-safe-width sm:max-w-none flex flex-col sm:flex-row gap-3">
@@ -930,29 +984,97 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── LIVE PRICE GUIDE / PRIORITY INTERNAL LINKS ───────── */}
+      <section id="bang-gia-thue-xe-ha-noi" className="bg-gray-50 px-4 py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-brand-600">Giá theo đội xe hiện có</p>
+              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Bảng giá thuê xe tự lái Hà Nội theo nhu cầu</h2>
+              <p className="mt-4 text-base leading-relaxed text-gray-600">
+                Mức dưới đây được tính từ giá đang công khai của các mẫu xe trên website. Giá cuối cùng phụ thuộc mẫu xe, ngày thuê, thời lượng và khu vực giao nhận.
+              </p>
+            </div>
+            <Link
+              to="/xe"
+              onClick={() => trackCtaClick('home_price_guide_fleet', { target_path: '/xe' })}
+              className="inline-flex w-fit items-center gap-2 rounded-full bg-brand-600 px-6 py-3 font-bold text-white hover:bg-brand-700"
+            >
+              Chọn lịch để xem tổng giá
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full text-left text-sm">
+              <caption className="sr-only">Bảng giá tham khảo thuê xe tự lái tại Hà Nội theo loại xe</caption>
+              <thead className="bg-gray-100 text-gray-700">
+                <tr>
+                  <th className="px-4 py-3 font-bold sm:px-6">Nhu cầu</th>
+                  <th className="px-4 py-3 font-bold sm:px-6">Giá tham khảo</th>
+                  <th className="hidden px-6 py-3 font-bold md:table-cell">Phù hợp với</th>
+                  <th className="px-4 py-3 text-right font-bold sm:px-6">Chi tiết</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {homePricingRows.map((row) => (
+                  <tr key={row.label} className="align-top">
+                    <th scope="row" className="px-4 py-4 font-bold text-gray-900 sm:px-6">{row.label}</th>
+                    <td className="px-4 py-4 font-semibold text-brand-700 sm:px-6">{row.price}</td>
+                    <td className="hidden px-6 py-4 leading-relaxed text-gray-600 md:table-cell">{row.note}</td>
+                    <td className="px-4 py-4 text-right sm:px-6">
+                      <Link to={row.href} className="font-bold text-brand-600 hover:underline">
+                        {row.linkLabel}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-4 text-sm leading-relaxed text-gray-500">
+            Giá tham khảo chưa bao gồm ưu đãi hoặc khoản giao nhận có thể phát sinh. Chọn ngày thuê để xem xe phù hợp và tổng giá dự kiến.
+          </p>
+
+          <nav aria-label="Các trang thuê xe được quan tâm" className="mt-8 flex flex-wrap gap-3">
+            {priorityCommercialLinks.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 hover:border-brand-200 hover:text-brand-700"
+              >
+                {item.label}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </section>
+
       {/* ── RESIDENTIAL AREAS ────────────────────────────────── */}
       <section className="py-20 px-4 bg-brand-600">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-brand-200 font-semibold text-sm uppercase tracking-wide mb-2">Khu vực phục vụ</p>
             <h2 id="khu-vuc-giao-xe" className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Sống tại chung cư?<br />Bạn có thể nhận xe ngay tại sảnh
+              Khu vực giao xe tận sảnh tại Hà Nội và lân cận
             </h2>
             <p className="text-brand-100 max-w-2xl mx-auto text-lg">
-              Không cần sở hữu xe, không lo chỗ đỗ hay bảo dưỡng. Bạn chọn lịch, xác nhận điểm nhận xe và cầm chìa khóa khi bàn giao xong.
+              Car Match đang ưu tiên giao nhận tại 5 khu đô thị dưới đây. Thời gian và chi phí giao nhận được xác nhận theo mẫu xe, ngày thuê và điểm hẹn cụ thể.
             </p>
           </div>
 
           {/* Buildings grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-14">
             {residentialAreas.map((area) => (
-              <div key={area.name} className="bg-white/10 hover:bg-white/20 transition-colors rounded-2xl p-4 border border-white/10">
+              <Link key={area.name} to={area.href} className="bg-white/10 hover:bg-white/20 transition-colors rounded-2xl p-4 border border-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2 h-2 bg-brand-300 rounded-full shrink-0" />
                   <span className="text-white font-semibold text-sm">{area.name}</span>
                 </div>
                 <span className="text-brand-200 text-xs pl-4">{area.area}</span>
-              </div>
+              </Link>
             ))}
             {/* More coming */}
             <div className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center">
@@ -979,15 +1101,24 @@ export default function Home() {
 
           {/* CTA */}
           <div className="text-center">
-            <p className="text-brand-200 text-sm mb-4">Bạn muốn nhận xe ở khu vực nào?</p>
-            <Link
-              to="/xe"
-              onClick={() => trackCtaClick('home_residential_fleet', { target_path: '/xe' })}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-700 font-bold rounded-full hover:bg-brand-50 transition-colors shadow-lg"
-            >
-              <Car className="w-5 h-5" />
-              Chọn xe & đặt trực tiếp
-            </Link>
+            <p className="text-brand-200 text-sm mb-4">Chưa thấy điểm nhận xe của bạn trong danh sách?</p>
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+              <Link
+                to="/xe"
+                onClick={() => trackCtaClick('home_residential_fleet', { target_path: '/xe' })}
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-brand-700 font-bold rounded-full hover:bg-brand-50 transition-colors shadow-lg"
+              >
+                <Car className="w-5 h-5" />
+                Chọn xe & đặt trực tiếp
+              </Link>
+              <Link
+                to="/lien-he"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-8 py-4 font-bold text-white hover:bg-white/10"
+              >
+                Hỏi khu vực giao xe
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -1410,6 +1541,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <HomeReviews />
 
       {/* ── BLOG PREVIEW ──────────────────────────────────────── */}
       {posts.length > 0 && (

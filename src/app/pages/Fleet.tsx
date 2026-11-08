@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { MessageCircle, Phone, SlidersHorizontal, X } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import CarCard from '../components/CarCard';
@@ -696,6 +696,20 @@ export default function Fleet() {
               >
                 Thuê theo tháng
               </a>
+              <Link
+                to="/thue-xe-dien-ha-noi"
+                onClick={() => trackCtaClick('fleet_electric_hub', { target_path: '/thue-xe-dien-ha-noi' })}
+                className="hidden items-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 lg:inline-flex"
+              >
+                Hướng dẫn thuê xe điện
+              </Link>
+              <Link
+                to="/thue-xe-7-cho-tu-lai-ha-noi"
+                onClick={() => trackCtaClick('fleet_seven_seat_hub', { target_path: '/thue-xe-7-cho-tu-lai-ha-noi' })}
+                className="hidden items-center rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800 transition-colors hover:bg-orange-100 xl:inline-flex"
+              >
+                So sánh xe 7 chỗ
+              </Link>
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
