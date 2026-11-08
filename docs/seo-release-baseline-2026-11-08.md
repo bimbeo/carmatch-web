@@ -60,7 +60,14 @@ Kỳ đo: 7 ngày gần nhất tại thời điểm ghi nhận (2026-11-01 đế
 | Organic Search sessions | 150 | +10.3% |
 | AI Assistant sessions | 7 | +30.0% |
 
-Nguồn phiên chính: Google organic 146 phiên; direct 13; ChatGPT 7; Bing organic 4; Cốc Cốc referral 2. GA4 đang đề xuất liên kết Search Console property `sc-domain:carmatch.vn`; việc liên kết chưa được thực hiện trong đợt này.
+Nguồn phiên chính: Google organic 146 phiên; direct 13; ChatGPT 7; Bing organic 4; Cốc Cốc referral 2.
+
+GA4 đã được liên kết thành công với Search Console ngày 2026-11-08:
+
+- Search Console property: `carmatch.vn` (`Domain`)
+- GA4 web stream: `carmatch.vn`
+- Stream ID: `7825492854`
+- Linked by: `carmatchvn@gmail.com`
 
 ## Cách đánh giá sau phát hành
 
@@ -74,4 +81,4 @@ Nguồn phiên chính: Google organic 146 phiên; direct 13; ChatGPT 7; Bing org
 - Truy vấn `thuê xe tự lái hà nội` có lượng hiển thị lớn nhưng vị trí trung bình 9.1; đây là cơ hội tăng trưởng chính nếu landing tổng được cải thiện thứ hạng và CTR.
 - Nhóm xe điện/VF3/VF5 đang có vị trí tốt; theo dõi xem nội dung hỗ trợ mới có tăng impressions, click và chuyển đổi sang xem xe/đặt xe hay không.
 - Key events giảm trong baseline dù traffic tăng; cần kiểm tra lại định nghĩa conversion và luồng phát sinh sự kiện trước khi quy kết cho chất lượng traffic.
-- Liên kết GA4 với GSC sẽ giúp đối chiếu query, landing page và hành vi trong cùng hệ thống; đây là hạng mục đo lường tiếp theo, cần xác nhận ngay trước khi thay đổi tài khoản.
+- Theo dõi thời điểm các báo cáo Search Console bắt đầu xuất hiện trong GA4; dữ liệu tích hợp có thể cần thời gian xử lý sau khi tạo liên kết.
