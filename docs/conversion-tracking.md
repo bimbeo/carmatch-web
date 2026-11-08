@@ -10,7 +10,7 @@ Each event is sent to:
 
 ## Recommended GA4 Key Events
 
-Mark these as key events in GA4:
+These events were confirmed as GA4 key events on 2026-11-08:
 
 | Event | Meaning |
 | --- | --- |

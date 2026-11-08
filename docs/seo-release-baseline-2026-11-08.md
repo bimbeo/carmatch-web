@@ -69,6 +69,15 @@ GA4 đã được liên kết thành công với Search Console ngày 2026-11-08
 - Stream ID: `7825492854`
 - Linked by: `carmatchvn@gmail.com`
 
+Các key event kinh doanh đã được bật trong GA4 ngày 2026-11-08:
+
+- `cm_booking_submit_success`
+- `cm_lead_submit_success`
+- `cm_phone_click`
+- `cm_zalo_click`
+
+Hai key event cũ `purchase` và `ads_conversion_Li_n_h_v_i_ch_ng_t_i_1` vẫn tồn tại nhưng GA4 báo không có stream data trong 28 ngày gần nhất. Chưa gỡ để tránh ảnh hưởng cấu hình quảng cáo cũ khi chưa xác minh nguồn sử dụng.
+
 ## Cách đánh giá sau phát hành
 
 1. Sau 14 ngày: kiểm tra indexation, impressions và truy vấn mới của các landing/article vừa phát hành; chưa kết luận bằng click tuyệt đối nếu trang mới chưa được crawl đủ.
