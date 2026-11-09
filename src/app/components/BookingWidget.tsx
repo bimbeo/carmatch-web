@@ -94,6 +94,12 @@ export interface BookingSummary {
   returnHour: number;
 }
 
+export interface BookingOpenRequest {
+  id: number;
+  source: string;
+  vehicleId: string;
+}
+
 /**
  * Phân loại conflict thành 2 loại:
  * - hard: xe đang bận rõ ràng trong khoảng đặt (báo đỏ, không nên đặt)
@@ -562,6 +568,7 @@ interface Props {
   kmPerDay?: number;
   kmSurcharge?: number;
   relatedCars?: RelatedCar[];
+  externalOpenRequest?: BookingOpenRequest | null;
   onAvailabilityStatusChange?: (status: BookingAvailabilityStatus) => void;
   onBookingSummaryChange?: (summary: BookingSummary) => void;
 }
@@ -625,6 +632,7 @@ export default function BookingWidget({
   kmPerDay = 300,
   kmSurcharge = 3000,
   relatedCars = [],
+  externalOpenRequest,
   onAvailabilityStatusChange,
   onBookingSummaryChange,
 }: Props) {
@@ -678,6 +686,7 @@ export default function BookingWidget({
   const [promoListLoading, setPromoListLoading] = useState(false);
   const promoAutoAppliedRef = useRef(false);
   const bookingIdempotencyRef = useRef('');
+  const handledExternalOpenRequestRef = useRef('');
 
   // ── Loyalty auto-discount ─────────────────────────────────────────────────
   const [referralCredit, setReferralCredit] = useState(0);
@@ -805,8 +814,6 @@ export default function BookingWidget({
       car_slug: carSlug || null,
       vehicle_name: carName,
     });
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
     let attempts = 0;
     let responseStatus: number | null = null;
     try {
@@ -815,24 +822,52 @@ export default function BookingWidget({
       let data = null;
       while (attempts < 2 && !data) {
         attempts += 1;
+        responseStatus = null;
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 4_500);
         try {
           const res = await fetch(`/api/vehicle-availability?vehicleId=${vehicleId}&from=${from}&to=${to}`, {
             signal: controller.signal,
+            cache: 'no-store',
           });
           responseStatus = res.status;
           if (!res.ok) {
             throw Object.assign(new Error('availability request failed'), { status: res.status });
           }
-          data = await res.json();
+          try {
+            data = await res.json();
+          } catch (error) {
+            throw Object.assign(new Error('availability response is not valid JSON'), {
+              cause: error,
+              code: 'invalid_json',
+            });
+          }
         } catch (error) {
-          if (controller.signal.aborted) throw error;
+          const normalizedError = controller.signal.aborted
+            ? Object.assign(new Error('availability request timed out'), {
+                name: 'AbortError',
+                code: 'timeout',
+              })
+            : error;
           const status = Number((error as { status?: number })?.status || 0);
-          const retryable = error instanceof TypeError || status === 429 || status >= 500;
-          if (attempts < 2 && retryable) continue;
-          throw error;
+          const code = String((normalizedError as { code?: string })?.code || '');
+          const retryable = normalizedError instanceof TypeError
+            || code === 'timeout'
+            || code === 'invalid_json'
+            || status === 429
+            || status >= 500;
+          if (attempts < 2 && retryable) {
+            await new Promise((resolve) => window.setTimeout(resolve, 250));
+            continue;
+          }
+          throw normalizedError;
+        } finally {
+          window.clearTimeout(timeoutId);
         }
       }
-      if (!data) throw new Error('availability response missing');
+      if (!data) {
+        throw Object.assign(new Error('availability response missing'), { code: 'missing_response' });
+      }
       setBlockedRanges(data.blockedRanges || []);
       setRequiresConfirmation(data.requires_confirmation === true);
       setAvailabilityUnavailable(data.availability_unavailable === true);
@@ -851,21 +886,30 @@ export default function BookingWidget({
     } catch (error) {
       setAvailabilityUnavailable(true);
       setRequiresConfirmation(true);
+      const errorCode = String((error as { code?: string })?.code || '');
+      const errorName = error instanceof Error ? error.name : 'UnknownError';
+      const errorMessage = error instanceof Error ? error.message.slice(0, 120) : 'unknown error';
       trackAvailabilityCheck('error', {
         vehicle_id: vehicleId,
         car_slug: carSlug || null,
         vehicle_name: carName,
         duration_ms: Math.round(performance.now() - startedAt),
-        error_type: error instanceof DOMException && error.name === 'AbortError'
+        error_type: errorCode === 'timeout' || errorName === 'AbortError'
           ? 'timeout'
-          : responseStatus
-            ? `http_${responseStatus}`
-            : error instanceof TypeError ? 'network' : 'request_failed',
+          : errorCode === 'invalid_json'
+            ? 'invalid_json'
+            : errorCode === 'missing_response'
+              ? 'missing_response'
+              : responseStatus && responseStatus >= 400
+                ? `http_${responseStatus}`
+                : error instanceof TypeError ? 'network' : 'request_failed',
+        error_name: errorName,
+        error_message: errorMessage,
         attempt_count: attempts,
         http_status: responseStatus,
+        attempt_timeout_ms: 4_500,
       });
     } finally {
-      window.clearTimeout(timeoutId);
       setAvailLoading(false);
     }
   }, [carName, carSlug, vehicleId]);
@@ -1560,6 +1604,69 @@ export default function BookingWidget({
     } catch { /* clipboard may be blocked */ }
   };
 
+  const openBookingForm = useCallback((source: string) => {
+    const analyticsPayload = {
+      vehicle_id: vehicleId || null,
+      vehicle_name: carName,
+      rental_days: rentalDays,
+      total_amount: finalTotal,
+      currency: 'VND',
+      booking_mode: needsManualConfirmation ? 'request' : 'instant',
+      cta_source: source,
+      ...experimentMeta,
+    };
+    trackCtaClick('booking_widget_open_form', analyticsPayload);
+    trackBookingStart(analyticsPayload);
+    trackedValidationReasonsRef.current.clear();
+    setShowBookingModal(true);
+    setBookingStep(1);
+    setBookingNeedsConfirmation(false);
+    setBookingError('');
+    setConfirmTransfer(false);
+  }, [carName, experimentMeta, finalTotal, needsManualConfirmation, rentalDays, vehicleId]);
+
+  useEffect(() => {
+    const requestId = externalOpenRequest?.id ?? 0;
+    const requestKey = `${externalOpenRequest?.vehicleId || ''}:${requestId}`;
+    if (
+      !requestId
+      || externalOpenRequest?.vehicleId !== vehicleId
+      || handledExternalOpenRequestRef.current === requestKey
+      || availLoading
+    ) return;
+
+    handledExternalOpenRequestRef.current = requestKey;
+    if (!result.valid || hardConflicts.length > 0 || holidayBookingBlocked) {
+      trackCtaClick('booking_widget_open_calendar', {
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+        cta_source: externalOpenRequest?.source || 'external',
+        open_reason: !result.valid
+          ? 'invalid_range'
+          : hardConflicts.length > 0 ? 'hard_conflict' : 'holiday_window',
+        ...experimentMeta,
+      });
+      setRangeStep('from');
+      setCalendarStartPreview(null);
+      setShowCalModal(true);
+      return;
+    }
+
+    openBookingForm(externalOpenRequest?.source || 'external');
+  }, [
+    availLoading,
+    carName,
+    experimentMeta,
+    externalOpenRequest?.id,
+    externalOpenRequest?.source,
+    externalOpenRequest?.vehicleId,
+    hardConflicts.length,
+    holidayBookingBlocked,
+    openBookingForm,
+    result.valid,
+    vehicleId,
+  ]);
+
   return (
     <>
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg shadow-slate-200/70">
@@ -1963,25 +2070,7 @@ export default function BookingWidget({
           </div>
         </div>
         <button
-          onClick={() => {
-            const analyticsPayload = {
-              vehicle_id: vehicleId || null,
-              vehicle_name: carName,
-              rental_days: rentalDays,
-              total_amount: finalTotal,
-              currency: 'VND',
-              booking_mode: needsManualConfirmation ? 'request' : 'instant',
-              ...experimentMeta,
-            };
-            trackCtaClick('booking_widget_open_form', analyticsPayload);
-            trackBookingStart(analyticsPayload);
-            trackedValidationReasonsRef.current.clear();
-            setShowBookingModal(true);
-            setBookingStep(1);
-            setBookingNeedsConfirmation(false);
-            setBookingError('');
-            setConfirmTransfer(false);
-          }}
+          onClick={() => openBookingForm('booking_widget_primary')}
           disabled={availLoading || !result.valid || hardConflicts.length > 0 || holidayBookingBlocked}
           className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >

@@ -13,6 +13,7 @@ import ZaloFAB from '../components/ZaloFAB';
 import CarCard from '../components/CarCard';
 import BookingWidget, {
   type BookingAvailabilityStatus,
+  type BookingOpenRequest,
   type BookingSummary,
 } from '../components/BookingWidget';
 import CarReviews from '../components/CarReviews';
@@ -384,6 +385,7 @@ function VehicleBookingPanel({
   relatedCars,
   activePromoCodes,
   promoLoading,
+  externalOpenRequest,
   onAvailabilityStatusChange,
   onBookingSummaryChange,
 }: {
@@ -391,6 +393,7 @@ function VehicleBookingPanel({
   relatedCars: Car[];
   activePromoCodes: { code: string; description: string }[];
   promoLoading: boolean;
+  externalOpenRequest: BookingOpenRequest | null;
   onAvailabilityStatusChange: (status: BookingAvailabilityStatus) => void;
   onBookingSummaryChange: (summary: BookingSummary) => void;
 }) {
@@ -408,6 +411,7 @@ function VehicleBookingPanel({
         kmPerDay={car.kmPerDay}
         kmSurcharge={car.kmSurcharge}
         relatedCars={relatedCars.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
+        externalOpenRequest={externalOpenRequest}
         onAvailabilityStatusChange={onAvailabilityStatusChange}
         onBookingSummaryChange={onBookingSummaryChange}
       />
@@ -739,6 +743,7 @@ export default function CarDetail() {
     DEFAULT_BOOKING_AVAILABILITY_STATUS,
   );
   const [bookingSummary, setBookingSummary] = useState<BookingSummary | null>(null);
+  const [bookingOpenRequest, setBookingOpenRequest] = useState<BookingOpenRequest | null>(null);
   const trackedVehicleViewRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -757,6 +762,7 @@ export default function CarDetail() {
   useEffect(() => {
     setBookingAvailabilityStatus(DEFAULT_BOOKING_AVAILABILITY_STATUS);
     setBookingSummary(null);
+    setBookingOpenRequest(null);
   }, [car?.id]);
 
   const handleAvailabilityStatusChange = useCallback((next: BookingAvailabilityStatus) => {
@@ -947,6 +953,23 @@ export default function CarDetail() {
       vehicle_slug: car.slug,
       vehicle_name: car.name,
     });
+  };
+  const openMobileBooking = () => {
+    trackCtaClick('car_detail_mobile_direct_booking', {
+      vehicle_id: car.id,
+      vehicle_slug: car.slug,
+      vehicle_name: car.name,
+      availability_state: bookingAvailabilityStatus.isLoading
+        ? 'loading'
+        : bookingAvailabilityStatus.selectedRangeHasHardConflict
+          ? 'hard_conflict'
+          : bookingAvailabilityStatus.requiresConfirmation ? 'manual_confirmation' : 'available',
+    });
+    setBookingOpenRequest((current) => ({
+      id: (current?.id ?? 0) + 1,
+      source: 'car_detail_mobile_sticky',
+      vehicleId: car.id,
+    }));
   };
   const bookingProcess = [
     'Chọn ngày, giờ nhận/trả xe',
@@ -1175,6 +1198,7 @@ export default function CarDetail() {
                     relatedCars={displayRelated}
                     activePromoCodes={activePromoCodes}
                     promoLoading={promoLoading}
+                    externalOpenRequest={bookingOpenRequest}
                     onAvailabilityStatusChange={handleAvailabilityStatusChange}
                     onBookingSummaryChange={setBookingSummary}
                   />
@@ -1392,11 +1416,17 @@ export default function CarDetail() {
         {car.available ? (
           <button
             type="button"
-            onClick={scrollToBooking}
-            className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors shadow-sm"
+            onClick={openMobileBooking}
+            className="flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700"
           >
             <CalendarDays className="w-4 h-4" />
-            {bookingAvailabilityStatus.requiresConfirmation ? 'Kiểm tra lịch' : 'Chọn lịch'}
+            {bookingAvailabilityStatus.isLoading
+              ? 'Đang kiểm tra…'
+              : bookingAvailabilityStatus.selectedRangeHasHardConflict
+                ? 'Đổi lịch'
+                : bookingSummary?.valid
+                  ? 'Gửi yêu cầu'
+                  : 'Lịch & tổng giá'}
           </button>
         ) : (
           <Link
