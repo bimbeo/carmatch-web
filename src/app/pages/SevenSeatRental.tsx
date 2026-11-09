@@ -45,6 +45,19 @@ const costItems = [
   ['Vượt km hoặc phát sinh', 'Chỉ tính theo điều kiện đã xác nhận trước khi đặt cọc.'],
 ];
 
+const sevenSeatGuides = [
+  {
+    to: '/blog/carnival-xpander-hay-limo-green',
+    title: 'So sánh Carnival, Xpander và Limo Green',
+    description: 'Chọn theo hành lý, giá thuê, nhiên liệu và kiểu chuyến đi.',
+  },
+  {
+    to: '/blog/chi-phi-thue-xe-tu-lai-3-ngay-2-dem',
+    title: 'Chi phí thuê xe 3 ngày 2 đêm',
+    description: 'Dự toán giá xe, nhiên liệu/sạc, VETC, gửi xe và phát sinh.',
+  },
+];
+
 const sevenSeatFaqs = [
   {
     question: 'Thuê xe 7 chỗ tự lái tại Hà Nội giá bao nhiêu?',
@@ -311,6 +324,19 @@ export default function SevenSeatRental() {
 
         <section className="bg-slate-50 py-16 sm:py-20">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-10 grid gap-3 sm:grid-cols-2">
+              {sevenSeatGuides.map((guide) => (
+                <Link
+                  key={guide.to}
+                  to={guide.to}
+                  onClick={() => trackCtaClick('seven_seat_hub_guide', { target_path: guide.to })}
+                  className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
+                >
+                  <h2 className="font-black text-slate-900">{guide.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{guide.description}</p>
+                </Link>
+              ))}
+            </div>
             <p className="text-center text-sm font-black uppercase tracking-[0.18em] text-brand-600">Câu hỏi thường gặp</p>
             <h2 className="mt-3 text-center text-3xl font-black tracking-tight sm:text-4xl">Trước khi thuê xe 7 chỗ tự lái</h2>
             <div className="mt-8 space-y-3">

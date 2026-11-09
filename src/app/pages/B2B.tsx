@@ -61,6 +61,19 @@ const rentVsBuyRows = [
   { criterion: 'Đổi nhu cầu', rent: 'Có thể chọn nhóm xe khác ở kỳ tiếp theo', buy: 'Đổi xe cần bán hoặc chuyển nhượng xe hiện tại' },
 ];
 
+const monthlyGuides = [
+  {
+    to: '/blog/thue-xe-thang-hay-mua-xe',
+    title: 'Thuê xe tháng hay mua xe?',
+    description: 'So tổng chi phí, dòng tiền, khấu hao và mức độ linh hoạt trước khi quyết định.',
+  },
+  {
+    to: '/blog/thue-xe-thang-co-bao-gom-bao-duong-khong',
+    title: 'Thuê xe tháng có gồm bảo dưỡng?',
+    description: 'Phân định bảo dưỡng định kỳ, hao mòn, hư hỏng và thời gian xe nằm xưởng.',
+  },
+];
+
 const businessPackageItems = [
   'Một hoặc nhiều xe theo thời hạn dự án.',
   'Báo giá theo mẫu xe, số km dự kiến và điểm giao nhận.',
@@ -851,6 +864,18 @@ export default function B2B() {
       {/* FAQ */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-4xl mx-auto">
+          <div className="mb-10 grid gap-4 sm:grid-cols-2">
+            {monthlyGuides.map((guide) => (
+              <Link
+                key={guide.to}
+                to={guide.to}
+                className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
+              >
+                <h2 className="font-bold text-gray-900">{guide.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">{guide.description}</p>
+              </Link>
+            ))}
+          </div>
           <div className="text-center mb-10">
             <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Câu hỏi thường gặp</p>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Thông tin cần biết khi thuê xe tự lái theo tháng</h2>

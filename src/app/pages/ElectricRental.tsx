@@ -44,6 +44,13 @@ const costItems = [
   ['Vượt km hoặc phát sinh', 'Chỉ áp dụng theo điều kiện đã ghi trong xác nhận hoặc hợp đồng.'],
 ];
 
+const electricGuides = [
+  { to: '/blog/vf3-hay-vf5-phu-hop-di-pho', title: 'VF3 hay VF5 phù hợp đi phố?' },
+  { to: '/blog/di-tinh-nen-thue-xe-dien-hay-xe-xang', title: 'Đi tỉnh chọn xe điện hay xe xăng?' },
+  { to: '/blog/lap-ke-hoach-sac-xe-dien-khi-di-tinh', title: 'Lập kế hoạch sạc khi đi tỉnh' },
+  { to: '/blog/xe-dien-thue-het-pin-giua-duong-lam-gi', title: 'Xe điện gần hết pin xử lý thế nào?' },
+];
+
 const electricFaqs = [
   {
     question: 'Thuê xe điện tự lái tại Hà Nội giá bao nhiêu?',
@@ -288,6 +295,18 @@ export default function ElectricRental() {
               >
                 Ai trả phí sạc khi thuê xe điện? <ArrowRight className="h-4 w-4" />
               </Link>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {electricGuides.map((guide) => (
+                  <Link
+                    key={guide.to}
+                    to={guide.to}
+                    onClick={() => trackCtaClick('electric_hub_guide', { target_path: guide.to })}
+                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition-colors hover:border-emerald-200 hover:bg-emerald-50"
+                  >
+                    {guide.title}
+                  </Link>
+                ))}
+              </div>
             </div>
 
             <div>

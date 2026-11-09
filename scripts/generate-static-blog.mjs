@@ -30,6 +30,7 @@ import {
   cacheVehicleGalleryImages,
 } from './vehicle-cover-cache.mjs';
 import { sanitizeBlogHtml } from '../server/blog/sanitize.js';
+import { createRoadmapContentPosts } from './roadmap-content-posts.mjs';
 
 process.env.NODE_ENV ||= 'production';
 
@@ -1813,7 +1814,13 @@ const staticAirportBlogPosts = [
   },
 ];
 
-const staticBlogPosts = [...staticSupportBlogPosts, ...staticGeoBlogPosts, ...staticAirportBlogPosts];
+const roadmapContentPosts = createRoadmapContentPosts({ siteUrl, brandSocialImage });
+const staticBlogPosts = [
+  ...roadmapContentPosts,
+  ...staticSupportBlogPosts,
+  ...staticGeoBlogPosts,
+  ...staticAirportBlogPosts,
+];
 
 function mergeStaticBlogPosts(posts) {
   const existingSlugs = new Set(posts.map((post) => post.slug?.current).filter(Boolean));
