@@ -36,6 +36,7 @@ import { createModelKeywordBatch2Posts } from './model-keyword-posts-batch2.mjs'
 import { createDestinationCostPosts } from './destination-cost-posts.mjs';
 import { createSupportAeoPosts } from './support-aeo-posts.mjs';
 import { createMonthlyB2bPosts } from './monthly-b2b-posts.mjs';
+import { createTet2027Posts } from './tet-2027-posts.mjs';
 
 process.env.NODE_ENV ||= 'production';
 
@@ -85,6 +86,8 @@ let prerenderedLocalRoots = new Map();
 let prerenderedContactRoot = '';
 let prerenderedAboutRoot = '';
 let prerenderedPartnerRoot = '';
+let prerenderedTetOwnerRoot = '';
+let prerenderedTetRentalRoot = '';
 let spaBaseHtml = '';
 const hanoiDeliveryDetails = {
   '@type': 'OfferShippingDetails',
@@ -769,6 +772,26 @@ const routeMeta = [
     changefreq: 'weekly',
     lastmod: '2026-11-08',
   })),
+  {
+    path: '/thue-xe-tu-lai-tet-ha-noi',
+    title: 'Thuê Xe Tự Lái Tết 2027 Tại Hà Nội | Car Match',
+    description:
+      'Lập kế hoạch thuê xe tự lái Tết 2027 tại Hà Nội: chọn xe theo người và hành lý, gửi ngày thuê, tuyến đi và điểm nhận để Car Match kiểm tra.',
+    canonical: `${siteUrl}/thue-xe-tu-lai-tet-ha-noi`,
+    priority: '0.9',
+    changefreq: 'weekly',
+    lastmod: '2026-11-10',
+  },
+  {
+    path: '/hop-tac-chu-xe-cho-thue-tet',
+    title: 'Hợp Tác Chủ Xe Cho Thuê Dịp Tết 2027 | Car Match',
+    description:
+      'Chủ xe tại Hà Nội có xe nhàn rỗi dịp Tết 2027 có thể gửi lịch rảnh, thông tin xe và khu vực đỗ để Car Match thẩm định phương án hợp tác.',
+    canonical: `${siteUrl}/hop-tac-chu-xe-cho-thue-tet`,
+    priority: '0.88',
+    changefreq: 'weekly',
+    lastmod: '2026-11-10',
+  },
   {
     path: '/hop-tac',
     title: 'Hợp Tác Chủ Xe Tại Hà Nội | Car Match',
@@ -1825,7 +1848,9 @@ const modelKeywordBatch2Posts = createModelKeywordBatch2Posts({ siteUrl, brandSo
 const destinationCostPosts = createDestinationCostPosts({ siteUrl, brandSocialImage });
 const supportAeoPosts = createSupportAeoPosts({ siteUrl, brandSocialImage });
 const monthlyB2bPosts = createMonthlyB2bPosts({ siteUrl, brandSocialImage });
+const tet2027Posts = createTet2027Posts({ siteUrl, brandSocialImage });
 const staticBlogPosts = [
+  ...tet2027Posts,
   ...monthlyB2bPosts,
   ...supportAeoPosts,
   ...destinationCostPosts,
@@ -2880,6 +2905,41 @@ function routeStructuredData(meta, vehicles) {
   if (meta.path === '/thue-xe-thang') return monthlyRentalStructuredData(meta, vehicles);
   if (meta.path === '/thue-xe-dien-ha-noi') return electricRentalStructuredData(meta, vehicles);
   if (meta.path === '/thue-xe-7-cho-tu-lai-ha-noi') return sevenSeatRentalStructuredData(meta, vehicles);
+  if (meta.path === '/thue-xe-tu-lai-tet-ha-noi') return [
+    organizationData(),
+    localBusinessData(),
+    webPageData(meta, {
+      fields: {
+        about: 'Thuê xe tự lái dịp Tết 2027 tại Hà Nội',
+        mainEntity: { '@type': 'Service', '@id': `${meta.canonical}#service` },
+      },
+    }),
+    buildServiceSchema(meta, {
+      serviceType: 'Thuê xe tự lái dịp Tết tại Hà Nội',
+      name: 'Thuê xe tự lái Tết 2027 tại Hà Nội',
+      areaServed: { '@type': 'AdministrativeArea', name: 'Hà Nội' },
+      fields: { '@id': `${meta.canonical}#service`, provider: { '@id': `${siteUrl}/#organization` } },
+    }, seoSchemaConfig),
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Xe tự lái', path: '/xe' },
+      { name: 'Thuê xe Tết 2027', path: meta.path },
+    ]),
+  ];
+  if (meta.path === '/hop-tac-chu-xe-cho-thue-tet') return [
+    organizationData(),
+    webPageData(meta, {
+      fields: {
+        about: 'Hợp tác với chủ xe có xe nhàn rỗi dịp Tết 2027 tại Hà Nội',
+        mainEntity: { '@type': 'Organization', '@id': `${siteUrl}/#organization` },
+      },
+    }),
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Hợp tác chủ xe', path: '/hop-tac' },
+      { name: 'Hợp tác dịp Tết 2027', path: meta.path },
+    ]),
+  ];
   const localArea = localRentalAreas.find((area) => area.path === meta.path);
   if (localArea) return localRentalStructuredData(meta, vehicles, localArea);
   if (meta.path === '/lien-he') return contactStructuredData(meta);
@@ -3316,6 +3376,38 @@ async function renderReactPartnerRoot() {
     const { renderPartner } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
     const html = renderPartner();
     return `<div id="root" data-prerendered="partner">${html}</div>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactTetOwnerRoot() {
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderTetOwnerPartnership } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderTetOwnerPartnership();
+    return `<div id="root" data-prerendered="tet-owner">${html}</div>`;
+  } finally {
+    await vite.close();
+  }
+}
+
+async function renderReactTetRentalRoot() {
+  const vite = await createViteServer({
+    appType: 'custom',
+    server: { middlewareMode: true },
+    logLevel: 'error',
+  });
+
+  try {
+    const { renderTetRental } = await vite.ssrLoadModule('/src/ssg/renderHome.tsx');
+    const html = renderTetRental();
+    return `<div id="root" data-prerendered="tet-rental">${html}</div>`;
   } finally {
     await vite.close();
   }
@@ -4805,6 +4897,14 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
     html = moveStylesheetsBeforeModuleScripts(html);
     html = applyRootCriticalCss(html, Boolean(prerenderedPartnerRoot));
     html = html.replace(/<div id="root"><\/div>/, root);
+  } else if (meta.path === '/hop-tac-chu-xe-cho-thue-tet' && prerenderedTetOwnerRoot) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = applyRootCriticalCss(html, true);
+    html = html.replace(/<div id="root"><\/div>/, prerenderedTetOwnerRoot);
+  } else if (meta.path === '/thue-xe-tu-lai-tet-ha-noi' && prerenderedTetRentalRoot) {
+    html = moveStylesheetsBeforeModuleScripts(html);
+    html = applyRootCriticalCss(html, true);
+    html = html.replace(/<div id="root"><\/div>/, prerenderedTetRentalRoot);
   } else if (meta.staticH1 || meta.staticLead) {
     html = html.replace(/<style data-critical-home>[\s\S]*?<\/style>/, '');
     html = html.replace(
@@ -4902,6 +5002,8 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
   prerenderedContactRoot = '';
   prerenderedAboutRoot = '';
   prerenderedPartnerRoot = '';
+  prerenderedTetOwnerRoot = '';
+  prerenderedTetRentalRoot = '';
 
   try {
     prerenderedHomeRoot = await renderReactHomeRoot(vehicles);
@@ -4957,6 +5059,18 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
     prerenderedPartnerRoot = await renderReactPartnerRoot();
   } catch (error) {
     console.warn(`Skipped React partner prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedTetOwnerRoot = await renderReactTetOwnerRoot();
+  } catch (error) {
+    console.warn(`Skipped React Tet owner prerender: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    prerenderedTetRentalRoot = await renderReactTetRentalRoot();
+  } catch (error) {
+    console.warn(`Skipped React Tet rental prerender: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   for (const meta of routeMeta) {

@@ -596,6 +596,54 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     ],
     relatedRoutes: ['/blog/lap-ke-hoach-sac-xe-dien-khi-di-tinh', '/thue-xe-dien-ha-noi', '/blog/thue-xe-dien-ai-tra-phi-sac', '/lap-ke-hoach-chuyen-di'],
   },
+  {
+    id: 'tet-2027-self-drive-rental-hanoi',
+    title: 'Thuê xe tự lái Tết 2027 tại Hà Nội',
+    businessLine: 'seasonal-self-drive-rental',
+    audience: 'Gia đình và nhóm khách cần thuê xe tự lái từ Hà Nội dịp Tết 2027',
+    sourceUrl: 'https://www.carmatch.vn/thue-xe-tu-lai-tet-ha-noi',
+    effectiveDate: '2026-11-10',
+    reviewStatus: 'reviewed',
+    riskLevel: 'medium',
+    summary:
+      'Khách thuê xe Tết nên gửi ngày nhận–trả, số người, hành lý, tuyến đi và khu vực nhận xe để Car Match kiểm tra mẫu xe cùng điều kiện cho đúng booking.',
+    facts: [
+      'Website không cam kết xe trống hoặc một mức giá chung trước khi lịch và mẫu xe được xác nhận.',
+      'Khách nên so tổng chi phí gồm giá thuê, đặt cọc, giới hạn km, giao nhận, nhiên liệu hoặc sạc, VETC và điều kiện đổi/hủy.',
+      'Khi nhận và trả xe cần ghi nhận người lái, ngoại thất, nội thất, km, nhiên liệu hoặc pin, VETC và phụ kiện.',
+    ],
+    relatedRoutes: [
+      '/thue-xe-tu-lai-tet-ha-noi',
+      '/blog/thue-xe-tu-lai-tet-2027-nen-dat-truoc-bao-lau',
+      '/blog/thue-xe-tet-cho-gia-dinh-5-7-nguoi',
+      '/blog/nhan-tra-xe-tu-lai-dip-tet-can-luu-y-gi',
+      '/xe',
+    ],
+  },
+  {
+    id: 'tet-2027-owner-partnership',
+    title: 'Hợp tác chủ xe có xe nhàn rỗi dịp Tết 2027',
+    businessLine: 'seasonal-owner-partnership',
+    audience: 'Chủ xe tại Hà Nội có xe nhàn rỗi và muốn tìm hiểu phương án hợp tác dịp Tết',
+    sourceUrl: 'https://www.carmatch.vn/hop-tac-chu-xe-cho-thue-tet',
+    effectiveDate: '2026-11-10',
+    reviewStatus: 'reviewed',
+    riskLevel: 'medium',
+    summary:
+      'Chủ xe có thể gửi mẫu xe, tình trạng, hồ sơ, khu vực đỗ và lịch rảnh để Car Match thẩm định phương án; việc gửi thông tin không phải cam kết xe được nhận hoặc có doanh thu cố định.',
+    facts: [
+      'Khả năng hợp tác phụ thuộc hồ sơ, tình trạng xe, lịch rảnh, khu vực đỗ và nhu cầu phù hợp.',
+      'Doanh thu chỉ có thể ước tính sau khi biết xe, số ngày được xác nhận, giá booking và các chi phí đã thỏa thuận.',
+      'Hợp đồng và biên bản cần nêu cách xử lý giao nhận, hư hỏng, phạt nguội, VETC, chậm trả và đối soát.',
+    ],
+    relatedRoutes: [
+      '/hop-tac-chu-xe-cho-thue-tet',
+      '/hop-tac',
+      '/blog/xe-nhan-roi-dip-tet-co-nen-cho-thue-khong',
+      '/blog/hop-dong-hop-tac-cho-thue-xe-can-dieu-khoan-gi',
+      '/blog/chuan-bi-xe-truoc-khi-cho-thue-tet',
+    ],
+  },
 ];
 
 export const geoPriorityPages: GeoPriorityPage[] = [
@@ -897,6 +945,34 @@ export const geoPriorityPages: GeoPriorityPage[] = [
     journeyStage: 'Discover',
     directAnswer: 'Chọn trạm chính và dự phòng theo tuyến, chừa thời gian rời tuyến/chờ/sạc và kiểm tra lại trạng thái trạm sát ngày đi.',
     internalLinks: ['/thue-xe-dien-ha-noi', '/lap-ke-hoach-chuyen-di', '/blog/thue-xe-dien-ai-tra-phi-sac'],
+  },
+  {
+    path: '/thue-xe-tu-lai-tet-ha-noi',
+    topic: 'Thuê xe tự lái Tết 2027 tại Hà Nội',
+    intent: 'transactional',
+    journeyStage: 'Consider',
+    directAnswer:
+      'Khách gửi ngày nhận–trả, số người, hành lý, tuyến đi và khu vực nhận xe để Car Match kiểm tra xe cùng điều kiện cho đúng booking; website không cam kết xe trống trước khi xác nhận lịch.',
+    internalLinks: [
+      '/xe',
+      '/blog/thue-xe-tu-lai-tet-2027-nen-dat-truoc-bao-lau',
+      '/blog/thue-xe-tet-cho-gia-dinh-5-7-nguoi',
+      '/blog/nhan-tra-xe-tu-lai-dip-tet-can-luu-y-gi',
+    ],
+  },
+  {
+    path: '/hop-tac-chu-xe-cho-thue-tet',
+    topic: 'Hợp tác chủ xe cho thuê dịp Tết 2027',
+    intent: 'commercial',
+    journeyStage: 'Consider',
+    directAnswer:
+      'Chủ xe gửi mẫu xe, tình trạng, hồ sơ, khu vực đỗ và lịch rảnh để Car Match thẩm định; việc gửi thông tin chưa phải cam kết xe được nhận hoặc có doanh thu cố định.',
+    internalLinks: [
+      '/hop-tac',
+      '/blog/xe-nhan-roi-dip-tet-co-nen-cho-thue-khong',
+      '/blog/hop-dong-hop-tac-cho-thue-xe-can-dieu-khoan-gi',
+      '/blog/chuan-bi-xe-truoc-khi-cho-thue-tet',
+    ],
   },
 ];
 

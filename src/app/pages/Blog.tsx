@@ -46,6 +46,23 @@ const guideTopics = [
   },
 ];
 
+const tet2027Topics = [
+  {
+    href: '/thue-xe-tu-lai-tet-ha-noi',
+    eyebrow: 'Dành cho khách thuê',
+    title: 'Thuê xe tự lái Tết 2027 tại Hà Nội',
+    body: 'Bắt đầu từ ngày nhận–trả, số người, hành lý và tuyến đi; sau đó đối chiếu xe, tổng chi phí và điều kiện giao nhận cho đúng booking.',
+    label: 'Mở hub thuê xe Tết',
+  },
+  {
+    href: '/hop-tac-chu-xe-cho-thue-tet',
+    eyebrow: 'Dành cho chủ xe',
+    title: 'Hợp tác xe nhàn rỗi dịp Tết',
+    body: 'Kiểm tra hồ sơ, lịch rảnh, hợp đồng, bàn giao và cách đối soát trước khi gửi thông tin xe để Car Match thẩm định.',
+    label: 'Mở hub hợp tác Tết',
+  },
+];
+
 const faqItems = [
   {
     question: 'Blog Car Match phù hợp với ai?',
@@ -154,6 +171,26 @@ export default function Blog() {
           </p>
         </div>
       </div>
+
+      <section className="border-b border-gray-100 bg-gradient-to-br from-red-50 via-white to-amber-50 py-10" aria-labelledby="blog-tet-2027-title">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mb-6">
+            <p className="text-red-600 font-semibold text-sm uppercase tracking-wide mb-2">Chuyên đề Tết 2027</p>
+            <h2 id="blog-tet-2027-title" className="text-3xl font-bold text-gray-900 mb-3">Hai lộ trình theo đúng nhu cầu</h2>
+            <p className="text-gray-600 leading-relaxed">Một hub giúp khách chọn và chuẩn bị thuê xe; một hub giúp chủ xe đánh giá phương án hợp tác. Các bài con được liên kết theo từng quyết định cụ thể.</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            {tet2027Topics.map((topic) => (
+              <a key={topic.href} href={topic.href} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-600">{topic.eyebrow}</span>
+                <h3 className="mt-2 text-xl font-bold text-gray-900">{topic.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-gray-600">{topic.body}</p>
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-700">{topic.label} →</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Blog Grid */}
       <section className="py-12">

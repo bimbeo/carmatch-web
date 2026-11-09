@@ -188,13 +188,17 @@ export default function Partner() {
           <p className="text-gray-600 text-lg sm:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
             Hợp tác cho thuê xe cùng Car Match — chủ xe gửi thông tin để được thẩm định mẫu xe, lịch rảnh, khu vực đỗ và phương án khai thác phù hợp.
           </p>
+          <a href="/hop-tac-chu-xe-cho-thue-tet"
+            className="inline-flex items-center gap-2 mb-8 rounded-full border border-amber-200 bg-amber-50 px-5 py-2.5 text-sm font-bold text-amber-800 hover:bg-amber-100">
+            Có xe nhàn rỗi dịp Tết 2027? Xem hướng dẫn hợp tác <ArrowRight className="w-4 h-4" />
+          </a>
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-8 mb-10">
             {[
               { value: 'Theo xe', label: 'Ước tính doanh thu' },
               { value: 'Theo hợp đồng', label: 'Tỷ lệ đối soát' },
-              { value: '0đ', label: 'Chi phí gia nhập' },
-              { value: '30 phút', label: 'Phản hồi tư vấn' },
+              { value: 'Theo thỏa thuận', label: 'Điều kiện tham gia' },
+              { value: 'Sau tiếp nhận', label: 'Phản hồi tư vấn' },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-2xl font-bold text-brand-600">{s.value}</div>
@@ -228,8 +232,8 @@ export default function Partner() {
               Xe bạn đang "ngủ" tốn tiền mỗi tháng
             </h2>
             <p className="text-brand-200 max-w-2xl mx-auto">
-              Phí gửi xe 800K–2 triệu/tháng. Bảo dưỡng. Trong khi xe đỗ im 20–25 ngày/tháng.<br />
-              Hợp tác cùng Car Match để thẩm định khả năng khai thác xe theo lịch rảnh và khu vực đỗ.
+              Xe nhàn rỗi vẫn có thể phát sinh phí gửi xe, bảo dưỡng và hao mòn theo thời gian.<br />
+              Hợp tác cùng Car Match để thẩm định khả năng khai thác theo lịch rảnh và khu vực đỗ.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -420,8 +424,8 @@ export default function Partner() {
       <section id="dang-ky" className="py-20 px-4 bg-gray-50">
         <div className="max-w-xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Đăng ký hợp tác miễn phí</h2>
-            <p className="text-gray-500">Điền thông tin — Car Match sẽ liên hệ tư vấn trong 30 phút.</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">Đăng ký để thẩm định phương án hợp tác</h2>
+            <p className="text-gray-500">Điền thông tin — Car Match sẽ liên hệ sau khi tiếp nhận và kiểm tra sơ bộ.</p>
           </div>
 
           {submitted ? (

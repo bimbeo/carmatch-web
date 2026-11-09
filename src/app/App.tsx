@@ -18,6 +18,8 @@ const About = lazy(() => import('./pages/About'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
 const Partner = lazy(() => import('./pages/Partner'));
+const TetOwnerPartnership = lazy(() => import('./pages/TetOwnerPartnership'));
+const TetRental = lazy(() => import('./pages/TetRental'));
 const BookingConfirm = lazy(() => import('./pages/BookingConfirm'));
 const Policy = lazy(() => import('./pages/Policy'));
 const FAQ = lazy(() => import('./pages/FAQ'));
@@ -185,6 +187,8 @@ export default function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/hop-tac" element={<Partner />} />
+            <Route path="/hop-tac-chu-xe-cho-thue-tet" element={<TetOwnerPartnership />} />
+            <Route path="/thue-xe-tu-lai-tet-ha-noi" element={<TetRental />} />
             <Route path="/dat-xe" element={<BookingConfirm />} />
             <Route path="/chinh-sach" element={<Policy />} />
             <Route path="/faq" element={<FAQ />} />

@@ -23,7 +23,7 @@ const faqGroups = [
       },
       {
         q: 'Có mã giảm giá không?',
-        a: 'Có. Nhập mã khuyến mãi trong bước đặt xe để áp dụng giảm giá. Theo dõi fanpage Car Match để nhận mã mới nhất.',
+        a: 'Nếu có mã đang áp dụng, khách có thể nhập trong bước đặt xe. Điều kiện và thời hạn của từng mã cần được kiểm tra trực tiếp trên website hoặc xác nhận với Car Match trước khi thanh toán.',
       },
     ],
   },
@@ -47,6 +47,19 @@ const faqGroups = [
         a: 'Liên hệ ngay hotline/Zalo 0971 163 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo và phương án hỗ trợ phù hợp với tình huống thực tế.',
       },
     ],
+  },
+];
+
+const tetGuides = [
+  {
+    to: '/thue-xe-tu-lai-tet-ha-noi',
+    title: 'Thuê xe tự lái Tết 2027',
+    description: 'Chọn xe theo ngày, số người, hành lý, tuyến đi và tổng chi phí cần xác nhận.',
+  },
+  {
+    to: '/hop-tac-chu-xe-cho-thue-tet',
+    title: 'Hợp tác xe nhàn rỗi dịp Tết',
+    description: 'Checklist hồ sơ, lịch rảnh, hợp đồng, bàn giao và đối soát cho chủ xe.',
   },
 ];
 
@@ -139,6 +152,24 @@ export default function FAQ() {
               </section>
             ))}
           </div>
+
+          <section className="mt-8" aria-labelledby="tet-guides-title">
+            <h2 id="tet-guides-title" className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+              Chuyên đề Tết 2027
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {tetGuides.map(guide => (
+                <Link
+                  key={guide.to}
+                  to={guide.to}
+                  className="rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-md"
+                >
+                  <h3 className="text-sm font-black text-slate-900">{guide.title}</h3>
+                  <p className="mt-2 text-xs leading-5 text-slate-600">{guide.description}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           <section className="mt-8" aria-labelledby="support-guides-title">
             <h2 id="support-guides-title" className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500">

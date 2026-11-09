@@ -11,6 +11,8 @@ import type { LocalRentalAreaSlug } from '../data/localRentalAreas';
 import Contact from '../app/pages/Contact';
 import About from '../app/pages/About';
 import Partner from '../app/pages/Partner';
+import TetOwnerPartnership from '../app/pages/TetOwnerPartnership';
+import TetRental from '../app/pages/TetRental';
 import CarDetail from '../app/pages/CarDetail';
 import GoWhere from '../app/pages/GoWhere';
 import GoWhereCollection from '../app/pages/GoWhereCollection';
@@ -144,6 +146,22 @@ export function renderPartner() {
   return renderToString(
     <MemoryRouter initialEntries={['/hop-tac']}>
       <Partner />
+    </MemoryRouter>,
+  );
+}
+
+export function renderTetOwnerPartnership() {
+  return renderToString(
+    <MemoryRouter initialEntries={['/hop-tac-chu-xe-cho-thue-tet']}>
+      <TetOwnerPartnership />
+    </MemoryRouter>,
+  );
+}
+
+export function renderTetRental() {
+  return renderToString(
+    <MemoryRouter initialEntries={['/thue-xe-tu-lai-tet-ha-noi']}>
+      <TetRental />
     </MemoryRouter>,
   );
 }

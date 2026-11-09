@@ -230,8 +230,37 @@ const blogHubFaqItems = [
   },
 ];
 
+const tet2027HubTopics = [
+  {
+    href: '/thue-xe-tu-lai-tet-ha-noi',
+    title: 'Thuê xe tự lái Tết 2027 tại Hà Nội',
+    body: 'Gửi ngày nhận–trả, số người, hành lý và tuyến đi để đối chiếu xe, tổng chi phí và điều kiện giao nhận cho đúng booking.',
+    label: 'Mở hub thuê xe Tết',
+  },
+  {
+    href: '/hop-tac-chu-xe-cho-thue-tet',
+    title: 'Hợp tác xe nhàn rỗi dịp Tết',
+    body: 'Kiểm tra hồ sơ, lịch rảnh, hợp đồng, bàn giao và cách đối soát trước khi gửi thông tin xe để Car Match thẩm định.',
+    label: 'Mở hub hợp tác Tết',
+  },
+];
+
 function renderBlogHubContent() {
-  return `<section class="hub-section" aria-label="Hướng dẫn thuê xe tự lái">
+  return `<section class="hub-section" aria-label="Chuyên đề Tết 2027">
+        <div class="hub-heading">
+          <p class="eyebrow">Chuyên đề Tết 2027</p>
+          <h2>Hai lộ trình theo đúng nhu cầu</h2>
+          <p>Một hub giúp khách chọn và chuẩn bị thuê xe; một hub giúp chủ xe đánh giá phương án hợp tác. Các bài con được liên kết theo từng quyết định cụ thể.</p>
+        </div>
+        <div class="guide-grid">
+          ${tet2027HubTopics.map((topic) => `<article class="guide-card">
+            <h3>${escapeHtml(topic.title)}</h3>
+            <p>${escapeHtml(topic.body)}</p>
+            <div class="guide-links"><a href="${escapeHtml(topic.href)}">${escapeHtml(topic.label)}</a></div>
+          </article>`).join('')}
+        </div>
+      </section>
+      <section class="hub-section" aria-label="Hướng dẫn thuê xe tự lái">
         <div class="hub-heading">
           <p class="eyebrow">Hướng dẫn nhanh</p>
           <h2>Nên đọc gì trước khi thuê xe tự lái?</h2>

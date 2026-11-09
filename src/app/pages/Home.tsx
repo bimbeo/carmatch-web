@@ -79,7 +79,7 @@ const stats = [
   { value: '20+', label: 'Mẫu xe', note: 'Xe 5 chỗ, 7 chỗ, xe điện', icon: Car },
   { value: '7h-22h', label: 'Hỗ trợ mỗi ngày', note: 'Tư vấn và xử lý phát sinh', icon: Clock },
   { value: 'Từ 600K', label: 'Giá thuê/ngày', note: 'Xe điện đô thị đến MPV 7 chỗ gia đình', icon: Zap },
-  { value: '30 phút', label: 'Phản hồi lịch', note: 'Đặt trực tiếp; Zalo hỗ trợ khi cần', icon: CalendarDays },
+  { value: 'Theo lịch', label: 'Kiểm tra xe', note: 'Đối chiếu xe trước khi xác nhận booking', icon: CalendarDays },
 ];
 
 const residentialAreas = [
@@ -1561,6 +1561,57 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── TẾT 2027 ─────────────────────────────────────────── */}
+      <section className="py-20 px-4 bg-gradient-to-br from-red-50 via-white to-amber-50" aria-labelledby="tet-2027-title">
+        <div className="max-w-7xl mx-auto">
+          <div className="max-w-3xl mb-10">
+            <p className="text-red-600 font-semibold text-sm uppercase tracking-wide mb-2">Kế hoạch Tết 2027</p>
+            <h2 id="tet-2027-title" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Thuê xe đi Tết hoặc đưa xe nhàn rỗi vào hợp tác
+            </h2>
+            <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+              Khách thuê nên gửi ngày nhận–trả, số người, hành lý và tuyến đi. Chủ xe nên gửi mẫu xe, khu vực đỗ và lịch rảnh để Car Match thẩm định phương án phù hợp; việc gửi thông tin chưa phải cam kết còn xe hoặc doanh thu.
+            </p>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <article className="rounded-3xl border border-red-100 bg-white p-7 shadow-sm">
+              <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                <CalendarDays className="h-6 w-6" />
+              </span>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Cần thuê xe tự lái dịp Tết?</h3>
+              <p className="text-sm leading-7 text-gray-600 mb-6">
+                Xem cách chọn xe theo số người, hành lý, quãng đường; kiểm tra tổng chi phí, điều kiện nhận–trả và các bài hướng dẫn cho chuyến đi Tết.
+              </p>
+              <Link
+                to="/thue-xe-tu-lai-tet-ha-noi"
+                onClick={() => trackCtaClick('home_tet_rental', { target_path: '/thue-xe-tu-lai-tet-ha-noi' })}
+                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700"
+                data-cta="home-tet-rental"
+              >
+                Lập kế hoạch thuê xe Tết <ArrowRight className="h-4 w-4" />
+              </Link>
+            </article>
+            <article className="rounded-3xl border border-amber-100 bg-white p-7 shadow-sm">
+              <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+                <Key className="h-6 w-6" />
+              </span>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Có xe nhàn rỗi dịp Tết?</h3>
+              <p className="text-sm leading-7 text-gray-600 mb-6">
+                Đối chiếu hồ sơ, lịch rảnh, hợp đồng, bàn giao và cách tính doanh thu trước khi gửi xe để Car Match kiểm tra khả năng hợp tác.
+              </p>
+              <Link
+                to="/hop-tac-chu-xe-cho-thue-tet"
+                onClick={() => trackCtaClick('home_tet_owner', { target_path: '/hop-tac-chu-xe-cho-thue-tet' })}
+                className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-6 py-3 text-sm font-bold text-amber-900 hover:bg-amber-100"
+                data-cta="home-tet-owner"
+              >
+                Xem hướng dẫn hợp tác Tết <ArrowRight className="h-4 w-4" />
+              </Link>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <HomeReviews />
 
       {/* ── BLOG PREVIEW ──────────────────────────────────────── */}
@@ -1745,7 +1796,7 @@ export default function Home() {
                 { value: 'Theo xe', label: 'Ước tính doanh thu', icon: '💰' },
                 { value: 'Hợp đồng', label: 'Điều kiện vận hành', icon: '🔧' },
                 { value: 'Thẩm định', label: 'Kiểm tra xe trước hợp tác', icon: '⚡' },
-                { value: '0đ', label: 'Chi phí gửi thông tin ban đầu', icon: '🎁' },
+                { value: 'Tiếp nhận', label: 'Gửi thông tin để thẩm định', icon: '🎁' },
               ].map((stat) => (
                 <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors">
                   <span className="text-2xl mb-3 block">{stat.icon}</span>

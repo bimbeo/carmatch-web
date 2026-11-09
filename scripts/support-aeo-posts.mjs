@@ -10,6 +10,7 @@ function createPost({
   excerpt,
   category,
   directAnswer,
+  seasonalNote = '',
   whyItMatters,
   steps,
   evidence,
@@ -25,6 +26,7 @@ function createPost({
 }) {
   const bodyHtml = `<p><strong>Câu trả lời ngắn:</strong> ${directAnswer}</p>
     <p>Hướng dẫn này ưu tiên an toàn và khả năng đối soát. Chính sách có thể khác theo mẫu xe, thời điểm và thỏa thuận cụ thể; nếu nội dung trên website khác hợp đồng đã ký, hợp đồng và xác nhận bằng văn bản cho booking là căn cứ áp dụng. Người thuê có thể mở <a href="/chinh-sach">chính sách thuê xe Car Match</a> và <a href="/faq">câu hỏi thường gặp</a> trước khi nhận xe.</p>
+    ${seasonalNote ? `<p>${seasonalNote}</p>` : ''}
     <h2>Vì sao cần xử lý theo đúng quy trình?</h2>
     <p>${whyItMatters}</p>
     <h2>Các bước nên làm</h2>
@@ -370,6 +372,7 @@ export function createSupportAeoPosts({ siteUrl, brandSocialImage }) {
       excerpt: 'Giá lễ Tết cần được báo theo đúng ngày, xe, thời lượng và combo; yêu cầu bảng tách tiền xe, giao nhận, km và điều kiện hủy.',
       category: 'Giá thuê xe',
       directAnswer: 'Giá thuê xe dịp lễ Tết có thể khác ngày thường vì lịch xe và cấu trúc gói thuê thay đổi, nhưng không nên áp một hệ số chung nếu chưa có báo giá. Tổng cần ghi rõ: mẫu xe, ngày/giờ nhận–trả, số ngày tính tiền, giá từng ngày hoặc combo, km đã gồm, giao nhận, đặt cọc, điều kiện hủy và các khoản phát sinh. Báo giá đúng booking là căn cứ, không phải ảnh bảng giá cũ.',
+      seasonalNote: 'Nếu đang chuẩn bị cho Tết 2027, hãy bắt đầu tại <a href="/thue-xe-tu-lai-tet-ha-noi">hub thuê xe tự lái Tết tại Hà Nội</a> để đối chiếu loại xe, hành lý, tuyến đi, tổng chi phí và các hướng dẫn nhận–trả liên quan.',
       whyItMatters: 'Một combo năm ngày không thể so trực tiếp với giá ngày thường nếu số ngày bắt buộc, giờ nhận–trả hoặc km khác nhau. Dịp cao điểm cũng dễ thay đổi lịch; điều kiện cọc và hủy ảnh hưởng tổng rủi ro tài chính không kém giá xe. Bảng tách khoản giúp khách so hai mẫu xe trên cùng điều kiện.',
       steps: ['Gửi đúng ngày/giờ, điểm nhận–trả, mẫu xe và tổng km.', 'Yêu cầu báo giá ghi giá từng ngày/combo và số ngày tối thiểu.', 'Kiểm tra km, trả muộn, giao nhận, pin/nhiên liệu và cọc.', 'Chỉ chuyển cọc sau khi xe/lịch và điều kiện hủy được xác nhận.'],
       evidence: ['Báo giá có ngày phát hành và thời hạn giữ giá.', 'Tên/biển số hoặc nhóm xe được cam kết.', 'Lịch nhận–trả và số ngày tính tiền.', 'Biên nhận cọc và điều kiện đổi/hủy.'],
