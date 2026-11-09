@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Link } from 'react-router';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useSEO } from '@/hooks/useSEO';
@@ -46,6 +47,24 @@ const faqGroups = [
         a: 'Liên hệ ngay hotline/Zalo 0971 163 290, mô tả tình trạng xe và vị trí hiện tại. Car Match sẽ hướng dẫn bước xử lý tiếp theo và phương án hỗ trợ phù hợp với tình huống thực tế.',
       },
     ],
+  },
+];
+
+const supportGuides = [
+  {
+    to: '/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+    title: 'Giới hạn km và phí vượt km',
+    description: 'Cách kiểm tra định mức của từng xe, ghi đồng hồ và tính phần vượt.',
+  },
+  {
+    to: '/blog/tra-xe-thue-muon-tinh-phi-the-nao',
+    title: 'Phí trả xe muộn',
+    description: 'Cách xác định giờ trả, báo sớm và đối chiếu khoản quá giờ.',
+  },
+  {
+    to: '/blog/huy-lich-thue-xe-co-duoc-hoan-coc-khong',
+    title: 'Hủy lịch và hoàn cọc',
+    description: 'Những điều cần xác nhận trước khi chuyển cọc hoặc thay đổi lịch.',
   },
 ];
 
@@ -101,6 +120,24 @@ export default function FAQ() {
               </section>
             ))}
           </div>
+
+          <section className="mt-8" aria-labelledby="support-guides-title">
+            <h2 id="support-guides-title" className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+              Hướng dẫn chi tiết
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {supportGuides.map(guide => (
+                <Link
+                  key={guide.to}
+                  to={guide.to}
+                  className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md"
+                >
+                  <h3 className="text-sm font-black text-slate-900">{guide.title}</h3>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">{guide.description}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
         </div>
       </main>
       <Footer />

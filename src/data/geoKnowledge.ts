@@ -383,6 +383,75 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     ],
     relatedRoutes: ['/hop-tac', '/gioi-thieu', '/lien-he'],
   },
+  {
+    id: 'rental-daily-km-limit',
+    title: 'Giới hạn km khi thuê xe tự lái',
+    businessLine: 'self-drive-rental-support',
+    audience: 'Khách cần ước tính quãng đường và phí vượt km trước chuyến thuê',
+    sourceUrl: 'https://www.carmatch.vn/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+    effectiveDate: '2026-11-09',
+    reviewStatus: 'reviewed',
+    riskLevel: 'medium',
+    summary:
+      'Giới hạn km phụ thuộc từng xe và hợp đồng; nhiều xe trên website đang hiển thị 200–300 km/ngày và mức vượt phổ biến 3.000đ/km, nhưng khách phải kiểm tra điều kiện của chuyến cụ thể.',
+    facts: [
+      'Tổng định mức được tính từ định mức mỗi ngày nhân với số ngày thuê theo xác nhận của chuyến.',
+      'Km thực tế cần đối chiếu bằng đồng hồ lúc nhận và lúc trả, được ghi trong ảnh hoặc biên bản bàn giao.',
+      'Khách nên hỏi trước cách cộng dồn km, làm tròn phần vượt và đơn giá của mẫu xe thay vì mặc định mọi xe có cùng điều kiện.',
+    ],
+    relatedRoutes: [
+      '/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+      '/xe',
+      '/faq',
+      '/chinh-sach',
+    ],
+  },
+  {
+    id: 'rental-late-return-fee',
+    title: 'Phí trả xe thuê muộn',
+    businessLine: 'self-drive-rental-support',
+    audience: 'Khách cần hiểu giờ trả xe, phí quá giờ và cách báo khi có nguy cơ về muộn',
+    sourceUrl: 'https://www.carmatch.vn/blog/tra-xe-thue-muon-tinh-phi-the-nao',
+    effectiveDate: '2026-11-09',
+    reviewStatus: 'reviewed',
+    riskLevel: 'medium',
+    summary:
+      'Phí trả muộn tính từ giờ trả đã xác nhận; website hiện hiển thị mức tham khảo 100.000đ/giờ, còn cách làm tròn và mức trần phải theo hợp đồng của chuyến thuê.',
+    facts: [
+      'Khách nên báo sớm vị trí và giờ dự kiến nếu có nguy cơ trả muộn, nhưng việc báo trước không tự động miễn phụ phí.',
+      'Giờ bàn giao thực tế, số km, mức xăng/pin và khoản phát sinh cần được ghi nhận khi trả xe.',
+      'An toàn được ưu tiên; khách không nên lái vội để cố tránh phí quá giờ khi điều kiện di chuyển không phù hợp.',
+    ],
+    relatedRoutes: [
+      '/blog/tra-xe-thue-muon-tinh-phi-the-nao',
+      '/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+      '/faq',
+      '/chinh-sach',
+    ],
+  },
+  {
+    id: 'rental-cancellation-deposit-refund',
+    title: 'Hủy lịch thuê xe và hoàn cọc',
+    businessLine: 'self-drive-rental-support',
+    audience: 'Khách cần xác nhận điều kiện hủy lịch và hoàn cọc trước khi đặt xe',
+    sourceUrl: 'https://www.carmatch.vn/blog/huy-lich-thue-xe-co-duoc-hoan-coc-khong',
+    effectiveDate: '2026-11-09',
+    reviewStatus: 'reviewed',
+    riskLevel: 'high',
+    summary:
+      'Việc hoàn toàn bộ, hoàn một phần hay không hoàn cọc phụ thuộc thời điểm hủy, mẫu xe, lịch đã giữ và điều khoản của chuyến; không có cam kết hoàn 100% áp dụng cho mọi trường hợp.',
+    facts: [
+      'Trước khi chuyển cọc, khách cần hỏi rõ hạn hủy, số tiền có thể được hoàn, trường hợp không nhận xe và thời gian xử lý hoàn.',
+      'Khi hủy, khách nên báo qua kênh đã dùng để đặt, gửi thông tin chuyến và lưu xác nhận phương án bằng văn bản.',
+      'Nếu có khoản bị giữ, hai bên cần đối chiếu báo giá, tin nhắn xác nhận hoặc hợp đồng thay vì chỉ trao đổi miệng.',
+    ],
+    relatedRoutes: [
+      '/blog/huy-lich-thue-xe-co-duoc-hoan-coc-khong',
+      '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu',
+      '/faq',
+      '/chinh-sach',
+    ],
+  },
 ];
 
 export const geoPriorityPages: GeoPriorityPage[] = [
@@ -583,6 +652,43 @@ export const geoPriorityPages: GeoPriorityPage[] = [
     directAnswer:
       'Blog trả lời các câu hỏi thực tế trước khi thuê xe: giá, giấy tờ, đặt cọc, phạt nguội, xe sân bay và kinh nghiệm chọn xe.',
     internalLinks: ['/xe', '/faq', '/xe-san-bay-noi-bai'],
+  },
+  {
+    path: '/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+    topic: 'Thuê xe tự lái được đi bao nhiêu km mỗi ngày',
+    intent: 'informational',
+    journeyStage: 'Customer',
+    directAnswer:
+      'Giới hạn km phụ thuộc từng xe và hợp đồng; nhiều xe đang hiển thị 200–300 km/ngày với mức vượt phổ biến 3.000đ/km, nhưng khách cần xác nhận điều kiện của chuyến cụ thể.',
+    internalLinks: ['/xe', '/faq', '/chinh-sach', '/lap-ke-hoach-chuyen-di'],
+  },
+  {
+    path: '/blog/tra-xe-thue-muon-tinh-phi-the-nao',
+    topic: 'Trả xe thuê muộn tính phí thế nào',
+    intent: 'informational',
+    journeyStage: 'Customer',
+    directAnswer:
+      'Phí trả muộn được tính từ giờ trả đã xác nhận; website hiện hiển thị mức tham khảo 100.000đ/giờ, còn cách làm tròn và mức trần áp dụng theo hợp đồng của chuyến thuê.',
+    internalLinks: [
+      '/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+      '/chinh-sach',
+      '/faq',
+      '/lap-ke-hoach-chuyen-di',
+    ],
+  },
+  {
+    path: '/blog/huy-lich-thue-xe-co-duoc-hoan-coc-khong',
+    topic: 'Hủy lịch thuê xe có được hoàn cọc không',
+    intent: 'informational',
+    journeyStage: 'Customer',
+    directAnswer:
+      'Hoàn cọc phụ thuộc thời điểm hủy, mẫu xe, lịch đã giữ và điều khoản của chuyến; khách nên xác nhận hạn hủy, số tiền được hoàn và thời gian xử lý trước khi chuyển cọc.',
+    internalLinks: [
+      '/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu',
+      '/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai',
+      '/chinh-sach',
+      '/faq',
+    ],
   },
 ];
 

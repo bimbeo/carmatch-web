@@ -1492,6 +1492,193 @@ const staticSupportBlogPosts = [
     ],
     relatedPostSlugs: ['co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast'],
   },
+  {
+    _id: 'static-rental-daily-km-limit-guide',
+    title: 'Thuê xe tự lái được đi bao nhiêu km mỗi ngày? Cách tính phí vượt km',
+    slug: { current: 'thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay' },
+    publishedAt: '2026-11-09T09:00:00+07:00',
+    updatedAt: '2026-11-09T09:00:00+07:00',
+    excerpt:
+      'Giới hạn km phụ thuộc từng xe và hợp đồng. Hướng dẫn cách kiểm tra định mức, ghi đồng hồ km và tính phần vượt trước khi nhận xe.',
+    mainImageUrl: brandSocialImage,
+    categories: ['Kinh nghiệm thuê xe tự lái'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p><strong>Câu trả lời ngắn:</strong> không có một giới hạn km chung cho mọi xe thuê tự lái. Trên website Car Match, nhiều mẫu xe đang hiển thị định mức khoảng 200–300 km cho mỗi ngày thuê; con số áp dụng cuối cùng phải lấy từ trang xe, báo giá và hợp đồng của chính chuyến đi. Nếu tổng quãng đường thực tế vượt định mức đã xác nhận, phần vượt được tính theo đơn giá ghi cho mẫu xe; mức đang hiển thị phổ biến là 3.000đ/km. Trước khi nhận xe, khách nên chụp đồng hồ km, kiểm tra số ngày được tính và hỏi rõ km chưa dùng của một ngày có được cộng sang ngày khác hay không. Khi trả xe, hai bên đối chiếu đồng hồ đầu–cuối và biên bản bàn giao. Cách này giúp khách ước tính đủ ngân sách, còn Car Match có căn cứ minh bạch để tính đúng phần phát sinh.</p>
+      <h2>Giới hạn km của xe thuê được xác định ở đâu?</h2>
+      <p>Hãy kiểm tra theo thứ tự: thông số trên trang xe, báo giá hoặc tin nhắn xác nhận, rồi hợp đồng/biên bản bàn giao. Trang <a href="/xe">danh sách xe tự lái</a> giúp bạn mở từng mẫu để xem định mức và phụ phí tham khảo. Nếu các nơi hiển thị khác nhau, nên yêu cầu Car Match xác nhận lại bằng văn bản trước khi chuyển cọc; nội dung trong hợp đồng của chuyến thuê là căn cứ cuối cùng.</p>
+      <p>Định mức có thể thay đổi theo mẫu xe, gói thuê, số ngày và thời điểm. Vì vậy, câu “xe nào cũng được 300 km/ngày” không nên được dùng như một cam kết chung.</p>
+      <h2>Cách tính số km được đi và phí vượt km</h2>
+      <div class="table-wrap"><table><thead><tr><th>Thành phần</th><th>Cách xác định</th><th>Ví dụ minh họa</th></tr></thead><tbody>
+        <tr><td>Tổng km trong định mức</td><td>Định mức mỗi ngày × số ngày tính tiền</td><td>300 km × 2 ngày = 600 km</td></tr>
+        <tr><td>Km thực tế</td><td>Đồng hồ lúc trả − đồng hồ lúc nhận</td><td>18.760 − 18.100 = 660 km</td></tr>
+        <tr><td>Km vượt</td><td>Km thực tế − tổng km trong định mức, tối thiểu bằng 0</td><td>660 − 600 = 60 km</td></tr>
+        <tr><td>Phí vượt km</td><td>Km vượt × đơn giá đã xác nhận</td><td>60 × 3.000đ = 180.000đ</td></tr>
+      </tbody></table></div>
+      <p>Ví dụ chỉ minh họa cách tính theo mức đang hiển thị phổ biến. Khách cần thay bằng định mức và đơn giá của mẫu xe trong báo giá/hợp đồng. Cũng nên hỏi cách làm tròn số km và cách tính khi thời gian thuê có phần lẻ.</p>
+      <h2>Khi nhận và trả xe cần ghi lại đồng hồ km thế nào?</h2>
+      <ol>
+        <li><strong>Chụp toàn cảnh bảng đồng hồ:</strong> ảnh cần thấy rõ số km, mức xăng hoặc pin và cảnh báo nếu có.</li>
+        <li><strong>Ghi số km vào biên bản:</strong> không chỉ lưu ảnh trong điện thoại của một bên.</li>
+        <li><strong>Đối chiếu thời gian nhận/trả:</strong> số ngày tính tiền quyết định tổng định mức km.</li>
+        <li><strong>Chụp lại khi trả:</strong> hai bên cùng xác nhận số cuối và khoản vượt nếu có.</li>
+      </ol>
+      <p>Checklist này cũng hữu ích để hạn chế tranh luận về xăng, pin hoặc tình trạng xe. Bạn có thể đọc thêm <a href="/blog/tranh-chap-vet-xuoc-khi-thue-xe-tu-lai-can-lam-gi">cách ghi nhận hiện trạng xe trước khi lăn bánh</a>.</p>
+      <h2>Làm sao ước tính quãng đường trước chuyến đi?</h2>
+      <p>Hãy cộng quãng đường đi–về, các chặng di chuyển tại điểm đến và một phần dự phòng cho đổi tuyến hoặc tìm chỗ đỗ. Với chuyến nhiều điểm, nên gửi lịch trình dự kiến cho Car Match thay vì chỉ nêu tên tỉnh. Các trang <a href="/di-dau">gợi ý điểm đến từ Hà Nội</a> và <a href="/lap-ke-hoach-chuyen-di">công cụ lập kế hoạch chuyến đi</a> giúp bạn ước tính tuyến trước khi chọn xe.</p>
+      <h2>Nếu biết trước sẽ vượt định mức thì nên làm gì?</h2>
+      <p>Đừng chờ tới lúc trả xe mới báo. Hãy gửi tuyến đi và số km ước tính trước khi đặt để Car Match kiểm tra mẫu xe, lịch bảo dưỡng và phương án phù hợp. Bạn có thể yêu cầu ghi rõ tổng km được dùng, đơn giá vượt và cách cộng dồn trong tin nhắn xác nhận hoặc hợp đồng. Nếu chi phí vượt quá cao so với nhu cầu, nên so sánh mẫu xe hoặc gói thuê khác bằng tổng chi phí, không chỉ bằng giá thuê ngày.</p>
+      <h2>Câu hỏi thường gặp về giới hạn km</h2>
+      <h3>Km chưa dùng trong ngày có được cộng sang ngày sau không?</h3>
+      <p>Không nên tự mặc định. Cách cộng dồn phụ thuộc gói thuê và cần được xác nhận trong báo giá hoặc hợp đồng.</p>
+      <h3>Đi tỉnh có bị tính thêm phí ngoài phí vượt km không?</h3>
+      <p>Có thể còn xăng/sạc, VETC, gửi xe, giao nhận hoặc khoản khác đã thỏa thuận. Hãy đọc <a href="/chinh-sach">chính sách thuê xe</a> và yêu cầu báo tổng chi phí trước khi cọc.</p>
+      <h3>Đồng hồ km có số lẻ thì tính thế nào?</h3>
+      <p>Hai bên nên thống nhất cách ghi và làm tròn ngay trên biên bản bàn giao, tránh tự làm tròn theo hai cách khác nhau khi thanh lý.</p>`,
+    seoTitle: 'Thuê Xe Tự Lái Được Đi Bao Nhiêu Km/Ngày?',
+    seoDescription:
+      'Giới hạn km xe thuê theo từng mẫu và hợp đồng. Xem cách tính tổng định mức, phí vượt km và đối chiếu đồng hồ khi nhận trả xe.',
+    canonicalUrl: `${siteUrl}/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần kiểm tra định mức km của xe?',
+    ctaDescription: 'Gửi ngày thuê, tuyến đi và số km dự kiến để Car Match kiểm tra mẫu xe và điều kiện phù hợp.',
+    ctaPrimaryLabel: 'Xem xe và định mức km',
+    ctaPrimaryUrl: '/xe',
+    ctaZaloLabel: 'Nhắn Zalo hỏi định mức',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: [
+      'phi-an-khi-thue-xe-tu-lai-hoi-gi-truoc-khi-coc',
+      'tra-xe-thue-muon-tinh-phi-the-nao',
+    ],
+  },
+  {
+    _id: 'static-rental-late-return-fee-guide',
+    title: 'Trả xe thuê muộn tính phí thế nào? Cách xử lý để tránh phát sinh',
+    slug: { current: 'tra-xe-thue-muon-tinh-phi-the-nao' },
+    publishedAt: '2026-11-09T08:45:00+07:00',
+    updatedAt: '2026-11-09T08:45:00+07:00',
+    excerpt:
+      'Phí trả xe muộn được tính từ giờ trả đã xác nhận và theo điều khoản của xe. Hướng dẫn cách báo sớm, lưu xác nhận và bàn giao đúng.',
+    mainImageUrl: brandSocialImage,
+    categories: ['Kinh nghiệm thuê xe tự lái'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p><strong>Câu trả lời ngắn:</strong> phí trả xe muộn được tính theo giờ trả đã xác nhận trong báo giá hoặc hợp đồng, không chỉ theo lúc khách nhớ mình đã nhận xe. Chính sách hiện hiển thị trên website Car Match nêu mức tham khảo 100.000đ cho mỗi giờ trễ, tối đa tương đương một ngày thuê; điều khoản của mẫu xe và hợp đồng cụ thể vẫn là căn cứ cuối cùng. Nếu thấy có nguy cơ về muộn, khách nên báo ngay thời gian dự kiến, xin xác nhận xe có lịch sau hay không và lưu phương án xử lý bằng tin nhắn. Khi bàn giao, hai bên ghi giờ xe thực tế được trả, số km, xăng/pin và tình trạng xe. Việc báo sớm không tự động xóa phụ phí, nhưng giúp Car Match điều phối lịch tiếp theo và giúp khách biết trước khoản phát sinh thay vì tranh luận sau chuyến đi.</p>
+      <h2>Thời điểm nào được coi là trả xe muộn?</h2>
+      <p>Mốc so sánh là giờ trả xe đã được hai bên xác nhận. Nếu hợp đồng ghi trả lúc 18:00 nhưng xe được bàn giao hoàn tất lúc 19:15, phần chậm được xử lý theo điều khoản về quá giờ và cách làm tròn đã thỏa thuận. Khách nên phân biệt “đã về tới khu vực” với “đã giao xe”: quá trình tìm điểm hẹn, kiểm tra xe và bàn giao chìa khóa cần được tính vào kế hoạch.</p>
+      <h2>Phí trả muộn được tính ra sao?</h2>
+      <div class="table-wrap"><table><thead><tr><th>Việc cần đối chiếu</th><th>Nguồn xác nhận</th><th>Lưu ý</th></tr></thead><tbody>
+        <tr><td>Giờ phải trả</td><td>Báo giá, tin nhắn hoặc hợp đồng</td><td>Ghi rõ ngày và giờ, không chỉ ghi “buổi tối”.</td></tr>
+        <tr><td>Giờ bàn giao thực tế</td><td>Biên bản, tin nhắn hoặc ảnh có thời gian</td><td>Hai bên cùng xác nhận khi nhận lại xe.</td></tr>
+        <tr><td>Đơn giá quá giờ</td><td>Điều khoản của mẫu xe</td><td>Website đang hiển thị 100.000đ/giờ; kiểm tra lại trước chuyến.</td></tr>
+        <tr><td>Mức trần hoặc chuyển sang ngày</td><td>Hợp đồng chuyến thuê</td><td>Không tự suy ra nếu hợp đồng chưa ghi rõ.</td></tr>
+      </tbody></table></div>
+      <p>Nếu xe đã có lịch giao cho khách tiếp theo, việc trả muộn còn ảnh hưởng vận hành, vệ sinh và thời gian di chuyển. Vì vậy Car Match có thể cần kiểm tra phương án trước khi đồng ý gia hạn; khách không nên tự coi việc nhắn báo là đã được kéo dài hợp đồng.</p>
+      <h2>Nên làm gì ngay khi biết có thể trả xe trễ?</h2>
+      <ol>
+        <li><strong>Báo sớm:</strong> gửi vị trí hiện tại, nguyên nhân và giờ dự kiến tới điểm trả.</li>
+        <li><strong>Xin xác nhận phương án:</strong> tiếp tục di chuyển để trả, đổi điểm hẹn hay gia hạn thêm thời gian.</li>
+        <li><strong>Hỏi khoản phát sinh:</strong> yêu cầu nêu rõ số giờ hoặc cách chuyển sang ngày thuê.</li>
+        <li><strong>Lưu tin nhắn:</strong> giữ xác nhận cho tới khi thanh lý và hoàn cọc.</li>
+        <li><strong>Đừng lái vội:</strong> không đánh đổi an toàn để cố tránh một giờ phụ phí.</li>
+      </ol>
+      <h2>Nếu chậm vì tắc đường hoặc sự cố thì có được miễn phí không?</h2>
+      <p>Không nên mặc định được miễn. Tắc đường, thay đổi lịch trình, thời tiết hoặc sự cố có nguyên nhân khác nhau và cần được đối chiếu theo hợp đồng cùng tình huống thực tế. Nếu xe gặp cảnh báo kỹ thuật, va chạm hoặc không thể tiếp tục an toàn, hãy dừng xe ở nơi phù hợp và liên hệ Car Match trước khi tự sửa hoặc gọi cứu hộ. Bài <a href="/blog/xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi">xử lý khi xe thuê gặp sự cố</a> có checklist chi tiết hơn.</p>
+      <h2>Cách lên lịch để hạn chế trả muộn</h2>
+      <p>Hãy đặt mục tiêu về điểm trả sớm hơn giờ hợp đồng 30–60 phút, cộng thêm thời gian đổ xăng hoặc sạc, dọn hành lý, kiểm tra xe và tìm điểm bàn giao. Với chuyến đi tỉnh, nên dùng <a href="/lap-ke-hoach-chuyen-di">công cụ lập kế hoạch chuyến đi</a> để ước tính tuyến và chừa thời gian dự phòng. Nếu lịch về quá sát, hỏi phương án trả muộn hoặc thuê thêm ngày ngay từ đầu để so tổng chi phí.</p>
+      <h2>Khi trả xe cần ghi nhận những gì?</h2>
+      <p>Hai bên nên ghi giờ trả thực tế, đồng hồ km, mức xăng/pin, hình ảnh ngoại thất–nội thất và các khoản phát sinh. Nếu có phí quá giờ, yêu cầu liệt kê cách tính cùng các khoản khác thay vì chỉ trừ một con số tổng khỏi tiền cọc. Đọc thêm <a href="/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay">cách đối chiếu giới hạn km</a> và <a href="/chinh-sach">chính sách thuê xe hiện hành</a>.</p>
+      <h2>Câu hỏi thường gặp về trả xe muộn</h2>
+      <h3>Báo trước thì có chắc chắn không bị tính phí không?</h3>
+      <p>Không. Báo trước giúp điều phối và xác nhận phương án; việc miễn, giảm hay tính phí vẫn theo thỏa thuận của chuyến thuê.</p>
+      <h3>Muộn nhiều giờ có tự động tính thành một ngày không?</h3>
+      <p>Khách cần xem mức trần và cách chuyển đổi trong hợp đồng. Không nên tự áp một công thức chung cho mọi mẫu xe.</p>
+      <h3>Trả xe sớm có được hoàn phần giờ chưa dùng không?</h3>
+      <p>Giá thuê thường được xác nhận theo gói/ngày thay vì tính từng giờ. Nếu cần lịch linh hoạt, hãy hỏi điều kiện trước khi đặt cọc.</p>`,
+    seoTitle: 'Trả Xe Thuê Muộn Tính Phí Thế Nào?',
+    seoDescription:
+      'Cách xác định giờ trả xe, phí trả muộn, cách báo sớm và đối chiếu biên bản để hạn chế phát sinh khi thuê xe tự lái.',
+    canonicalUrl: `${siteUrl}/blog/tra-xe-thue-muon-tinh-phi-the-nao`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần lịch nhận trả xe phù hợp?',
+    ctaDescription: 'Gửi ngày giờ và khu vực giao nhận để Car Match kiểm tra lịch xe và điều kiện quá giờ trước khi đặt.',
+    ctaPrimaryLabel: 'Xem danh sách xe',
+    ctaPrimaryUrl: '/xe',
+    ctaZaloLabel: 'Nhắn Zalo hỏi lịch trả',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: [
+      'thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+      'xe-thue-tu-lai-gap-su-co-tai-nan-hong-xe-lam-gi',
+    ],
+  },
+  {
+    _id: 'static-rental-cancellation-deposit-refund-guide',
+    title: 'Hủy lịch thuê xe có được hoàn cọc không? Những điều cần xác nhận',
+    slug: { current: 'huy-lich-thue-xe-co-duoc-hoan-coc-khong' },
+    publishedAt: '2026-11-09T08:30:00+07:00',
+    updatedAt: '2026-11-09T08:30:00+07:00',
+    excerpt:
+      'Hoàn cọc khi hủy lịch phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Checklist xác nhận điều kiện trước khi chuyển cọc và khi cần hủy.',
+    mainImageUrl: brandSocialImage,
+    categories: ['Kinh nghiệm thuê xe tự lái'],
+    author: 'Car Match',
+    body: [],
+    bodyHtml: `<p><strong>Câu trả lời ngắn:</strong> khách có thể yêu cầu hủy lịch thuê xe, nhưng việc được hoàn toàn bộ, hoàn một phần hay không hoàn cọc phụ thuộc thời điểm hủy, mẫu xe, lịch xe đã được giữ và điều khoản đã xác nhận cho chuyến thuê. Car Match không áp dụng một lời hứa “hủy lúc nào cũng hoàn 100%” trên mọi trường hợp. Trước khi chuyển cọc, khách nên yêu cầu ghi rõ hạn hủy, số tiền có thể được hoàn, trường hợp không đến nhận xe, thời gian xử lý hoàn và tài khoản nhận lại tiền. Khi cần hủy, hãy báo qua đúng hotline/Zalo đã dùng để đặt, nêu mã hoặc thông tin chuyến và xin xác nhận bằng văn bản. Nếu có khoản bị giữ, hai bên nên đối chiếu điều khoản thay vì chỉ trao đổi miệng. Nội dung trong báo giá, tin nhắn xác nhận và hợp đồng của chuyến thuê là căn cứ xử lý cuối cùng.</p>
+      <h2>Vì sao hoàn cọc không có một đáp án chung?</h2>
+      <p>Tiền cọc được dùng để giữ một mẫu xe cho khung thời gian cụ thể. Khi lịch đã được xác nhận, xe có thể không còn được nhận đơn khác và đội vận hành đã chuẩn bị giao nhận. Mức ảnh hưởng khác nhau nếu khách hủy sớm, hủy sát giờ, không tới nhận xe hoặc đề nghị đổi ngày. Vì vậy điều kiện hoàn cọc cần gắn với thời điểm và hợp đồng cụ thể, không nên suy từ trải nghiệm của một chuyến thuê khác.</p>
+      <h2>Trước khi chuyển cọc cần hỏi những gì?</h2>
+      <div class="table-wrap"><table><thead><tr><th>Câu cần hỏi</th><th>Vì sao quan trọng</th><th>Nên lưu ở đâu</th></tr></thead><tbody>
+        <tr><td>Hủy trước thời điểm nào thì xử lý ra sao?</td><td>Xác định mốc hủy sớm và hủy sát giờ.</td><td>Báo giá, tin nhắn hoặc hợp đồng.</td></tr>
+        <tr><td>Đổi ngày hoặc đổi xe có được không?</td><td>Có thể là phương án thay thế hủy hoàn toàn.</td><td>Xác nhận riêng cho chuyến thuê.</td></tr>
+        <tr><td>Nếu không đến nhận xe thì sao?</td><td>Tránh nhầm giữa hủy có báo trước và không nhận xe.</td><td>Điều khoản đặt cọc.</td></tr>
+        <tr><td>Hoàn tiền bằng cách nào và trong bao lâu?</td><td>Giúp hai bên theo dõi giao dịch rõ ràng.</td><td>Tin nhắn xác nhận hoàn.</td></tr>
+      </tbody></table></div>
+      <p>Khách cũng nên kiểm tra tên người nhận, số tài khoản, nội dung chuyển khoản và kênh liên hệ chính thức. Bài <a href="/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai">tránh lừa đảo cọc online khi thuê xe</a> có thêm các dấu hiệu cần cảnh giác.</p>
+      <h2>Khi cần hủy lịch nên làm theo các bước nào?</h2>
+      <ol>
+        <li><strong>Báo ngay khi quyết định hủy:</strong> đừng chờ sát giờ nhận xe nếu đã biết lịch thay đổi.</li>
+        <li><strong>Gửi đủ dữ liệu:</strong> tên, số điện thoại, xe, ngày giờ nhận và bằng chứng chuyển cọc.</li>
+        <li><strong>Xin xác nhận phương án:</strong> hoàn toàn bộ, hoàn một phần, đổi ngày hoặc đổi xe.</li>
+        <li><strong>Yêu cầu liệt kê khoản giữ lại:</strong> nếu có, đối chiếu với điều khoản đã xác nhận.</li>
+        <li><strong>Lưu chứng từ:</strong> giữ tin nhắn và giao dịch cho tới khi hai bên hoàn tất đối soát.</li>
+      </ol>
+      <h2>Đổi ngày thuê có tốt hơn hủy lịch không?</h2>
+      <p>Đổi ngày có thể giảm gián đoạn nếu xe còn lịch và hai bên thống nhất được thời gian mới, nhưng không phải lúc nào cũng thực hiện được. Giá, mẫu xe và khu vực giao nhận có thể thay đổi theo ngày mới. Khách nên yêu cầu một xác nhận mới ghi rõ số cọc được chuyển tiếp, chênh lệch giá và hạn hiệu lực; không nên chỉ giữ lại tin nhắn “để lần sau dùng”.</p>
+      <h2>Hủy vì thời tiết, sức khỏe hoặc sự cố bất khả kháng thì sao?</h2>
+      <p>Những tình huống này cần được đối soát theo bằng chứng và thỏa thuận thực tế. Khách nên thông báo sớm, gửi thông tin liên quan nếu phù hợp và hỏi phương án đổi lịch trước. Không nên mặc định mọi trường hợp bất khả kháng đều tự động được hoàn toàn bộ, cũng không nên chấp nhận một khoản giữ cọc nếu chưa được giải thích theo điều khoản.</p>
+      <h2>Làm sao kiểm tra khoản hoàn đã đúng?</h2>
+      <p>Đối chiếu ba con số: cọc đã chuyển, khoản được giữ theo điều khoản và số thực hoàn. Yêu cầu ghi nội dung giao dịch để nhận diện chuyến thuê. Nếu có thêm phí, cần tách từng khoản và căn cứ thay vì gộp thành “chi phí hủy”. Trang <a href="/chinh-sach">chính sách thuê xe</a> là điểm tham chiếu chung; báo giá và hợp đồng cụ thể vẫn quyết định chuyến của bạn.</p>
+      <h2>Câu hỏi thường gặp về hủy lịch và hoàn cọc</h2>
+      <h3>Hủy trước 24 giờ có chắc chắn được hoàn toàn bộ không?</h3>
+      <p>Không nên mặc định nếu xác nhận đặt xe chưa ghi như vậy. Hãy dùng đúng mốc và điều kiện trong báo giá hoặc hợp đồng của chuyến thuê.</p>
+      <h3>Không đến nhận xe có được coi là đã hủy không?</h3>
+      <p>Không đến nhận xe mà không báo thường được xử lý khác với hủy có thông báo. Khách cần xem điều khoản “no-show” hoặc hỏi rõ trước khi cọc.</p>
+      <h3>Có thể chuyển cọc sang người khác không?</h3>
+      <p>Chỉ nên thực hiện khi Car Match xác nhận người thuê mới, giấy tờ, xe và lịch nhận. Không tự chuyển quyền đặt xe chỉ bằng việc gửi ảnh giao dịch.</p>
+      <h3>Nếu chưa rõ điều kiện hoàn cọc thì có nên chuyển tiền không?</h3>
+      <p>Nên yêu cầu làm rõ trước. Bạn có thể đọc thêm <a href="/blog/thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu">hướng dẫn giấy tờ và đặt cọc</a> hoặc liên hệ Car Match để xác nhận bằng tin nhắn.</p>`,
+    seoTitle: 'Hủy Lịch Thuê Xe Có Được Hoàn Cọc Không?',
+    seoDescription:
+      'Điều kiện hoàn cọc khi hủy lịch thuê xe phụ thuộc thời điểm, mẫu xe và thỏa thuận. Xem checklist cần xác nhận trước khi chuyển cọc.',
+    canonicalUrl: `${siteUrl}/blog/huy-lich-thue-xe-co-duoc-hoan-coc-khong`,
+    ctaEnabled: true,
+    ctaTitle: 'Cần xác nhận điều kiện cọc trước khi đặt?',
+    ctaDescription: 'Gửi ngày thuê và mẫu xe để Car Match kiểm tra lịch, mức cọc và điều kiện hủy áp dụng cho chuyến cụ thể.',
+    ctaPrimaryLabel: 'Đọc chính sách thuê xe',
+    ctaPrimaryUrl: '/chinh-sach',
+    ctaZaloLabel: 'Nhắn Zalo hỏi điều kiện cọc',
+    ctaZaloUrl: 'https://zalo.me/0971163290',
+    relatedDestinationSlugs: [],
+    relatedVehicleLinks: [],
+    relatedPostSlugs: [
+      'thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu',
+      'tranh-lua-dao-coc-online-khi-thue-xe-tu-lai',
+    ],
+  },
 ];
 
 const staticAirportBlogPosts = [

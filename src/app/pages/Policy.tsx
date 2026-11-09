@@ -1,5 +1,6 @@
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { Link } from 'react-router';
 import { useSEO } from '@/hooks/useSEO';
 
 const sections = [
@@ -56,6 +57,21 @@ const sections = [
   },
 ];
 
+const policyGuides = [
+  {
+    to: '/blog/thue-xe-tu-lai-duoc-di-bao-nhieu-km-moi-ngay',
+    label: 'Cách tính giới hạn km và phí vượt km',
+  },
+  {
+    to: '/blog/tra-xe-thue-muon-tinh-phi-the-nao',
+    label: 'Cách tính phí khi trả xe muộn',
+  },
+  {
+    to: '/blog/huy-lich-thue-xe-co-duoc-hoan-coc-khong',
+    label: 'Điều kiện hủy lịch và hoàn cọc',
+  },
+];
+
 export default function Policy() {
   useSEO({
     title: 'Chính sách thuê xe — Car Match',
@@ -101,6 +117,27 @@ export default function Policy() {
             Chính sách có thể được điều chỉnh theo từng mẫu xe, thời điểm thuê và thỏa thuận trên hợp đồng. Khi có khác biệt,
             nội dung trong hợp đồng thuê xe là căn cứ áp dụng cuối cùng.
           </div>
+
+          <section className="mt-6 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm" aria-labelledby="policy-guides-title">
+            <h2 id="policy-guides-title" className="text-base font-black uppercase tracking-wide text-slate-900">
+              Hướng dẫn áp dụng
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Đọc phần giải thích và ví dụ trước khi xác nhận lịch thuê:
+            </p>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+              {policyGuides.map(guide => (
+                <li key={guide.to}>
+                  <Link
+                    to={guide.to}
+                    className="block rounded-xl border border-slate-100 px-4 py-3 text-sm font-bold leading-5 text-cyan-700 transition hover:border-cyan-200 hover:bg-cyan-50"
+                  >
+                    {guide.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
       </main>
       <Footer />
