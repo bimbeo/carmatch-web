@@ -1,9 +1,23 @@
+import { wave2LocalRentalAreas } from './localRentalExpansionAreas.ts';
+
 export type LocalRentalAreaSlug =
   | 'vinhomes-ocean-park'
   | 'vinhomes-smart-city'
   | 'times-city'
   | 'ecopark'
-  | 'the-manor-central-park';
+  | 'the-manor-central-park'
+  | 'cau-giay'
+  | 'my-dinh'
+  | 'ha-dong'
+  | 'tay-ho'
+  | 'long-bien'
+  | 'hoan-kiem'
+  | 'hai-ba-trung'
+  | 'thanh-xuan'
+  | 'nam-tu-liem'
+  | 'bac-tu-liem'
+  | 'gia-lam'
+  | 'dong-anh-noi-bai';
 
 export interface LocalRentalArea {
   slug: LocalRentalAreaSlug;
@@ -23,7 +37,7 @@ export interface LocalRentalArea {
   faqs: Array<{ question: string; answer: string }>;
 }
 
-export const localRentalAreas: LocalRentalArea[] = [
+const confirmedLocalRentalAreas: LocalRentalArea[] = [
   {
     slug: 'vinhomes-ocean-park',
     path: '/thue-xe-tu-lai-vinhomes-ocean-park',
@@ -194,6 +208,11 @@ export const localRentalAreas: LocalRentalArea[] = [
       { question: 'Khi nào lịch xe được coi là đã xác nhận?', answer: 'Lịch chỉ được xác nhận sau khi Car Match kiểm tra mẫu xe, ngày giờ, điểm giao nhận, báo đầy đủ điều kiện và hoàn tất bước giữ lịch theo hướng dẫn.' },
     ],
   },
+];
+
+export const localRentalAreas: LocalRentalArea[] = [
+  ...confirmedLocalRentalAreas,
+  ...wave2LocalRentalAreas,
 ];
 
 export const localRentalAreaBySlug = new Map(localRentalAreas.map((area) => [area.slug, area]));

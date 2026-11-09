@@ -68,6 +68,25 @@ const supportGuides = [
   },
 ];
 
+const aeoGuides = [
+  { to: '/blog/co-duoc-cho-nguoi-khac-lai-xe-thue-khong', title: 'Cho người khác lái xe thuê?' },
+  { to: '/blog/nguoi-nuoc-ngoai-thue-xe-tu-lai-can-giay-to-gi', title: 'Giấy tờ cho người nước ngoài' },
+  { to: '/blog/co-duoc-di-xe-thue-ra-ngoai-ha-noi-khong', title: 'Đi xe thuê ra ngoài Hà Nội' },
+  { to: '/blog/phi-vetc-xe-thue-thanh-toan-the-nao', title: 'Thanh toán phí VETC' },
+  { to: '/blog/xe-thue-bi-thung-lop-xu-ly-the-nao', title: 'Xe thuê bị thủng lốp' },
+  { to: '/blog/xe-thue-khong-khoi-dong-can-lam-gi', title: 'Xe không khởi động' },
+  { to: '/blog/mat-chia-khoa-xe-thue-xu-ly-the-nao', title: 'Mất chìa khóa xe thuê' },
+  { to: '/blog/co-duoc-mang-thu-cung-len-xe-thue-khong', title: 'Mang thú cưng lên xe' },
+  { to: '/blog/co-duoc-hut-thuoc-tren-xe-thue-khong', title: 'Hút thuốc trên xe thuê' },
+  { to: '/blog/tra-xe-thue-khac-dia-diem-co-duoc-khong', title: 'Trả xe khác địa điểm' },
+  { to: '/blog/co-the-nhan-xe-thue-dem-muon-khong', title: 'Nhận xe đêm muộn' },
+  { to: '/blog/can-chup-nhung-gi-khi-nhan-xe-tu-lai', title: 'Ảnh cần chụp khi nhận xe' },
+  { to: '/blog/bien-ban-ban-giao-xe-thue-can-co-gi', title: 'Biên bản bàn giao xe' },
+  { to: '/blog/bao-lau-sau-khi-tra-xe-duoc-hoan-coc', title: 'Thời điểm hoàn cọc' },
+  { to: '/blog/bao-hiem-xe-thue-chi-tra-nhung-gi', title: 'Bảo hiểm xe thuê' },
+  { to: '/blog/gia-thue-xe-le-tet-tinh-the-nao', title: 'Giá thuê xe lễ Tết' },
+];
+
 export default function FAQ() {
   useSEO({
     title: 'Câu hỏi thường gặp — Car Match',
@@ -134,6 +153,23 @@ export default function FAQ() {
                 >
                   <h3 className="text-sm font-black text-slate-900">{guide.title}</h3>
                   <p className="mt-2 text-xs leading-5 text-slate-500">{guide.description}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-8" aria-labelledby="aeo-guides-title">
+            <h2 id="aeo-guides-title" className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+              Xử lý tình huống thường gặp
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {aeoGuides.map(guide => (
+                <Link
+                  key={guide.to}
+                  to={guide.to}
+                  className="rounded-2xl border border-slate-100 bg-white p-4 text-sm font-black text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:text-cyan-700 hover:shadow-md"
+                >
+                  {guide.title}
                 </Link>
               ))}
             </div>

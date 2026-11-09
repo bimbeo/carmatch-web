@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, useEffect, useLayoutEffect, type ReactNode }
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router';
 import Home from './pages/Home';
 import { trackPageView } from '../lib/analytics';
+import { wave2LocalRentalAreas } from '../data/localRentalExpansionAreas';
 
 const Fleet = lazy(() => import('./pages/Fleet'));
 const CarDetail = lazy(() => import('./pages/CarDetail'));
@@ -177,6 +178,9 @@ export default function App() {
             <Route path="/thue-xe-tu-lai-times-city" element={<LocalRental areaSlug="times-city" />} />
             <Route path="/thue-xe-tu-lai-ecopark" element={<LocalRental areaSlug="ecopark" />} />
             <Route path="/thue-xe-tu-lai-the-manor" element={<LocalRental areaSlug="the-manor-central-park" />} />
+            {wave2LocalRentalAreas.map((area) => (
+              <Route key={area.path} path={area.path} element={<LocalRental areaSlug={area.slug} />} />
+            ))}
             <Route path="/gioi-thieu" element={<About />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />

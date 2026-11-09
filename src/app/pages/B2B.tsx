@@ -63,6 +63,51 @@ const rentVsBuyRows = [
 
 const monthlyGuides = [
   {
+    to: '/blog/thue-xe-thang-cho-doanh-nghiep-nho',
+    title: 'Thuê xe tháng cho doanh nghiệp nhỏ',
+    description: 'Xác định số ngày dùng, km, người lái, chứng từ và tổng chi phí trước khi chọn xe.',
+  },
+  {
+    to: '/blog/thue-xe-thang-cho-chuyen-gia-nuoc-ngoai',
+    title: 'Xe tháng cho chuyên gia nước ngoài',
+    description: 'Checklist người ký, người lái, giấy phép, bàn giao và đầu mối doanh nghiệp.',
+  },
+  {
+    to: '/blog/thue-xe-thang-cho-nhan-vien-di-cong-tac',
+    title: 'Xe tháng cho nhân viên công tác',
+    description: 'Quản lý lịch chạy, km, VETC, người lái và đối soát theo chuyến.',
+  },
+  {
+    to: '/blog/goi-thue-xe-22-ngay-va-30-ngay-khac-gi-nhau',
+    title: 'Gói 22 ngày và 30 ngày khác gì?',
+    description: 'So quyền giữ xe, tổng km, giao nhận và chi phí trên mỗi ngày dùng thực tế.',
+  },
+  {
+    to: '/blog/thue-xe-thang-co-xuat-hoa-don-khong',
+    title: 'Thuê xe tháng có xuất hóa đơn?',
+    description: 'Những thông tin kế toán cần xác nhận trước khi ký và chuyển cọc.',
+  },
+  {
+    to: '/blog/hop-dong-thue-xe-thang-can-dieu-khoan-gi',
+    title: 'Điều khoản hợp đồng thuê xe tháng',
+    description: 'Checklist xe, người lái, giá, cọc, km, bảo dưỡng, hư hỏng và thanh lý.',
+  },
+  {
+    to: '/blog/thue-xe-thang-co-gioi-han-km-khong',
+    title: 'Thuê xe tháng có giới hạn km?',
+    description: 'Cách ước lượng nhu cầu, ghi nhận đồng hồ và tính kịch bản vượt km.',
+  },
+  {
+    to: '/blog/xe-thay-the-khi-bao-duong-xu-ly-the-nao',
+    title: 'Xe thay thế khi bảo dưỡng',
+    description: 'Chốt tiêu chí tương đương, lịch đổi xe, km và chi phí để giảm gián đoạn.',
+  },
+  {
+    to: '/blog/thue-vf5-theo-ngay-hay-theo-thang',
+    title: 'Thuê VF5 theo ngày hay tháng?',
+    description: 'So số ngày dùng, km, giao nhận và điều kiện hợp đồng trên cùng nhu cầu.',
+  },
+  {
     to: '/blog/thue-xe-thang-hay-mua-xe',
     title: 'Thuê xe tháng hay mua xe?',
     description: 'So tổng chi phí, dòng tiền, khấu hao và mức độ linh hoạt trước khi quyết định.',

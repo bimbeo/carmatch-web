@@ -8,6 +8,7 @@ import { trackCtaClick, trackVehicleClick, trackZaloClick } from '@/lib/analytic
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import { formatPrice, type Car as CarModel } from '@/data/cars';
+import { wave2LocalRentalAreas } from '@/data/localRentalExpansionAreas';
 import {
   calculateRentalBillingDays,
   DEFAULT_PICKUP_HOUR,
@@ -1080,6 +1081,24 @@ export default function Home() {
             <div className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center">
               <span className="text-brand-200 text-sm text-center">Và nhiều khu đô thị khác...</span>
             </div>
+          </div>
+
+          <div className="mb-14 rounded-3xl border border-white/15 bg-white/10 p-5 sm:p-7">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-200">Tìm xe theo khu vực</p>
+                <h3 className="mt-2 text-2xl font-black text-white">12 khu vực Hà Nội đang tiếp nhận yêu cầu</h3>
+              </div>
+              <p className="max-w-xl text-sm leading-6 text-brand-100">Mỗi điểm giao nhận và khoản giao xe nếu có đều được xác nhận theo địa chỉ, khung giờ và lịch xe; không mặc định giao tận nơi.</p>
+            </div>
+            <nav aria-label="Trang thuê xe theo khu vực Hà Nội" className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {wave2LocalRentalAreas.map((area) => (
+                <Link key={area.path} to={area.path} className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/20">
+                  {area.shortName}
+                  <span className="mt-1 block text-xs font-medium text-brand-200">Xác nhận điểm hẹn</span>
+                </Link>
+              ))}
+            </nav>
           </div>
 
           {/* 3 resident value props */}

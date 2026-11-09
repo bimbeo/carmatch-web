@@ -31,6 +31,11 @@ import {
 } from './vehicle-cover-cache.mjs';
 import { sanitizeBlogHtml } from '../server/blog/sanitize.js';
 import { createRoadmapContentPosts } from './roadmap-content-posts.mjs';
+import { createModelKeywordPosts } from './model-keyword-posts.mjs';
+import { createModelKeywordBatch2Posts } from './model-keyword-posts-batch2.mjs';
+import { createDestinationCostPosts } from './destination-cost-posts.mjs';
+import { createSupportAeoPosts } from './support-aeo-posts.mjs';
+import { createMonthlyB2bPosts } from './monthly-b2b-posts.mjs';
 
 process.env.NODE_ENV ||= 'production';
 
@@ -1815,7 +1820,17 @@ const staticAirportBlogPosts = [
 ];
 
 const roadmapContentPosts = createRoadmapContentPosts({ siteUrl, brandSocialImage });
+const modelKeywordPosts = createModelKeywordPosts({ siteUrl, brandSocialImage });
+const modelKeywordBatch2Posts = createModelKeywordBatch2Posts({ siteUrl, brandSocialImage });
+const destinationCostPosts = createDestinationCostPosts({ siteUrl, brandSocialImage });
+const supportAeoPosts = createSupportAeoPosts({ siteUrl, brandSocialImage });
+const monthlyB2bPosts = createMonthlyB2bPosts({ siteUrl, brandSocialImage });
 const staticBlogPosts = [
+  ...monthlyB2bPosts,
+  ...supportAeoPosts,
+  ...destinationCostPosts,
+  ...modelKeywordBatch2Posts,
+  ...modelKeywordPosts,
   ...roadmapContentPosts,
   ...staticSupportBlogPosts,
   ...staticGeoBlogPosts,
@@ -1892,7 +1907,7 @@ function normalizeBrandText(value = '') {
 function normalizeCustomerText(value = '') {
   return normalizeBrandText(value)
     .replace(/hỗ trợ\s*24\/7/gi, 'hỗ trợ trong giờ vận hành')
-    .replace(/bảo\s*hiểm[^.?!<\n]*/gi, 'điều kiện bàn giao được xác nhận trước')
+    .replace(/(?:được\s+)?bảo\s*hiểm\s+(?:100%|toàn diện|chi trả toàn bộ)[^.?!<\n]*/gi, 'điều kiện bảo hiểm cần được xác nhận trước')
     .replace(/xác nhận tự động/gi, 'đối soát nhanh hơn')
     .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
 }
@@ -3964,6 +3979,14 @@ function monthlyStaticShell(vehicles = []) {
             { href: '/lien-he', label: 'Gửi yêu cầu báo giá xe tháng' },
             { href: '/chinh-sach', label: 'Xem điều kiện thuê và phát sinh' },
             { href: '/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi', label: 'Kinh nghiệm thuê xe tự lái' },
+            { href: '/blog/thue-xe-thang-cho-doanh-nghiep-nho', label: 'Thuê xe tháng cho doanh nghiệp nhỏ' },
+            { href: '/blog/thue-xe-thang-cho-chuyen-gia-nuoc-ngoai', label: 'Thuê xe tháng cho chuyên gia nước ngoài' },
+            { href: '/blog/thue-xe-thang-cho-nhan-vien-di-cong-tac', label: 'Xe tháng cho nhân viên đi công tác' },
+            { href: '/blog/goi-thue-xe-22-ngay-va-30-ngay-khac-gi-nhau', label: 'So gói thuê xe 22 và 30 ngày' },
+            { href: '/blog/thue-xe-thang-co-xuat-hoa-don-khong', label: 'Hóa đơn khi thuê xe tháng' },
+            { href: '/blog/hop-dong-thue-xe-thang-can-dieu-khoan-gi', label: 'Điều khoản hợp đồng thuê xe tháng' },
+            { href: '/blog/thue-xe-thang-co-gioi-han-km-khong', label: 'Giới hạn km của gói thuê tháng' },
+            { href: '/blog/xe-thay-the-khi-bao-duong-xu-ly-the-nao', label: 'Xe thay thế khi bảo dưỡng' },
           ],
         })}
         <section class="cm-static-final">
@@ -4133,6 +4156,7 @@ function trustStaticShell(config) {
   const panelItems = config.panelItems || [];
   const cards = config.cards || [];
   const steps = config.steps || [];
+  const guideLinks = config.guideLinks || [];
   const faqs = config.faqs || [];
 
   return `<div id="root" data-static-page="${escapeHtml(config.shellName)}"><div class="cm-static-trust-page">
@@ -4173,6 +4197,14 @@ function trustStaticShell(config) {
             <div class="cm-static-trust-head"><h2>${escapeHtml(config.stepsTitle)}</h2><p>${escapeHtml(config.stepsLead)}</p></div>
             <div class="cm-static-trust-steps">
               ${steps.map((step, index) => `<article class="cm-static-trust-step"><b>${index + 1}</b><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.text)}</p></article>`).join('')}
+            </div>
+          </div>
+        </section>` : ''}
+        ${guideLinks.length ? `<section class="cm-static-trust-section alt">
+          <div class="cm-static-wrap">
+            <div class="cm-static-trust-head"><h2>${escapeHtml(config.guideLinksTitle || 'Hướng dẫn theo tình huống')}</h2><p>${escapeHtml(config.guideLinksLead || 'Chọn đúng câu hỏi để xem quy trình và những điều cần xác nhận trước khi thuê xe.')}</p></div>
+            <div class="cm-static-trust-cards">
+              ${guideLinks.map((guide) => `<a class="cm-static-trust-card" href="${escapeHtml(guide.href)}"><h3>${escapeHtml(guide.title)}</h3><p>${escapeHtml(guide.text)}</p></a>`).join('')}
             </div>
           </div>
         </section>` : ''}
@@ -4336,6 +4368,13 @@ function faqStaticShell() {
       { title: 'Xác nhận cọc và giấy tờ', text: 'Khách nhận thông tin giấy tờ, khoản cọc, giá thuê, giới hạn km và phụ phí cần biết trước khi chốt.' },
       { title: 'Nhận xe theo lịch hẹn', text: 'Hai bên kiểm tra xe cùng nhau, ký nhận hoặc ghi nhận bàn giao rồi khách bắt đầu chuyến đi.' },
     ],
+    guideLinksTitle: 'Hướng dẫn xử lý 16 tình huống thường gặp',
+    guideLinksLead: 'Mỗi bài trả lời trực tiếp một câu hỏi, nêu bước an toàn, bằng chứng cần lưu và nội dung phải xác nhận theo đúng xe hoặc hợp đồng.',
+    guideLinks: supportAeoPosts.map((post) => ({
+      href: `/blog/${post.slug.current}`,
+      title: post.title,
+      text: post.excerpt,
+    })),
     faqTitle: 'Các câu hỏi được hỏi nhiều nhất',
     faqLead: 'Các câu trả lời này tránh hứa quá mức; mỗi xe cụ thể vẫn cần được Car Match xác nhận trước khi khách đặt cọc.',
     faqs: [
@@ -5619,7 +5658,7 @@ function renderRssFeed(posts) {
   const recentPosts = [...posts]
     .filter((post) => post?.slug?.current && post?.publishedAt)
     .sort((left, right) => new Date(right.updatedAt || right.publishedAt).getTime() - new Date(left.updatedAt || left.publishedAt).getTime())
-    .slice(0, 20);
+    .slice(0, 50);
   const mostRecentDate = recentPosts[0]?.updatedAt || recentPosts[0]?.publishedAt || contentLastModified;
 
   return `<?xml version="1.0" encoding="UTF-8"?>

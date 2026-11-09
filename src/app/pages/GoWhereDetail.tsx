@@ -14,6 +14,19 @@ import ZaloFAB from '../components/ZaloFAB';
 
 const ZALO_LINK = 'https://zalo.me/0971163290';
 
+const destinationCostGuides: Record<string, { title: string; to: string }> = {
+  'ninh-binh': { title: 'Chi phí thuê xe tự lái đi Ninh Bình', to: '/blog/chi-phi-thue-xe-tu-lai-di-ninh-binh' },
+  'ha-long': { title: 'Chi phí thuê xe tự lái đi Hạ Long', to: '/blog/chi-phi-thue-xe-tu-lai-di-ha-long' },
+  'tam-dao': { title: 'Chi phí thuê xe tự lái đi Tam Đảo', to: '/blog/chi-phi-thue-xe-tu-lai-di-tam-dao' },
+  'moc-chau': { title: 'Chi phí thuê xe tự lái đi Mộc Châu', to: '/blog/chi-phi-thue-xe-tu-lai-di-moc-chau' },
+  sapa: { title: 'Chi phí thuê xe tự lái đi Sapa', to: '/blog/chi-phi-thue-xe-tu-lai-di-sapa' },
+  'cat-ba': { title: 'Chi phí thuê xe tự lái đi Cát Bà', to: '/blog/chi-phi-thue-xe-tu-lai-di-cat-ba' },
+  'ba-vi': { title: 'Chi phí thuê xe tự lái đi Ba Vì', to: '/blog/chi-phi-thue-xe-tu-lai-di-ba-vi' },
+  'mai-chau': { title: 'Chi phí thuê xe tự lái đi Mai Châu', to: '/blog/chi-phi-thue-xe-tu-lai-di-mai-chau' },
+  'hai-phong': { title: 'Chi phí thuê xe tự lái đi Hải Phòng', to: '/blog/chi-phi-thue-xe-tu-lai-di-hai-phong' },
+  'soc-son': { title: 'Chi phí thuê xe tự lái đi Sóc Sơn', to: '/blog/chi-phi-thue-xe-tu-lai-di-soc-son' },
+};
+
 function money(value: number) {
   return value.toLocaleString('vi-VN') + 'đ';
 }
@@ -139,6 +152,7 @@ export default function GoWhereDetail() {
     `[DI DAU]\nĐiểm đến: ${destination.name}\nNhu cầu: ${needType}\nNgày đi: ${travelDate || 'Chưa chọn'}\nTên: ${name || ''}\nSĐT: ${phone || ''}\nGhi chú: ${note || ''}`
   );
   const isSaved = savedSlugs.includes(destination.slug);
+  const costGuide = destinationCostGuides[destination.slug];
   const relatedDestinations = destinations
     .filter((item) => item.slug !== destination.slug)
     .map((item) => ({
@@ -560,6 +574,19 @@ export default function GoWhereDetail() {
                   <p className="shrink-0 text-xl font-black sm:text-2xl">{money(mobilityEstimate)}</p>
                 </div>
               </div>
+              {costGuide ? (
+                <Link
+                  to={costGuide.to}
+                  onClick={() => trackGoWhereDetail('go_where_detail_cost_guide_click', { destination: destination.slug })}
+                  className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-brand-900 transition hover:border-brand-300 hover:bg-brand-100"
+                >
+                  <span>
+                    <span className="block text-xs font-black uppercase tracking-[0.14em] text-brand-600">Hướng dẫn chi tiết</span>
+                    <span className="mt-1 block font-black">{costGuide.title}</span>
+                  </span>
+                  <ArrowRight className="h-5 w-5 shrink-0" />
+                </Link>
+              ) : null}
             </div>
           </div>
           </div>

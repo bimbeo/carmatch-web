@@ -47,6 +47,16 @@ const costItems = [
 
 const sevenSeatGuides = [
   {
+    to: '/blog/xpander-hay-limo-green-cho-nhom-dong',
+    title: 'Xpander hay Limo Green cho nhóm đông?',
+    description: 'So giá, xăng/điện, hành lý và kế hoạch cho nhóm 5–7 người.',
+  },
+  {
+    to: '/blog/limo-green-cho-duoc-bao-nhieu-vali',
+    title: 'Limo Green chở được bao nhiêu vali?',
+    description: 'Kiểm tra bảy người, vali, xe đẩy và phương án khi hành lý nhiều.',
+  },
+  {
     to: '/blog/carnival-xpander-hay-limo-green',
     title: 'So sánh Carnival, Xpander và Limo Green',
     description: 'Chọn theo hành lý, giá thuê, nhiên liệu và kiểu chuyến đi.',

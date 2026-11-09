@@ -1,0 +1,10 @@
+query,clicks,impressions,ctr_calculated,position,primary_page,status
+thuê xe tự lái hà nội,83,4330,1.9%,9.1,https://www.carmatch.vn/,homepage_owner_low_ctr
+thuê xe điện tự lái hà nội,119,1020,11.7%,2.9,https://www.carmatch.vn/,new_ev_hub_not_in_window
+thuê xe vinfast tự lái hà nội,32,393,8.1%,3.7,https://www.carmatch.vn/,clean
+thuê xe vf3 tự lái hà nội,69,538,12.8%,2.3,multiple_vf3_pages,historical_cannibalization
+thuê xe vf5 tự lái hà nội,59,336,17.6%,2.0,https://www.carmatch.vn/,homepage_owner
+thuê xe carnival tự lái hà nội,60,235,25.5%,1.6,https://www.carmatch.vn/xe/kia-carnival,clean
+thuê xe carnival hà nội,13,725,1.8%,4.1,https://www.carmatch.vn/xe/kia-carnival,correct_page_low_ctr
+thuê xe tự lái theo tháng,14,170,8.2%,4.2,https://www.carmatch.vn/thue-xe-thang,clean
+thuê xe tháng,4,473,0.8%,4.6,https://www.carmatch.vn/thue-xe-thang,correct_page_low_ctr
