@@ -106,7 +106,7 @@ test('consolidates the Ocean Park blog intent into the local rental landing', ()
 test('places explicit SEO redirects before filesystem and the dynamic vehicle resolver', () => {
   const retiredLandingIndex = config.routes.findIndex((route) => route.src === '/thue-xe-tu-lai-ha-noi/?');
   const filesystemIndex = config.routes.findIndex((route) => route.handle === 'filesystem');
-  const vehicleResolverIndex = config.routes.findIndex((route) => route.dest === '/api/vehicle-route?slug=$1');
+  const vehicleResolverIndex = config.routes.findIndex((route) => route.dest === '/api/vehicles?slug=$1&html=1');
 
   assert.ok(retiredLandingIndex >= 0);
   assert.ok(retiredLandingIndex < filesystemIndex);

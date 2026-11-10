@@ -4,12 +4,11 @@ import test from 'node:test';
 
 const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
 const apiSource = await readFile(new URL('../api/vehicles.js', import.meta.url), 'utf8');
-const routeSource = await readFile(new URL('../api/vehicle-route.js', import.meta.url), 'utf8');
 const hookSource = await readFile(new URL('../src/hooks/useVehicles.ts', import.meta.url), 'utf8');
 
 test('unknown vehicle slugs resolve dynamically after static files and before terminal 404', () => {
   const filesystemIndex = config.routes.findIndex((route) => route.handle === 'filesystem');
-  const resolverIndex = config.routes.findIndex((route) => route.dest === '/api/vehicle-route?slug=$1');
+  const resolverIndex = config.routes.findIndex((route) => route.dest === '/api/vehicles?slug=$1&html=1');
   const terminal404Index = config.routes.findIndex((route) => route.status === 404 && route.src === '/(.*)');
 
   assert.ok(filesystemIndex >= 0);
@@ -29,8 +28,8 @@ test('browser refreshes the current vehicle detail separately from the active fl
 });
 
 test('legacy aliases redirect permanently while retained canonical pages stay indexable', () => {
-  assert.match(routeSource, /detail\.matchedAlias \|\| detail\.canonicalSlug !== slug/);
-  assert.match(routeSource, /res\.status\(301\)/);
-  assert.match(routeSource, /X-Robots-Tag', 'index, follow'/);
-  assert.match(routeSource, /schema\.org\/OutOfStock/);
+  assert.match(apiSource, /detail\.matchedAlias \|\| detail\.canonicalSlug !== slug/);
+  assert.match(apiSource, /res\.status\(301\)/);
+  assert.match(apiSource, /X-Robots-Tag', 'index, follow'/);
+  assert.match(apiSource, /schema\.org\/OutOfStock/);
 });
