@@ -28,6 +28,11 @@
       "continue": true
     },
     {
+      "src": "/api/(.*)",
+      "headers": { "X-Robots-Tag": "noindex" },
+      "continue": true
+    },
+    {
       "src": "/brand/(.*)",
       "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
       "continue": true
@@ -95,9 +100,19 @@
       "headers": { "Location": "https://www.carmatch.vn/blog" }
     },
     {
+      "src": "/hello-world/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog" }
+    },
+    {
       "src": "/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi-tranh-lua-dao/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi" }
+      "headers": { "Location": "https://www.carmatch.vn/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai" }
+    },
+    {
+      "src": "/kinh-nghiem-thue-xe-tu-lai-ha-noi-tranh-lua-dao/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai" }
     },
     {
       "src": "/blog/thue-xe-tu-lai-500k-o-ha-noi/?",
@@ -162,7 +177,7 @@
     {
       "src": "/xe/vf6-plus-2025/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6-plus-2025" }
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6" }
     },
     {
       "src": "/xe/vinfast-vf3-2024-xanh/?",
@@ -178,6 +193,66 @@
       "src": "/xe/vinfast-vf3-2025-30k-49565/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf3-2025" }
+    },
+    {
+      "src": "/xe/(vinfast-vf3-2024-2|vinfast-vf3-2024-30l-76573)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf3-2024" }
+    },
+    {
+      "src": "/xe/(vinfast-vf3-2025-2|vinfast-vf3-2025-37k-81975)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf3-2025" }
+    },
+    {
+      "src": "/xe/vinfast-vf3-eco/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vf3" }
+    },
+    {
+      "src": "/xe/(vinfast-vf5-2025-2|vinfast-vf5-2025-3|vinfast-vf5-2025-30l-53361|vinfast-vf5-2025-30l85312)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf5-2025" }
+    },
+    {
+      "src": "/xe/(vf6-plus|vinfast-vf6-2025-2|vinfast-vf6-2025-trang-2|vinfast-vf6-2025-30b-12514|vinfast-vf6-2025-30m-11196|vinfast-vf6-plus-2025-30m-04938|vinfast-vf6-plus-2025-30m-63654|vinfast-vf6-plus-2025-xam|mr-minh-vf6)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf6" }
+    },
+    {
+      "src": "/xe/(vinfast-vf7s-2025-2|vinfast-vf7s-2025-30l-92109|vinfast-vf7s-2025-30l91487)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-vf7s-2025" }
+    },
+    {
+      "src": "/xe/(toyota-raize-2022-2|toyota-raize-2022-30h-60690|toyota-raize-2022-30k-27738)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/toyota-raize-2022" }
+    },
+    {
+      "src": "/xe/(xpander|mitsubishi-xpander-2026)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/mitsubishi-xpander-2023" }
+    },
+    {
+      "src": "/xe/hyundai-creta-2024/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/hyundai-creta-2025" }
+    },
+    {
+      "src": "/xe/vinfast-fadil-2019/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe/vinfast-fadil-2021" }
+    },
+    {
+      "src": "/xe/toyota-innova-2018/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/thue-xe-7-cho-tu-lai-ha-noi" }
+    },
+    {
+      "src": "/xe/(ford-ranger-2019|mrs-chi)/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/xe" }
     },
     {
       "src": "/lien-he/?",
@@ -204,7 +279,12 @@
     {
       "src": "/blog/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?",
       "status": 301,
-      "headers": { "Location": "https://www.carmatch.vn/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu" }
+      "headers": { "Location": "https://www.carmatch.vn/thue-xe-7-cho-tu-lai-ha-noi" }
+    },
+    {
+      "src": "/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/thue-xe-7-cho-tu-lai-ha-noi" }
     },
     {
       "src": "/blog/([^/]+)/?",
@@ -286,7 +366,7 @@
     { "src": "/chao-ban/?", "dest": "/chao-ban/index.html" },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/xe/([^/]+)/?", "status": 404, "dest": "/404.html" },
+    { "src": "/xe/([^/]+)/?", "dest": "/api/vehicle-route?slug=$1" },
     { "src": "/(.*)", "status": 404, "dest": "/404.html" }
   ]
 }

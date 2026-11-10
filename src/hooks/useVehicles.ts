@@ -175,6 +175,21 @@ export function mergeLiveVehicles(
   return merged;
 }
 
+export function upsertVehicleDetail(
+  vehicles: SupabaseVehicle[],
+  detailVehicle: SupabaseVehicle | null,
+): SupabaseVehicle[] {
+  if (!detailVehicle) return vehicles;
+  const detailSlug = vehiclePayloadSlug(detailVehicle);
+  return [
+    ...vehicles.filter((vehicle) => (
+      vehicle.id !== detailVehicle.id
+      && (!detailSlug || vehiclePayloadSlug(vehicle) !== detailSlug)
+    )),
+    detailVehicle,
+  ];
+}
+
 function uniquifyCarSlugs(cars: Car[]): Car[] {
   const counts = new Map<string, number>();
   cars.forEach((car) => counts.set(car.slug, (counts.get(car.slug) || 0) + 1));
@@ -331,6 +346,15 @@ async function fetchVehicleJson(path: string, init?: RequestInit): Promise<Supab
   }
 }
 
+async function fetchVehicleDetailJson(slug: string): Promise<SupabaseVehicle | null> {
+  const path = `/api/vehicles?slug=${encodeURIComponent(slug)}`;
+  const res = await fetch(path);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}`);
+  const data = await res.json() as { vehicle?: SupabaseVehicle };
+  return data.vehicle || null;
+}
+
 export function useVehicles(): UseVehiclesResult {
   const initialVehiclePayload =
     typeof window !== 'undefined'
@@ -344,8 +368,10 @@ export function useVehicles(): UseVehiclesResult {
   const [loading, setLoading] = useState(initialVehicles.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [fetched, setFetched] = useState(false);
-  const preserveInitialVehicle =
-    typeof window !== 'undefined' && window.location.pathname.startsWith('/xe/');
+  const detailSlug = typeof window !== 'undefined'
+    ? window.location.pathname.match(/^\/xe\/([^/]+)\/?$/)?.[1] || ''
+    : '';
+  const preserveInitialVehicle = Boolean(detailSlug);
 
   useEffect(() => {
     let cancelled = false;
@@ -380,8 +406,17 @@ export function useVehicles(): UseVehiclesResult {
       // build snapshot still renders immediately, while repeated visitors no
       // longer force a new database query on every page load.
       try {
-        const data = await fetchVehicleJson('/api/vehicles');
+        const [catalogData, detailVehicle] = await Promise.all([
+          fetchVehicleJson('/api/vehicles'),
+          detailSlug
+            ? fetchVehicleDetailJson(detailSlug).catch((detailError) => {
+                console.error('[useVehicles] Vehicle detail refresh failed, keeping prerendered detail', detailError);
+                return null;
+              })
+            : Promise.resolve(null),
+        ]);
         if (cancelled) return;
+        const data = upsertVehicleDetail(catalogData, detailVehicle);
         const merged = mergeLiveVehicles(
           data,
           snapshotRows,
@@ -414,7 +449,7 @@ export function useVehicles(): UseVehiclesResult {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [detailSlug]);
 
   return { cars, loading, error, fetched };
 }

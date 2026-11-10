@@ -737,6 +737,42 @@ const routeMeta = [
     changefreq: 'weekly',
   },
   {
+    path: '/lap-ke-hoach-chuyen-di/sapa',
+    title: 'Thuê Xe Tự Lái Đi Sapa — Lịch Trình & Chi Phí | Car Match',
+    description:
+      'Lập kế hoạch thuê xe tự lái đi Sapa từ Hà Nội: quãng đường, điểm dừng, xe phù hợp đường dài và chi phí dự kiến.',
+    canonical: `${siteUrl}/lap-ke-hoach-chuyen-di/sapa`,
+    priority: '0.72',
+    changefreq: 'weekly',
+  },
+  {
+    path: '/lap-ke-hoach-chuyen-di/pu-luong',
+    title: 'Thuê Xe Tự Lái Đi Pù Luông — Lịch Trình | Car Match',
+    description:
+      'Lập kế hoạch thuê xe tự lái đi Pù Luông từ Hà Nội: cung đường, xe gầm cao phù hợp, lịch trình và chi phí dự kiến.',
+    canonical: `${siteUrl}/lap-ke-hoach-chuyen-di/pu-luong`,
+    priority: '0.7',
+    changefreq: 'weekly',
+  },
+  {
+    path: '/lap-ke-hoach-chuyen-di/cat-ba',
+    title: 'Thuê Xe Tự Lái Đi Cát Bà — Lịch Trình & Chi Phí | Car Match',
+    description:
+      'Lập kế hoạch thuê xe tự lái đi Cát Bà từ Hà Nội: tuyến phà hoặc cáp treo, xe phù hợp, lịch trình và chi phí dự kiến.',
+    canonical: `${siteUrl}/lap-ke-hoach-chuyen-di/cat-ba`,
+    priority: '0.7',
+    changefreq: 'weekly',
+  },
+  {
+    path: '/lap-ke-hoach-chuyen-di/hoa-binh',
+    title: 'Thuê Xe Tự Lái Đi Hòa Bình — Lịch Trình | Car Match',
+    description:
+      'Lập kế hoạch thuê xe tự lái đi Hòa Bình từ Hà Nội: cung đường, điểm dừng, xe phù hợp và chi phí chuyến đi dự kiến.',
+    canonical: `${siteUrl}/lap-ke-hoach-chuyen-di/hoa-binh`,
+    priority: '0.7',
+    changefreq: 'weekly',
+  },
+  {
     path: '/thue-xe-thang',
     title: 'Thuê xe theo tháng Hà Nội từ 10 triệu | Car Match',
     description:

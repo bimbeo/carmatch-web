@@ -12,6 +12,8 @@
     "seo:index-status": "node --env-file-if-exists=.env.local scripts/check-search-index.mjs",
     "geo:audit": "node scripts/audit-geo-foundation.mjs",
     "geo:crawlers": "node scripts/classify-ai-crawlers.mjs",
+    "content:cms:inventory": "node scripts/sync-roadmap-content-cms.mjs",
+    "content:cms:sql": "node scripts/sync-roadmap-content-cms.mjs --sql",
     "preview": "vite preview"
   },
   "dependencies": {

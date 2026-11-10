@@ -14,6 +14,7 @@ const supabase = supabaseUrl && supabaseServerKey
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 12_000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PUBLIC_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function slugify(value, fallback = '') {
   const slug = String(value || '')
@@ -66,9 +67,13 @@ export function collapsePublicVehicles(vehicles = []) {
       return score(right) - score(left);
     });
     const representative = sorted[0];
+    const slugAliases = Array.from(new Set(
+      group.flatMap((vehicle) => Array.isArray(vehicle.seo_slug_aliases) ? vehicle.seo_slug_aliases : []),
+    )).filter((alias) => alias && alias !== slug);
     return {
       ...representative,
       slug,
+      slugAliases,
       inventory_count: group.length,
       available_inventory_count: group.filter(
         (vehicle) => vehicle.status === 'available' && vehicle.published !== false,
@@ -151,13 +156,13 @@ async function serveVehicleImage(req, res) {
 
   const { data: vehicle, error } = await supabase
     .from('vehicles')
-    .select('id,external_refs')
+    .select('id,external_refs,published,seo_indexable')
     .eq('id', vehicleId)
-    .eq('status', 'available')
-    .eq('published', true)
     .maybeSingle();
   if (error) throw error;
-  if (!vehicle) return res.status(404).json({ error: 'Vehicle image not found' });
+  if (!vehicle || (!vehicle.published && !vehicle.seo_indexable)) {
+    return res.status(404).json({ error: 'Vehicle image not found' });
+  }
 
   const sourceUrl = resolveVehicleImageSource(vehicle.external_refs, mediaId);
   if (!sourceUrl || !isAllowedPublicVehicleImageUrl(sourceUrl)) {
@@ -209,7 +214,7 @@ export function pruneExternalRefs(vehicleId, externalRefs, vehicleUpdatedAt = ''
   };
 }
 
-function pruneVehicle(vehicle) {
+export function pruneVehicle(vehicle) {
   return {
     id: vehicle.id,
     display_name: vehicle.display_name ?? null,
@@ -224,6 +229,9 @@ function pruneVehicle(vehicle) {
     status: vehicle.status ?? null,
     published: vehicle.published ?? null,
     slug: vehicle.slug ?? vehicle.seo_slug ?? null,
+    slugAliases: Array.isArray(vehicle.slugAliases)
+      ? vehicle.slugAliases
+      : Array.isArray(vehicle.seo_slug_aliases) ? vehicle.seo_slug_aliases : [],
     inventory_count: vehicle.inventory_count ?? 1,
     available_inventory_count: vehicle.available_inventory_count ?? 0,
     external_refs: pruneExternalRefs(vehicle.id, vehicle.external_refs, vehicle.updated_at),
@@ -237,6 +245,45 @@ function pruneVehicle(vehicle) {
           transmission: vehicle.vehicle_models.transmission ?? null,
         }
       : null,
+  };
+}
+
+export async function findSeoVehicleBySlug(rawSlug) {
+  if (!supabase) throw new Error('Vehicle data service is not configured');
+  const slug = slugify(rawSlug);
+  if (!slug || !PUBLIC_SLUG_RE.test(slug) || slug !== String(rawSlug || '').trim().toLowerCase()) {
+    return null;
+  }
+
+  const select =
+    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,updated_at,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+  let result = await supabase
+    .from('vehicles')
+    .select(select)
+    .eq('seo_indexable', true)
+    .eq('seo_slug', slug)
+    .order('daily_base_price', { ascending: true });
+
+  if (result.error) throw result.error;
+  let matchedAlias = false;
+
+  if (!result.data?.length) {
+    result = await supabase
+      .from('vehicles')
+      .select(select)
+      .eq('seo_indexable', true)
+      .contains('seo_slug_aliases', [slug])
+      .order('daily_base_price', { ascending: true });
+    if (result.error) throw result.error;
+    matchedAlias = Boolean(result.data?.length);
+  }
+
+  const vehicle = collapsePublicVehicles(result.data || [])[0];
+  if (!vehicle) return null;
+  return {
+    vehicle: pruneVehicle(vehicle),
+    canonicalSlug: vehicle.slug,
+    matchedAlias,
   };
 }
 
@@ -256,16 +303,23 @@ export default async function handler(req, res) {
     if (req.query?.vehicleId) {
       return await serveVehicleImage(req, res);
     }
+    if (req.query?.slug) {
+      const detail = await findSeoVehicleBySlug(String(req.query.slug));
+      if (!detail) return res.status(404).json({ error: 'Vehicle page not found' });
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
+      res.setHeader('Server-Timing', `vehicle-detail;dur=${Date.now() - startedAt}`);
+      return res.status(200).json(detail);
+    }
     const baseSelect =
       'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,updated_at,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
     let result = await supabase
       .from('vehicles')
-      .select(`seo_slug,${baseSelect}`)
+      .select(`seo_slug,seo_slug_aliases,${baseSelect}`)
       .eq('status', 'available')
       .eq('published', true)
       .order('daily_base_price', { ascending: true });
 
-    if (result.error && /seo_slug/i.test(result.error.message)) {
+    if (result.error && /seo_slug|seo_slug_aliases/i.test(result.error.message)) {
       result = await supabase
         .from('vehicles')
         .select(baseSelect)
@@ -288,7 +342,9 @@ export default async function handler(req, res) {
     res.status(200).json(collapsePublicVehicles(data || []).map(pruneVehicle));
   } catch (err) {
     console.error('[api/vehicles]', err);
-    const message = req.query?.vehicleId ? 'Failed to fetch vehicle image' : 'Failed to fetch vehicles';
+    const message = req.query?.vehicleId
+      ? 'Failed to fetch vehicle image'
+      : req.query?.slug ? 'Failed to fetch vehicle page' : 'Failed to fetch vehicles';
     res.status(500).json({ error: message });
   }
 }

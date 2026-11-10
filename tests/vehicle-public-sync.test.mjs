@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   collapsePublicVehicles,
   isAllowedPublicVehicleImageUrl,
+  pruneVehicle,
   pruneExternalRefs,
   resolveVehicleImageSource,
 } from '../api/vehicles.js';
@@ -103,4 +104,27 @@ test('public catalog collapses physical inventory into one stable SEO model page
   assert.equal(vehicles[0].id, 'bookable-row');
   assert.equal(vehicles[0].inventory_count, 2);
   assert.equal(vehicles[0].available_inventory_count, 1);
+});
+
+test('archived SEO vehicles keep aliases and a non-bookable public payload', () => {
+  const [vehicle] = collapsePublicVehicles([
+    {
+      id: 'archived-row',
+      display_name: 'VinFast VF7 Plus 2025',
+      seo_slug: 'vinfast-vf7-plus-2025',
+      seo_slug_aliases: ['vinfast-vf7-plus-2025-30k-67822'],
+      status: 'retired',
+      published: false,
+      seo_indexable: true,
+      daily_base_price: 1_400_000,
+      external_refs: { coverImageUrl: coverUrl },
+    },
+  ]);
+  const payload = pruneVehicle(vehicle);
+
+  assert.equal(payload.slug, 'vinfast-vf7-plus-2025');
+  assert.deepEqual(payload.slugAliases, ['vinfast-vf7-plus-2025-30k-67822']);
+  assert.equal(payload.status, 'retired');
+  assert.equal(payload.published, false);
+  assert.equal(payload.available_inventory_count, 0);
 });
