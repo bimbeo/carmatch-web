@@ -47,7 +47,7 @@ test('monthly structured data derives offers from verified monthly prices', asyn
     source.indexOf('function vehicleStructuredData'),
   );
 
-  assert.match(schemaBlock, /Number\(vehicle\.monthly_price \|\| 0\)/);
+  assert.match(schemaBlock, /Number\(vehicle\.monthly_sale_price \|\| 0\)/);
   assert.match(schemaBlock, /Math\.min\(\.\.\.monthlyPrices\)/);
   assert.match(schemaBlock, /Math\.max\(\.\.\.monthlyPrices\)/);
   assert.match(schemaBlock, /\.\.\.\(offers \? \{ offers \} : \{\}\)/);
@@ -61,7 +61,8 @@ test('monthly fallback shell also uses catalog prices and confirmed areas', asyn
     source.indexOf('function contactStaticShell'),
   );
 
-  assert.match(shellBlock, /vehicle\.monthly_price/);
+  assert.match(shellBlock, /vehicle\.monthly_sale_price/);
+  assert.doesNotMatch(shellBlock, /vehicle\.monthly_price/);
   assert.match(shellBlock, /Vinhomes Ocean Park/);
   assert.match(shellBlock, /The Manor Central Park/);
   assert.doesNotMatch(shellBlock, /Royal City|Linh Đàm|10-12tr|14-18tr|10-25tr|xuất hóa đơn/);

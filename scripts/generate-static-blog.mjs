@@ -2076,7 +2076,7 @@ function collapseVehiclesToSeoPages(vehicles = []) {
       .map((vehicle) => Number(vehicle.daily_base_price || 0))
       .filter((price) => price > 0);
     const monthlyPrices = preferredPriceRows
-      .map((vehicle) => Number(vehicle.monthly_price || 0))
+      .map((vehicle) => Number(vehicle.monthly_sale_price || 0))
       .filter((price) => price > 0);
     const updatedAt = group
       .map((vehicle) => vehicle.updated_at || vehicle.created_at)
@@ -2101,7 +2101,8 @@ function collapseVehiclesToSeoPages(vehicles = []) {
       status: availableRows.length > 0 ? 'available' : representative.status,
       published: availableRows.length > 0,
       daily_base_price: prices.length > 0 ? Math.min(...prices) : representative.daily_base_price,
-      monthly_price: monthlyPrices.length > 0 ? Math.min(...monthlyPrices) : representative.monthly_price,
+      monthly_sale_price:
+        monthlyPrices.length > 0 ? Math.min(...monthlyPrices) : representative.monthly_sale_price,
       inventory_count: group.length,
       available_inventory_count: availableRows.length,
       updated_at: updatedAt || representative.updated_at,
@@ -2205,7 +2206,7 @@ function vehicleDescription(vehicle) {
     ? `${Number(vehicle.daily_base_price).toLocaleString('vi-VN')}đ/ngày`
     : 'giá tốt theo ngày';
   const isVf3 = /^vf\s*3$/i.test(String(model.model || '').trim());
-  const monthlyPrice = Number(vehicle.monthly_price || 0);
+  const monthlyPrice = Number(vehicle.monthly_sale_price || 0);
   if (isVf3) {
     const monthlyCopy = monthlyPrice > 0
       ? `gói tháng ${monthlyPrice.toLocaleString('vi-VN')}đ`
@@ -2447,7 +2448,7 @@ function homeStructuredData(meta, vehicles) {
 
 function monthlyRentalStructuredData(meta, vehicles = []) {
   const monthlyPrices = vehicles
-    .map((vehicle) => Number(vehicle.monthly_price || 0))
+    .map((vehicle) => Number(vehicle.monthly_sale_price || 0))
     .filter((price) => Number.isFinite(price) && price > 0);
   const offers = monthlyPrices.length > 0
     ? {
@@ -2774,7 +2775,7 @@ function vehicleStructuredData(vehicle) {
   const vehicleNodeId = `${url}#vehicle`;
   const kmPerDay = Number(vehicle.km_per_day || 250);
   const kmSurcharge = Number(vehicle.km_surcharge || 3000);
-  const monthlyPrice = Number(vehicle.monthly_price || 0);
+  const monthlyPrice = Number(vehicle.monthly_sale_price || 0);
   const seats = Number(model.seats || (/^vf\s*3$/i.test(String(model.model || '').trim()) ? 4 : 0));
   const bookable = Number(vehicle.available_inventory_count || 0) > 0 ||
     (vehicle.status === 'available' && vehicle.published !== false);
@@ -3022,7 +3023,7 @@ async function fetchVehicles() {
   }
 
   const baseSelect =
-    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,monthly_sale_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const datedSelect = `created_at,updated_at,${baseSelect}`;
   let result = await supabase
     .from('vehicles')
@@ -3063,7 +3064,7 @@ async function fetchSeoVehicles(fallbackVehicles = []) {
   if (!supabase) return fallbackVehicles;
 
   const select =
-    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,created_at,updated_at,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,monthly_sale_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,created_at,updated_at,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const { data, error } = await supabase
     .from('vehicles')
     .select(select)
@@ -3181,7 +3182,7 @@ function pruneVehicleForClient(vehicle) {
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
-    monthly_price: vehicle.monthly_price ?? null,
+    monthly_sale_price: vehicle.monthly_sale_price ?? null,
     website_description: vehicle.website_description ?? null,
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
@@ -3965,11 +3966,11 @@ function fleetStaticShell(vehicles = []) {
 function monthlyStaticShell(vehicles = []) {
   const totalVehicles = vehicles.length || 20;
   const monthlyVehicles = vehicles
-    .filter((vehicle) => Number(vehicle.monthly_price || 0) > 0)
-    .sort((a, b) => Number(a.monthly_price) - Number(b.monthly_price))
+    .filter((vehicle) => Number(vehicle.monthly_sale_price || 0) > 0)
+    .sort((a, b) => Number(a.monthly_sale_price) - Number(b.monthly_sale_price))
     .slice(0, 6);
   const monthlyStartingPrice = monthlyVehicles.length > 0
-    ? Number(monthlyVehicles[0].monthly_price)
+    ? Number(monthlyVehicles[0].monthly_sale_price)
     : 10000000;
   const priceGroups = monthlyVehicles.length > 0
     ? monthlyVehicles.map((vehicle) => {
@@ -3978,7 +3979,7 @@ function monthlyStaticShell(vehicles = []) {
         const fuel = model.fuel_type ? String(model.fuel_type) : 'nhiên liệu theo mẫu xe';
         return {
           group: getVehicleName(vehicle),
-          price: `${Number(vehicle.monthly_price).toLocaleString('vi-VN')}đ/tháng`,
+          price: `${Number(vehicle.monthly_sale_price).toLocaleString('vi-VN')}đ/tháng`,
           examples: [seats > 0 ? `${seats} chỗ` : '', fuel].filter(Boolean).join(' · '),
           fit: seats >= 7
             ? 'Phù hợp gia đình đông người, doanh nghiệp hoặc hành trình có nhiều hành lý.'

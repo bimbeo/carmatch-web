@@ -49,7 +49,7 @@ function pruneVehicle(vehicle, coverUrls, galleryUrls) {
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
-    monthly_price: vehicle.monthly_price ?? null,
+    monthly_sale_price: vehicle.monthly_sale_price ?? null,
     website_description: vehicle.website_description ?? null,
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
@@ -71,7 +71,7 @@ function pruneVehicle(vehicle, coverUrls, galleryUrls) {
 const { data, error } = await supabase
   .from('vehicles')
   .select(
-    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
+    'id,display_name,color,model_year,daily_base_price,monthly_sale_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,vehicle_models(make,model,variant,seats,fuel_type,transmission)'
   )
   .eq('status', 'available')
   .eq('published', true)

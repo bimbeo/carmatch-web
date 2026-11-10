@@ -50,6 +50,18 @@ test('public vehicle image URL falls back to the vehicle update timestamp', () =
   assert.match(refs.coverImageUrl, /v=2026-08-03T09%3A28%3A08.774Z/);
 });
 
+test('public vehicle payload exposes the customer monthly price without leaking owner settlement cost', () => {
+  const payload = pruneVehicle({
+    id: vehicleId,
+    daily_base_price: 1_000_000,
+    monthly_price: 12_500_000,
+    monthly_sale_price: 18_000_000,
+  });
+
+  assert.equal(payload.monthly_sale_price, 18_000_000);
+  assert.equal('monthly_price' in payload, false);
+});
+
 test('vehicle image source resolves cover and selected gallery media', () => {
   const refs = {
     coverImageUrl: coverUrl,
