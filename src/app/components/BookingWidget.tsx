@@ -16,6 +16,7 @@ import {
 } from '@/lib/analytics';
 import {
   calculateRentalBillingDays,
+  calculateRentalPricingUnits,
   DEFAULT_PICKUP_HOUR,
   DEFAULT_RETURN_HOUR,
   formatRentalBillingDays,
@@ -469,11 +470,14 @@ function calculateRental(
 
   const fees: Fee[] = [];
   if (calDays === 0) {
-    const inMorning = pickupHour >= 7 && pickupHour <= 12 && returnHour <= 12;
-    const inAfternoon = pickupHour >= 13 && returnHour <= 20;
-    const isHalfDay = inMorning || inAfternoon;
-
-    let base = isHalfDay ? Math.round(BP * 0.7) : BP;
+    const pricingUnits = calculateRentalPricingUnits(
+      pickupDateStr,
+      pickupHour,
+      returnDateStr,
+      returnHour,
+    );
+    const isHalfDay = pricingUnits.billingDays === 0.5;
+    const base = Math.round(BP * pricingUnits.priceDays);
     fees.push({ label: isHalfDay ? 'Nửa ngày (×70%)' : '1 ngày', amount: base });
 
     return { valid: true, total: base, fees };
@@ -489,25 +493,22 @@ function calculateRental(
   else if (returnHour >= 22) lateFee = 200_000;
   else if (returnHour >= 21) lateFee = 100_000;
 
-  const baseDays = calculateRentalBillingDays(
+  const pricingUnits = calculateRentalPricingUnits(
     pickupDateStr,
     pickupHour,
     returnDateStr,
     returnHour,
   );
-
-  let baseAmount: number;
-  if (baseDays === 0.7) {
-    baseAmount = Math.round(BP * 0.7);
-  } else {
-    baseAmount = Math.round(BP * baseDays);
-  }
+  const { billingDays: baseDays, priceDays } = pricingUnits;
+  let baseAmount = Math.round(BP * priceDays);
 
   const wholeDays = Math.floor(baseDays);
-  const daysLabel = baseDays === 0.7 ? 'Nửa ngày (×70%)'
+  const hasSeventyPercentHalfDay = Math.abs(priceDays - baseDays - 0.2) < 0.001;
+  const daysLabel = baseDays === 0.5 ? 'Nửa ngày (×70%)'
     : baseDays % 1 === 0 ? (baseDays === 1 ? '1 ngày' : `${baseDays} ngày`)
-    : baseDays === wholeDays + 0.5 ? `${wholeDays} ngày + nửa ngày (×50%)`
-    : `${baseDays} ngày`;
+    : baseDays === wholeDays + 0.5
+      ? `${wholeDays} ngày + nửa ngày (${hasSeventyPercentHalfDay ? '×70%' : '×50%'})`
+      : `${baseDays} ngày`;
 
   fees.push({ label: daysLabel, amount: baseAmount });
 
@@ -1548,7 +1549,7 @@ export default function BookingWidget({
   const estimatedRemainingAmount = Math.max(0, finalTotal - estimatedDepositAmount);
   const promoDiscount = promoResult?.discount_amount ?? 0;
   const appliedPromo = promoResult?.code ?? '';
-  const rentalDays = Math.max(1, Math.ceil(billingDays));
+  const rentalDays = billingDays > 0 ? billingDays : 1;
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
 
