@@ -3,10 +3,28 @@ import { createHash, randomUUID } from 'node:crypto';
 import { rateLimit } from './_security.js';
 import { sanitizeAttribution } from './_conversion.js';
 import { calculateRentalPricingUnits } from './_rental-duration.js';
+import { chooseBestDiscount, evaluatePromoTargeting, promoDiscountAmount } from './_promo-engine.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 const COMPANY_CODE = 'carmatch';
+const DELIVERY_FEES_PER_WAY = Object.freeze({
+  self: 0,
+  delivery: 100_000,
+  airport: 250_000,
+});
+const DELIVERY_DIRECTION_MULTIPLIERS = Object.freeze({
+  pickup: 1,
+  return: 1,
+  roundtrip: 2,
+});
+
+export function deliveryFeeForMode(mode, direction = 'roundtrip') {
+  if (!Object.prototype.hasOwnProperty.call(DELIVERY_FEES_PER_WAY, mode)) return null;
+  if (mode === 'self') return 0;
+  if (!Object.prototype.hasOwnProperty.call(DELIVERY_DIRECTION_MULTIPLIERS, direction)) return null;
+  return DELIVERY_FEES_PER_WAY[mode] * DELIVERY_DIRECTION_MULTIPLIERS[direction];
+}
 
 // Push cho team khi có đơn đặt xe mới từ website. Phải await trước khi trả
 // response — Vercel đóng băng Lambda ngay sau res.json(), fire-and-forget
@@ -72,6 +90,9 @@ const CUSTOMER_SELECT =
   'id, full_name, loyalty_tier, referral_code, first_seen_at, last_rental_at, email, phone, normalized_phone, status';
 const HOLIDAY_PRICING_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const ACTIVE_SCHEDULE_STATUSES = ['planned', 'confirmed', 'in_progress', 'completed'];
+const BOOKED_STATUSES = ['pending_deposit', 'confirmed', 'assigned', 'pickup_due', 'running', 'return_due', 'completed'];
+const LEGACY_PROMO_RULE_FIELDS = 'discount_type,discount_value,max_discount,min_order,uses_limit,uses_count,expires_at,first_time_only,weekends_only,phone_restriction';
+const TARGETING_PROMO_RULE_FIELDS = `${LEGACY_PROMO_RULE_FIELDS},starts_at,min_rental_days,max_rental_days,applicable_weekdays,min_advance_days,max_advance_days,auto_apply,priority,campaign_type`;
 // Keep this list inside the `vehicle_schedule_event_type` enum defined by
 // 202605070003_vehicle_schedule_events.sql. PostgREST rejects the entire query
 // when even one unknown enum value is passed to `.in(...)`.
@@ -789,49 +810,64 @@ async function resolveServerDiscounts(supabase, companyId, body, subtotal) {
   }
 
   const code = String(body.promo_code || '').trim().toUpperCase();
-  if (!code) return { loyaltyDiscount, promoDiscount: 0 };
+  if (!code) return chooseBestDiscount({ loyaltyAmount: loyaltyDiscount, promoAmount: 0 });
 
-  const { data: promo, error: promoError } = await supabase.from('promo_codes')
-    .select('discount_type,discount_value,max_discount,min_order,uses_limit,uses_count,expires_at,first_time_only,weekends_only,phone_restriction')
+  let { data: promo, error: promoError } = await supabase.from('promo_codes')
+    .select(TARGETING_PROMO_RULE_FIELDS)
     .eq('code', code).eq('active', true).maybeSingle();
+  if (promoError && /column|schema cache|starts_at|min_rental_days|auto_apply|campaign_type/i.test(promoError.message || '')) {
+    ({ data: promo, error: promoError } = await supabase.from('promo_codes')
+      .select(LEGACY_PROMO_RULE_FIELDS)
+      .eq('code', code).eq('active', true).maybeSingle());
+  }
   if (promoError) throw promoError;
   if (!promo) {
     const { data: referrer } = await supabase.from('customers')
       .select('id').eq('referral_code', code).eq('status', 'active').maybeSingle();
     if (!referrer) throw new Error('Mã giảm giá không hợp lệ');
-    return {
-      loyaltyDiscount,
-      promoDiscount: Math.min(Math.max(0, Number(process.env.REFERRAL_DISCOUNT_AMOUNT || 50_000)), subtotal),
-    };
+    return chooseBestDiscount({
+      loyaltyAmount: loyaltyDiscount,
+      promoAmount: Math.min(Math.max(0, Number(process.env.REFERRAL_DISCOUNT_AMOUNT || 50_000)), subtotal),
+    });
   }
-  if (promo.expires_at && new Date(promo.expires_at) < new Date()) throw new Error('Mã giảm giá đã hết hạn');
-  if (promo.uses_limit != null && Number(promo.uses_count) >= Number(promo.uses_limit)) {
-    throw new Error('Mã giảm giá đã hết lượt sử dụng');
-  }
+  const rentalDays = calculateRentalPricingUnits(
+    body.pickup_date,
+    body.pickup_hour,
+    body.return_date,
+    body.return_hour,
+  ).billingDays;
+  const targetingReason = evaluatePromoTargeting(promo, {
+    totalAmount: subtotal,
+    rentalDays,
+    pickupDate: body.pickup_date,
+  });
+  if (targetingReason) throw new Error(targetingReason);
   if (promo.phone_restriction && normalizePhone(promo.phone_restriction) !== normalizedPhone) {
     throw new Error('Mã giảm giá không áp dụng cho số điện thoại này');
   }
-  if (Number(promo.min_order || 0) > subtotal) throw new Error('Đơn chưa đạt giá trị tối thiểu của mã giảm giá');
-  if (promo.weekends_only) {
-    const day = parseHolidayDate(body.pickup_date)?.getDay();
-    if (day !== 0 && day !== 6) throw new Error('Mã chỉ áp dụng cuối tuần');
-  }
   if (promo.first_time_only) {
     const phone84 = toVietnamPhone84(normalizedPhone);
-    const [{ count: leadCount }, { count: customerCount }] = await Promise.all([
-      supabase.from('website_leads').select('id', { count: 'exact', head: true })
-        .or(`phone.eq.${normalizedPhone},phone.eq.${phone84}`),
-      supabase.from('customers').select('id', { count: 'exact', head: true })
-        .or(`phone.eq.${normalizedPhone},normalized_phone.eq.${normalizedPhone},phone.eq.${phone84}`),
-    ]);
-    if ((leadCount || 0) > 0 || (customerCount || 0) > 0) throw new Error('Mã chỉ dành cho khách đặt xe lần đầu');
+    const { data: previousCustomers, error: customerLookupError } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('company_id', companyId)
+      .or(`phone.eq.${normalizedPhone},normalized_phone.eq.${normalizedPhone},phone.eq.${phone84},normalized_phone.eq.${phone84}`);
+    if (customerLookupError) throw customerLookupError;
+    const customerIds = (previousCustomers || []).map((item) => item.id).filter(Boolean);
+    if (customerIds.length > 0) {
+      const { count, error } = await supabase.from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .in('customer_id', customerIds)
+        .in('status', BOOKED_STATUSES);
+      if (error) throw error;
+      if (Number(count || 0) > 0) throw new Error('Mã chỉ dành cho khách chưa từng có booking');
+    }
   }
-  const discountValue = Math.max(0, Number(promo.discount_value) || 0);
-  let promoDiscount = promo.discount_type === 'percent'
-    ? Math.round((subtotal * discountValue / 100) / 10_000) * 10_000
-    : discountValue;
-  if (promo.max_discount != null) promoDiscount = Math.min(promoDiscount, Number(promo.max_discount));
-  return { loyaltyDiscount, promoDiscount: Math.min(Math.max(0, promoDiscount), subtotal - loyaltyDiscount) };
+  return chooseBestDiscount({
+    loyaltyAmount: loyaltyDiscount,
+    promoAmount: promoDiscountAmount(promo, subtotal),
+  });
 }
 
 export default async function handler(req, res) {
@@ -1009,6 +1045,13 @@ export default async function handler(req, res) {
   for (const f of required) {
     if (!body?.[f] && body?.[f] !== 0) return res.status(400).json({ error: `Missing field: ${f}` });
   }
+  const deliveryDirection = body.delivery_mode === 'self'
+    ? null
+    : body.delivery_direction || 'roundtrip';
+  const deliveryFee = deliveryFeeForMode(body.delivery_mode, deliveryDirection || undefined);
+  if (deliveryFee === null) {
+    return res.status(400).json({ error: 'Hình thức hoặc chiều giao nhận xe không hợp lệ' });
+  }
   const pickupDate = normalizeHolidayDate(body.pickup_date);
   const returnDate = normalizeHolidayDate(body.return_date);
   if (!pickupDate || !returnDate) {
@@ -1122,11 +1165,11 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: 'Giá lễ vừa thay đổi, vui lòng tải lại báo giá trước khi đặt xe' });
   }
 
-  const deliveryFee = body.delivery_mode === 'delivery' ? 200_000 : 0;
   let loyaltyDiscount = 0;
   let promoDiscount = 0;
+  let appliedDiscountSource = null;
   try {
-    ({ loyaltyDiscount, promoDiscount } = await resolveServerDiscounts(
+    ({ loyaltyDiscount, promoDiscount, source: appliedDiscountSource } = await resolveServerDiscounts(
       supabase,
       companyId,
       body,
@@ -1136,6 +1179,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: error.message || 'Mã giảm giá không hợp lệ' });
   }
   const totalAmount = Math.max(0, serverBaseAmount + holidaySurcharge + deliveryFee - loyaltyDiscount - promoDiscount);
+  const appliedPromoCode = appliedDiscountSource === 'promo'
+    ? String(body.promo_code || '').trim().toUpperCase() || null
+    : null;
   const serverQuote = {
     base_amount: serverBaseAmount,
     holiday_surcharge: holidaySurcharge,
@@ -1267,12 +1313,17 @@ export default async function handler(req, res) {
     holidayComboSnapshot
       ? `Mức tăng combo lễ: +${Number(holidayComboSnapshot.combo_adjustment_value).toLocaleString('vi-VN')}đ/ngày × ${holidayComboSnapshot.combo_days} ngày`
       : holidaySurcharge > 0 ? `Phụ thu giá lễ: ${holidaySurcharge.toLocaleString('vi-VN')}đ` : '',
+    deliveryDirection === 'pickup'
+      ? 'Chiều giao nhận: Chỉ giao xe cho khách'
+      : deliveryDirection === 'return'
+        ? 'Chiều giao nhận: Chỉ nhận lại xe từ khách'
+        : deliveryDirection === 'roundtrip' ? 'Chiều giao nhận: Hai chiều' : '',
     deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : '',
     requiresConfirmation
       ? `Cọc dự kiến sau khi xác nhận lịch: ${depositAmount.toLocaleString('vi-VN')}đ`
       : `Cọc VietQR: ${depositAmount.toLocaleString('vi-VN')}đ`,
-    body.loyalty_discount > 0 ? `Ưu đãi ${body.loyalty_tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${Number(body.loyalty_discount).toLocaleString('vi-VN')}đ` : '',
-    body.promo_code ? `Mã KM: ${body.promo_code} (-${Number(body.promo_discount || 0).toLocaleString('vi-VN')}đ)` : '',
+    loyaltyDiscount > 0 ? `Ưu đãi ${body.loyalty_tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${loyaltyDiscount.toLocaleString('vi-VN')}đ` : '',
+    appliedPromoCode ? `Mã KM: ${appliedPromoCode} (-${promoDiscount.toLocaleString('vi-VN')}đ)` : '',
     availabilityCheckUnavailable
       ? 'CẦN KIỂM TRA LỊCH THỦ CÔNG: dịch vụ kiểm tra lịch tự động bị gián đoạn khi khách gửi yêu cầu.'
       : '',
@@ -1301,7 +1352,9 @@ export default async function handler(req, res) {
     total_amount: totalAmount,
     pricing_snapshot: {
       delivery_mode: body.delivery_mode,
-      promo_code: body.promo_code || null,
+      delivery_direction: deliveryDirection,
+      promo_code: appliedPromoCode,
+      applied_discount_source: appliedDiscountSource,
       loyalty_tier: body.loyalty_tier || null,
       holiday_surcharge: holidaySurcharge,
       holiday_pricing: holidayPricing,
@@ -1342,7 +1395,7 @@ export default async function handler(req, res) {
   }
 
   // Track promo/referral code usage (awaited — Vercel freezes Lambda after res.json, fire-and-forget gets cut off)
-  const promoCode = body.promo_code ? String(body.promo_code).trim().toUpperCase() : null;
+  const promoCode = appliedPromoCode;
   if (promoCode) {
     await (async () => {
       try {

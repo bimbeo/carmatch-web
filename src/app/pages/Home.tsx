@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowRight, CheckCircle2, MessageCircle, Zap, Shield, Clock, MapPin, Home as HomeIcon, Car, ChevronLeft, ChevronRight, Key, FileText, RefreshCw, Share2, CalendarDays, Search, Users, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MessageCircle, Zap, Clock, MapPin, Home as HomeIcon, Car, ChevronDown, ChevronLeft, ChevronRight, Key, FileText, CalendarDays, Search, Users, X } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import { usePromotions } from '@/hooks/usePromotions';
 import { useSEO } from '@/hooks/useSEO';
@@ -73,8 +73,6 @@ function createQuickSearchHref({
   const query = params.toString();
   return query ? `/xe?${query}` : '/xe';
 }
-const SITE_URL = 'https://www.carmatch.vn/';
-
 const stats = [
   { value: '20+', label: 'Mẫu xe', note: 'Xe 5 chỗ, 7 chỗ, xe điện', icon: Car },
   { value: '7h-22h', label: 'Hỗ trợ mỗi ngày', note: 'Tư vấn và xử lý phát sinh', icon: Clock },
@@ -104,44 +102,21 @@ const quickSearchFuel = [
   { value: 'Dầu', label: 'Xe dầu' },
 ];
 
-const features = [
-  {
-    icon: Shield,
-    title: 'Kiểm tra xe trước chuyến',
-    desc: 'Hai bên ghi nhận ngoại thất, nội thất, nhiên liệu/pin, km và phụ kiện khi bàn giao.',
-  },
-  {
-    icon: MapPin,
-    title: 'Giao xe tận sảnh',
-    desc: 'Ưu tiên chung cư, văn phòng hoặc điểm hẹn phù hợp tại Hà Nội theo lịch đã xác nhận.',
-  },
-  {
-    icon: Key,
-    title: 'Báo rõ cọc và phụ phí',
-    desc: 'Giá thuê, phí giao nhận, điều kiện cọc và lịch xe được xác nhận trước khi khách chốt.',
-  },
-  {
-    icon: Clock,
-    title: 'Hỗ trợ 7h – 22h mỗi ngày',
-    desc: 'Có người hỗ trợ khi cần tư vấn lịch thuê, nhận xe hoặc xử lý phát sinh trong ngày.',
-  },
-];
-
 const howItWorks = [
   {
     step: '01',
     title: 'Chọn xe và lịch thuê',
-    desc: 'Chọn mẫu xe, ngày nhận/trả và khu vực nhận xe trực tiếp trên website; Zalo luôn sẵn sàng hỗ trợ nếu bạn chưa chắc.',
+    desc: 'Xem mẫu xe, thời gian thuê và tổng giá dự kiến trên web.',
   },
   {
     step: '02',
-    title: 'Kiểm tra lịch và đặt cọc',
-    desc: 'Bạn được xác nhận xe còn trống, giá thuê, phụ phí giao nhận và khoản cọc cần chuyển để giữ lịch.',
+    title: 'Xác nhận và giữ xe',
+    desc: 'Car Match xác nhận lịch, cọc và phụ phí trước khi giữ xe.',
   },
   {
     step: '03',
     title: 'Nhận xe và ký bàn giao',
-    desc: 'Mang CCCD và GPLX bản gốc, kiểm tra tình trạng xe, nhiên liệu/pin, số km và phụ kiện trước khi lên đường.',
+    desc: 'Đối chiếu giấy tờ, kiểm tra xe và ký biên bản bàn giao.',
   },
 ];
 
@@ -149,22 +124,22 @@ const quickFacts = [
   {
     label: 'Giá thuê',
     value: 'Từ 600.000đ/ngày',
-    note: 'Giá thay đổi theo mẫu xe, số ngày thuê, điểm giao nhận và thời điểm đặt.',
+    note: 'Tùy mẫu xe, lịch thuê và điểm giao nhận.',
   },
   {
     label: 'Khu vực nhận xe',
     value: 'Hà Nội và một số khu đô thị lân cận',
-    note: 'Phù hợp nhất khi nhận tại chung cư, văn phòng hoặc điểm hẹn đã xác nhận.',
+    note: 'Điểm hẹn được xác nhận theo lịch.',
   },
   {
     label: 'Giấy tờ cần có',
     value: 'CCCD và GPLX hạng B còn hạn',
-    note: 'Mang bản gốc khi nhận xe để đối chiếu và ký biên bản bàn giao.',
+    note: 'Mang bản gốc để đối chiếu khi nhận xe.',
   },
   {
     label: 'Đặt cọc',
     value: 'Cọc giữ lịch trước khi nhận xe',
-    note: 'Khoản cọc và điều kiện hoàn/hủy được xác nhận theo từng mẫu xe và lịch thuê.',
+    note: 'Mức cọc và điều kiện hủy/hoàn theo xe và lịch.',
   },
 ];
 
@@ -233,19 +208,19 @@ const priorityCommercialLinks = [
 const homeFaqs = [
   {
     question: 'Thuê xe tự lái Car Match giá bao nhiêu?',
-    answer: 'Giá được công khai theo từng mẫu xe và hiện bắt đầu từ 600.000đ/ngày. Gói thuê tháng bắt đầu từ mức giá hiển thị trên trang thuê xe tháng. Tổng giá cuối cùng phụ thuộc mẫu xe, ngày thuê, thời lượng và khu vực giao nhận; bạn nên chọn lịch cụ thể để xem chi phí dự kiến.',
+    answer: 'Giá từ 600.000đ/ngày và được công khai theo từng xe. Chọn ngày nhận/trả để xem tổng giá dự kiến theo lịch.',
   },
   {
     question: 'Có thể nhận xe tận nơi ở Hà Nội không?',
-    answer: 'Có. Bạn có thể hẹn nhận xe tại sảnh chung cư, văn phòng hoặc điểm hẹn phù hợp trong khu vực Hà Nội. Các khu vực thường được khách hỏi gồm Vinhomes Ocean Park, Times City, Smart City, Royal City, Ecopark, The Manor Central Park và Linh Đàm.',
+    answer: 'Có. Bạn có thể hẹn nhận tại chung cư, văn phòng hoặc điểm phù hợp ở Hà Nội. Phí và thời gian giao nhận được xác nhận theo lịch.',
   },
   {
     question: 'Cần chuẩn bị giấy tờ gì khi nhận xe?',
-    answer: 'Bạn cần CCCD bản gốc và giấy phép lái xe hạng B còn hiệu lực. Khi nhận xe, nên kiểm tra ngoại thất, nội thất, mức pin/xăng, số km và phụ kiện để biên bản bàn giao rõ ràng ngay từ đầu.',
+    answer: 'CCCD bản gốc và GPLX hạng B còn hiệu lực. Hai bên kiểm tra xe, pin/xăng, số km và phụ kiện khi bàn giao.',
   },
   {
     question: 'Nếu hủy chuyến hoặc trả xe muộn thì xử lý thế nào?',
-    answer: 'Điều kiện hủy, hoàn cọc và phụ phí trả muộn phụ thuộc vào thời điểm hủy, giờ trả xe và tình trạng xe khi hoàn trả. Bạn nên đọc trang chính sách trước khi đặt, hoặc nhắn Zalo để xác nhận điều kiện cụ thể theo mẫu xe và lịch thuê.',
+    answer: 'Điều kiện hủy, hoàn cọc và trả muộn phụ thuộc mẫu xe và lịch thuê. Chi tiết được xác nhận trước khi giữ xe.',
   },
 ];
 
@@ -515,28 +490,28 @@ export default function Home() {
       <section className="relative pt-16 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-brand-50">
         <div className="absolute top-0 right-0 w-[600px] max-w-full h-[600px] bg-brand-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20">
           <div className="grid lg:grid-cols-[3fr_2fr] gap-10 lg:gap-14 items-center">
 
             {/* ── Left: copy ── */}
             <div className="min-w-0">
-              <div className="inline-flex max-w-full items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-8">
+              <div className="inline-flex max-w-full items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-5">
                 <HomeIcon className="w-3.5 h-3.5" />
-                <span className="truncate">Dịch vụ xe cho cư dân đô thị Hà Nội</span>
+                <span className="truncate">Thuê xe tự lái tại Hà Nội</span>
               </div>
 
-              <h1 className="cm-mobile-safe-width sm:max-w-none text-[1.875rem] min-[430px]:text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+              <h1 className="cm-mobile-safe-width sm:max-w-none text-[1.875rem] min-[430px]:text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
                 Thuê xe tự lái Hà Nội
                 <br />
                 <span className="text-brand-600">giao tận sảnh theo lịch hẹn</span>
               </h1>
 
               <p className="cm-mobile-safe-width sm:max-w-none text-gray-600 text-lg sm:text-xl mb-3 leading-relaxed">
-                Chọn xe, ngày nhận/trả và xem tổng giá dự kiến trước khi gửi yêu cầu.{' '}
-                <span className="text-gray-900 font-semibold">Có xe điện, xe 5 chỗ, 7 chỗ và gói thuê tháng.</span>
+                Chọn xe, ngày nhận/trả và xem tổng giá trước khi đặt.{' '}
+                <span className="text-gray-900 font-semibold">Có xe điện, xe 5–7 chỗ và gói thuê tháng.</span>
               </p>
-              <p className="cm-mobile-safe-width sm:max-w-none text-gray-500 text-sm mb-10 leading-relaxed">
-                Giao nhận tại Vinhomes Ocean Park, Smart City, Times City, Ecopark và The Manor Central Park theo lịch đã xác nhận.
+              <p className="cm-mobile-safe-width sm:max-w-none text-gray-500 text-sm mb-7 leading-relaxed">
+                Giao nhận tại Ocean Park, Smart City, Times City, Ecopark và The Manor theo lịch đã xác nhận.
               </p>
 
               <div className="cm-mobile-safe-width sm:max-w-none flex flex-col sm:flex-row gap-3">
@@ -547,7 +522,7 @@ export default function Home() {
                   data-cta="home-hero-book"
                 >
                   <Car className="w-5 h-5" />
-                  Đặt xe ngay
+                  Chọn xe
                 </Link>
                 <a
                   href={ZALO_LINK}
@@ -558,22 +533,12 @@ export default function Home() {
                   data-cta="home-hero-zalo"
                 >
                   <MessageCircle className="w-5 h-5" />
-                  Cần hỗ trợ qua Zalo<span className="sr-only"> trong phần giới thiệu</span>
+                  Hỏi qua Zalo<span className="sr-only"> trong phần giới thiệu</span>
                 </a>
-                <Link
-                  to="/lap-ke-hoach-chuyen-di"
-                  onClick={() => trackCtaClick('home_hero_trip_planner', { target_path: '/lap-ke-hoach-chuyen-di' })}
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-800 font-semibold text-base rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
-                  data-cta="home-hero-trip-planner"
-                >
-                  <Zap className="w-5 h-5" />
-                  Lập chuyến đi
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 mt-8">
-                {['Giao xe tận tòa nhà', 'Kiểm tra xe khi bàn giao', 'Báo cọc/phụ phí trước khi chốt'].map((t) => (
+              <div className="flex flex-wrap items-center gap-4 mt-6">
+                {['Giao tận nơi', 'Kiểm tra khi bàn giao', 'Báo cọc và phụ phí trước'].map((t) => (
                   <div key={t} className="flex items-center gap-1.5 text-sm text-gray-500">
                     <CheckCircle2 className="w-4 h-4 text-brand-500" />
                     {t}
@@ -683,7 +648,7 @@ export default function Home() {
       </section>
 
       {/* ── STATS ─────────────────────────────────────────────── */}
-      <section className="px-4 py-8 bg-white border-y border-gray-100">
+      <section className="px-4 py-5 bg-white border-y border-gray-100">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {stats.map((stat) => {
@@ -691,15 +656,14 @@ export default function Home() {
               return (
                 <div
                   key={stat.label}
-                  className="group flex min-h-[132px] flex-col gap-3 rounded-[8px] border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-brand-200 hover:bg-brand-50/40 sm:min-h-[112px] sm:flex-row sm:items-start sm:gap-4 sm:p-4"
+                  className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 transition-colors hover:border-brand-200 hover:bg-brand-50/40 sm:p-4"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-brand-50 text-brand-600 group-hover:bg-white sm:h-11 sm:w-11">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="break-words text-xl font-black leading-none tracking-tight text-brand-700 sm:text-3xl">{stat.value}</div>
-                    <div className="mt-2 text-[13px] font-bold text-gray-900 sm:text-sm">{stat.label}</div>
-                    <div className="mt-1 text-[11px] font-medium leading-5 text-gray-500 sm:text-xs">{stat.note}</div>
+                    <div className="break-words text-lg font-black leading-none tracking-tight text-brand-700 sm:text-2xl">{stat.value}</div>
+                    <div className="mt-1 text-xs font-bold text-gray-700 sm:text-sm">{stat.label}</div>
                   </div>
                 </div>
               );
@@ -709,11 +673,11 @@ export default function Home() {
       </section>
 
       {/* ── QUICK SEARCH / CONVERSION SURFACE ─────────────────── */}
-      <section id="tim-xe-nhanh" className="px-4 py-12 bg-gray-50">
+      <section id="tim-xe-nhanh" className="px-4 py-10 bg-gray-50">
         <div className="max-w-3xl mx-auto">
           <p className="text-center text-brand-600 font-semibold text-sm uppercase tracking-widest mb-2">Tìm xe nhanh</p>
-          <h2 id="tim-xe-tu-lai-theo-lich" className="text-center text-3xl sm:text-4xl font-bold text-gray-900 mb-8">
-            Chọn ngày, chọn xe — đặt trực tiếp trên web
+          <h2 id="tim-xe-tu-lai-theo-lich" className="text-center text-3xl sm:text-4xl font-bold text-gray-900 mb-7">
+            Chọn lịch và xem xe phù hợp
           </h2>
 
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -798,14 +762,10 @@ export default function Home() {
 
               {/* Trust + Zalo */}
               <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  {['Giao tận sảnh', 'Báo cọc trước', 'Xem tổng giá theo lịch'].map((item) => (
-                    <span key={item} className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
-                      {item}
-                    </span>
-                  ))}
-                </div>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
+                  Tổng giá hiển thị trước khi đặt
+                </span>
                 <a
                   href={ZALO_LINK}
                   target="_blank"
@@ -950,16 +910,16 @@ export default function Home() {
       </section>
 
       {/* ── DIRECT ANSWER / GEO SUMMARY ───────────────────────── */}
-      <section id="tom-tat-thue-xe" className="py-16 px-4 bg-white">
+      <section id="tom-tat-thue-xe" className="py-12 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-[1.05fr_1.4fr] gap-8 lg:gap-12 items-start">
             <div>
               <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Thông tin cần biết</p>
               <h2 id="thue-xe-tu-lai-ha-noi-can-biet-gi" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Trước khi thuê xe tự lái ở Hà Nội, bạn cần biết gì?
+                Thuê xe tự lái Hà Nội: thông tin nhanh
               </h2>
               <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
-                Bạn nên kiểm tra trước giá thuê theo ngày, khu vực nhận xe, giấy tờ cần mang theo, khoản cọc và phí giao nhận. Với lịch cụ thể, website hiển thị xe còn trống và tổng giá dự kiến trước khi bạn gửi yêu cầu giữ xe.
+                Xem trước giá, điểm nhận xe, giấy tờ và khoản cọc. Chọn lịch cụ thể để kiểm tra xe trống và tổng giá dự kiến.
               </p>
             </div>
 
@@ -974,7 +934,7 @@ export default function Home() {
                       </th>
                       <td className="px-4 py-4">
                         <p className="font-semibold text-gray-900">{fact.value}</p>
-                        <p className="mt-1 text-gray-600">{fact.note}</p>
+                        <p className="mt-1 text-gray-500">{fact.note}</p>
                       </td>
                     </tr>
                   ))}
@@ -986,14 +946,14 @@ export default function Home() {
       </section>
 
       {/* ── LIVE PRICE GUIDE / PRIORITY INTERNAL LINKS ───────── */}
-      <section id="bang-gia-thue-xe-ha-noi" className="bg-gray-50 px-4 py-16">
+      <section id="bang-gia-thue-xe-ha-noi" className="bg-gray-50 px-4 py-12">
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-brand-600">Giá theo đội xe hiện có</p>
               <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Bảng giá thuê xe tự lái Hà Nội theo nhu cầu</h2>
               <p className="mt-4 text-base leading-relaxed text-gray-600">
-                Mức dưới đây được tính từ giá đang công khai của các mẫu xe trên website. Giá cuối cùng phụ thuộc mẫu xe, ngày thuê, thời lượng và khu vực giao nhận.
+                Giá tham khảo lấy từ đội xe đang công khai. Tổng giá được tính sau khi bạn chọn lịch và điểm giao nhận.
               </p>
             </div>
             <Link
@@ -1054,20 +1014,20 @@ export default function Home() {
       </section>
 
       {/* ── RESIDENTIAL AREAS ────────────────────────────────── */}
-      <section className="py-20 px-4 bg-brand-600">
+      <section className="py-14 px-4 bg-brand-600">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <p className="text-brand-200 font-semibold text-sm uppercase tracking-wide mb-2">Khu vực phục vụ</p>
             <h2 id="khu-vuc-giao-xe" className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Khu vực giao xe tận sảnh tại Hà Nội và lân cận
+              Giao nhận xe tại Hà Nội và khu đô thị lân cận
             </h2>
-            <p className="text-brand-100 max-w-2xl mx-auto text-lg">
-              Car Match đang ưu tiên giao nhận tại 5 khu đô thị dưới đây. Thời gian và chi phí giao nhận được xác nhận theo mẫu xe, ngày thuê và điểm hẹn cụ thể.
+            <p className="text-brand-100 max-w-2xl mx-auto">
+              Điểm hẹn, thời gian và phí giao nhận được xác nhận theo xe và lịch thuê.
             </p>
           </div>
 
           {/* Buildings grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-14">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
             {residentialAreas.map((area) => (
               <Link key={area.name} to={area.href} className="bg-white/10 hover:bg-white/20 transition-colors rounded-2xl p-4 border border-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 <div className="flex items-center gap-2 mb-1">
@@ -1077,46 +1037,21 @@ export default function Home() {
                 <span className="text-brand-200 text-xs pl-4">{area.area}</span>
               </Link>
             ))}
-            {/* More coming */}
-            <div className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 flex items-center justify-center">
-              <span className="text-brand-200 text-sm text-center">Và nhiều khu đô thị khác...</span>
-            </div>
           </div>
 
-          <div className="mb-14 rounded-3xl border border-white/15 bg-white/10 p-5 sm:p-7">
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-200">Tìm xe theo khu vực</p>
-                <h3 className="mt-2 text-2xl font-black text-white">12 khu vực Hà Nội đang tiếp nhận yêu cầu</h3>
-              </div>
-              <p className="max-w-xl text-sm leading-6 text-brand-100">Mỗi điểm giao nhận và khoản giao xe nếu có đều được xác nhận theo địa chỉ, khung giờ và lịch xe; không mặc định giao tận nơi.</p>
-            </div>
-            <nav aria-label="Trang thuê xe theo khu vực Hà Nội" className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <details className="group mb-8 rounded-2xl border border-white/15 bg-white/10">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-bold text-white marker:content-none">
+              12 khu vực Hà Nội đang tiếp nhận yêu cầu
+              <ChevronDown className="h-5 w-5 transition-transform group-open:rotate-180" />
+            </summary>
+            <nav aria-label="Trang thuê xe theo khu vực Hà Nội" className="grid gap-2 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-4">
               {wave2LocalRentalAreas.map((area) => (
                 <Link key={area.path} to={area.path} className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/20">
                   {area.shortName}
-                  <span className="mt-1 block text-xs font-medium text-brand-200">Xác nhận điểm hẹn</span>
                 </Link>
               ))}
             </nav>
-          </div>
-
-          {/* 3 resident value props */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
-            {[
-              { icon: MapPin, title: 'Nhận xe tận sảnh', desc: 'Hẹn điểm nhận tại tòa nhà hoặc văn phòng, hạn chế phải di chuyển xa để lấy xe.' },
-              { icon: Car, title: 'Xe theo ngày hoặc tháng', desc: 'Dùng dịp cuối tuần, hoặc đăng ký cố định hàng tháng để kiểm soát chi phí tốt hơn.' },
-              { icon: Shield, title: 'Không lo sở hữu xe', desc: 'Không phí bảo dưỡng, không lo chỗ đỗ, không mất giá theo năm.' },
-            ].map((item) => (
-              <div key={item.title} className="bg-white/10 rounded-2xl p-6 border border-white/10">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                  <item.icon className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-white font-semibold mb-2">{item.title}</h3>
-                <p className="text-brand-100 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
+          </details>
 
           {/* CTA */}
           <div className="text-center">
@@ -1128,7 +1063,7 @@ export default function Home() {
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-brand-700 font-bold rounded-full hover:bg-brand-50 transition-colors shadow-lg"
               >
                 <Car className="w-5 h-5" />
-                Chọn xe & đặt trực tiếp
+                Chọn xe
               </Link>
               <Link
                 to="/lien-he"
@@ -1143,13 +1078,13 @@ export default function Home() {
       </section>
 
       {/* ── FLEET PREVIEW ─────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-14 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-10">
             <div>
               <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Đội xe Car Match</p>
-              <h2 id="chon-xe-tu-lai-phu-hop" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Chọn xe phù hợp với bạn</h2>
-              <p className="text-gray-500">Xe điện, xe xăng, xe 7 chỗ — đa dạng cho mọi nhu cầu</p>
+              <h2 id="chon-xe-tu-lai-phu-hop" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Chọn xe theo nhu cầu</h2>
+              <p className="text-gray-500">Xe điện, xe 5 chỗ, 7 chỗ và MPV.</p>
             </div>
             <Link
               to="/xe"
@@ -1161,8 +1096,10 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-            {allCarsPreview.map((car) => (
-              <CarCard key={car.id} car={car} source="home_fleet_preview" />
+            {allCarsPreview.map((car, index) => (
+              <div key={car.id} className={index >= 3 ? 'hidden sm:block' : undefined}>
+                <CarCard car={car} source="home_fleet_preview" />
+              </div>
             ))}
           </div>
 
@@ -1306,34 +1243,8 @@ export default function Home() {
         </section>
       )}
 
-      {/* ── WHY CAR MATCH ──────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Tại sao chọn Car Match?</p>
-            <h2 id="ly-do-chon-car-match" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Dịch vụ đáng tin cậy từ ngày đầu
-            </h2>
-            <p className="text-gray-500 max-w-xl mx-auto">
-              Trước khi chốt xe, bạn nên biết rõ lịch trống, giấy tờ, cọc, phí giao nhận và cách bàn giao.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((f) => (
-              <div key={f.title} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md hover:border-gray-200 transition-all">
-                <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center mb-4">
-                  <f.icon className="w-6 h-6 text-brand-600" />
-                </div>
-                <h3 className="text-gray-900 font-semibold mb-2">{f.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── MONTHLY RENTAL TEASER ─────────────────────────────── */}
-      <section className="py-12 px-4 bg-gray-50 sm:py-16">
+      <section className="py-12 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="grid gap-8 lg:grid-cols-[0.95fr_1.25fr] lg:items-start">
             <div className="max-w-2xl">
@@ -1341,11 +1252,11 @@ export default function Home() {
                 <CalendarDays className="h-3.5 w-3.5" />
                 Thuê xe tháng
               </div>
-              <h2 id="thue-xe-theo-thang" className="mt-5 text-3xl font-black leading-tight text-gray-900 sm:text-4xl">
-                Cần xe dùng đều đặn mỗi tuần?
+              <h2 id="thue-xe-theo-thang" className="mt-4 text-3xl font-black leading-tight text-gray-900 sm:text-4xl">
+                Cần xe dùng dài ngày?
               </h2>
-              <p className="mt-4 text-base leading-8 text-gray-600 sm:text-lg">
-                Nếu bạn cần xe đi làm, gặp khách, đưa gia đình đi lại hoặc dùng cho đội nhóm, gói tháng giúp chi phí dễ dự tính hơn so với thuê từng ngày lẻ.
+              <p className="mt-3 text-base leading-7 text-gray-600">
+                Gói tháng phù hợp nhu cầu đi làm, gặp khách hoặc dùng xe thường xuyên với chi phí dễ dự tính.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -1377,25 +1288,25 @@ export default function Home() {
                   icon: Car,
                   label: 'Giá tham khảo',
                   value: 'Từ 10 triệu/xe/tháng',
-                  desc: 'Tùy mẫu xe, số tháng thuê và lịch giao nhận thực tế.',
+                  desc: 'Tùy mẫu xe và thời hạn thuê.',
                 },
                 {
                   icon: MapPin,
                   label: 'Điểm nhận xe',
-                  value: 'Chung cư hoặc văn phòng',
-                  desc: 'Hẹn điểm nhận cố định để tiết kiệm thời gian mỗi lần dùng xe.',
+                  value: 'Theo điểm hẹn',
+                  desc: 'Chung cư, văn phòng hoặc điểm phù hợp.',
                 },
                 {
                   icon: FileText,
                   label: 'Chi phí rõ ràng',
                   value: 'Thuê, cọc, phụ phí',
-                  desc: 'Các khoản chính được xác nhận trước khi giữ lịch.',
+                  desc: 'Xác nhận trước khi giữ lịch.',
                 },
                 {
                   icon: Users,
                   label: 'Nhu cầu linh hoạt',
-                  value: 'Một xe hoặc nhiều xe',
-                  desc: 'Phù hợp cá nhân dùng dài ngày hoặc đội nhóm cần xe đều đặn.',
+                  value: 'Cá nhân hoặc đội nhóm',
+                  desc: 'Tùy nhu cầu sử dụng thực tế.',
                 },
               ].map(({ icon: Icon, label, value, desc }) => (
                 <div key={label} className="rounded-[8px] border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
@@ -1404,81 +1315,67 @@ export default function Home() {
                   </div>
                   <p className="text-[11px] font-black uppercase tracking-wide text-gray-500 sm:text-xs">{label}</p>
                   <h3 className="mt-2 text-base font-black leading-snug text-gray-900 sm:text-lg">{value}</h3>
-                  <p className="mt-2 text-xs leading-5 text-gray-600 sm:text-sm sm:leading-6">{desc}</p>
+                  <p className="mt-2 text-xs leading-5 text-gray-600 sm:text-sm">{desc}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 border-t border-gray-200 pt-5 md:grid-cols-3">
-            {[
-              'Chọn mẫu xe, số tháng và khu vực nhận xe',
-              'Xác nhận giá, cọc, phụ phí và lịch bàn giao',
-              'Nhận xe, ký biên bản và dùng theo lịch đã chốt',
-            ].map((item, index) => (
-              <div key={item} className="flex items-start gap-3 rounded-[8px] bg-white px-3 py-3 ring-1 ring-gray-200 sm:px-4">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-[11px] font-black text-white">
-                  {index + 1}
-                </span>
-                <p className="text-sm font-semibold leading-6 text-gray-700">{item}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-14 px-4 bg-white">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
+          <div className="text-center mb-9">
             <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Quy trình</p>
-            <h2 id="quy-trinh-thue-xe" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Thuê xe dễ dàng 3 bước</h2>
-            <p className="text-gray-500">Từ lúc chọn xe đến khi nhận phản hồi lịch, quy trình rõ ràng trong từng bước</p>
+            <h2 id="quy-trinh-thue-xe" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Đặt xe trong 3 bước</h2>
+            <p className="text-gray-500">Chọn lịch, xác nhận chi phí và nhận xe.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {howItWorks.map((step, i) => (
-              <div key={i} className="text-center">
-                <div className="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-md shadow-brand-200">
-                  <span className="text-white font-bold text-xl">{step.step}</span>
+              <div key={i} className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-left">
+                <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center mb-4">
+                  <span className="text-white font-bold text-sm">{step.step}</span>
                 </div>
-                <h3 className="text-gray-900 font-semibold mb-3">{step.title}</h3>
+                <h3 className="text-gray-900 font-semibold mb-2">{step.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
-          <div className="text-center mt-12">
+          <div className="text-center mt-8">
             <Link
               to="/xe"
               onClick={() => trackCtaClick('home_how_it_works', { target_path: '/xe' })}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200 text-lg"
+              className="inline-flex items-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-200"
               data-cta="home-process-direct-booking"
             >
               <Car className="w-5 h-5" />
-              Chọn xe & xem lịch trống
+              Chọn xe và xem lịch
             </Link>
           </div>
         </div>
       </section>
 
       {/* ── FAQ / TRUST POLICY ───────────────────────────────── */}
-      <section id="faq-thue-xe-tu-lai" className="py-20 px-4 bg-white">
+      <section id="faq-thue-xe-tu-lai" className="py-14 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="max-w-3xl mb-10">
+          <div className="max-w-3xl mb-8">
             <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Câu hỏi thường gặp</p>
-            <h2 id="cau-hoi-thuong-gap-thue-xe" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Thuê xe tự lái cần đặt cọc và giấy tờ gì?
+            <h2 id="cau-hoi-thuong-gap-thue-xe" className="text-3xl sm:text-4xl font-bold text-gray-900">
+              Câu hỏi thường gặp
             </h2>
-            <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
-              Các câu trả lời dưới đây tóm tắt những điều nên kiểm tra trước khi đặt xe. Trên từng mẫu xe, bạn có thể chọn lịch, xem tổng giá và điều kiện cọc trước khi gửi yêu cầu; Zalo là kênh hỗ trợ khi cần.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-3">
             {homeFaqs.map((faq) => (
-              <article key={faq.question} className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{faq.question}</h3>
-                <p className="text-sm leading-relaxed text-gray-600">{faq.answer}</p>
-              </article>
+              <details key={faq.question} className="group rounded-2xl border border-gray-200 bg-gray-50">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-bold text-gray-900 marker:content-none">
+                  {faq.question}
+                  <ChevronDown className="h-5 w-5 shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="border-t border-gray-200 px-5 py-4 text-sm leading-relaxed text-gray-600">{faq.answer}</p>
+              </details>
             ))}
           </div>
 
@@ -1496,67 +1393,6 @@ export default function Home() {
               Xem chính sách
               <ArrowRight className="h-4 w-4" />
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── TRUST SIGNALS ─────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Tín hiệu tin cậy</p>
-            <h2 id="kiem-tra-truoc-khi-chot-xe" className="text-3xl font-bold text-gray-900 mb-3">
-              Trước khi chốt xe, bạn cần biết rõ những gì?
-            </h2>
-            <p className="mx-auto max-w-2xl text-gray-600">
-              Đừng chỉ xem giá. Trước khi đặt, bạn nên kiểm tra những điểm có thể ảnh hưởng trực tiếp đến chi phí, thời gian nhận xe và trách nhiệm khi trả xe.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Search,
-                title: 'Lịch xe thật',
-                desc: 'Gửi ngày nhận/trả và khu vực nhận xe để kiểm tra đúng mẫu xe còn trống theo lịch thực tế.',
-              },
-              {
-                icon: FileText,
-                title: 'Giấy tờ và cọc rõ ràng',
-                desc: 'Yêu cầu CCCD, GPLX hạng B, điều kiện đặt cọc và phụ phí được xác nhận trước khi giữ xe.',
-              },
-              {
-                icon: RefreshCw,
-                title: 'Bàn giao hai chiều',
-                desc: 'Hai bên kiểm tra tình trạng xe, nhiên liệu/pin, km và phụ kiện khi nhận xe và khi trả xe.',
-              },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                  <Icon className="h-6 w-6" />
-                </div>
-                <h3 className="mb-2 text-base font-bold text-gray-900">{title}</h3>
-                <p className="text-sm leading-relaxed text-gray-600">{desc}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              to="/chinh-sach"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-bold text-gray-800 hover:bg-gray-50"
-            >
-              Xem điều kiện thuê xe
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <a
-              href={ZALO_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackZaloClick('home_trust_zalo')}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-sm font-bold text-white hover:bg-brand-700"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Nhắn Zalo kiểm tra xe
-            </a>
           </div>
         </div>
       </section>
@@ -1738,103 +1574,51 @@ export default function Home() {
       )}
 
       {/* ── CAR OWNER PARTNERSHIP ─────────────────────────────── */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left: text */}
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/90 rounded-full text-xs font-semibold mb-6">
+      <section className="py-12 px-4 bg-gray-900">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 text-xs font-semibold text-brand-300">
                 <Key className="w-3.5 h-3.5" />
                 Dành cho chủ xe
               </div>
-              <h2 id="hop-tac-chu-xe" className="text-3xl sm:text-4xl font-bold text-white mb-5 leading-tight">
-                Xe đang nằm một chỗ?<br />
-                <span className="text-brand-400">Gửi thông tin để Car Match thẩm định</span>
-              </h2>
-              <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-                Chủ xe tại Hà Nội có thể gửi thông tin xe, lịch rảnh và khu vực đỗ. Car Match sẽ đánh giá phương án khai thác, điều kiện vận hành và cách đối soát doanh thu phù hợp.
+              <h2 id="hop-tac-chu-xe" className="mt-3 text-3xl font-bold text-white">Có xe nhàn rỗi?</h2>
+              <p className="mt-3 text-gray-300 leading-7">
+                Gửi mẫu xe, lịch rảnh và khu vực đỗ để Car Match thẩm định phương án hợp tác.
               </p>
-              <ul className="space-y-3 mb-10">
-                {[
-                  'Ước tính doanh thu theo mẫu xe và lịch khai thác',
-                  'Car Match hỗ trợ điều phối vận hành theo hợp đồng',
-                  'Điều kiện vận hành và bảo dưỡng được thống nhất trước',
-                  'Báo cáo doanh thu minh bạch theo kỳ đối soát',
-                  'Thời hạn hợp tác và điều kiện rút xe ghi rõ trong hợp đồng',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-300 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link
-                  to="/hop-tac"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-brand-600 text-white font-bold rounded-full hover:bg-brand-700 transition-colors shadow-lg"
-                  data-cta="home-owner-partner"
-                >
-                  Tìm hiểu hợp tác ngay
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <a
-                  href="https://zalo.me/0971163290"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-white/20 text-white font-semibold rounded-full hover:bg-white/10 transition-colors"
-                  data-cta="home-owner-zalo"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Hỏi qua Zalo
-                </a>
-              </div>
             </div>
-
-            {/* Right: stat cards */}
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { value: 'Theo xe', label: 'Ước tính doanh thu', icon: '💰' },
-                { value: 'Hợp đồng', label: 'Điều kiện vận hành', icon: '🔧' },
-                { value: 'Thẩm định', label: 'Kiểm tra xe trước hợp tác', icon: '⚡' },
-                { value: 'Tiếp nhận', label: 'Gửi thông tin để thẩm định', icon: '🎁' },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors">
-                  <span className="text-2xl mb-3 block">{stat.icon}</span>
-                  <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-gray-400 text-xs leading-snug">{stat.label}</div>
-                </div>
-              ))}
-            </div>
+            <Link
+              to="/hop-tac"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-brand-600 px-7 py-3.5 font-bold text-white hover:bg-brand-700"
+              data-cta="home-owner-partner"
+            >
+              Xem cách hợp tác
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ── DỊCH VỤ ĐANG NHẬN YÊU CẦU ─────────────────────────── */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-14 px-4 bg-gray-50">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-semibold mb-5">
-              <Zap className="w-4 h-4" />
-              Dịch vụ đang hoạt động
-            </span>
-            <h2 id="dich-vu-sap-co" className="text-3xl font-bold text-gray-900 mb-3">Thêm lựa chọn phù hợp với lịch của bạn</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">
-              Chỉ hiển thị những dịch vụ Car Match đang tiếp nhận yêu cầu và có thể phản hồi ngay.
-            </p>
+          <div className="text-center mb-8">
+            <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide mb-2">Dịch vụ khác</p>
+            <h2 id="dich-vu-sap-co" className="text-3xl font-bold text-gray-900">Thêm lựa chọn cho lịch của bạn</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[
               {
                 icon: '✈️',
                 label: 'Xe sân bay Nội Bài',
-                desc: 'Gửi điểm đón, giờ bay, nhà ga và số vali để Car Match báo phương án xe phù hợp qua Zalo.',
+                desc: 'Gửi giờ bay, nhà ga và số vali để nhận phương án phù hợp.',
                 tag: 'Đang nhận yêu cầu',
                 href: '/xe-san-bay-noi-bai',
               },
               {
                 icon: '🔑',
                 label: 'Thuê xe theo tháng',
-                desc: 'Chọn mẫu xe, thời hạn và khu vực nhận xe để nhận báo giá dài hạn rõ ràng.',
+                desc: 'Chọn mẫu xe, thời hạn và điểm nhận để xem gói dài hạn.',
                 tag: 'Đang nhận yêu cầu',
                 href: '/thue-xe-thang',
               },
@@ -1858,116 +1642,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── VERIFIABLE TRUST ───────────────────────────────────── */}
-      <section className="py-20 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-center text-sm font-semibold uppercase tracking-widest text-brand-600 mb-2">Minh bạch trước khi đặt</p>
-          <h2 className="text-center text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Những thông tin bạn có thể tự kiểm tra
-          </h2>
-          <p className="mx-auto mb-12 max-w-2xl text-center text-gray-500">
-            Car Match ưu tiên bằng chứng ngay trong luồng đặt xe thay vì những lời cam kết khó kiểm chứng.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              {
-                icon: CalendarDays,
-                title: 'Lịch xe theo ngày',
-                description: 'Chọn ngày nhận/trả để lọc những xe còn lịch trước khi mở form đặt.',
-              },
-              {
-                icon: FileText,
-                title: 'Tổng giá theo lịch',
-                description: 'Giá thuê, số ngày, cọc dự kiến và khoản còn lại được hiển thị trước khi gửi.',
-              },
-              {
-                icon: Shield,
-                title: 'Bàn giao hai chiều',
-                description: 'Tình trạng xe, nhiên liệu/pin, số km và phụ kiện được ghi nhận khi nhận và trả.',
-              },
-              {
-                icon: Clock,
-                title: 'Hỗ trợ 7h–22h',
-                description: 'Gọi hoặc nhắn Zalo khi cần tư vấn thêm; việc đặt xe chính vẫn thực hiện trên web.',
-              },
-            ].map(({ icon: Icon, title, description }) => (
-              <div key={title} className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
-                <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <h3 className="font-bold text-gray-900">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">{description}</p>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-sm text-gray-500 mt-8">
-            Muốn xem phản hồi công khai?{' '}
-            <a
-              href="https://www.facebook.com/carmatchvn"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-600 hover:underline font-medium"
-            >
-              Xem trang Facebook Car Match
-            </a>
-          </p>
-        </div>
-      </section>
-
       {/* ── FINAL CTA ─────────────────────────────────────────── */}
-      <section className="py-24 px-4 bg-gradient-to-br from-brand-50 to-brand-50">
+      <section className="py-16 px-4 bg-gradient-to-br from-brand-50 to-brand-50">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 id="dat-xe-car-match" className="text-4xl sm:text-5xl font-bold text-gray-900 mb-5">
-            Bạn cần xe cho cuối tuần hay đi công tác?
+          <h2 id="dat-xe-car-match" className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+            Chọn xe cho lịch của bạn
           </h2>
-          <p className="text-gray-600 text-xl mb-10">
-            Chọn lịch, xem xe phù hợp và tổng giá trước khi gửi yêu cầu đặt trực tiếp trên website.
+          <p className="text-gray-600 text-lg mb-8">
+            Xem xe, tổng giá và gửi yêu cầu trực tiếp trên website.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/xe"
               onClick={() => trackCtaClick('home_final_direct_booking', { target_path: '/xe' })}
-              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-brand-600 text-white font-bold text-xl rounded-full hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-brand-600 text-white font-bold text-lg rounded-full hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
               data-cta="home-final-direct-booking"
             >
               <Car className="w-6 h-6" />
-              Chọn xe & đặt trực tiếp
+              Chọn xe
             </Link>
             <a
               href={ZALO_LINK}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackZaloClick('home_final_support')}
-              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-white text-gray-800 font-semibold text-xl rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-gray-800 font-semibold text-lg rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm"
               data-cta="home-final-zalo-support"
             >
               <MessageCircle className="w-6 h-6" />
-              Cần tư vấn qua Zalo
-            </a>
-          </div>
-          <p className="text-gray-600 text-sm mt-6">
-            Zalo: <span className="text-gray-600">0971 163 290</span> · Phản hồi 7h–22h
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm">
-            <span className="inline-flex items-center gap-2 font-semibold text-gray-700">
-              <Share2 className="h-4 w-4" />
-              Chia sẻ
-            </span>
-            <a
-              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-gray-200 bg-white px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
-              data-share="facebook"
-            >
-              Facebook
-            </a>
-            <a
-              href={`mailto:?subject=${encodeURIComponent('Car Match - thuê xe tự lái Hà Nội')}&body=${encodeURIComponent(SITE_URL)}`}
-              className="rounded-full border border-gray-200 bg-white px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
-              data-share="email"
-            >
-              Email
+              Hỏi qua Zalo
             </a>
           </div>
         </div>

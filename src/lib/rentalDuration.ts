@@ -121,8 +121,5 @@ export function formatRentalBillingDays(days: number): string {
   if (days === 1) return '1 ngày';
   if (Number.isInteger(days)) return `${days} ngày`;
 
-  const wholeDays = Math.floor(days);
-  return wholeDays > 0
-    ? `${wholeDays} ngày + nửa ngày`
-    : 'Nửa ngày';
+  return `${String(days).replace('.', ',')} ngày`;
 }

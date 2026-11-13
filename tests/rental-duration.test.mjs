@@ -9,7 +9,7 @@ import {
   formatRentalBillingDays,
 } from '../src/lib/rentalDuration.ts';
 import { calculateRentalPricingUnits as calculateServerPricingUnits } from '../api/_rental-duration.js';
-import { calculateRentalAmount } from '../api/bookings.js';
+import { calculateRentalAmount, deliveryFeeForMode } from '../api/bookings.js';
 
 test('calendar selection defaults to 08:00 pickup and 20:00 return', () => {
   assert.equal(DEFAULT_PICKUP_HOUR, 8);
@@ -35,6 +35,7 @@ test('same-day half session is displayed as 0.5 day but charged at 70 percent', 
 test('morning pickup through next morning counts and charges 1.5 days', () => {
   const units = calculateRentalPricingUnits('2026-11-11', 8, '2026-11-12', 8);
   assert.deepEqual(units, { billingDays: 1.5, priceDays: 1.5 });
+  assert.equal(formatRentalBillingDays(units.billingDays), '1,5 ngày');
 });
 
 test('morning pickup through 20:00 next day counts two days', () => {
@@ -45,10 +46,9 @@ test('morning pickup through 20:00 next day counts two days', () => {
 });
 
 test('morning pickup through the morning two dates later counts 2.5 days', () => {
-  assert.deepEqual(
-    calculateRentalPricingUnits('2026-11-11', 8, '2026-11-13', 8),
-    { billingDays: 2.5, priceDays: 2.5 },
-  );
+  const units = calculateRentalPricingUnits('2026-11-11', 8, '2026-11-13', 8);
+  assert.deepEqual(units, { billingDays: 2.5, priceDays: 2.5 });
+  assert.equal(formatRentalBillingDays(units.billingDays), '2,5 ngày');
 });
 
 test('weekday 13:00 pickup through 08:00 or 12:00 next day counts one day', () => {
@@ -109,4 +109,18 @@ test('frontend and booking API use the same pricing matrix', () => {
   for (const args of cases) {
     assert.deepEqual(calculateServerPricingUnits(...args), calculateRentalPricingUnits(...args));
   }
+});
+
+test('booking API prices each delivery mode consistently', () => {
+  assert.equal(deliveryFeeForMode('self'), 0);
+  assert.equal(deliveryFeeForMode('delivery', 'pickup'), 100_000);
+  assert.equal(deliveryFeeForMode('delivery', 'return'), 100_000);
+  assert.equal(deliveryFeeForMode('delivery', 'roundtrip'), 200_000);
+  assert.equal(deliveryFeeForMode('delivery'), 200_000);
+  assert.equal(deliveryFeeForMode('airport', 'pickup'), 250_000);
+  assert.equal(deliveryFeeForMode('airport', 'return'), 250_000);
+  assert.equal(deliveryFeeForMode('airport', 'roundtrip'), 500_000);
+  assert.equal(deliveryFeeForMode('airport'), 500_000);
+  assert.equal(deliveryFeeForMode('airport', 'invalid'), null);
+  assert.equal(deliveryFeeForMode('unknown'), null);
 });
