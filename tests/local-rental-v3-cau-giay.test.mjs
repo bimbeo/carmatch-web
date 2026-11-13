@@ -16,6 +16,12 @@ test('V3 is piloted only on Cau Giay, keeping shared local pages intact', async 
   assert.match(source, /id="giao-nhan"/);
   assert.match(source, /id="cau-hoi"/);
   assert.match(source, /<CarCard key=\{car\.id\}/);
+  assert.match(source, /optimizedImageUrl\(heroCar\.images\[0\]/);
+  assert.match(source, /displayedLocalAreas\.map/);
+  assert.match(source, /localRentalAreas\.filter/);
+  assert.match(source, /<Navbar collapseAtLg=\{isCauGiayPilot\}/);
+  assert.match(source, /const PHONE_LINK = 'tel:0971163290'/);
+  assert.doesNotMatch(source, /application\/ld\+json/);
 });
 
 test('V3 pricing reuses the website billing logic and does not invent availability', async () => {
@@ -26,6 +32,7 @@ test('V3 pricing reuses the website billing logic and does not invent availabili
   assert.match(tools, /không phải danh sách xe đã được xác nhận còn trống/);
   assert.match(tools, /chưa gồm cọc, giao nhận và phụ phí/);
   assert.match(tools, /trackZaloClick\(source \+ '_estimate'/);
+  assert.doesNotMatch(tools, /available\s*===\s*true|InStock|LimitedAvailability/);
   assert.match(billing, /export function calculateRentalBillingDays/);
 });
 
