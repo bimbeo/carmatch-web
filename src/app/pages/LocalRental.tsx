@@ -29,6 +29,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import { vehicleImageAlt } from '@/lib/imageAlt';
+import { cauGiayHubData } from '@/data/localHubsData';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
@@ -40,22 +41,42 @@ const SITE_URL = 'https://www.carmatch.vn';
 const ZALO_LINK = 'https://zalo.me/0971163290';
 const PHONE_LINK = 'tel:0971163290';
 
-function selectRepresentativeCars(catalog: CarModel[], keywords: string[]) {
+function representativeModelKey(car: CarModel) {
+  return `${car.brand} ${car.name}`
+    .toLocaleLowerCase('vi-VN')
+    .replace(/\b(19|20)\d{2}\b/g, '')
+    .replace(/[^a-z0-9à-ỹ]+/gi, ' ')
+    .trim();
+}
+
+function normalizedVehicleSearchText(value: string) {
+  return value.toLocaleLowerCase('vi-VN').replace(/[^a-z0-9à-ỹ]+/gi, '');
+}
+
+function selectRepresentativeCars(catalog: CarModel[], keywords: string[], limit = 3) {
   const pricedCars = catalog.filter((car) => car.price > 0).sort((a, b) => a.price - b.price);
   const selected: CarModel[] = [];
+  const selectedModels = new Set<string>();
+
+  const addCar = (car: CarModel) => {
+    const modelKey = representativeModelKey(car);
+    if (selectedModels.has(modelKey)) return;
+    selectedModels.add(modelKey);
+    selected.push(car);
+  };
 
   for (const keyword of keywords) {
     const match = pricedCars.find((car) => (
-      car.name.toLocaleLowerCase('vi-VN').includes(keyword) &&
-      !selected.some((item) => item.id === car.id)
+      normalizedVehicleSearchText(car.name).includes(normalizedVehicleSearchText(keyword)) &&
+      !selectedModels.has(representativeModelKey(car))
     ));
-    if (match) selected.push(match);
-    if (selected.length === 3) break;
+    if (match) addCar(match);
+    if (selected.length === limit) break;
   }
 
   for (const car of pricedCars) {
-    if (!selected.some((item) => item.id === car.id)) selected.push(car);
-    if (selected.length === 3) break;
+    addCar(car);
+    if (selected.length === limit) break;
   }
 
   return selected;
@@ -74,7 +95,10 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
   const isCauGiayPilot = area.slug === 'cau-giay';
   const { cars } = useVehicles();
   const catalog = cars.length > 0 ? cars : fallbackCars;
-  const representativeCars = selectRepresentativeCars(catalog, area.recommendedKeywords);
+  const representativeCars = selectRepresentativeCars(catalog, area.recommendedKeywords, isCauGiayPilot ? 6 : 3);
+  const fleetModelCount = new Set(
+    catalog.filter((car) => car.price > 0 && car.seats >= 4 && car.seats <= 7).map(representativeModelKey),
+  ).size;
   const startingPrice = representativeCars.length > 0
     ? Math.min(...representativeCars.map((car) => car.price))
     : null;
@@ -117,10 +141,10 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                   Thuê xe tự lái tại {area.name}{isCauGiayPilot && <span className="text-brand-600">.</span>}
                   {isCauGiayPilot && <span className="mt-1 block text-slate-500">Giao nhận theo lịch đã chốt.</span>}
                 </h1>
-                <p className={isCauGiayPilot ? "mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8" : "mt-6 max-w-3xl text-lg leading-8 text-slate-300"}>{area.heroAnswer}</p>
+                <p className={isCauGiayPilot ? "mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8" : "mt-6 max-w-3xl text-lg leading-8 text-slate-300"}>{isCauGiayPilot ? cauGiayHubData.heroLead : area.heroAnswer}</p>
                 {isCauGiayPilot && (
                   <div className="mt-6 flex flex-wrap gap-2.5 text-sm font-semibold text-slate-700">
-                    {['Xe từ danh mục Car Match', 'Giá theo dữ liệu hiện tại', 'Giao nhận xác nhận trước'].map((item) => (
+                    {cauGiayHubData.heroPills.map((item) => (
                       <span key={item} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" /> {item}
                       </span>
@@ -162,7 +186,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                       className="aspect-[4/3] h-full w-full object-cover"
                     />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent p-6 pt-20 text-white sm:p-8">
-                      <p className="text-sm font-semibold text-blue-100">Mẫu xe từ dữ liệu hiện tại</p>
+                      <p className="text-sm font-semibold text-blue-100">{heroCar.popular ? 'Mẫu xe được chọn nhiều' : 'Mẫu xe gợi ý tại Cầu Giấy'}</p>
                       <div className="mt-1 flex items-end justify-between gap-4">
                         <div>
                           <p className="text-2xl font-black">{heroCar.name}</p>
@@ -173,8 +197,8 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                     </div>
                   </div>
                   <div className="absolute -bottom-5 -left-3 hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xl sm:block lg:-left-8">
-                    <p className="flex items-center gap-2 text-sm font-bold text-slate-900"><ShieldCheck className="h-5 w-5 text-brand-600" /> Chỉ chốt sau khi kiểm tra</p>
-                    <p className="mt-1 text-xs text-slate-500">Lịch xe · địa chỉ · tổng chi phí</p>
+                    <p className="flex items-center gap-2 text-sm font-bold text-slate-900"><ShieldCheck className="h-5 w-5 text-brand-600" /> Giữ lịch online 0đ</p>
+                    <p className="mt-1 text-xs text-slate-500">Đối chiếu xe · địa chỉ · tổng chi phí</p>
                   </div>
                 </div>
               )}
@@ -182,8 +206,8 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
 
             <div className={isCauGiayPilot ? "mt-12 grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:grid-cols-3 lg:mt-16" : "mt-10 grid max-w-4xl gap-3 sm:grid-cols-3"}>
               <div className={isCauGiayPilot ? "bg-white p-5" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
-                <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Car className="h-4 w-4 text-brand-600" /> Xe gợi ý từ dữ liệu</p>
-                <p className="mt-1 text-2xl font-black">{representativeCars.length} mẫu</p>
+                <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Car className="h-4 w-4 text-brand-600" /> Đội xe 4–7 chỗ</p>
+                <p className="mt-1 text-2xl font-black">{fleetModelCount} mẫu xe</p>
               </div>
               <div className={isCauGiayPilot ? "bg-white p-5" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
                 <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Gauge className="h-4 w-4 text-brand-600" /> Giá ngày từ</p>
@@ -191,7 +215,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
               </div>
               <div className={isCauGiayPilot ? "bg-white p-5" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
                 <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Clock3 className="h-4 w-4 text-brand-600" /> Điểm giao nhận</p>
-                <p className="mt-1 text-xl font-black">Xác nhận theo địa chỉ</p>
+                <p className="mt-1 text-xl font-black">Miễn phí hoặc giao tận nơi</p>
               </div>
             </div>
           </div>
@@ -199,36 +223,27 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
 
         {isCauGiayPilot && <LocalRentalQuickAnswer area={area} />}
 
-        <section className={isCauGiayPilot ? "border-b border-slate-200 bg-[#f7f8fb] py-14 sm:py-16" : "border-b border-slate-200 bg-slate-50 py-10"}>
+        {!isCauGiayPilot && <section className="border-b border-slate-200 bg-slate-50 py-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {isCauGiayPilot && (
-              <div className="mb-7 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-brand-700">Bối cảnh Cầu Giấy</p>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Giao xe đúng điểm quan trọng hơn chỉ ghi tên quận</h2>
-                </div>
-                <p className="max-w-md text-sm leading-6 text-slate-500">Thông tin dưới đây giúp dự kiến điểm hẹn; không phải danh sách điểm giao xe cố định.</p>
-              </div>
-            )}
             <div className="grid gap-4 md:grid-cols-3">
               {area.localContexts.map((item) => (
-                <article key={item.title} className={isCauGiayPilot ? "group rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:border-brand-200" : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"}>
-                  <span className={isCauGiayPilot ? "inline-flex rounded-xl bg-brand-50 p-2.5 text-brand-700" : "text-brand-600"}><MapPin className="h-5 w-5" /></span>
+                <article key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <span className="text-brand-600"><MapPin className="h-5 w-5" /></span>
                   <h3 className="mt-4 text-lg font-black">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
                 </article>
               ))}
             </div>
           </div>
-        </section>
+        </section>}
 
         <section id="xe-goi-y" className="scroll-mt-24 py-16 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
               <div className="max-w-3xl">
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Xe và giá từ danh mục hiện tại</p>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">{isCauGiayPilot ? 'Đội xe phục vụ tại khu vực' : 'Xe và giá từ danh mục hiện tại'}</p>
                 <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Gợi ý xe cho khách tại {area.shortName}</h2>
-                <p className="mt-4 text-slate-600">Giá hiển thị theo dữ liệu từng xe, chưa khẳng định xe trống. Lịch, tổng tiền và điểm giao nhận chỉ được chốt sau khi Car Match kiểm tra yêu cầu cụ thể.</p>
+                <p className="mt-4 text-slate-600">{isCauGiayPilot ? 'Chọn mẫu xe theo số người, hành lý và hành trình. Mỗi thẻ hiển thị đơn giá cùng định mức km thực tế; đội vận hành sẽ đối chiếu lịch ngay khi nhận yêu cầu.' : 'Giá hiển thị theo dữ liệu từng xe, chưa khẳng định xe trống. Lịch, tổng tiền và điểm giao nhận chỉ được chốt sau khi Car Match kiểm tra yêu cầu cụ thể.'}</p>
               </div>
               <Link
                 to="/xe"
@@ -266,7 +281,11 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                 <p className="flex items-center gap-2 font-black"><MapPin className={isCauGiayPilot ? "h-5 w-5 text-blue-200" : "h-5 w-5 text-brand-600"} /> Vị trí cần đối chiếu</p>
                 <p className={isCauGiayPilot ? "mt-2 text-sm leading-6 text-slate-300" : "mt-2 text-sm leading-6 text-slate-600"}>{area.locationNote}</p>
               </div>
-              {isCauGiayPilot && <p className="mt-5 text-xs leading-5 text-slate-400">Ví dụ ngữ cảnh: tên phố, tòa nhà, sảnh/cổng, vị trí bản đồ. Đây không phải danh sách điểm giao xe đã cam kết.</p>}
+              {isCauGiayPilot && (
+                <ul className="mt-5 space-y-2 text-sm leading-6 text-slate-300">
+                  {cauGiayHubData.pickupAreas.map((pickupArea) => <li key={pickupArea} className="flex gap-2"><CheckCircle2 className="mt-1 h-4 w-4 flex-none text-blue-200" />{pickupArea}</li>)}
+                </ul>
+              )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
@@ -287,11 +306,11 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
 
         <section className={isCauGiayPilot ? "bg-[#f7f8fb] py-16 sm:py-24" : "py-16 sm:py-20"}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-12 lg:grid-cols-2">
+            <div className={isCauGiayPilot ? "grid gap-12" : "grid gap-12 lg:grid-cols-2"}>
               <div>
                 <Route className="h-10 w-10 text-brand-600" />
                 <h2 className="mt-4 text-3xl font-black tracking-[-0.03em]">Chọn xe theo chuyến đi, không chỉ theo số ghế</h2>
-                <div className="mt-6 space-y-4">
+                <div className={isCauGiayPilot ? "mt-6 grid gap-4 md:grid-cols-3" : "mt-6 space-y-4"}>
                   {area.useCases.map((item, index) => {
                     const IntentIcon = [Building2, Plane, Luggage][index] || Sparkles;
                     return (
@@ -304,7 +323,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                   })}
                 </div>
               </div>
-              <div>
+              {!isCauGiayPilot && <div>
                 <Calculator className="h-10 w-10 text-orange-600" />
                 <h2 className="mt-4 text-3xl font-black tracking-tight">Cách tính tổng chi phí trước khi chốt</h2>
                 <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_25px_rgba(15,23,42,0.04)]">
@@ -321,13 +340,13 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                     </div>
                   ))}
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
         </section>
 
         <section className="bg-slate-950 py-16 text-white sm:py-20">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+          <div className={`mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:px-8 ${isCauGiayPilot ? '' : 'lg:grid-cols-2'}`}>
             <div>
               <FileCheck2 className="h-10 w-10 text-orange-400" />
               <h2 className="mt-4 text-3xl font-black tracking-tight">Giấy tờ và bước kiểm tra khi nhận xe</h2>
@@ -342,7 +361,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                 ))}
               </ul>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-8">
+            {!isCauGiayPilot && <div className="rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-8">
               <ShieldCheck className="h-9 w-9 text-blue-300" />
               <h2 className="mt-4 text-2xl font-black">Lịch xe chỉ chốt sau khi kiểm tra</h2>
               <p className="mt-3 leading-7 text-slate-300">Website giúp so sánh mẫu xe và giá. Car Match vẫn cần đối chiếu ngày giờ, địa chỉ, tình trạng xe và điều kiện thuê trước khi xác nhận giữ lịch.</p>
@@ -354,7 +373,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                   <Phone className="h-4 w-4" /> 0971 163 290
                 </a>
               </div>
-            </div>
+            </div>}
           </div>
         </section>
 

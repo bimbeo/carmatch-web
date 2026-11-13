@@ -22,7 +22,7 @@ export const wave2LocalRentalAreas: LocalRentalArea[] = [
       { title: 'Đón khách sân bay', description: 'Chọn xe theo số người, vali và nhà ga thay vì chỉ theo giá.' },
       { title: 'Cuối tuần đi tỉnh', description: 'Gửi điểm đến, km và hành lý để kiểm tra xe 5 hoặc 7 chỗ.' },
     ],
-    recommendedKeywords: ['vf 3', 'vf3', 'vf 5', 'vf5', 'creta'],
+    recommendedKeywords: ['vf 3', 'vf 5', 'vf 6', 'mazda 3', 'xpander', 'carnival'],
     relatedLinks: [
       { href: '/xe-san-bay-noi-bai', label: 'Xe sân bay Nội Bài' },
       { href: '/di-dau/ba-vi', label: 'Lịch trình đi Ba Vì' },

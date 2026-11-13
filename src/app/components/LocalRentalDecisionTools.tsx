@@ -5,6 +5,7 @@ import { formatPrice, type Car } from '@/data/cars';
 import { calculateRentalBillingDays, formatRentalBillingDays } from '@/lib/rentalDuration';
 import { trackCtaClick, trackZaloClick } from '@/lib/analytics';
 import type { LocalRentalArea } from '@/data/localRentalAreas';
+import { cauGiayHubData } from '@/data/localHubsData';
 
 const ZALO_BASE = 'https://zalo.me/0971163290';
 const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
@@ -16,6 +17,29 @@ interface AreaProps {
 interface PlannerProps extends AreaProps {
   cars: Car[];
   source: string;
+}
+
+function getTomorrowIsoDate() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const day = String(tomorrow.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function describeVehicleFit(car: Car) {
+  const normalizedName = car.name.toLocaleLowerCase('vi-VN');
+  if (/carnival|innova|xpander|limo/.test(normalizedName) || car.seats >= 7) {
+    return { luggage: '3–5 vali', need: 'Gia đình đông, đi tỉnh' };
+  }
+  if (/vf\s*3/.test(normalizedName) || car.seats <= 4) {
+    return { luggage: '1–2 vali nhỏ', need: 'Đi phố, nhóm nhỏ' };
+  }
+  if (/vf\s*6|creta|mazda/.test(normalizedName)) {
+    return { luggage: '2–3 vali', need: 'Gia đình, đường dài' };
+  }
+  return { luggage: '2 vali', need: 'Đi phố, cuối tuần' };
 }
 
 export function LocalRentalQuickAnswer({ area }: AreaProps) {
@@ -37,13 +61,12 @@ export function LocalRentalQuickAnswer({ area }: AreaProps) {
         </nav>
         <div className="grid overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#f7f8fb] shadow-[0_16px_45px_rgba(15,23,42,0.06)] lg:grid-cols-[1.2fr_0.8fr]">
           <div className="p-6 sm:p-8 lg:p-10">
-            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-brand-700">Câu trả lời ngắn</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-brand-700">Thông tin nhanh tại khu vực</p>
             <h2 className="mt-3 max-w-2xl text-2xl font-black tracking-[-0.025em] text-slate-950 sm:text-3xl">
-              Có thể thuê xe tại {area.shortName}, nhưng cần chốt đúng địa chỉ và lịch.
+              Thuê và nhận xe tự lái tại {area.shortName} như thế nào?
             </h2>
-            <p className="mt-4 max-w-3xl leading-7 text-slate-700">{area.heroAnswer}</p>
-            <p className="mt-4 text-sm leading-6 text-slate-500">
-              Giá trên trang là dữ liệu theo từng mẫu xe. Tình trạng còn lịch, tiền cọc, phí giao nhận và tổng chi phí chỉ được xác nhận sau khi kiểm tra yêu cầu cụ thể.
+            <p className="mt-4 max-w-3xl leading-7 text-slate-700">
+              Tự nhận xe miễn phí tại {cauGiayHubData.pickupHub}, hoặc đăng ký giao xe tận nơi với phí từ {formatPrice(cauGiayHubData.deliveryFeePerWay)}/lượt. Chuẩn bị {cauGiayHubData.requiredDocuments}; gửi lịch qua Zalo để đội vận hành đối chiếu mẫu xe và tổng chi phí.
             </p>
           </div>
           <div className="bg-[#10163f] p-6 text-white sm:p-8 lg:p-10">
@@ -60,9 +83,9 @@ export function LocalRentalQuickAnswer({ area }: AreaProps) {
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           {[
-            [Gauge, 'Xe & giá', 'Lấy từ danh mục Car Match hiện tại'],
-            [Clock3, 'Lịch xe', 'Kiểm tra theo ngày giờ yêu cầu'],
-            [MapPin, 'Giao nhận', 'Xác nhận theo địa chỉ cụ thể'],
+            [Gauge, 'Đội xe & giá', 'Xe 4–7 chỗ, giá lấy trực tiếp từ danh mục'],
+            [ShieldCheck, 'Thủ tục', 'CCCD gắn chip + GPLX hạng B bản gốc'],
+            [Clock3, 'Giờ phục vụ', cauGiayHubData.serviceHours],
           ].map(([Icon, label, note]) => {
             const FactIcon = Icon as typeof Gauge;
             return (
@@ -80,8 +103,9 @@ export function LocalRentalQuickAnswer({ area }: AreaProps) {
 
 export function LocalRentalPlanner({ area, cars, source }: PlannerProps) {
   const [carId, setCarId] = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [defaultRentalDate] = useState(getTomorrowIsoDate);
+  const [fromDate, setFromDate] = useState(defaultRentalDate);
+  const [toDate, setToDate] = useState(defaultRentalDate);
   const [fromHour, setFromHour] = useState(8);
   const [toHour, setToHour] = useState(20);
   const [pickupLocation, setPickupLocation] = useState('');
@@ -94,6 +118,7 @@ export function LocalRentalPlanner({ area, cars, source }: PlannerProps) {
     ? calculateRentalBillingDays(fromDate, fromHour, toDate, toHour)
     : 0;
   const validPeriod = dateRangeReady && days > 0;
+  const isDefaultPeriod = fromDate === defaultRentalDate && toDate === defaultRentalDate && fromHour === 8 && toHour === 20;
   const baseCost = validPeriod && car?.price ? Math.round(days * car.price) : null;
   const canRequest = Boolean(car && validPeriod && pickupLocation.trim());
   const description = [
@@ -115,32 +140,34 @@ export function LocalRentalPlanner({ area, cars, source }: PlannerProps) {
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Công cụ ra quyết định</p>
           <h2 className="mt-3 text-3xl font-black tracking-[-0.035em] sm:text-5xl">So sánh xe. Tính chi phí. Gửi một lần.</h2>
           <p className="mt-3 leading-7 text-slate-600">
-            Các mẫu dưới đây được lấy từ danh mục của Car Match, không phải danh sách xe đã được xác nhận còn trống vào ngày bạn chọn. Hãy đối chiếu số người, hành lý và số km thay vì chỉ nhìn đơn giá.
+            Đối chiếu số người, hành lý, định mức km và nhu cầu sử dụng để chọn mẫu phù hợp. Đơn giá được lấy trực tiếp từ danh mục Car Match và công cụ bên dưới giúp bạn dự tính nhanh chi phí thuê cơ bản.
           </p>
         </div>
         {cars.length > 0 && (
           <div className="mt-8 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
-            <table className="w-full min-w-[620px] text-left text-sm">
-              <caption className="sr-only">So sánh xe, số ghế, nhiên liệu, giới hạn km và giá tham khảo</caption>
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <caption className="sr-only">So sánh xe, số ghế, hành lý, nhu cầu sử dụng, giới hạn km và giá tham khảo</caption>
               <thead className="bg-[#10163f] text-white">
                 <tr>
-                  {['Mẫu xe', 'Chỗ ngồi', 'Nhiên liệu', 'Km/ngày', 'Giá ngày từ'].map((head) => (
+                  {['Mẫu xe', 'Chỗ ngồi', 'Hành lý', 'Phù hợp', 'Km/ngày', 'Giá ngày từ'].map((head) => (
                     <th key={head} scope="col" className="border-b border-white/10 px-5 py-4 text-xs font-bold uppercase tracking-[0.08em]">{head}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {cars.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-brand-50/50">
+                {cars.map((item) => {
+                  const fit = describeVehicleFit(item);
+                  return <tr key={item.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-brand-50/50">
                     <td className="px-5 py-4 font-bold text-brand-700">
                       <Link to={'/xe/' + item.slug} className="hover:underline">{item.name}</Link>
                     </td>
                     <td className="px-5 py-4">{item.seats} chỗ</td>
-                    <td className="px-5 py-4">{item.fuel}</td>
+                    <td className="px-5 py-4">{fit.luggage}</td>
+                    <td className="px-5 py-4">{fit.need}</td>
                     <td className="px-5 py-4">{item.kmPerDay > 0 ? item.kmPerDay + ' km' : 'Xác nhận theo xe'}</td>
                     <td className="px-5 py-4 font-bold text-slate-950">{formatPrice(item.price)}</td>
-                  </tr>
-                ))}
+                  </tr>;
+                })}
               </tbody>
             </table>
           </div>
@@ -221,7 +248,7 @@ export function LocalRentalPlanner({ area, cars, source }: PlannerProps) {
               </div>
               <div className="flex items-start justify-between gap-5 border-b border-white/10 pb-4">
                 <span className="text-slate-300">Thời lượng tính tiền</span>
-                <strong>{validPeriod ? formatRentalBillingDays(days) : 'Chưa chọn ngày'}</strong>
+                <strong>{validPeriod ? (isDefaultPeriod ? '1 ngày (Mặc định)' : formatRentalBillingDays(days)) : 'Chưa chọn ngày'}</strong>
               </div>
               <div className="flex items-start justify-between gap-5 border-b border-white/10 pb-4">
                 <span className="text-slate-300">Thuê xe cơ bản</span>
@@ -241,7 +268,7 @@ export function LocalRentalPlanner({ area, cars, source }: PlannerProps) {
           </aside>
         </div>
         <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-slate-500">
-          <MapPin className="mt-0.5 h-4 w-4 flex-none" /> Thông tin giao nhận theo từng địa chỉ sẽ được hai bên xác nhận, không mặc định Car Match có chi nhánh hay xe đỗ sẵn ở mọi khu vực.
+          <MapPin className="mt-0.5 h-4 w-4 flex-none" /> Đội vận hành Car Match tiếp nhận địa chỉ, đối chiếu lịch xe thực tế và phản hồi phương án giao nhận qua Zalo hoặc điện thoại.
         </p>
       </div>
     </section>
