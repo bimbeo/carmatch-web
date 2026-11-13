@@ -39,14 +39,21 @@ const quickInfo = [
 ];
 
 const serviceAreas = [
-  'Vinhomes Ocean Park',
-  'Times City',
-  'Smart City',
-  'Royal City',
-  'The Manor Central Park',
-  'Ecopark',
-  'Linh Đàm',
-  'Nội thành Hà Nội',
+  {
+    name: 'Cầu Giấy',
+    address: 'Khu vực Tôn Thất Thuyết – Duy Tân',
+    mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8',
+  },
+  {
+    name: 'The Manor Central Park',
+    address: 'Nguyễn Xiển, Hoàng Mai',
+    mapUrl: 'https://maps.app.goo.gl/Nr1DysckyzRMBVqE8',
+  },
+  {
+    name: 'Vinhomes Ocean Park',
+    address: 'Gia Lâm, Hà Nội',
+    mapUrl: 'https://maps.app.goo.gl/G8UHdiVEqe7TFqxk9',
+  },
 ];
 
 const contactNotes = [
@@ -191,17 +198,25 @@ export default function Contact() {
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[380px_1fr]">
             <div>
               <p className="mb-3 text-sm font-semibold uppercase text-brand-600">Giao nhận xe</p>
-              <h2 className="text-3xl font-semibold text-slate-950 sm:text-4xl">Khu vực thường phục vụ</h2>
+              <h2 className="text-3xl font-semibold text-slate-950 sm:text-4xl">Điểm hẹn ưu tiên</h2>
               <p className="mt-4 text-sm leading-7 text-slate-600">
                 Lịch giao nhận cụ thể phụ thuộc xe trống, thời điểm thuê và vị trí nhận xe trong ngày.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-3">
               {serviceAreas.map((area) => (
-                <div key={area} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <a
+                  key={area.name}
+                  href={area.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackCtaClick('contact_hub_map_click', { hub: area.name, target: area.mapUrl })}
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition-colors hover:border-brand-200 hover:bg-brand-50"
+                >
                   <MapPin className="mb-3 h-4 w-4 text-brand-600" />
-                  <p className="text-sm font-semibold leading-6 text-slate-700">{area}</p>
-                </div>
+                  <p className="text-sm font-semibold leading-6 text-slate-800">{area.name}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">{area.address}</p>
+                </a>
               ))}
             </div>
           </div>

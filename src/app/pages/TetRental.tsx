@@ -33,7 +33,7 @@ export default function TetRental() {
           <div className="max-w-5xl mx-auto text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-sm font-bold text-red-700 mb-6"><CalendarDays className="w-4 h-4" /> Thuê xe Tết 2027 tại Hà Nội</span>
             <h1 className="text-4xl sm:text-6xl font-bold leading-tight mb-6">Chọn xe theo chuyến Tết, không chỉ theo số ghế</h1>
-            <p className="max-w-3xl mx-auto text-lg text-gray-600 leading-relaxed mb-8">Câu trả lời ngắn: hãy gửi ngày nhận–trả, số người, số vali, tuyến đi và khu vực nhận xe. Car Match kiểm tra xe phù hợp và báo điều kiện cho đúng thời điểm; website không cam kết xe trống hoặc một mức giá chung trước khi lịch được xác nhận.</p>
+            <p className="max-w-3xl mx-auto text-lg text-gray-600 leading-relaxed mb-8">Hãy gửi ngày nhận–trả, số người, số vali, tuyến đi và khu vực nhận xe. Car Match kiểm tra xe phù hợp và báo điều kiện cho đúng thời điểm; website không cam kết xe trống hoặc một mức giá chung trước khi lịch được xác nhận.</p>
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <a href="/xe" onClick={() => trackCtaClick('tet_rental_view_fleet')} className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-7 py-4 font-bold text-white hover:bg-brand-700">Xem các mẫu xe <ArrowRight className="w-4 h-4" /></a>
               <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('tet_rental_hero')} className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-7 py-4 font-semibold hover:bg-gray-50">Gửi lịch qua Zalo</a>

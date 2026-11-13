@@ -70,11 +70,13 @@ function createQuickSearchHref({
   if (to) params.set('to', to);
   params.set('pickupHour', String(pickupHour));
   params.set('returnHour', String(returnHour));
+  if (from) params.set('pickup', `${from}T${String(pickupHour).padStart(2, '0')}:00`);
+  if (to) params.set('return', `${to}T${String(returnHour).padStart(2, '0')}:00`);
   const query = params.toString();
   return query ? `/xe?${query}` : '/xe';
 }
 const stats = [
-  { value: '20+', label: 'Mẫu xe', note: 'Xe 5 chỗ, 7 chỗ, xe điện', icon: Car },
+  { value: '', label: 'Mẫu xe', note: 'Xe 5 chỗ, 7 chỗ, xe điện', icon: Car },
   { value: '7h-22h', label: 'Hỗ trợ mỗi ngày', note: 'Tư vấn và xử lý phát sinh', icon: Clock },
   { value: 'Từ 600K', label: 'Giá thuê/ngày', note: 'Xe điện đô thị đến MPV 7 chỗ gia đình', icon: Zap },
   { value: 'Theo lịch', label: 'Kiểm tra xe', note: 'Đối chiếu xe trước khi xác nhận booking', icon: CalendarDays },
@@ -201,8 +203,12 @@ function buildHomePricingRows(cars: CarModel[]): HomePricingRow[] {
 const priorityCommercialLinks = [
   { label: 'Thuê Kia Carnival tại Hà Nội', href: '/xe/kia-carnival' },
   { label: 'Thuê VinFast VF3', href: '/xe/vinfast-vf3-2024' },
+  { label: 'Thuê VinFast VF5', href: '/xe/vinfast-vf5' },
+  { label: 'Thuê VinFast VF6', href: '/xe/vinfast-vf6' },
+  { label: 'Thuê xe điện tại Hà Nội', href: '/thue-xe-dien-ha-noi' },
+  { label: 'Thuê xe theo tháng', href: '/thue-xe-thang' },
+  { label: 'So sánh xe 7 chỗ', href: '/thue-xe-7-cho-tu-lai-ha-noi' },
   { label: 'Bảng giá thuê xe Hà Nội', href: '/blog/thue-xe-tu-lai-ha-noi-gia-bao-nhieu' },
-  { label: 'Kinh nghiệm thuê xe tự lái', href: '/blog/kinh-nghiem-thue-xe-tu-lai-ha-noi' },
 ];
 
 const homeFaqs = [
@@ -263,13 +269,13 @@ export default function Home() {
   const navigate = useNavigate();
 
   useSEO({
-    title: 'Thuê Xe Tự Lái Hà Nội — Giao Xe Tận Sảnh | Car Match',
-    description: 'Thuê xe tự lái Hà Nội từ 600K/ngày. Chọn lịch, xem tổng giá và đặt trực tiếp trên website. Giao xe tận sảnh Vinhomes, Ecopark, The Manor.',
+    title: 'Thuê Xe Tự Lái Hà Nội Từ 600K/Ngày | Car Match',
+    description: 'Thuê xe tự lái Hà Nội từ 600.000đ/ngày. Xem xe, giá theo lịch, giấy tờ, cọc và phí giao nhận trước khi gửi yêu cầu.',
     canonical: 'https://www.carmatch.vn/',
   });
 
   const [posts, setPosts] = useState<Post[]>([]);
-  const { cars } = useVehicles();
+  const { cars, loading } = useVehicles();
   const { promotions } = usePromotions();
   const [promoIndex, setPromoIndex] = useState(0);
   const promoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -329,6 +335,9 @@ export default function Home() {
   const readyCars = cars.filter((car) => car.price > 0);
   const allCarsPreview = cars.slice(0, 6);
   const totalCars = Math.max(cars.length, totalVehicleHint ?? 0);
+  const homeStats = stats.map((stat) => (
+    stat.label === 'Mẫu xe' ? { ...stat, value: loading ? '...' : String(totalCars) } : stat
+  ));
   const homePricingRows = useMemo(() => buildHomePricingRows(cars), [cars]);
 
   const quickPickupHour = Number(quickFromTime.slice(0, 2));
@@ -507,7 +516,7 @@ export default function Home() {
               </h1>
 
               <p className="cm-mobile-safe-width sm:max-w-none text-gray-600 text-lg sm:text-xl mb-3 leading-relaxed">
-                Chọn xe, ngày nhận/trả và xem tổng giá trước khi đặt.{' '}
+                Giá từ 600.000đ/ngày. Chọn xe, ngày nhận/trả và xem tổng giá trước khi đặt.{' '}
                 <span className="text-gray-900 font-semibold">Có xe điện, xe 5–7 chỗ và gói thuê tháng.</span>
               </p>
               <p className="cm-mobile-safe-width sm:max-w-none text-gray-500 text-sm mb-7 leading-relaxed">
@@ -651,7 +660,7 @@ export default function Home() {
       <section className="px-4 py-5 bg-white border-y border-gray-100">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {stats.map((stat) => {
+            {homeStats.map((stat) => {
               const Icon = stat.icon;
               return (
                 <div
@@ -1406,7 +1415,7 @@ export default function Home() {
               Thuê xe đi Tết hoặc đưa xe nhàn rỗi vào hợp tác
             </h2>
             <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
-              Khách thuê nên gửi ngày nhận–trả, số người, hành lý và tuyến đi. Chủ xe nên gửi mẫu xe, khu vực đỗ và lịch rảnh để Car Match thẩm định phương án phù hợp; việc gửi thông tin chưa phải cam kết còn xe hoặc doanh thu.
+              Khách thuê gửi ngày nhận–trả, số người, hành lý và tuyến đi để được kiểm tra xe phù hợp. Chủ xe gửi mẫu xe, khu vực đỗ và lịch rảnh để Car Match thẩm định phương án hợp tác.
             </p>
           </div>
           <div className="grid gap-6 lg:grid-cols-2">

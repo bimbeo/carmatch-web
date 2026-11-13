@@ -11,6 +11,7 @@ import {
   trackBookingValidationError,
   trackAvailabilityCheck,
   trackCtaClick,
+  trackEvent,
   trackPhoneClick,
   trackZaloClick,
 } from '@/lib/analytics';
@@ -379,12 +380,20 @@ function getInitialBookingSelection(today: Date) {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const requestedPickup = params.get('from');
+  const parseIsoSelection = (key: string) => {
+    const match = params.get(key)?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):\d{2}$/);
+    if (!match) return null;
+    const hour = Number(match[2]);
+    return hour >= 7 && hour <= 23 ? { date: match[1], hour } : null;
+  };
+  const pickupIso = parseIsoSelection('pickup');
+  const returnIso = parseIsoSelection('return');
+  const requestedPickup = params.get('from') || pickupIso?.date || null;
   const pickupDate =
     requestedPickup && /^\d{4}-\d{2}-\d{2}$/.test(requestedPickup) && requestedPickup >= todayStr
       ? requestedPickup
       : defaultPickupDate;
-  const requestedReturn = params.get('to');
+  const requestedReturn = params.get('to') || returnIso?.date || null;
   const returnDate =
     requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn >= pickupDate
       ? requestedReturn
@@ -397,8 +406,8 @@ function getInitialBookingSelection(today: Date) {
   return {
     pickupDate,
     returnDate,
-    pickupHour: parseHour('pickupHour', DEFAULT_PICKUP_HOUR),
-    returnHour: parseHour('returnHour', DEFAULT_RETURN_HOUR),
+    pickupHour: parseHour('pickupHour', pickupIso?.hour ?? DEFAULT_PICKUP_HOUR),
+    returnHour: parseHour('returnHour', returnIso?.hour ?? DEFAULT_RETURN_HOUR),
   };
 }
 
@@ -546,9 +555,19 @@ const DELIVERY_DIRECTION_OPTIONS: Array<{ value: DeliveryDirection; label: strin
 const LOCATIONS = [
   { id: 'times-city',   name: 'Times City',             address: 'Hai Bà Trưng, Hà Nội', mapUrl: 'https://maps.app.goo.gl/aytjYtSmkNVvDnJb9' },
   { id: 'ocean-park',   name: 'Ocean Park',             address: 'Gia Lâm, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/G8UHdiVEqe7TFqxk9' },
-  { id: 'manor',        name: 'The Manor Central Park', address: 'Bắc Từ Liêm, Hà Nội',  mapUrl: 'https://maps.app.goo.gl/Nr1DysckyzRMBVqE8' },
-  { id: 'trung-lan',    name: 'Cầu Giấy',               address: 'Bắc Từ Liêm, Hà Nội',  mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
+  { id: 'manor',        name: 'The Manor Central Park', address: 'Hoàng Mai (Nguyễn Xiển), Hà Nội', mapUrl: 'https://maps.app.goo.gl/Nr1DysckyzRMBVqE8' },
+  { id: 'trung-lan',    name: 'Cầu Giấy',               address: 'Cầu Giấy, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
 ];
+
+function getInitialDeliverySelection(): { mode: DeliveryMode; location: string } {
+  if (typeof window === 'undefined') return { mode: 'self', location: 'times-city' };
+  const hub = new URLSearchParams(window.location.search).get('hub');
+  if (hub === 'noi-bai') return { mode: 'airport', location: 'times-city' };
+  if (hub === 'delivery') return { mode: 'delivery', location: 'times-city' };
+  return LOCATIONS.some((location) => location.id === hub)
+    ? { mode: 'self', location: hub as string }
+    : { mode: 'self', location: 'times-city' };
+}
 
 // ─── Bank / QR config ─────────────────────────────────────────────────────────
 const cleanBankValue = (value: unknown) => String(value ?? '').replace(/\\[rn]/g, '').trim();
@@ -692,6 +711,7 @@ export default function BookingWidget({
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
   const initialBookingSelection = useMemo(() => getInitialBookingSelection(today), [today]);
+  const initialDeliverySelection = useMemo(getInitialDeliverySelection, []);
   const [ctaExperiment] = useState(getBookingCtaExperiment);
   const experimentMeta = useMemo(() => experimentPayload(ctaExperiment), [ctaExperiment]);
   const isPriceTrustVariant = ctaExperiment.variant_id === 'price-trust';
@@ -699,10 +719,10 @@ export default function BookingWidget({
   const [pickupHour, setPickupHour] = useState(initialBookingSelection.pickupHour);
   const [returnDate, setReturnDate] = useState(initialBookingSelection.returnDate);
   const [returnHour, setReturnHour] = useState(initialBookingSelection.returnHour);
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('self');
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(initialDeliverySelection.mode);
   const [deliveryDirection, setDeliveryDirection] = useState<DeliveryDirection>('roundtrip');
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('times-city');
+  const [selectedLocation, setSelectedLocation] = useState(initialDeliverySelection.location);
   const [showModal, setShowModal] = useState(false);
   const initialPromoCode = useMemo(() => getInitialPromoCodeFromUrl(), []);
 
@@ -793,6 +813,22 @@ export default function BookingWidget({
       vehicle_name: carName,
     });
   }, [carName, carSlug, ctaExperiment, vehicleId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('from', pickupDate);
+    url.searchParams.set('to', returnDate);
+    url.searchParams.set('pickupHour', String(pickupHour));
+    url.searchParams.set('returnHour', String(returnHour));
+    url.searchParams.set('pickup', `${pickupDate}T${String(pickupHour).padStart(2, '0')}:00`);
+    url.searchParams.set('return', `${returnDate}T${String(returnHour).padStart(2, '0')}:00`);
+    url.searchParams.set(
+      'hub',
+      deliveryMode === 'self' ? selectedLocation : deliveryMode === 'airport' ? 'noi-bai' : 'delivery',
+    );
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [deliveryMode, pickupDate, pickupHour, returnDate, returnHour, selectedLocation]);
 
   useEffect(() => {
     bookingIdempotencyRef.current = '';
@@ -1331,6 +1367,13 @@ export default function BookingWidget({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
       setPromoResult(json);
+      trackEvent('apply_promo_code', {
+        promo_code: String(json.code || promoCode.trim()).toUpperCase(),
+        discount_amount: Number(json.discount_amount) || 0,
+        application_mode: 'manual_input',
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+      });
     } catch (e) {
       setPromoError((e as Error).message);
     } finally {
@@ -1410,6 +1453,13 @@ export default function BookingWidget({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
       setPromoResult({ ...json, auto_applied: autoApplied });
+      trackEvent('apply_promo_code', {
+        promo_code: String(json.code || code).toUpperCase(),
+        discount_amount: Number(json.discount_amount) || 0,
+        application_mode: autoApplied ? 'automatic' : 'promo_list',
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+      });
       if (!autoApplied) setShowPromoModal(false);
     } catch (e) {
       setPromoError((e as Error).message);
@@ -1590,6 +1640,16 @@ export default function BookingWidget({
         promo_code: promoForBooking?.code ?? null,
         ...experimentMeta,
       });
+      trackEvent('generate_lead_booking', {
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+        booking_ref: data.bookingRef,
+        rental_days: rentalDays,
+        total_amount: result.valid ? result.total : 0,
+        delivery_mode: deliveryMode,
+        promo_code: promoForBooking?.code ?? null,
+        ...experimentMeta,
+      });
     } catch (e: unknown) {
       const message = (e as Error)?.message || 'Lỗi kết nối, thử lại sau';
       setBookingError(message);
@@ -1736,6 +1796,7 @@ export default function BookingWidget({
     };
     trackCtaClick('booking_widget_open_form', analyticsPayload);
     trackBookingStart(analyticsPayload);
+    trackEvent('open_booking_drawer', analyticsPayload);
     trackedValidationReasonsRef.current.clear();
     setShowBookingModal(true);
     setBookingStep(1);
@@ -2234,7 +2295,7 @@ export default function BookingWidget({
             {availLoading
               ? 'Hệ thống đang kiểm tra lịch.'
               : needsManualConfirmation
-              ? 'Gửi yêu cầu, Car Match phản hồi trong 30 phút.'
+              ? 'Gửi yêu cầu, Car Match sẽ liên hệ xác nhận lịch.'
               : 'Gửi yêu cầu để giữ xe 15 phút.'}
           </div>
           <div className="mt-1 font-semibold">
@@ -3214,7 +3275,7 @@ export default function BookingWidget({
                   <p className="text-sm text-slate-500 mt-1">
                     {bookingNeedsConfirmation
                       ? 'Car Match sẽ kiểm tra giờ trống và liên hệ trước khi gửi QR đặt cọc.'
-                      : 'Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút'}
+                      : 'Chúng tôi sẽ liên hệ để xác nhận lịch'}
                   </p>
                 </div>
 
@@ -3336,7 +3397,7 @@ export default function BookingWidget({
                     </>
                   ) : (
                     <>
-                      <p>1️⃣ Nhân viên gọi xác nhận trong <strong>30 phút</strong> (giờ hành chính)</p>
+                      <p>1️⃣ Nhân viên liên hệ xác nhận lịch và thông tin thuê xe</p>
                       <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
                       <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
                     </>

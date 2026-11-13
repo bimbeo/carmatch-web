@@ -252,7 +252,7 @@ function createTetLandingRows() {
       canonical_url: `${siteUrl}/thue-xe-tu-lai-tet-ha-noi`,
       hero_title: 'Thuê xe tự lái Tết tại Hà Nội: chốt theo đúng lịch và hành trình',
       hero_kicker: 'Car Match · thuê xe Tết 2027',
-      hero_description: 'Gửi ngày nhận–trả, số người, hành lý, tuyến đi và khu vực nhận xe để Car Match kiểm tra mẫu xe, lịch và báo giá phù hợp. Website không thể hiện tồn xe theo thời gian thực.',
+      hero_description: 'Gửi ngày nhận–trả, số người, hành lý, tuyến đi và khu vực nhận xe để Car Match kiểm tra mẫu xe, lịch và báo giá phù hợp.',
       hero_image_url: vehicleCovers.carnival,
       cta_primary_label: 'Nhắn Zalo kiểm tra xe Tết',
       cta_primary_url: currentZaloUrl,

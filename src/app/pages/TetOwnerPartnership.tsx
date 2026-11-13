@@ -48,7 +48,7 @@ export default function TetOwnerPartnership() {
               </span>
               <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-6">Có xe nhàn rỗi dịp Tết? Gửi lịch để Car Match thẩm định</h1>
               <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                Câu trả lời ngắn: chủ xe tại Hà Nội có thể gửi mẫu xe, tình trạng, khu vực đỗ và những ngày xe rảnh. Car Match kiểm tra hồ sơ, nhu cầu phù hợp và điều kiện vận hành trước khi đề xuất phương án; việc gửi thông tin không đồng nghĩa xe chắc chắn được nhận hoặc có mức doanh thu cố định.
+                Chủ xe tại Hà Nội có thể gửi mẫu xe, tình trạng, khu vực đỗ và những ngày xe rảnh. Car Match kiểm tra hồ sơ, nhu cầu phù hợp và điều kiện vận hành trước khi đề xuất phương án; việc gửi thông tin không đồng nghĩa xe chắc chắn được nhận hoặc có mức doanh thu cố định.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <a href="/hop-tac#dang-ky" onClick={() => trackCtaClick('tet_owner_apply')} className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-7 py-4 font-bold text-white hover:bg-brand-700">

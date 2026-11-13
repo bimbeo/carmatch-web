@@ -966,7 +966,7 @@ export const geoPriorityPages: GeoPriorityPage[] = [
     intent: 'commercial',
     journeyStage: 'Consider',
     directAnswer:
-      'Chủ xe gửi mẫu xe, tình trạng, hồ sơ, khu vực đỗ và lịch rảnh để Car Match thẩm định; việc gửi thông tin chưa phải cam kết xe được nhận hoặc có doanh thu cố định.',
+      'Chủ xe gửi mẫu xe, tình trạng, hồ sơ, khu vực đỗ và lịch rảnh để Car Match thẩm định điều kiện vận hành và đề xuất phương án hợp tác phù hợp.',
     internalLinks: [
       '/hop-tac',
       '/blog/xe-nhan-roi-dip-tet-co-nen-cho-thue-khong',

@@ -279,6 +279,7 @@ function mapToCar(v: SupabaseVehicle): Car {
     slug: primarySlug,
     slugAliases,
     plateNumber: undefined,
+    color: v.color?.trim() || undefined,
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
     brand: make,
     price: v.daily_base_price || 0,

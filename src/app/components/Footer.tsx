@@ -167,7 +167,10 @@ export default function Footer() {
               <li>
                 <div className="flex items-start gap-3 text-gray-400">
                   <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span className="text-sm">Hà Nội, Việt Nam</span>
+                  <span className="text-sm leading-5">
+                    Hỗ trợ tại Cầu Giấy, Nguyễn Xiển và Ocean Park<br />
+                    07:00–22:00 hằng ngày
+                  </span>
                 </div>
               </li>
             </ul>
@@ -178,9 +181,9 @@ export default function Footer() {
         <div className="hidden border-t border-white/10 pt-6 md:flex md:flex-row md:items-center md:justify-between md:gap-4">
           <p className="text-gray-400 text-xs">© {new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
           <div className="flex items-center gap-6">
-            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Chính sách</Link>
+            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Chính sách & Điều khoản</Link>
+            <Link to="/faq" className="text-gray-400 text-xs hover:text-white transition-colors">Câu hỏi thường gặp</Link>
             <Link to="/lien-he" className="text-gray-400 text-xs hover:text-white transition-colors">Liên hệ</Link>
-            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Điều khoản</Link>
           </div>
         </div>
       </div>

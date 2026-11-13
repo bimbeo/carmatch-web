@@ -9,7 +9,7 @@ export const wave2LocalRentalAreas: LocalRentalArea[] = [
     locality: 'Phường Cầu Giấy và khu vực lân cận, Hà Nội',
     seoTitle: 'Thuê Xe Tự Lái Cầu Giấy Hà Nội | Car Match',
     description: 'Thuê xe tự lái tại khu vực Cầu Giấy. Xem xe và giá thực tế, sau đó xác nhận lịch, địa chỉ cùng điểm giao nhận phù hợp.',
-    heroAnswer: 'Car Match tiếp nhận yêu cầu thuê xe tự lái của khách ở khu vực Cầu Giấy. Khách cần gửi địa chỉ, ngày giờ và nhu cầu chuyến đi để kiểm tra xe, giá cùng phương án giao nhận; website không mặc định mọi điểm đều được giao tận nơi.',
+    heroAnswer: 'Car Match phục vụ nhu cầu thuê xe tự lái tại Cầu Giấy. Gửi địa chỉ, ngày giờ và lịch trình để đội vận hành kiểm tra xe, báo giá cùng phương án giao nhận phù hợp.',
     pickupNote: 'Gửi tên phố, tòa nhà hoặc cổng văn phòng; cho biết nơi có thể dừng xe và số điện thoại người nhận. Khu vực đông văn phòng cần thống nhất điểm hẹn trước để tránh chờ lâu hoặc dừng sai vị trí.',
     locationNote: 'Cầu Giấy hiện vừa là tên phường mới vừa là tên khu vực quen dùng. Khách nên gửi địa chỉ đầy đủ thay vì chỉ ghi “Cầu Giấy” để Car Match kiểm tra đúng điểm.',
     localContexts: [

@@ -1,4 +1,5 @@
 import { sanitizeBlogHtml } from './sanitize.js';
+import { deTemplateDirectAnswer as normalizeDirectAnswer } from './content-normalize.js';
 
 const siteUrl = 'https://www.carmatch.vn';
 const brandImage = `${siteUrl}/brand/carmatch-logo-stacked-navy.png`;
@@ -12,6 +13,15 @@ const socialProfiles = [
 
 const postTitleOverrides = {
   'kinh-nghiem-thue-xe-tu-lai-ha-noi': 'Kinh Nghiệm Thuê Xe Tự Lái Hà Nội | Car Match',
+  'phat-nguoi-thue-xe-tu-lai-ai-tra': 'Phạt Nguội Khi Thuê Xe Tự Lái Ai Trả? | Car Match',
+  'thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu': 'Thuê Xe Tự Lái Cần Giấy Tờ Gì, Cọc Bao Nhiêu?',
+  'moi-co-bang-lai-co-thue-xe-tu-lai-duoc-khong': 'Mới Có Bằng Lái Có Thuê Xe Tự Lái Được Không?',
+};
+
+const postDescriptionOverrides = {
+  'phat-nguoi-thue-xe-tu-lai-ai-tra': 'Phạt nguội phát sinh trong thời gian thuê do ai chịu, cách đối chiếu thời gian vi phạm, thông báo và xử lý theo hợp đồng.',
+  'thue-xe-tu-lai-can-giay-to-va-coc-bao-nhieu': 'Thuê xe tự lái cần CCCD, GPLX hạng B và khoản cọc theo mẫu xe. Xem checklist giấy tờ, hoàn cọc và bàn giao.',
+  'moi-co-bang-lai-co-thue-xe-tu-lai-duoc-khong': 'Mới có bằng vẫn có thể hỏi thuê xe tự lái. Xem giấy tờ, cách chọn xe, lịch trình và điều kiện cần xác nhận trước khi đặt.',
 };
 
 function publisherData() {
@@ -184,7 +194,11 @@ function getPostUrl(post) {
 }
 
 function getDescription(post) {
-  return post.seoDescription || post.excerpt || stripHtml(post.bodyHtml).slice(0, 155) || 'Kinh nghiệm thuê xe tự lái Hà Nội từ Car Match.';
+  return postDescriptionOverrides[post.slug.current] || post.seoDescription || post.excerpt || stripHtml(post.bodyHtml).slice(0, 155) || 'Kinh nghiệm thuê xe tự lái Hà Nội từ Car Match.';
+}
+
+function deTemplateDirectAnswer(html = '') {
+  return normalizeDirectAnswer(html);
 }
 
 const blogHubTopics = [
@@ -367,7 +381,16 @@ function renderToc(headings) {
 }
 
 function renderRelated(post) {
+  const categoryText = (post.categories || []).join(' ').toLowerCase();
+  const serviceLink = categoryText.includes('tháng')
+    ? { href: '/thue-xe-thang', label: 'Xem gói thuê xe theo tháng', action: 'related_service' }
+    : categoryText.includes('điện')
+      ? { href: '/thue-xe-dien-ha-noi', label: 'Xem xe điện đang nhận lịch', action: 'related_service' }
+      : categoryText.includes('7 chỗ')
+        ? { href: '/thue-xe-7-cho-tu-lai-ha-noi', label: 'So sánh xe 7 chỗ tự lái', action: 'related_service' }
+        : { href: '/xe', label: 'Xem xe và lịch thuê', action: 'related_service' };
   const links = [
+    serviceLink,
     ...(post.relatedDestinations || []).slice(0, 2).map((destination) => ({ href: `/di-dau/${destination.slug}`, label: `Đi ${destination.name} bằng xe tự lái`, action: 'related_destination' })),
     ...(post.relatedVehicleLinks || []).slice(0, 1).map((vehicle) => ({ href: vehicle.url, label: vehicle.label, action: 'related_vehicle' })),
     ...(post.relatedPosts || []).slice(0, 2).map((related) => ({ href: `/blog/${related.slug}`, label: related.title, action: 'related_post' })),
@@ -773,7 +796,7 @@ export function renderBlogPage(post) {
   const title = postTitleOverrides[post.slug.current] || `${post.seoTitle || post.title} | Car Match`;
   const description = getDescription(post);
   const image = optimizeImageUrl(post.mainImageUrl || brandSocialImage, 1400);
-  const rawBodyHtml = sanitizeBlogHtml(optimizeBodyImages(post.bodyHtml || renderPortableText(post.body), post.title));
+  const rawBodyHtml = deTemplateDirectAnswer(sanitizeBlogHtml(optimizeBodyImages(post.bodyHtml || renderPortableText(post.body), post.title)));
   const headings = extractHeadings(rawBodyHtml);
   const bodyHtml = addHeadingIds(rawBodyHtml, headings);
   const faqItems = extractFaqItems(bodyHtml);
@@ -814,6 +837,7 @@ export function renderBlogPage(post) {
       h2 { font-size: clamp(26px, 4vw, 36px); line-height: 1.18; margin: 46px 0 14px; scroll-margin-top: 96px; }
       h3 { font-size: 23px; line-height: 1.25; margin: 32px 0 10px; scroll-margin-top: 96px; }
       .excerpt { border-left: 4px solid #11163e; background: #eef0f8; border-radius: 0 8px 8px 0; padding: 16px 18px; }
+      .direct-answer { background: #eef8f4; border: 1px solid #ccecdf; border-radius: 12px; color: #163c31; font-weight: 650; padding: 16px 18px; }
       img.hero, article img { aspect-ratio: 16/9; border-radius: 10px; display: block; margin: 30px 0; max-height: 720px; object-fit: cover; width: 100%; }
       figure { margin: 34px 0; }
       figcaption, img[data-caption] + figcaption { color: #64748b; font-size: 14px; text-align: center; }

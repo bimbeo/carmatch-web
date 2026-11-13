@@ -32,6 +32,11 @@ const FIRST_PARTY_EVENTS = new Set([
   'cm_lead_submit_error',
   'cm_web_vital',
   'cm_experiment_exposure',
+  'filter_cars',
+  'select_car_card',
+  'apply_promo_code',
+  'open_booking_drawer',
+  'generate_lead_booking',
 ]);
 
 function cleanPayload(payload: AnalyticsPayload): Record<string, unknown> {
@@ -134,19 +139,23 @@ export function trackCtaClick(cta: string, payload: AnalyticsPayload = {}) {
 }
 
 export function trackZaloClick(source: string, payload: AnalyticsPayload = {}) {
-  trackEvent('cm_zalo_click', {
+  const contactPayload = {
     source,
     contact_channel: 'zalo',
     ...payload,
-  });
+  };
+  trackEvent('cm_zalo_click', contactPayload);
+  trackEvent('click_zalo_support', contactPayload);
 }
 
 export function trackPhoneClick(source: string, payload: AnalyticsPayload = {}) {
-  trackEvent('cm_phone_click', {
+  const contactPayload = {
     source,
     contact_channel: 'phone',
     ...payload,
-  });
+  };
+  trackEvent('cm_phone_click', contactPayload);
+  trackEvent('click_phone_call', contactPayload);
 }
 
 export function trackVehicleClick(action: string, payload: AnalyticsPayload = {}) {

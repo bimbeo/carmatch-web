@@ -11,6 +11,7 @@ const GALLERY_WIDTH = 1400;
 const STATIC_IMAGE_WIDTH = 1400;
 const COVER_QUALITY = 68;
 const DOWNLOAD_TIMEOUT_MS = 15000;
+const DEFAULT_SOURCE_BASE_URL = 'https://www.carmatch.vn';
 
 function safeFileName(value) {
   return String(value || '')
@@ -65,12 +66,16 @@ export function vehicleCoverCacheUrl(vehicle) {
   return fileName ? `${COVER_ROUTE}/${fileName}.webp` : '';
 }
 
-async function fetchWithTimeout(url) {
+function resolveSourceUrl(url, sourceBaseUrl = DEFAULT_SOURCE_BASE_URL) {
+  return new URL(String(url || ''), sourceBaseUrl).toString();
+}
+
+async function fetchWithTimeout(url, sourceBaseUrl) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
 
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await fetch(resolveSourceUrl(url, sourceBaseUrl), { signal: controller.signal });
   } finally {
     clearTimeout(timeout);
   }
@@ -78,6 +83,7 @@ async function fetchWithTimeout(url) {
 
 export async function cacheVehicleCoverImages(vehicles, outputRoot, options = {}) {
   const loggerPrefix = options.loggerPrefix || 'vehicle-cover-cache';
+  const sourceBaseUrl = options.sourceBaseUrl || DEFAULT_SOURCE_BASE_URL;
   const coverDir = path.join(outputRoot, 'generated', 'vehicle-covers');
   const coverUrls = new Map();
   let generated = 0;
@@ -106,7 +112,7 @@ export async function cacheVehicleCoverImages(vehicles, outputRoot, options = {}
         continue;
       }
 
-      const response = await fetchWithTimeout(sourceUrl);
+      const response = await fetchWithTimeout(sourceUrl, sourceBaseUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const input = Buffer.from(await response.arrayBuffer());
@@ -133,6 +139,7 @@ export async function cacheVehicleCoverImages(vehicles, outputRoot, options = {}
 
 export async function cacheVehicleGalleryImages(vehicles, outputRoot, options = {}) {
   const loggerPrefix = options.loggerPrefix || 'vehicle-gallery-cache';
+  const sourceBaseUrl = options.sourceBaseUrl || DEFAULT_SOURCE_BASE_URL;
   const galleryDir = path.join(outputRoot, 'generated', 'vehicle-gallery');
   const galleryUrls = new Map();
   let generated = 0;
@@ -164,7 +171,7 @@ export async function cacheVehicleGalleryImages(vehicles, outputRoot, options = 
       try {
         const existing = await stat(filePath).catch(() => null);
         if (!existing?.size) {
-          const response = await fetchWithTimeout(sourceUrl);
+          const response = await fetchWithTimeout(sourceUrl, sourceBaseUrl);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
           const input = Buffer.from(await response.arrayBuffer());
@@ -221,6 +228,7 @@ function isSupabaseStorageImageUrl(url) {
 
 export async function cacheStaticImageUrls(imageUrls, outputRoot, options = {}) {
   const loggerPrefix = options.loggerPrefix || 'static-image-cache';
+  const sourceBaseUrl = options.sourceBaseUrl || DEFAULT_SOURCE_BASE_URL;
   const imageDir = path.join(outputRoot, 'generated', 'static-images');
   const cachedUrls = new Map();
   const uniqueUrls = Array.from(new Set((imageUrls || []).filter(isSupabaseStorageImageUrl)));
@@ -242,7 +250,7 @@ export async function cacheStaticImageUrls(imageUrls, outputRoot, options = {}) 
         continue;
       }
 
-      const response = await fetchWithTimeout(sourceUrl);
+      const response = await fetchWithTimeout(sourceUrl, sourceBaseUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const input = Buffer.from(await response.arrayBuffer());

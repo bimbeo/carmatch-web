@@ -19,7 +19,7 @@ import { useSEO } from '@/hooks/useSEO';
 const ZALO_LINK = 'https://zalo.me/0971163290';
 
 const stats = [
-  { value: '20+', label: 'Mẫu xe', detail: 'Xe 4-7 chỗ, xăng và điện' },
+  { value: '4–7 chỗ', label: 'Đội xe đa dạng', detail: 'Xe xăng, dầu và xe điện' },
   { value: '7h-22h', label: 'Giờ hỗ trợ', detail: 'Kiểm tra lịch xe qua Zalo' },
   { value: 'CCCD + GPLX', label: 'Giấy tờ', detail: 'Xác nhận trước khi nhận xe' },
   { value: 'Hà Nội', label: 'Khu vực', detail: 'Ưu tiên chung cư, khu đô thị' },

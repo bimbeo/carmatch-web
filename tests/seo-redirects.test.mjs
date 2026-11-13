@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+const robots = await readFile(new URL('../public/robots.txt', import.meta.url), 'utf8');
 
 function redirectFor(source) {
   return config.routes.find((route) => route.src === source);
@@ -92,6 +93,41 @@ test('recovers legacy blog-subdomain paths after the host redirect', () => {
     redirectFor('/thue-xe-7-cho-tu-lai-ha-noi-gia-bao-nhieu/?')?.headers?.Location,
     'https://www.carmatch.vn/thue-xe-7-cho-tu-lai-ha-noi',
   );
+});
+
+test('routes valuable legacy blog-subdomain paths before its catch-all', () => {
+  const targeted = config.routes.findIndex((route) => (
+    route.src === '/thue-xe-tu-lai-vinfast-ha-noi/?'
+    && route.has?.some((condition) => condition.type === 'host' && condition.value === 'blog.carmatch.vn')
+  ));
+  const catchAll = config.routes.findIndex((route) => (
+    route.src === '/(.*)'
+    && route.has?.some((condition) => condition.type === 'host' && condition.value === 'blog.carmatch.vn')
+  ));
+
+  assert.ok(targeted >= 0);
+  assert.ok(catchAll > targeted);
+  assert.equal(
+    config.routes[targeted].headers.Location,
+    'https://www.carmatch.vn/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast',
+  );
+});
+
+test('recovers legacy monthly and compact vehicle routes before generic redirects', () => {
+  assert.equal(redirectFor('/thue-xethang/?')?.headers?.Location, 'https://www.carmatch.vn/thue-xe-thang');
+  assert.equal(redirectFor('/car/vf585312/?')?.headers?.Location, 'https://www.carmatch.vn/xe/vinfast-vf5-2025');
+  assert.equal(redirectFor('/car/raize30h60690/?')?.headers?.Location, 'https://www.carmatch.vn/xe/toyota-raize-2022');
+
+  const specific = config.routes.findIndex((route) => route.src === '/car/vf585312/?');
+  const generic = config.routes.findIndex((route) => route.src === '/car/([^/]+)/?');
+  assert.ok(specific >= 0 && generic > specific);
+});
+
+test('keeps account and API utility paths out of crawl while leaving booking queries crawlable', () => {
+  assert.match(robots, /Disallow: \/api\//);
+  assert.match(robots, /Disallow: \/tai-khoan/);
+  assert.doesNotMatch(robots, /Disallow: \/\*\?from=/);
+  assert.doesNotMatch(robots, /Disallow: \/\*&to=/);
 });
 
 test('consolidates the Ocean Park blog intent into the local rental landing', () => {

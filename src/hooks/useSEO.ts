@@ -106,8 +106,8 @@ export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOP
 
     // Reset on unmount
     return () => {
-      document.title = 'Car Match — Thuê Xe Tự Lái Hà Nội | Từ 600K/Ngày';
-      setMeta('description', 'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe: VinFast VF8, VF6, Toyota Innova, Kia Carnival. Giá từ 600K/ngày. Giao xe tận nơi.');
+      document.title = 'Thuê Xe Tự Lái Hà Nội Từ 600K/Ngày | Car Match';
+      setMeta('description', 'Thuê xe tự lái Hà Nội từ 600.000đ/ngày. Xem xe, giá theo lịch, giấy tờ, cọc và phí giao nhận trước khi gửi yêu cầu.');
     };
   }, [title, description, canonical, ogImage, noIndex]);
 }

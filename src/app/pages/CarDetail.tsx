@@ -317,6 +317,17 @@ function vehicleSeoDescription(car: Car): string {
   return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
 }
 
+function vehicleSeoTitle(car: Car): string {
+  const identity = `${car.slug} ${car.name}`;
+  if (/carnival/i.test(identity)) {
+    return 'Thuê Kia Carnival Tự Lái Hà Nội | Giá & Lịch Xe';
+  }
+  if (/\bvf[3-8]\b/i.test(identity)) {
+    return `Thuê ${car.name} Tự Lái Hà Nội | Giá & Lịch Xe`;
+  }
+  return `Thuê ${car.name} Tự Lái Hà Nội | ${formatPrice(car.price)}/Ngày`;
+}
+
 function isVf3Car(car: Car) {
   return /\bvf3\b/i.test(`${car.slug} ${car.name}`);
 }
@@ -521,13 +532,23 @@ function UnavailableVehiclePanel({ car, relatedCars }: { car: Car; relatedCars: 
 }
 
 function VehicleSeoSummary({ car }: { car: Car }) {
+  const fit = car.seats >= 7
+    ? 'phù hợp gia đình đông người hoặc nhóm có hành lý; nên gửi số người và số vali để kiểm tra không gian thực tế'
+    : car.fuel === 'Điện'
+      ? 'phù hợp đi phố hoặc chuyến đã có kế hoạch sạc; mức pin giao–trả được xác nhận trước khi nhận xe'
+      : 'phù hợp cá nhân hoặc gia đình nhỏ cần chủ động lịch đi trong và ngoài Hà Nội';
+
   return (
     <section className="border-t border-gray-200 py-6">
       <h2 className="mt-2 text-lg font-black text-gray-950">Thuê {car.name} tự lái tại Hà Nội</h2>
       <p className="mt-2 text-sm leading-6 text-gray-600">
-        Xe {car.seats} chỗ, {car.fuel.toLowerCase()}, {car.transmission.toLowerCase()}, phù hợp đi phố hoặc chuyến ngắn.
-        Chọn lịch để xem tổng giá và điều kiện cọc.
+        Xe {car.seats} chỗ, {car.fuel.toLowerCase()}, {car.transmission.toLowerCase()}, giá từ {formatPrice(car.price)}/ngày;
+        {' '}{fit}. Chọn ngày nhận/trả để xem lịch xe, tổng giá và điều kiện cọc.
       </p>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-bold">
+        <Link to="/xe" className="text-brand-700 hover:text-brand-800">Xem đội xe đang nhận lịch</Link>
+        <Link to="/thue-xe-thang" className="text-brand-700 hover:text-brand-800">Xem giá thuê theo tháng</Link>
+      </div>
     </section>
   );
 }
@@ -790,11 +811,7 @@ export default function CarDetail() {
   const seoDescription = car ? vehicleSeoDescription(car) : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.';
 
   useSEO({
-    title: car
-      ? isVf3Car(car)
-        ? `Thuê ${vf3DisplayName(car)} Hà Nội — ${formatPrice(car.price)}/ngày | Car Match`
-        : `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | Car Match`
-      : 'Thuê Xe Tự Lái Hà Nội | Car Match',
+    title: car ? vehicleSeoTitle(car) : 'Thuê Xe Tự Lái Hà Nội | Car Match',
     description: seoDescription,
     canonical: detailUrl,
     ogImage: car?.images?.[0] ?? undefined,
@@ -1018,7 +1035,7 @@ export default function CarDetail() {
                   label: 'Cần xác nhận lịch',
                   className: 'bg-amber-50 text-amber-800 border-amber-200',
                   dotClassName: 'bg-amber-500',
-                  notice: 'Car Match kiểm tra và phản hồi trong 30 phút. Chưa cần cọc.',
+                  notice: 'Car Match kiểm tra lịch và liên hệ xác nhận. Chưa cần cọc.',
                   noticeClassName: 'border-amber-200 bg-amber-50 text-amber-800',
                 }
             : {
@@ -1076,7 +1093,7 @@ export default function CarDetail() {
                   ? 'Thuê Kia Carnival tự lái tại Hà Nội'
                   : isVf3
                     ? `Thuê ${vf3DisplayName(car)} tự lái tại Hà Nội`
-                    : car.name}
+                    : `Thuê ${car.name} tự lái tại Hà Nội`}
               </h1>
               <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-500">
                 <span>Hà Nội</span>
@@ -1088,7 +1105,7 @@ export default function CarDetail() {
                 <span className="text-gray-300">·</span>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  {bookingAvailabilityStatus.requiresConfirmation ? 'Xác nhận trong 30 phút' : 'Đặt online'}
+                  {bookingAvailabilityStatus.requiresConfirmation ? 'Cần xác nhận lịch' : 'Đặt online'}
                 </div>
               </div>
               {availabilityBadgeMeta.notice && (
@@ -1221,7 +1238,7 @@ export default function CarDetail() {
           )}
           {car.available && !bookingSummary?.valid && (
             <div className="text-xs text-gray-400">
-              {bookingAvailabilityStatus.requiresConfirmation ? 'Phản hồi trong 30 phút' : 'Chọn lịch để xem tổng giá'}
+              {bookingAvailabilityStatus.requiresConfirmation ? 'Car Match sẽ liên hệ xác nhận' : 'Chọn lịch để xem tổng giá'}
             </div>
           )}
         </div>
