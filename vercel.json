@@ -165,6 +165,11 @@
       "headers": { "Location": "https://www.carmatch.vn/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast" }
     },
     {
+      "src": "/thue-xe-tu-lai-vinfast-ha-noi/?",
+      "status": 301,
+      "headers": { "Location": "https://www.carmatch.vn/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast" }
+    },
+    {
       "src": "/blog/thue-xe-tu-lai-vinhomes-ocean-park-giao-xe-tan-sanh/?",
       "status": 301,
       "headers": { "Location": "https://www.carmatch.vn/thue-xe-tu-lai-vinhomes-ocean-park" }

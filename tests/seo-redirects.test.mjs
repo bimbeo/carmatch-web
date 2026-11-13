@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
 const robots = await readFile(new URL('../public/robots.txt', import.meta.url), 'utf8');
+const staticBlogGenerator = await readFile(new URL('../scripts/generate-static-blog.mjs', import.meta.url), 'utf8');
 
 function redirectFor(source) {
   return config.routes.find((route) => route.src === source);
@@ -86,6 +87,10 @@ test('keeps API resources out of the search index', () => {
 
 test('recovers legacy blog-subdomain paths after the host redirect', () => {
   assert.equal(
+    redirectForPath('/thue-xe-tu-lai-vinfast-ha-noi')?.headers?.Location,
+    'https://www.carmatch.vn/blog/co-nen-thue-xe-dien-tu-lai-ha-noi-vinfast',
+  );
+  assert.equal(
     redirectFor('/kinh-nghiem-thue-xe-tu-lai-ha-noi-tranh-lua-dao/?')?.headers?.Location,
     'https://www.carmatch.vn/blog/tranh-lua-dao-coc-online-khi-thue-xe-tu-lai',
   );
@@ -126,6 +131,8 @@ test('recovers legacy monthly and compact vehicle routes before generic redirect
 test('keeps account and API utility paths out of crawl while leaving booking queries crawlable', () => {
   assert.match(robots, /Disallow: \/api\//);
   assert.match(robots, /Disallow: \/tai-khoan/);
+  assert.match(staticBlogGenerator, /'Disallow: \/api\/'/);
+  assert.match(staticBlogGenerator, /'Disallow: \/tai-khoan'/);
   assert.doesNotMatch(robots, /Disallow: \/\*\?from=/);
   assert.doesNotMatch(robots, /Disallow: \/\*&to=/);
 });
