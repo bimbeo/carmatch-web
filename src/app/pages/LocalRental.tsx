@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import {
   ArrowRight,
@@ -96,6 +97,15 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
   const { cars } = useVehicles();
   const catalog = cars.length > 0 ? cars : fallbackCars;
   const representativeCars = selectRepresentativeCars(catalog, area.recommendedKeywords, isCauGiayPilot ? 6 : 3);
+  const [fleetFilter, setFleetFilter] = useState<'all' | 'electric' | 'five-seat' | 'seven-seat'>('all');
+  const [selectedCarId, setSelectedCarId] = useState('');
+  const selectedCar = representativeCars.find((car) => car.id === selectedCarId) || representativeCars[0];
+  const filteredRepresentativeCars = representativeCars.filter((car) => {
+    if (fleetFilter === 'electric') return car.fuel === 'Điện';
+    if (fleetFilter === 'five-seat') return car.seats <= 5;
+    if (fleetFilter === 'seven-seat') return car.seats >= 7;
+    return true;
+  });
   const fleetModelCount = new Set(
     catalog.filter((car) => car.price > 0 && car.seats >= 4 && car.seats <= 7).map(representativeModelKey),
   ).size;
@@ -111,6 +121,10 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
   const zaloHref = `${ZALO_LINK}?text=${encodeURIComponent(
     `Tôi muốn thuê xe tự lái tại ${area.name}. Nhờ Car Match kiểm tra xe, lịch và điểm giao nhận phù hợp.`,
   )}`;
+  const handleSelectCar = (carId: string) => {
+    setSelectedCarId(carId);
+    window.requestAnimationFrame(() => document.getElementById('booking-tool')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   return (
     <div className="min-h-screen bg-white pb-24 text-slate-950 sm:pb-0">
@@ -215,7 +229,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
               </div>
               <div className={isCauGiayPilot ? "bg-white p-5" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
                 <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Clock3 className="h-4 w-4 text-brand-600" /> Điểm giao nhận</p>
-                <p className="mt-1 text-xl font-black">Miễn phí hoặc giao tận nơi</p>
+                <p className="mt-1 text-xl font-black">Điểm hẹn hoặc giao tận nơi</p>
               </div>
             </div>
           </div>
@@ -254,10 +268,32 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
               </Link>
             </div>
 
+            {isCauGiayPilot && (
+              <div className="mt-7 flex gap-2 overflow-x-auto pb-1" aria-label="Lọc đội xe">
+                {[
+                  ['all', 'Tất cả'],
+                  ['electric', 'Xe điện'],
+                  ['five-seat', '4–5 chỗ'],
+                  ['seven-seat', '7 chỗ'],
+                ].map(([value, label]) => (
+                  <button key={value} type="button" onClick={() => setFleetFilter(value as typeof fleetFilter)} aria-pressed={fleetFilter === value} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${fleetFilter === value ? 'bg-[#10163f] text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-brand-300'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {representativeCars.length > 0 ? (
               <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {representativeCars.map((car) => (
-                  <CarCard key={car.id} car={car} mode="listing" source={source} />
+                {filteredRepresentativeCars.map((car) => (
+                  <div key={car.id} className={`rounded-2xl ${selectedCar?.id === car.id ? 'ring-2 ring-brand-500 ring-offset-4' : ''}`}>
+                    <CarCard car={car} mode="listing" source={source} />
+                    {isCauGiayPilot && (
+                      <button type="button" onClick={() => handleSelectCar(car.id)} className={`mt-3 min-h-12 w-full rounded-xl px-4 text-sm font-black transition ${selectedCar?.id === car.id ? 'bg-brand-600 text-white' : 'border border-brand-200 bg-brand-50 text-brand-800 hover:bg-brand-100'}`}>
+                        {selectedCar?.id === car.id ? 'Đang chọn để đặt xe' : 'Chọn xe này & xem lịch'}
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (
@@ -269,7 +305,15 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
           </div>
         </section>
 
-        {isCauGiayPilot && <LocalRentalPlanner area={area} cars={representativeCars} source={source} />}
+        {isCauGiayPilot && selectedCar && (
+          <LocalRentalPlanner
+            area={area}
+            cars={representativeCars}
+            source={source}
+            selectedCarId={selectedCar.id}
+            onSelectCar={handleSelectCar}
+          />
+        )}
 
         <section id="giao-nhan" className={isCauGiayPilot ? "scroll-mt-24 bg-[#10163f] py-16 text-white sm:py-24" : "scroll-mt-24 bg-blue-50 py-16 sm:py-20"}>
           <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -456,7 +500,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
       </main>
       <Footer />
       <ZaloFAB />
-      <MobileConversionBar source={source} />
+      {!isCauGiayPilot && <MobileConversionBar source={source} />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
 import {
   BLOCKING_SCHEDULE_TYPES,
@@ -9,6 +10,9 @@ import {
   isBoundaryScheduleConflict,
   scheduleEventCalendarRange,
 } from '../api/bookings.js';
+
+const bookingApiPath = new URL('../api/bookings.js', import.meta.url);
+const bookingWidgetPath = new URL('../src/app/components/BookingWidget.tsx', import.meta.url);
 
 test('identifies the exact stale fields in a client price snapshot', () => {
   const serverQuote = {
@@ -149,4 +153,18 @@ test('ignores schedule rows that availability also treats as non-blocking', () =
   );
   assert.equal(conflicts.blocking.length, 0);
   assert.equal(conflicts.hasHardConflict, false);
+});
+
+test('submission response and UI never present an unconfirmed request as a confirmed booking', async () => {
+  const [apiSource, widgetSource] = await Promise.all([
+    readFile(bookingApiPath, 'utf8'),
+    readFile(bookingWidgetPath, 'utf8'),
+  ]);
+
+  assert.match(apiSource, /bookingStatus: requiresConfirmation \? 'request_submitted' : 'held_pending_confirmation'/);
+  assert.match(apiSource, /Đã nhận yêu cầu đặt xe/);
+  assert.doesNotMatch(apiSource, /Đặt xe thành công!/);
+  assert.match(widgetSource, /Đã gửi yêu cầu đặt xe/);
+  assert.match(widgetSource, /Đã gửi · Chờ xác nhận/);
+  assert.doesNotMatch(widgetSource, /Đặt xe thành công!/);
 });
