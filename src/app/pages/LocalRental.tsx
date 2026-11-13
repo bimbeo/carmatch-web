@@ -26,6 +26,7 @@ import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
 import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
+import { LocalRentalQuickAnswer, LocalRentalPlanner } from '../components/LocalRentalDecisionTools';
 
 const SITE_URL = 'https://www.carmatch.vn';
 const ZALO_LINK = 'https://zalo.me/0971163290';
@@ -62,6 +63,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
     canonical: `${SITE_URL}${area.path}`,
   });
 
+  const isCauGiayPilot = area.slug === 'cau-giay';
   const { cars } = useVehicles();
   const catalog = cars.length > 0 ? cars : fallbackCars;
   const representativeCars = selectRepresentativeCars(catalog, area.recommendedKeywords);
@@ -77,22 +79,23 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
     <div className="min-h-screen bg-white pb-24 text-slate-950 sm:pb-0">
       <Navbar />
       <main id="main-content">
-        <section className="relative overflow-hidden bg-slate-950 text-white">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.28),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.16),transparent_42%)]" />
+        <section className={isCauGiayPilot ? "relative overflow-hidden bg-gradient-to-br from-brand-50 via-white to-slate-50 pt-16 text-slate-950" : "relative overflow-hidden bg-slate-950 text-white"}>
+          {!isCauGiayPilot && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.28),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.16),transparent_42%)]" />}
           <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
             <div className="max-w-3xl">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm font-bold text-blue-100">
+              {isCauGiayPilot && <nav aria-label="Đường dẫn" className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-500"><Link to="/">Trang chủ</Link><span>/</span><Link to="/xe">Thuê xe</Link><span>/</span><span aria-current="page">{area.shortName}</span></nav>}
+              <div className={isCauGiayPilot ? "mb-5 inline-flex items-center gap-2 rounded-full border border-brand-100 bg-white px-3 py-1.5 text-sm font-bold text-brand-700" : "mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm font-bold text-blue-100"}>
                 <MapPin className="h-4 w-4" /> {area.locality}
               </div>
               <h1 className="text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
                 Thuê xe tự lái tại {area.name}
               </h1>
-              <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">{area.heroAnswer}</p>
+              <p className={isCauGiayPilot ? "mt-6 max-w-3xl text-lg leading-8 text-slate-600" : "mt-6 max-w-3xl text-lg leading-8 text-slate-300"}>{area.heroAnswer}</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="#xe-goi-y"
                   onClick={() => trackCtaClick(`${source}_view_cars`, { target_path: '#xe-goi-y' })}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange-400 px-6 py-3 font-black text-slate-950 transition-colors hover:bg-orange-300"
+                  className={isCauGiayPilot ? "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3 font-bold text-white hover:bg-brand-700" : "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange-400 px-6 py-3 font-black text-slate-950 transition-colors hover:bg-orange-300"}
                 >
                   Xem xe và giá thực tế <ArrowRight className="h-4 w-4" />
                 </a>
@@ -101,7 +104,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackZaloClick(`${source}_hero`)}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-black text-white hover:bg-white/15"
+                  className={isCauGiayPilot ? "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-brand-100 bg-white px-6 py-3 font-bold text-brand-700 hover:bg-brand-50" : "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-black text-white hover:bg-white/15"}
                 >
                   <MessageCircle className="h-4 w-4" /> Kiểm tra lịch giao xe
                 </a>
@@ -109,21 +112,23 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
             </div>
 
             <div className="mt-10 grid max-w-4xl gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm text-slate-400">Xe gợi ý từ dữ liệu</p>
+              <div className={isCauGiayPilot ? "rounded-2xl border border-slate-200 bg-white p-4" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
+                <p className={isCauGiayPilot ? "text-sm text-slate-600" : "text-sm text-slate-400"}>Xe gợi ý từ dữ liệu</p>
                 <p className="mt-1 text-2xl font-black">{representativeCars.length} mẫu</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm text-slate-400">Giá ngày từ</p>
+              <div className={isCauGiayPilot ? "rounded-2xl border border-slate-200 bg-white p-4" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
+                <p className={isCauGiayPilot ? "text-sm text-slate-600" : "text-sm text-slate-400"}>Giá ngày từ</p>
                 <p className="mt-1 text-2xl font-black">{startingPrice ? `${formatPrice(startingPrice)}/ngày` : 'Kiểm tra theo lịch'}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm text-slate-400">Điểm giao nhận</p>
+              <div className={isCauGiayPilot ? "rounded-2xl border border-slate-200 bg-white p-4" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
+                <p className={isCauGiayPilot ? "text-sm text-slate-600" : "text-sm text-slate-400"}>Điểm giao nhận</p>
                 <p className="mt-1 text-xl font-black">Xác nhận theo địa chỉ</p>
               </div>
             </div>
           </div>
         </section>
+
+        {isCauGiayPilot && <LocalRentalQuickAnswer area={area} />}
 
         <section className="border-b border-slate-200 bg-slate-50 py-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -171,7 +176,9 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
           </div>
         </section>
 
-        <section className="bg-blue-50 py-16 sm:py-20">
+        {isCauGiayPilot && <LocalRentalPlanner area={area} cars={representativeCars} source={source} />}
+
+        <section id="giao-nhan" className="scroll-mt-24 bg-blue-50 py-16 sm:py-20">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Giao nhận tại địa phương</p>
@@ -268,7 +275,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
           </div>
         </section>
 
-        <section className="py-16 sm:py-20">
+        <section id="cau-hoi" className="scroll-mt-24 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <p className="text-center text-sm font-black uppercase tracking-[0.18em] text-brand-600">Câu hỏi thường gặp</p>
             <h2 className="mt-3 text-center text-3xl font-black tracking-tight sm:text-4xl">Thuê xe tại {area.shortName}</h2>
