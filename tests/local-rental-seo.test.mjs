@@ -59,7 +59,7 @@ test('shared local page derives prices from the catalog and makes availability c
   assert.match(source, /catalog\.filter\(\(car\) => car\.price > 0\)/);
   assert.match(source, /Math\.min\(\.\.\.representativeCars\.map\(\(car\) => car\.price\)\)/);
   assert.match(source, /Lịch, tổng tiền và điểm giao nhận chỉ được chốt sau khi Car Match kiểm tra/);
-  assert.match(source, /Thuê xe tự lái tại \{area\.name\}/);
+  assert.match(source, /`Thuê xe tự lái tại \$\{area\.name\}`/);
   assert.match(source, /displayedLocalAreas\.map/);
   assert.match(source, /localRentalAreas\.filter/);
   assert.doesNotMatch(source, /luôn (còn|trống)|InStock|LimitedAvailability/i);

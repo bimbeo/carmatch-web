@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createHash, randomUUID } from 'node:crypto';
 import { rateLimit } from './_security.js';
 import { sanitizeAttribution } from './_conversion.js';
+import { calculateRentalPricingUnits } from './_rental-duration.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
@@ -651,7 +652,7 @@ export function buildVehicleReservationInsert({
   };
 }
 
-function calculateRentalAmount(pickupDate, pickupHour, returnDate, returnHour, basePrice) {
+export function calculateRentalAmount(pickupDate, pickupHour, returnDate, returnHour, basePrice) {
   const pDate = parseHolidayDate(pickupDate);
   const rDate = parseHolidayDate(returnDate);
   if (!pDate || !rDate || !basePrice || basePrice <= 0) return null;
@@ -660,11 +661,14 @@ function calculateRentalAmount(pickupDate, pickupHour, returnDate, returnHour, b
   const totalHours = calDays * 24 + (Number(returnHour) - Number(pickupHour));
   if (totalHours < 4 || calDays < 0) return null;
 
-  if (calDays === 0) {
-    const halfDay = (Number(pickupHour) >= 7 && Number(pickupHour) <= 12 && Number(returnHour) <= 12)
-      || (Number(pickupHour) >= 13 && Number(returnHour) <= 20);
-    return Math.round(basePrice * (halfDay ? 0.7 : 1));
-  }
+  const pricingUnits = calculateRentalPricingUnits(
+    pickupDate,
+    pickupHour,
+    returnDate,
+    returnHour,
+  );
+  if (pricingUnits.billingDays <= 0) return null;
+  if (calDays === 0) return Math.round(basePrice * pricingUnits.priceDays);
 
   let earlyFee = 0;
   if (Number(pickupHour) >= 17 && Number(pickupHour) < 19) earlyFee = 100_000;
@@ -675,16 +679,7 @@ function calculateRentalAmount(pickupDate, pickupHour, returnDate, returnHour, b
   else if (Number(returnHour) >= 22) lateFee = 200_000;
   else if (Number(returnHour) >= 21) lateFee = 100_000;
 
-  let baseDays;
-  if (Number(pickupHour) <= 11) baseDays = calDays + 1;
-  else if (Number(pickupHour) <= 15) baseDays = Number(returnHour) <= 12 ? calDays : calDays + 0.5;
-  else {
-    baseDays = calDays;
-    if (Number(pickupHour) >= 19 && Number(returnHour) <= 12) {
-      baseDays = calDays === 1 ? 0.7 : (calDays - 1) + 0.5;
-    }
-  }
-  return Math.round(basePrice * baseDays)
+  return Math.round(basePrice * pricingUnits.priceDays)
     + (lateExtraHalf ? Math.round(basePrice * 0.5) : lateFee)
     + earlyFee;
 }
@@ -1268,6 +1263,7 @@ export default async function handler(req, res) {
     `Nhận: ${pickupText}`,
     `Trả: ${returnText}`,
     locationName ? `Địa điểm: ${locationName}` : '',
+    body.return_address ? `Địa chỉ trả xe: ${String(body.return_address).slice(0, 300)}` : '',
     `Tổng dự kiến: ${totalAmount.toLocaleString('vi-VN')}đ`,
     holidayComboSnapshot
       ? `Mức tăng combo lễ: +${Number(holidayComboSnapshot.combo_adjustment_value).toLocaleString('vi-VN')}đ/ngày × ${holidayComboSnapshot.combo_days} ngày`
@@ -1452,7 +1448,7 @@ export default async function handler(req, res) {
           <tr><td style="padding:6px 0;color:#64748b">Còn lại khi nhận xe</td><td style="padding:6px 0;font-weight:600;color:#dc2626">${(totalAmount - depositAmount).toLocaleString('vi-VN')}đ</td></tr>
         </table>
         <p style="font-size:13px;color:#64748b">
-          Car Match sẽ liên hệ xác nhận trong vòng 30 phút.<br>
+          Car Match sẽ kiểm tra lịch, giá và cách giao nhận rồi liên hệ xác nhận. Yêu cầu này chưa phải booking đã được xác nhận.<br>
           Hotline: <strong>0971 163 290</strong>
         </p>
         <p style="font-size:12px;color:#94a3b8">Lưu mã booking để tra cứu: <strong>${bookingRef}</strong></p>

@@ -33,6 +33,10 @@ interface CarCardProps {
     returnHour: number;
   };
   availabilityChecked?: boolean;
+  selectionAction?: {
+    selected: boolean;
+    onSelect: () => void;
+  };
 }
 
 const PRESERVED_QUERY_KEYS = [
@@ -73,6 +77,7 @@ export default function CarCard({
   source = 'vehicle_card',
   rentalRange,
   availabilityChecked = false,
+  selectionAction,
 }: CarCardProps) {
   const location = useLocation();
   const badge = fuelBadge[car.fuel];
@@ -171,7 +176,7 @@ export default function CarCard({
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-slate-600">
               <Truck className="h-3.5 w-3.5 text-brand-500" />
-              Giao tận nơi
+              Hỗ trợ giao xe theo lịch
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-slate-600">
               <Gauge className="h-3.5 w-3.5 text-brand-500" />
@@ -186,7 +191,7 @@ export default function CarCard({
             </div>
           )}
 
-          <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="mt-4 border-t border-slate-100 pt-4">
             <div>
               {car.price > 0 ? (
                 <>
@@ -204,14 +209,29 @@ export default function CarCard({
                 <span className="text-base font-semibold text-brand-600">Liên hệ báo giá</span>
               )}
             </div>
-            <Link
-              to={detailHref}
-              onClick={() => trackCar('detail_click')}
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-800 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
-            >
-              Xem xe
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-4 flex gap-2">
+              {selectionAction && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackCar(selectionAction.selected ? 'selected_again' : 'select_for_booking');
+                    selectionAction.onSelect();
+                  }}
+                  aria-pressed={selectionAction.selected}
+                  className={`inline-flex min-h-11 flex-1 items-center justify-center rounded-xl px-4 text-sm font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${selectionAction.selected ? 'bg-brand-700 text-white' : 'bg-brand-600 text-white hover:bg-brand-700'}`}
+                >
+                  {selectionAction.selected ? 'Đã chọn' : 'Chọn xe'}
+                </button>
+              )}
+              <Link
+                to={detailHref}
+                onClick={() => trackCar('detail_click')}
+                className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-800 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${selectionAction ? 'flex-1' : 'ml-auto'}`}
+              >
+                Xem chi tiết
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </article>

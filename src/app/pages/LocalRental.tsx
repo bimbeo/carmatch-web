@@ -123,6 +123,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
   )}`;
   const handleSelectCar = (carId: string) => {
     setSelectedCarId(carId);
+    trackCtaClick(`${source}_vehicle_select`, { vehicle_id: carId });
     window.requestAnimationFrame(() => document.getElementById('booking-tool')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
@@ -149,12 +150,12 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
             <div className={isCauGiayPilot ? "grid items-center gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14" : "max-w-3xl"}>
               <div>
                 <div className={isCauGiayPilot ? "mb-5 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-3.5 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-brand-700 shadow-sm" : "mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm font-bold text-blue-100"}>
-                  <MapPin className="h-4 w-4" /> {isCauGiayPilot ? 'Thuê xe tự lái · Cầu Giấy' : area.locality}
+                  <MapPin className="h-4 w-4" /> {isCauGiayPilot ? 'Thuê xe tự lái · Cầu Giấy, Hà Nội' : area.locality}
                 </div>
                 <h1 className={isCauGiayPilot ? "max-w-3xl text-[2.65rem] font-black leading-[1.06] tracking-[-0.045em] sm:text-6xl lg:text-[4.15rem]" : "text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl"}>
-                  Thuê xe tự lái tại {area.name}{isCauGiayPilot && <span className="text-brand-600">.</span>}
-                  {isCauGiayPilot && <span className="mt-1 block text-slate-500">Giao nhận theo lịch đã chốt.</span>}
+                  {isCauGiayPilot ? 'Thuê xe tự lái Cầu Giấy, Hà Nội' : `Thuê xe tự lái tại ${area.name}`}
                 </h1>
+                {isCauGiayPilot && <p className="mt-4 text-2xl font-black tracking-[-0.03em] text-brand-700 sm:text-3xl">Chọn xe dễ dàng. Giao nhận thuận tiện.</p>}
                 <p className={isCauGiayPilot ? "mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8" : "mt-6 max-w-3xl text-lg leading-8 text-slate-300"}>{isCauGiayPilot ? cauGiayHubData.heroLead : area.heroAnswer}</p>
                 {isCauGiayPilot && (
                   <div className="mt-6 flex flex-wrap gap-2.5 text-sm font-semibold text-slate-700">
@@ -171,7 +172,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                     onClick={() => trackCtaClick(`${source}_view_cars`, { target_path: '#xe-goi-y' })}
                     className={isCauGiayPilot ? "inline-flex min-h-13 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 font-bold text-white shadow-[0_12px_30px_rgba(30,64,175,0.2)] transition hover:-translate-y-0.5 hover:bg-brand-700" : "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange-400 px-6 py-3 font-black text-slate-950 transition-colors hover:bg-orange-300"}
                   >
-                    Xem xe và giá thực tế <ArrowRight className="h-4 w-4" />
+                    Xem xe &amp; chọn lịch thuê <ArrowRight className="h-4 w-4" />
                   </a>
                   <a
                     href={zaloHref}
@@ -180,7 +181,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                     onClick={() => trackZaloClick(`${source}_hero`)}
                     className={isCauGiayPilot ? "inline-flex min-h-13 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-bold text-brand-800 transition hover:border-brand-300 hover:bg-brand-50" : "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-black text-white hover:bg-white/15"}
                   >
-                    <MessageCircle className="h-4 w-4" /> Kiểm tra lịch giao xe
+                    <MessageCircle className="h-4 w-4" /> Tư vấn xe phù hợp
                   </a>
                 </div>
               </div>
@@ -200,7 +201,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                       className="aspect-[4/3] h-full w-full object-cover"
                     />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent p-6 pt-20 text-white sm:p-8">
-                      <p className="text-sm font-semibold text-blue-100">{heroCar.popular ? 'Mẫu xe được chọn nhiều' : 'Mẫu xe gợi ý tại Cầu Giấy'}</p>
+                      <p className="text-sm font-semibold text-blue-100">Xe gợi ý cho khách Cầu Giấy</p>
                       <div className="mt-1 flex items-end justify-between gap-4">
                         <div>
                           <p className="text-2xl font-black">{heroCar.name}</p>
@@ -210,26 +211,23 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                       </div>
                     </div>
                   </div>
-                  <div className="absolute -bottom-5 -left-3 hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xl sm:block lg:-left-8">
-                    <p className="flex items-center gap-2 text-sm font-bold text-slate-900"><ShieldCheck className="h-5 w-5 text-brand-600" /> Giữ lịch online 0đ</p>
-                    <p className="mt-1 text-xs text-slate-500">Đối chiếu xe · địa chỉ · tổng chi phí</p>
-                  </div>
                 </div>
               )}
             </div>
 
             <div className={isCauGiayPilot ? "mt-12 grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:grid-cols-3 lg:mt-16" : "mt-10 grid max-w-4xl gap-3 sm:grid-cols-3"}>
               <div className={isCauGiayPilot ? "bg-white p-5" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
-                <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Car className="h-4 w-4 text-brand-600" /> Đội xe 4–7 chỗ</p>
-                <p className="mt-1 text-2xl font-black">{fleetModelCount} mẫu xe</p>
+                <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Car className="h-4 w-4 text-brand-600" /> Danh mục xe 4–7 chỗ</p>
+                <p className="mt-1 text-2xl font-black">{fleetModelCount} mẫu trong danh mục Car Match</p>
               </div>
               <div className={isCauGiayPilot ? "bg-white p-5" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
-                <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Gauge className="h-4 w-4 text-brand-600" /> Giá ngày từ</p>
+                <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Gauge className="h-4 w-4 text-brand-600" /> Giá niêm yết từ</p>
                 <p className="mt-1 text-2xl font-black">{startingPrice ? `${formatPrice(startingPrice)}/ngày` : 'Kiểm tra theo lịch'}</p>
+                {isCauGiayPilot && <p className="mt-1 text-xs text-slate-500">Chưa gồm phụ phí hoặc giá cao điểm nếu có</p>}
               </div>
               <div className={isCauGiayPilot ? "bg-white p-5" : "rounded-2xl border border-white/10 bg-white/5 p-4"}>
                 <p className={isCauGiayPilot ? "flex items-center gap-2 text-sm font-semibold text-slate-500" : "text-sm text-slate-400"}><Clock3 className="h-4 w-4 text-brand-600" /> Điểm giao nhận</p>
-                <p className="mt-1 text-xl font-black">Điểm hẹn hoặc giao tận nơi</p>
+                <p className="mt-1 text-xl font-black">Chọn điểm nhận hoặc yêu cầu giao tận nơi</p>
               </div>
             </div>
           </div>
@@ -255,9 +253,9 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
               <div className="max-w-3xl">
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">{isCauGiayPilot ? 'Đội xe phục vụ tại khu vực' : 'Xe và giá từ danh mục hiện tại'}</p>
-                <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Gợi ý xe cho khách tại {area.shortName}</h2>
-                <p className="mt-4 text-slate-600">{isCauGiayPilot ? 'Chọn mẫu xe theo số người, hành lý và hành trình. Mỗi thẻ hiển thị đơn giá cùng định mức km thực tế; đội vận hành sẽ đối chiếu lịch ngay khi nhận yêu cầu.' : 'Giá hiển thị theo dữ liệu từng xe, chưa khẳng định xe trống. Lịch, tổng tiền và điểm giao nhận chỉ được chốt sau khi Car Match kiểm tra yêu cầu cụ thể.'}</p>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">{isCauGiayPilot ? 'Xe phù hợp cho khách khu vực' : 'Xe và giá từ danh mục hiện tại'}</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{isCauGiayPilot ? 'Chọn xe tự lái tại Cầu Giấy' : `Gợi ý xe cho khách tại ${area.shortName}`}</h2>
+                <p className="mt-4 text-slate-600">{isCauGiayPilot ? `So sánh ${representativeCars.length} mẫu xe gợi ý theo số ghế, nhiên liệu và giá niêm yết. Lịch xe và tổng tiền được kiểm tra theo ngày giờ bạn chọn. Giá tham khảo, có thể thay đổi theo thời điểm thuê và điều kiện áp dụng.` : 'Giá hiển thị theo dữ liệu từng xe, chưa khẳng định xe trống. Lịch, tổng tiền và điểm giao nhận chỉ được chốt sau khi Car Match kiểm tra yêu cầu cụ thể.'}</p>
               </div>
               <Link
                 to="/xe"
@@ -276,30 +274,34 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                   ['five-seat', '4–5 chỗ'],
                   ['seven-seat', '7 chỗ'],
                 ].map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => setFleetFilter(value as typeof fleetFilter)} aria-pressed={fleetFilter === value} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${fleetFilter === value ? 'bg-[#10163f] text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-brand-300'}`}>
+                  <button key={value} type="button" onClick={() => { setFleetFilter(value as typeof fleetFilter); trackCtaClick(`${source}_vehicle_filter`, { filter: value }); }} aria-pressed={fleetFilter === value} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${fleetFilter === value ? 'bg-[#10163f] text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-brand-300'}`}>
                     {label}
                   </button>
                 ))}
               </div>
             )}
 
-            {representativeCars.length > 0 ? (
+            {filteredRepresentativeCars.length > 0 ? (
               <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredRepresentativeCars.map((car) => (
                   <div key={car.id} className={`rounded-2xl ${selectedCar?.id === car.id ? 'ring-2 ring-brand-500 ring-offset-4' : ''}`}>
-                    <CarCard car={car} mode="listing" source={source} />
-                    {isCauGiayPilot && (
-                      <button type="button" onClick={() => handleSelectCar(car.id)} className={`mt-3 min-h-12 w-full rounded-xl px-4 text-sm font-black transition ${selectedCar?.id === car.id ? 'bg-brand-600 text-white' : 'border border-brand-200 bg-brand-50 text-brand-800 hover:bg-brand-100'}`}>
-                        {selectedCar?.id === car.id ? 'Đang chọn để đặt xe' : 'Chọn xe này & xem lịch'}
-                      </button>
-                    )}
+                    <CarCard
+                      car={car}
+                      mode="listing"
+                      source={source}
+                      selectionAction={isCauGiayPilot ? {
+                        selected: selectedCar?.id === car.id,
+                        onSelect: () => handleSelectCar(car.id),
+                      } : undefined}
+                    />
                   </div>
                 ))}
               </div>
             ) : (
               <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center">
-                <p className="font-bold text-slate-700">Danh sách xe đang được cập nhật.</p>
-                <a href={zaloHref} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex font-black text-brand-700">Nhắn Car Match kiểm tra xe</a>
+                <p className="font-bold text-slate-700">{representativeCars.length > 0 ? 'Chưa có xe phù hợp với bộ lọc này.' : 'Danh sách xe đang được cập nhật.'}</p>
+                {representativeCars.length > 0 && <button type="button" onClick={() => setFleetFilter('all')} className="mt-3 font-black text-brand-700">Xem tất cả xe</button>}
+                <a href={zaloHref} target="_blank" rel="noopener noreferrer" className="ml-3 mt-3 inline-flex font-black text-brand-700">Nhờ Car Match tư vấn</a>
               </div>
             )}
           </div>
@@ -318,8 +320,8 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
         <section id="giao-nhan" className={isCauGiayPilot ? "scroll-mt-24 bg-[#10163f] py-16 text-white sm:py-24" : "scroll-mt-24 bg-blue-50 py-16 sm:py-20"}>
           <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
             <div>
-              <p className={isCauGiayPilot ? "text-xs font-extrabold uppercase tracking-[0.16em] text-blue-200" : "text-sm font-black uppercase tracking-[0.18em] text-brand-600"}>Giao nhận tại địa phương</p>
-              <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] sm:text-4xl">Hẹn đúng điểm, nhận xe bớt chờ.</h2>
+              <p className={isCauGiayPilot ? "text-xs font-extrabold uppercase tracking-[0.16em] text-blue-200" : "text-sm font-black uppercase tracking-[0.18em] text-brand-600"}>{isCauGiayPilot ? 'Giao nhận xe tại Cầu Giấy' : 'Giao nhận tại địa phương'}</p>
+              <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] sm:text-4xl">{isCauGiayPilot ? 'Hẹn đúng điểm, nhận xe thuận tiện' : 'Hẹn đúng điểm, nhận xe bớt chờ.'}</h2>
               <p className={isCauGiayPilot ? "mt-5 leading-7 text-slate-300" : "mt-4 leading-7 text-slate-700"}>{area.pickupNote}</p>
               <div className={isCauGiayPilot ? "mt-7 rounded-2xl border border-white/10 bg-white/10 p-5" : "mt-6 rounded-2xl border border-blue-200 bg-white p-5"}>
                 <p className="flex items-center gap-2 font-black"><MapPin className={isCauGiayPilot ? "h-5 w-5 text-blue-200" : "h-5 w-5 text-brand-600"} /> Vị trí cần đối chiếu</p>
@@ -333,10 +335,10 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                ['1. Gửi yêu cầu', 'Ngày giờ nhận trả, số người, hành lý và địa chỉ chi tiết.'],
-                ['2. Kiểm tra xe', 'Car Match đối chiếu xe, giá, km, cọc và phương án giao nhận.'],
-                ['3. Xác nhận lịch', 'Hai bên chốt đầy đủ điều kiện trước bước giữ lịch.'],
-                ['4. Bàn giao', 'Kiểm tra xe, xăng hoặc pin, km, phụ kiện và ký biên bản.'],
+                ['1. Chọn xe & lịch', 'Chọn mẫu xe, ngày giờ và địa chỉ nhận trả phù hợp.'],
+                ['2. Kiểm tra yêu cầu', 'Car Match đối chiếu lịch, giá và điểm hẹn.'],
+                ['3. Xác nhận điều kiện', 'Hai bên thống nhất yêu cầu, cọc và điều kiện thuê.'],
+                ['4. Bàn giao', 'Kiểm tra xe, mức nhiên liệu hoặc pin và ký biên bản.'],
               ].map(([title, description]) => (
                 <article key={title} className={isCauGiayPilot ? "rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur" : "rounded-2xl border border-blue-100 bg-white p-5 shadow-sm"}>
                   <CalendarCheck2 className={isCauGiayPilot ? "h-6 w-6 text-blue-200" : "h-6 w-6 text-brand-600"} />
@@ -353,7 +355,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
             <div className={isCauGiayPilot ? "grid gap-12" : "grid gap-12 lg:grid-cols-2"}>
               <div>
                 <Route className="h-10 w-10 text-brand-600" />
-                <h2 className="mt-4 text-3xl font-black tracking-[-0.03em]">Chọn xe theo chuyến đi, không chỉ theo số ghế</h2>
+                <h2 className="mt-4 text-3xl font-black tracking-[-0.03em]">{isCauGiayPilot ? 'Chọn xe phù hợp với chuyến đi của bạn' : 'Chọn xe theo chuyến đi, không chỉ theo số ghế'}</h2>
                 <div className={isCauGiayPilot ? "mt-6 grid gap-4 md:grid-cols-3" : "mt-6 space-y-4"}>
                   {area.useCases.map((item, index) => {
                     const IntentIcon = [Building2, Plane, Luggage][index] || Sparkles;
@@ -393,17 +395,19 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
           <div className={`mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:px-8 ${isCauGiayPilot ? '' : 'lg:grid-cols-2'}`}>
             <div>
               <FileCheck2 className="h-10 w-10 text-orange-400" />
-              <h2 className="mt-4 text-3xl font-black tracking-tight">Giấy tờ và bước kiểm tra khi nhận xe</h2>
+              <h2 className="mt-4 text-3xl font-black tracking-tight">{isCauGiayPilot ? 'Giấy tờ và điều kiện cần kiểm tra trước khi thuê' : 'Giấy tờ và bước kiểm tra khi nhận xe'}</h2>
+              {isCauGiayPilot && <p className="mt-4 max-w-3xl leading-7 text-slate-300">Điều kiện thuê, cọc và phụ phí có thể khác nhau theo từng xe. Kiểm tra thông tin được báo trước khi xác nhận.</p>}
               <ul className="mt-6 space-y-3 text-slate-300">
                 {[
-                  'CCCD bản gốc và giấy phép lái xe hạng B còn hiệu lực.',
-                  'Khoản đặt cọc và điều kiện hoàn cọc theo mẫu xe đã xác nhận.',
+                  'Giấy tờ định danh và giấy phép lái xe phù hợp theo chính sách của từng xe.',
+                  'Cọc giữ lịch, khoản bảo đảm và điều kiện hoàn trả được thông báo riêng.',
                   'Ghi nhận ngoại thất, nội thất, km, mức xăng hoặc pin và phụ kiện.',
                   'Đọc rõ giờ trả, giới hạn km, phí vượt km và cách xử lý phát sinh.',
                 ].map((item) => (
                   <li key={item} className="flex gap-3"><CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-orange-400" />{item}</li>
                 ))}
               </ul>
+              {isCauGiayPilot && <Link to="/chinh-sach" className="mt-6 inline-flex items-center gap-2 font-bold text-blue-200 hover:text-white">Xem chính sách thuê xe <ArrowRight className="h-4 w-4" /></Link>}
             </div>
             {!isCauGiayPilot && <div className="rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-8">
               <ShieldCheck className="h-9 w-9 text-blue-300" />
@@ -424,7 +428,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
         <section id="cau-hoi" className="scroll-mt-24 py-16 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <p className={isCauGiayPilot ? "text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700" : "text-center text-sm font-black uppercase tracking-[0.18em] text-brand-600"}>Câu hỏi thường gặp</p>
-            <h2 className={isCauGiayPilot ? "mt-3 max-w-2xl text-3xl font-black tracking-[-0.035em] sm:text-5xl" : "mt-3 text-center text-3xl font-black tracking-tight sm:text-4xl"}>Giải đáp trước khi đặt xe tại {area.shortName}</h2>
+            <h2 className={isCauGiayPilot ? "mt-3 max-w-2xl text-3xl font-black tracking-[-0.035em] sm:text-5xl" : "mt-3 text-center text-3xl font-black tracking-tight sm:text-4xl"}>{isCauGiayPilot ? 'Câu hỏi thường gặp khi thuê xe tại Cầu Giấy' : `Giải đáp trước khi đặt xe tại ${area.shortName}`}</h2>
             <div className={isCauGiayPilot ? "mt-9 grid gap-8 lg:grid-cols-[1.35fr_0.65fr]" : "mt-8 space-y-3"}>
               <div className="space-y-3">
                 {area.faqs.map((faq) => (
@@ -442,7 +446,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
                   <a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick(`${source}_faq`)} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-bold text-white hover:bg-brand-700">
                     Tư vấn trên Zalo <ArrowRight className="h-4 w-4" />
                   </a>
-                  <p className="mt-3 text-xs leading-5 text-slate-500">Không cần nhập lại nếu bạn đã gửi thông tin từ công cụ tính chi phí.</p>
+                  <p className="mt-3 text-xs leading-5 text-slate-600">Không cần nhập lại nếu bạn đã gửi thông tin từ công cụ tính chi phí.</p>
                 </aside>
               )}
             </div>
@@ -455,12 +459,12 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
               <div className="grid items-center gap-8 overflow-hidden rounded-[2rem] bg-[#10163f] p-7 text-white shadow-[0_28px_75px_rgba(15,23,42,0.2)] sm:p-10 lg:grid-cols-[1fr_auto] lg:p-12">
                 <div>
                   <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blue-200">Bước tiếp theo</p>
-                  <h2 className="mt-3 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Chốt lịch, xe và điểm nhận trước khi đặt.</h2>
-                  <p className="mt-3 max-w-2xl leading-7 text-slate-300">Gửi ngày giờ, địa chỉ tại Cầu Giấy, số người và hành lý. Car Match kiểm tra xe, tổng giá, cọc và điều kiện giao nhận.</p>
+                  <h2 className="mt-3 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Đã chọn được xe? Gửi lịch thuê để Car Match kiểm tra.</h2>
+                  <p className="mt-3 max-w-2xl leading-7 text-slate-300">Gửi ngày giờ, địa chỉ tại Cầu Giấy, số người và hành lý. Car Match kiểm tra lịch xe, tổng chi phí, cọc và điều kiện giao nhận trước khi xác nhận.</p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                  <a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick(`${source}_final`)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-bold text-brand-900 hover:bg-blue-50"><MessageCircle className="h-4 w-4" /> Gửi lịch thuê xe</a>
-                  <a href={PHONE_LINK} onClick={() => trackPhoneClick(`${source}_final`)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 px-6 py-3 font-bold text-white hover:bg-white/10"><Phone className="h-4 w-4" /> 0971 163 290</a>
+                  <a href="#booking-tool" onClick={() => trackCtaClick(`${source}_final_booking`, { target_path: '#booking-tool' })} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-bold text-brand-900 hover:bg-blue-50"><CalendarCheck2 className="h-4 w-4" /> Gửi yêu cầu thuê xe</a>
+                  <a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick(`${source}_final`)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 px-6 py-3 font-bold text-white hover:bg-white/10"><MessageCircle className="h-4 w-4" /> Nhắn Zalo để được tư vấn</a>
                 </div>
               </div>
             </div>
@@ -472,7 +476,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Khu vực giao nhận khác</p>
-                <h2 className="mt-2 text-2xl font-black">{isCauGiayPilot ? 'Khu vực lân cận có thể hữu ích' : 'Xem landing theo từng khu đô thị'}</h2>
+                <h2 className="mt-2 text-2xl font-black">{isCauGiayPilot ? 'Thuê xe tại các khu vực lân cận' : 'Xem landing theo từng khu đô thị'}</h2>
               </div>
               <Link to="/" className="inline-flex items-center gap-2 font-black text-brand-700">Dịch vụ thuê xe Hà Nội <ArrowRight className="h-4 w-4" /></Link>
             </div>
@@ -499,7 +503,7 @@ export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlu
         </section>
       </main>
       <Footer />
-      <ZaloFAB />
+      {!isCauGiayPilot && <ZaloFAB />}
       {!isCauGiayPilot && <MobileConversionBar source={source} />}
     </div>
   );

@@ -16,12 +16,14 @@ import {
 } from '@/lib/analytics';
 import {
   calculateRentalBillingDays,
+  calculateRentalPricingUnits,
   DEFAULT_PICKUP_HOUR,
   DEFAULT_RETURN_HOUR,
   formatRentalBillingDays,
 } from '@/lib/rentalDuration';
 import { supabase } from '@/lib/supabase';
 import { getAttributionSnapshot } from '@/lib/attribution';
+import { getBookingScheduleNotice } from '@/lib/bookingNotifications';
 import {
   experimentPayload,
   getBookingCtaExperiment,
@@ -134,11 +136,6 @@ function categorizeConflicts(
   }
 
   return { hard, boundary };
-}
-
-function fmtDateShort(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
 function validatePaymentProof(file: File): string | null {
@@ -469,11 +466,14 @@ function calculateRental(
 
   const fees: Fee[] = [];
   if (calDays === 0) {
-    const inMorning = pickupHour >= 7 && pickupHour <= 12 && returnHour <= 12;
-    const inAfternoon = pickupHour >= 13 && returnHour <= 20;
-    const isHalfDay = inMorning || inAfternoon;
-
-    let base = isHalfDay ? Math.round(BP * 0.7) : BP;
+    const pricingUnits = calculateRentalPricingUnits(
+      pickupDateStr,
+      pickupHour,
+      returnDateStr,
+      returnHour,
+    );
+    const isHalfDay = pricingUnits.billingDays === 0.5;
+    const base = Math.round(BP * pricingUnits.priceDays);
     fees.push({ label: isHalfDay ? 'Nửa ngày (×70%)' : '1 ngày', amount: base });
 
     return { valid: true, total: base, fees };
@@ -489,25 +489,23 @@ function calculateRental(
   else if (returnHour >= 22) lateFee = 200_000;
   else if (returnHour >= 21) lateFee = 100_000;
 
-  const baseDays = calculateRentalBillingDays(
+  const pricingUnits = calculateRentalPricingUnits(
     pickupDateStr,
     pickupHour,
     returnDateStr,
     returnHour,
   );
 
-  let baseAmount: number;
-  if (baseDays === 0.7) {
-    baseAmount = Math.round(BP * 0.7);
-  } else {
-    baseAmount = Math.round(BP * baseDays);
-  }
+  const { billingDays: baseDays, priceDays } = pricingUnits;
+  let baseAmount = Math.round(BP * priceDays);
 
   const wholeDays = Math.floor(baseDays);
-  const daysLabel = baseDays === 0.7 ? 'Nửa ngày (×70%)'
+  const hasSeventyPercentHalfDay = Math.abs(priceDays - baseDays - 0.2) < 0.001;
+  const daysLabel = baseDays === 0.5 ? 'Nửa ngày (×70%)'
     : baseDays % 1 === 0 ? (baseDays === 1 ? '1 ngày' : `${baseDays} ngày`)
-    : baseDays === wholeDays + 0.5 ? `${wholeDays} ngày + nửa ngày (×50%)`
-    : `${baseDays} ngày`;
+    : baseDays === wholeDays + 0.5
+      ? `${wholeDays} ngày + nửa ngày (${hasSeventyPercentHalfDay ? '×70%' : '×50%'})`
+      : `${baseDays} ngày`;
 
   fees.push({ label: daysLabel, amount: baseAmount });
 
@@ -544,11 +542,11 @@ export interface BookingPickupLocation {
   mapUrl?: string;
 }
 
-const DEFAULT_PICKUP_LOCATIONS: BookingPickupLocation[] = [
+export const DEFAULT_PICKUP_LOCATIONS: BookingPickupLocation[] = [
   { id: 'times-city',   name: 'Times City',             address: 'Hai Bà Trưng, Hà Nội', mapUrl: 'https://maps.app.goo.gl/aytjYtSmkNVvDnJb9' },
   { id: 'ocean-park',   name: 'Ocean Park',             address: 'Gia Lâm, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/G8UHdiVEqe7TFqxk9' },
-  { id: 'manor',        name: 'The Manor Central Park', address: 'Bắc Từ Liêm, Hà Nội',  mapUrl: 'https://maps.app.goo.gl/8fAgFRwDGLgUqX5n7' },
-  { id: 'trung-lan',    name: 'Trung Lân Gara',         address: 'Bắc Từ Liêm, Hà Nội',  mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
+  { id: 'manor',        name: 'The Manor Central Park', address: 'Hoàng Mai (Nguyễn Xiển), Hà Nội', mapUrl: 'https://maps.app.goo.gl/Nr1DysckyzRMBVqE8' },
+  { id: 'trung-lan',    name: 'Cầu Giấy',               address: 'Cầu Giấy, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
 ];
 
 // ─── Bank / QR config ─────────────────────────────────────────────────────────
@@ -579,6 +577,9 @@ interface Props {
   pickupLocations?: BookingPickupLocation[];
   initialDeliveryMode?: 'self' | 'delivery';
   pageType?: 'vehicle_detail' | 'local_rental';
+  layout?: 'compact' | 'wide';
+  deliveryPolicy?: 'standard' | 'conditional';
+  separateReturnAddress?: boolean;
   onRelatedCarSelect?: (vehicleId: string) => void;
   externalOpenRequest?: BookingOpenRequest | null;
   onAvailabilityStatusChange?: (status: BookingAvailabilityStatus) => void;
@@ -647,6 +648,9 @@ export default function BookingWidget({
   pickupLocations = DEFAULT_PICKUP_LOCATIONS,
   initialDeliveryMode,
   pageType = 'vehicle_detail',
+  layout = 'compact',
+  deliveryPolicy = 'standard',
+  separateReturnAddress = false,
   onRelatedCarSelect,
   externalOpenRequest,
   onAvailabilityStatusChange,
@@ -659,7 +663,6 @@ export default function BookingWidget({
   const initialBookingSelection = useMemo(() => getInitialBookingSelection(today), [today]);
   const [ctaExperiment] = useState(getBookingCtaExperiment);
   const experimentMeta = useMemo(() => experimentPayload(ctaExperiment), [ctaExperiment]);
-  const isPriceTrustVariant = ctaExperiment.variant_id === 'price-trust';
   const [pickupDate, setPickupDate] = useState(initialBookingSelection.pickupDate);
   const [pickupHour, setPickupHour] = useState(initialBookingSelection.pickupHour);
   const [returnDate, setReturnDate] = useState(initialBookingSelection.returnDate);
@@ -669,6 +672,7 @@ export default function BookingWidget({
     initialDeliveryMode ?? (canSelfPickup ? 'self' : 'delivery')
   ));
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [returnDeliveryAddress, setReturnDeliveryAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(pickupLocations[0]?.id ?? '');
   const [showModal, setShowModal] = useState(false);
   const initialPromoCode = useMemo(() => getInitialPromoCodeFromUrl(), []);
@@ -708,6 +712,7 @@ export default function BookingWidget({
   const bookingIdempotencyRef = useRef('');
   const handledExternalOpenRequestRef = useRef('');
   const availabilityRequestRef = useRef(0);
+  const bookingModalRef = useRef<HTMLDivElement>(null);
 
   // ── Loyalty auto-discount ─────────────────────────────────────────────────
   const [referralCredit, setReferralCredit] = useState(0);
@@ -733,6 +738,8 @@ export default function BookingWidget({
   const [depositAmount, setDepositAmount] = useState(0);
   const [serverPriceQuote, setServerPriceQuote] = useState<ServerPriceQuote | null>(null);
   const [bookingNeedsConfirmation, setBookingNeedsConfirmation] = useState(false);
+  const [bookingServerStatus, setBookingServerStatus] = useState('');
+  const [bookingHoldExpiresAt, setBookingHoldExpiresAt] = useState('');
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
@@ -750,6 +757,43 @@ export default function BookingWidget({
   useEffect(() => {
     promoCodeRef.current = promoCode;
   }, [promoCode]);
+
+  useEffect(() => {
+    if (!showBookingModal) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = bookingModalRef.current;
+    dialog?.focus();
+    const handleDialogKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setShowBookingModal(false);
+        return;
+      }
+      if (event.key !== 'Tab' || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => !element.hasAttribute('hidden'));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleDialogKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleDialogKeyDown);
+      previousFocus?.focus();
+    };
+  }, [showBookingModal]);
 
   useEffect(() => {
     trackExperimentExposure(ctaExperiment, {
@@ -777,6 +821,8 @@ export default function BookingWidget({
     setBookingRef('');
     setDepositAmount(0);
     setBookingNeedsConfirmation(false);
+    setBookingServerStatus('');
+    setBookingHoldExpiresAt('');
     setBookingStep(1);
     promoAutoAppliedRef.current = false;
   }, [vehicleId]);
@@ -791,6 +837,7 @@ export default function BookingWidget({
     returnHour,
     deliveryMode,
     deliveryAddress,
+    returnDeliveryAddress,
     selectedLocation,
     customerName,
     customerPhone,
@@ -1032,6 +1079,25 @@ export default function BookingWidget({
   const needsManualConfirmation = requiresConfirmation
     || boundaryConflicts.length > 0
     || availabilityUnavailable;
+  const scheduleNotice = useMemo(() => getBookingScheduleNotice({
+    availabilityUnavailable,
+    requiresConfirmation,
+    hardConflicts,
+    boundaryConflicts,
+    pickupDate,
+    pickupHour,
+    returnDate,
+    returnHour,
+  }), [
+    availabilityUnavailable,
+    boundaryConflicts,
+    hardConflicts,
+    pickupDate,
+    pickupHour,
+    requiresConfirmation,
+    returnDate,
+    returnHour,
+  ]);
 
   const availabilityStatus = useMemo<BookingAvailabilityStatus>(() => ({
     isLoading: availLoading,
@@ -1123,6 +1189,7 @@ export default function BookingWidget({
   const selectedDurationLabel = formatRentalBillingDays(billingDays);
 
   const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
+  const deliveryAddressMissing = deliveryMode === 'delivery' && !deliveryAddress.trim();
   const orderTotalBeforePromo = rentalResult.valid
     ? rentalResult.total + holidayPricing.total + deliveryFee
     : 0;
@@ -1132,7 +1199,7 @@ export default function BookingWidget({
   const result = useMemo(() => {
     if (!rentalResult.valid) return rentalResult;
     const extraFees: Fee[] = deliveryMode === 'delivery'
-      ? [{ label: 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
+      ? [{ label: deliveryPolicy === 'conditional' ? 'Phí giao nhận tạm tính (2 chiều)' : 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
       : [];
     const loyaltyFee: Fee[] = loyaltyDiscount
       ? [{ label: loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết', amount: -loyaltyDiscountAmount, highlight: true }]
@@ -1145,7 +1212,7 @@ export default function BookingWidget({
       fees: [...rentalResult.fees, ...holidayPricing.fees, ...extraFees, ...loyaltyFee, ...promoFee],
       total: Math.max(0, orderTotalBeforePromo - loyaltyDiscountAmount - (promoResult?.discount_amount ?? 0)),
     };
-  }, [rentalResult, holidayPricing.fees, deliveryMode, deliveryFee, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
+  }, [rentalResult, holidayPricing.fees, deliveryMode, deliveryFee, deliveryPolicy, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
 
   useEffect(() => {
     setServerPriceQuote(null);
@@ -1452,6 +1519,13 @@ export default function BookingWidget({
         promo_discount: promoForBooking?.discount_amount ?? 0,
         total_amount: result.valid ? result.total : 0,
       };
+      const attribution = getAttributionSnapshot();
+      const bookingPage = typeof window === 'undefined'
+        ? null
+        : `${window.location.pathname}${window.location.search}`.slice(0, 500);
+      const bookingAttribution = bookingPage
+        ? { ...(attribution ?? {}), booking_page: bookingPage }
+        : attribution;
       let bookingPayload = {
           idempotency_key: idempotencyKey,
           vehicle_id: vehicleId || null,
@@ -1467,6 +1541,9 @@ export default function BookingWidget({
           return_hour: returnHour,
           delivery_mode: deliveryMode,
           delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() || null : null,
+          return_address: deliveryMode === 'delivery'
+            ? returnDeliveryAddress.trim() || deliveryAddress.trim() || null
+            : null,
           location_name: deliveryMode === 'self'
             ? loc?.name
             : deliveryAddress.trim() || 'Giao tận nơi · bổ sung địa chỉ khi xác nhận',
@@ -1480,7 +1557,7 @@ export default function BookingWidget({
           promo_discount: clientQuote.promo_discount,
           total_amount: clientQuote.total_amount,
           requires_confirmation: needsManualConfirmation,
-          attribution: getAttributionSnapshot(),
+          attribution: bookingAttribution,
       };
       let res: Response;
       let data: Record<string, unknown>;
@@ -1516,6 +1593,8 @@ export default function BookingWidget({
       setBookingRef(String(data.bookingRef || ''));
       setDepositAmount(Number(data.depositAmount) || 0);
       setBookingNeedsConfirmation(submittedNeedsConfirmation);
+      setBookingServerStatus(String(data.bookingStatus || 'request_submitted'));
+      setBookingHoldExpiresAt(String(data.holdExpiresAt || ''));
       setBookingStep(BANK_QR_ENABLED && data.paymentRequired !== false && !submittedNeedsConfirmation ? 2 : 3);
       trackBookingSubmit('success', {
         vehicle_id: vehicleId || null,
@@ -1526,6 +1605,7 @@ export default function BookingWidget({
           deposit_amount: submittedNeedsConfirmation ? 0 : Number(data.depositAmount) || 0,
         delivery_mode: deliveryMode,
         promo_code: promoForBooking?.code ?? null,
+        booking_status: data.bookingStatus || 'request_submitted',
         ...experimentMeta,
       });
     } catch (e: unknown) {
@@ -1549,7 +1629,7 @@ export default function BookingWidget({
     const loc = pickupLocations.find(l => l.id === selectedLocation);
     const locationLine = deliveryMode === 'self'
       ? `📍 Địa điểm: ${loc?.name || 'Điểm nhận đã chọn'}${loc?.address ? ` (${loc.address})` : ''}`
-      : `🚗 Giao xe tận nơi (phí 100.000đ/chiều)`;
+      : `🚗 Nhận tại: ${deliveryAddress.trim() || 'chưa cung cấp'}\n🚗 Trả tại: ${returnDeliveryAddress.trim() || deliveryAddress.trim() || 'chưa cung cấp'}\n💡 Phí giao nhận đang tạm tính và cần xác nhận theo địa chỉ`;
     const holidayComboLine = holidayBookingPolicy.matchedWindow
       ? `🎉 Combo lễ: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}\n`
       : '';
@@ -1599,9 +1679,10 @@ export default function BookingWidget({
   const estimatedRemainingAmount = Math.max(0, finalTotal - estimatedDepositAmount);
   const promoDiscount = promoResult?.discount_amount ?? 0;
   const appliedPromo = promoResult?.code ?? '';
-  const rentalDays = Math.max(1, Math.ceil(billingDays));
+  const rentalDays = billingDays > 0 ? billingDays : 1;
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
+  const isServerHeldPending = bookingServerStatus === 'held_pending_confirmation';
 
   useEffect(() => {
     onBookingSummaryChange?.({
@@ -1720,17 +1801,17 @@ export default function BookingWidget({
 
   return (
     <>
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg shadow-slate-200/70">
+    <div className={`overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg shadow-slate-200/70 ${layout === 'wide' ? 'lg:rounded-[1.75rem]' : ''}`}>
       <div className="border-b border-gray-100 px-5 pb-3 pt-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-black text-gray-950">Đặt lịch thuê xe</h2>
-            <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn thời gian thuê xe để xem tổng dự kiến.</p>
+            <h2 className="text-base font-black text-gray-950">{pageType === 'local_rental' ? 'Lịch thuê và chi phí dự kiến' : 'Đặt lịch thuê xe'}</h2>
+            <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn thời gian thuê xe để xem tổng chi phí dự kiến.</p>
           </div>
           {basePrice > 0 ? (
             <div className="shrink-0 text-right">
               <div className="text-lg font-black text-brand-700">{fmtVND(basePrice)}</div>
-              <div className="text-xs font-semibold text-gray-400">/ngày</div>
+              <div className="text-xs font-semibold text-gray-600">/ngày</div>
             </div>
           ) : (
             <div className="shrink-0 text-right text-sm font-black text-brand-700">Liên hệ</div>
@@ -1743,16 +1824,19 @@ export default function BookingWidget({
               <div className="text-xs text-emerald-700">Thuê theo tháng</div>
               <div className="font-black text-gray-950">{fmtVND(priceMonth)}/tháng</div>
             </div>
-            <span className="whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">
-              Tiết kiệm {savings}%
-            </span>
+            {pageType !== 'local_rental' && (
+              <span className="whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">
+                Tiết kiệm {savings}%
+              </span>
+            )}
           </div>
         )}
 
       </div>
 
       {/* ── Consolidated rental time picker ── */}
-      <div className="px-5 py-4 space-y-3.5">
+      <div className={`px-5 py-4 ${layout === 'wide' ? 'grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:px-7 lg:py-6' : 'space-y-3.5'}`}>
+        <div className="space-y-3.5">
         {vehicleId && (
           <div>
             <button
@@ -1763,18 +1847,17 @@ export default function BookingWidget({
                 setCalendarStartPreview(null);
                 void fetchAvailability();
               }}
-              aria-label="Chọn thời gian nhận và trả xe"
               className="group w-full overflow-hidden rounded-2xl border border-gray-200 bg-white text-left shadow-sm transition hover:border-brand-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-200"
             >
               <span className="grid grid-cols-2 divide-x divide-gray-200">
                 <span className="px-3.5 py-3">
-                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-400">Nhận xe</span>
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-600">Nhận xe</span>
                   <span className="mt-1 block text-sm font-black text-gray-900">
                     {pickupHour}:00 · {displayDateSlash(pickupDate)}
                   </span>
                 </span>
                 <span className="px-3.5 py-3">
-                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-400">Trả xe</span>
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-600">Trả xe</span>
                   <span className="mt-1 block text-sm font-black text-gray-900">
                     {returnHour}:00 · {displayDateSlash(returnDate)}
                   </span>
@@ -1789,85 +1872,46 @@ export default function BookingWidget({
                 <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-gray-400" />
               </span>
             </button>
-            {(availLoading || availabilityUnavailable) && (
-              <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-amber-700">
-                <span className={`h-1.5 w-1.5 rounded-full ${
-                  availLoading ? 'animate-pulse bg-amber-400' : 'bg-amber-500'
+            {scheduleNotice && (
+              <div
+                role={scheduleNotice.tone === 'danger' ? 'alert' : 'status'}
+                className={`mt-2 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs leading-5 ${
+                  scheduleNotice.tone === 'danger'
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+              >
+                <Info className={`mt-0.5 h-4 w-4 shrink-0 ${
+                  scheduleNotice.tone === 'danger' ? 'text-red-500' : 'text-amber-500'
                 }`} />
-                {availLoading
-                  ? 'Đang tải lịch xe…'
-                  : 'Lịch tự động đang tạm gián đoạn — Car Match sẽ kiểm tra thủ công trước khi giữ xe'}
-              </p>
-            )}
-
-            {/* Hard conflict — xe đang bận hẳn — cảnh báo đỏ + gợi xe khác */}
-            {hardConflicts.length > 0 && (
-              <div className="mt-2 space-y-2">
-                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-                  <Info className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
-                  <div>
-                    <div className="font-semibold mb-0.5">Xe đã có lịch trong khoảng này</div>
-                    {hardConflicts.map((r, i) => (
-                      <div key={i}>
-                        {fmtDateShort(r.from)} – {fmtDateShort(r.to)}
-                        {r.type === 'rental' ? ' (đang cho thuê)' : r.type === 'maintenance' ? ' (bảo dưỡng)' : ' (bận)'}
-                      </div>
-                    ))}
-                    <div className="mt-1 text-red-600">Liên hệ Car Match để xác nhận lịch trống ạ.</div>
-                  </div>
-                </div>
-                {relatedCars.length > 0 && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                    <p className="text-xs font-bold text-amber-800 mb-2">Xe tương tự đang trống lịch</p>
-                    <div className="space-y-1.5">
-                      {relatedCars.map(c => onRelatedCarSelect && c.vehicleId ? (
-                        <button
-                          key={c.slug}
-                          type="button"
-                          onClick={() => onRelatedCarSelect(c.vehicleId!)}
-                          className="flex w-full items-center justify-between rounded-lg border border-amber-100 bg-white px-3 py-2 text-left text-xs transition-colors hover:bg-amber-50"
-                        >
-                          <span className="font-semibold text-gray-800">{c.name}</span>
-                          <span className="text-amber-700 font-bold">{fmtVND(c.price)}/ngày →</span>
-                        </button>
-                      ) : (
-                        <a
-                          key={c.slug}
-                          href={`/xe/${c.slug}`}
-                          className="flex items-center justify-between rounded-lg bg-white border border-amber-100 px-3 py-2 text-xs hover:bg-amber-50 transition-colors"
-                        >
-                          <span className="font-semibold text-gray-800">{c.name}</span>
-                          <span className="text-amber-700 font-bold">{fmtVND(c.price)}/ngày →</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <span className="font-semibold">{scheduleNotice.message}</span>
               </div>
             )}
 
-            {/* Boundary day — xe về / nhận khách tối hôm đó — cảnh báo vàng mềm */}
-            {boundaryConflicts.length > 0 && hardConflicts.length === 0 && (
-              <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
-                <div>
-                  {boundaryConflicts.map((r, i) => {
-                    const isPickupBoundary = r.to === pickupDate; // khách nhận xe đúng ngày xe ca trước trả
-                    return (
-                      <div key={i} className={`font-semibold ${i > 0 ? 'mt-1' : 'mb-0.5'}`}>
-                        {isPickupBoundary
-                          ? `Xe có lịch về tối ngày ${fmtDateShort(r.to)}`
-                          : `Xe có lịch nhận khách từ tối ngày ${fmtDateShort(r.from)}`
-                        }
-                      </div>
-                    );
-                  })}
-                  <div>
-                    {boundaryConflicts.some(r => r.to === pickupDate)
-                      ? <><strong>Giờ nhận từ 21:00 trở đi</strong> để đảm bảo xe đã kiểm tra và bàn giao.</>
-                      : <><strong>Trả xe trước 20:00</strong> để Car Match kịp chuẩn bị cho ca tiếp theo.</>
-                    }{' '}Car Match sẽ xác nhận lại lịch với bạn.
-                  </div>
+            {hardConflicts.length > 0 && relatedCars.length > 0 && (
+              <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="mb-2 text-xs font-bold text-slate-700">Xe tương tự đang trống lịch</p>
+                <div className="space-y-1.5">
+                  {relatedCars.map(c => onRelatedCarSelect && c.vehicleId ? (
+                    <button
+                      key={c.slug}
+                      type="button"
+                      onClick={() => onRelatedCarSelect(c.vehicleId!)}
+                      className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs transition-colors hover:bg-slate-100"
+                    >
+                      <span className="font-semibold text-gray-800">{c.name}</span>
+                      <span className="font-bold text-brand-700">{fmtVND(c.price)}/ngày →</span>
+                    </button>
+                  ) : (
+                    <a
+                      key={c.slug}
+                      href={`/xe/${c.slug}`}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs transition-colors hover:bg-slate-100"
+                    >
+                      <span className="font-semibold text-gray-800">{c.name}</span>
+                      <span className="font-bold text-brand-700">{fmtVND(c.price)}/ngày →</span>
+                    </a>
+                  ))}
                 </div>
               </div>
             )}
@@ -1946,21 +1990,37 @@ export default function BookingWidget({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-800 flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-gray-400" />
-                    Tôi muốn được giao xe tận nơi
+                    Giao và nhận xe tại địa chỉ của bạn
                   </span>
-                  <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">+100k/chiều</span>
+                  <span className="text-xs font-semibold text-orange-800 bg-orange-50 px-2 py-0.5 rounded-full">100k/chiều tạm tính</span>
                 </div>
                 {deliveryMode === 'delivery' && (
                   <>
-                    <p className="text-xs text-gray-400 mt-1">Áp dụng trong nội thành Hà Nội. Phí 2 chiều (giao + trả): {fmtVND(DELIVERY_FEE_PER_WAY * 2)}</p>
+                    <p className="text-xs leading-5 text-gray-700 mt-1">
+                      {deliveryPolicy === 'conditional'
+                        ? `Phí tạm tính trong khu vực áp dụng: ${fmtVND(DELIVERY_FEE_PER_WAY)}/chiều. Car Match xác nhận lại theo địa chỉ; ngoài phạm vi, mức phí có thể thay đổi.`
+                        : `Phí 2 chiều (giao + trả): ${fmtVND(DELIVERY_FEE_PER_WAY * 2)}`}
+                    </p>
                     <input
                       value={deliveryAddress}
                       onChange={e => setDeliveryAddress(e.target.value)}
-                      placeholder="Địa chỉ nhận xe (có thể bổ sung sau)"
+                      placeholder="Địa chỉ nhận xe"
+                      aria-label="Địa chỉ nhận xe"
                       className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
                     />
-                    <p className="mt-1.5 text-[11px] leading-4 text-gray-500">
-                      Chưa nhớ địa chỉ chính xác? Bạn vẫn có thể gửi yêu cầu, Car Match sẽ xác nhận khi gọi lại.
+                    {separateReturnAddress && (
+                      <input
+                        value={returnDeliveryAddress}
+                        onChange={e => setReturnDeliveryAddress(e.target.value)}
+                        placeholder="Địa chỉ trả xe (nếu khác địa chỉ nhận)"
+                        aria-label="Địa chỉ trả xe nếu khác địa chỉ nhận"
+                        className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                      />
+                    )}
+                    <p className="mt-1.5 text-[11px] leading-4 text-gray-700">
+                      {deliveryAddressMissing
+                        ? 'Chưa có địa chỉ: tổng bên cạnh mới là tạm tính và chưa xác minh phạm vi giao nhận.'
+                        : 'Địa chỉ và khoản phí cuối cùng được Car Match đối chiếu trước khi xác nhận.'}
                     </p>
                   </>
                 )}
@@ -1969,6 +2029,9 @@ export default function BookingWidget({
           </div>
         </div>
 
+        </div>
+
+        <div className="space-y-3.5">
         {/* ── Price breakdown / error ── */}
         {!result.valid ? (
           <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
@@ -2053,17 +2116,28 @@ export default function BookingWidget({
               </>
             )}
 
-            {/* Total row */}
-            <div className="flex justify-between items-center px-4 py-3 bg-brand-50">
-              <div>
-                <div className="text-xs text-brand-600 font-bold">Tổng dự kiến</div>
-                {result.note && (
-                  <div className="text-xs text-gray-400 mt-0.5">{result.note}</div>
-                )}
+            {/* Total row and estimate note stay together to avoid a duplicate alert. */}
+            <div className="bg-brand-50 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold text-brand-600">
+                    {deliveryPolicy === 'conditional' && deliveryAddressMissing
+                      ? 'Tổng chi phí tạm tính'
+                      : 'Tổng chi phí thuê dự kiến'}
+                  </div>
+                  {result.note && (
+                    <div className="mt-0.5 text-xs text-gray-400">{result.note}</div>
+                  )}
+                </div>
+                <span className="text-xl font-black text-brand-700">
+                  {fmtVND(result.total)}
+                </span>
               </div>
-              <span className="font-black text-brand-700 text-xl">
-                {fmtVND(result.total)}
-              </span>
+              <p className="mt-2 text-[11px] leading-4 text-slate-600">
+                {deliveryPolicy === 'conditional' && deliveryMode === 'delivery'
+                  ? 'Tổng chi phí đang tạm tính. Phí giao nhận sẽ được xác nhận theo địa chỉ trước khi hướng dẫn đặt cọc.'
+                  : 'Tổng chi phí dự kiến theo lịch và lựa chọn giao nhận hiện tại.'}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3 bg-slate-50 px-4 py-3 text-xs">
               <div>
@@ -2096,6 +2170,9 @@ export default function BookingWidget({
           <p className="mt-2 text-[11px] leading-4 text-slate-500">Chỉ tính theo sử dụng thực tế, chưa cộng vào tổng dự kiến.</p>
         </div>
 
+        </div>
+
+        <div className={layout === 'wide' ? 'space-y-3.5 lg:col-span-2' : 'space-y-3.5'}>
         {/* ── CTAs ── */}
         {recentBookingsCount > 0 && (
           <div className="flex items-center justify-center gap-1.5 text-xs text-green-600 font-semibold">
@@ -2103,55 +2180,24 @@ export default function BookingWidget({
             {recentBookingsCount} người đặt xe này trong 7 ngày qua
           </div>
         )}
-        <div className={`rounded-xl border px-4 py-3 text-xs leading-5 ${
-          availLoading
-            ? 'border-slate-200 bg-slate-50 text-slate-700'
-            : needsManualConfirmation
-            ? 'border-amber-200 bg-amber-50 text-amber-800'
-            : 'border-green-200 bg-green-50 text-green-800'
-        }`}>
-          <div className="font-bold text-sm">
-            {availLoading
-              ? 'Đang kiểm tra lịch xe'
-              : needsManualConfirmation
-                ? 'Car Match kiểm tra lịch với chủ xe'
-                : 'Lịch đang trống theo hệ thống'}
+        <div className={`grid gap-3 ${layout === 'wide' ? 'lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] lg:items-start' : ''}`}>
+          <div>
+            <button
+              onClick={() => openBookingForm('booking_widget_primary')}
+              disabled={availLoading || !result.valid || hardConflicts.length > 0 || holidayBookingBlocked}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3.5 font-black text-white shadow-lg shadow-brand-200 transition-all hover:bg-brand-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <CalendarDays className="h-4 w-4" />
+              {availLoading
+                ? 'Đang kiểm tra lịch xe…'
+                : holidayBookingBlocked
+                  ? 'Chọn đúng combo lễ'
+                  : 'Gửi yêu cầu thuê xe'}
+            </button>
+            <p className="mt-2 text-center text-[11px] leading-4 text-slate-600 sm:text-xs">
+              Chưa cần thanh toán. Car Match sẽ xác nhận lịch và tổng chi phí trước khi hướng dẫn đặt cọc.
+            </p>
           </div>
-          <div className="mt-1">
-            {availLoading
-              ? 'Vui lòng chờ trong giây lát để hệ thống xác định đúng hình thức đặt xe.'
-              : needsManualConfirmation
-              ? 'Gửi yêu cầu để nhận phản hồi trong 30 phút. Bạn chưa cần chuyển khoản.'
-              : 'Gửi thông tin để giữ xe 15 phút và xem hướng dẫn đặt cọc.'}
-          </div>
-          <div className="mt-1 font-semibold">
-            {isPriceTrustVariant
-              ? 'Giá hiển thị là tổng dự kiến cho lịch đã chọn · Chưa thanh toán ở bước gửi yêu cầu. '
-              : 'Tổng giá được hiển thị rõ trước khi đặt cọc · Điều kiện hủy/hoàn cọc được xác nhận theo xe và lịch thuê. '}
-            <a href="/chinh-sach" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-brand-700">
-              Xem chính sách
-            </a>
-          </div>
-        </div>
-        <button
-          onClick={() => openBookingForm('booking_widget_primary')}
-          disabled={availLoading || !result.valid || hardConflicts.length > 0 || holidayBookingBlocked}
-          className="w-full py-3.5 bg-brand-600 text-white font-black rounded-xl hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-200 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <CalendarDays className="w-4 h-4" />
-          {availLoading
-            ? 'Đang kiểm tra lịch xe…'
-            : holidayBookingBlocked
-              ? 'Chọn đúng combo lễ'
-              : needsManualConfirmation
-                ? isPriceTrustVariant ? 'Kiểm tra lịch & nhận báo giá' : 'Gửi yêu cầu · Chưa cần thanh toán'
-                : isPriceTrustVariant ? 'Giữ xe theo giá trên' : 'Giữ xe 15 phút · Chưa cần thanh toán'}
-        </button>
-        {needsManualConfirmation && (
-          <p className="text-center text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
-            Car Match sẽ xác nhận chính xác giờ trống trước. Bạn chưa cần chuyển khoản ở bước này.
-          </p>
-        )}
 
         <div className="grid grid-cols-2 gap-2">
           <a
@@ -2182,7 +2228,10 @@ export default function BookingWidget({
           </a>
         </div>
 
+        </div>
+
       </div>
+    </div>
     </div>
 
     {/* ── Calendar Modal — portal to document.body (escapes sticky stacking context) ── */}
@@ -2602,12 +2651,18 @@ export default function BookingWidget({
         onClick={() => bookingStep < 3 && setShowBookingModal(false)}
       >
         <div
+          ref={bookingModalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="booking-modal-title"
+          tabIndex={-1}
           className="w-full sm:max-w-md bg-white sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           style={{ maxHeight: '95vh' }}
           onClick={e => e.stopPropagation()}
         >
           {/* ── Step indicator ── */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
+            <h2 id="booking-modal-title" className="sr-only">Gửi yêu cầu thuê xe</h2>
             <div className="flex items-center gap-3">
               {([1, 2, 3] as const).map(s => (
                 <div key={s} className="flex items-center gap-1.5">
@@ -2632,7 +2687,7 @@ export default function BookingWidget({
               ))}
             </div>
             {bookingStep < 3 && (
-              <button onClick={() => setShowBookingModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+              <button type="button" aria-label="Đóng form đặt xe" onClick={() => setShowBookingModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             )}
@@ -2695,11 +2750,6 @@ export default function BookingWidget({
                         Tài sản bảo đảm khi nhận xe được xác nhận riêng theo từng xe; không nằm trong tổng dự kiến hoặc cọc giữ lịch.
                       </p>
                     </>
-                  )}
-                  {needsManualConfirmation && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                      Đây là yêu cầu xác nhận lịch. Car Match sẽ gọi lại trước khi gửi QR đặt cọc.
-                    </div>
                   )}
                   {result.valid && result.total > 0 && (
                     <div className="text-xs text-blue-600 font-medium text-right">
@@ -2767,10 +2817,6 @@ export default function BookingWidget({
                     </div>
                   )}
                 </div>
-                <div className="rounded-xl border border-green-200 bg-green-50 px-3.5 py-2.5 text-xs leading-5 text-green-800">
-                  <strong>Chỉ cần họ tên và số điện thoại.</strong> Car Match sẽ xác nhận lịch, địa chỉ giao nhận và tổng tiền trước khi yêu cầu đặt cọc.
-                </div>
-
                 <div className="rounded-xl border border-gray-200 bg-white">
                   <button
                     type="button"
@@ -3066,12 +3112,18 @@ export default function BookingWidget({
                     </svg>
                   </div>
                   <h3 className="text-lg font-bold text-slate-900">
-                    {bookingNeedsConfirmation ? 'Đã gửi yêu cầu xác nhận lịch' : 'Đã gửi yêu cầu đặt xe'}
+                    {pageType === 'local_rental'
+                      ? 'Car Match đã nhận yêu cầu thuê xe'
+                      : bookingNeedsConfirmation ? 'Đã gửi yêu cầu xác nhận lịch' : 'Đã gửi yêu cầu đặt xe'}
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    {bookingNeedsConfirmation
-                      ? 'Car Match sẽ kiểm tra giờ trống và liên hệ trước khi gửi QR đặt cọc.'
-                      : 'Lịch đang được giữ tạm thời; Car Match sẽ liên hệ để xác nhận booking.'}
+                    {pageType === 'local_rental'
+                      ? isServerHeldPending
+                        ? `Hệ thống đã tạo khoảng giữ tạm${bookingHoldExpiresAt ? ' để hạn chế trùng lịch' : ''}; booking vẫn đang chờ Car Match xác nhận.`
+                        : 'Chúng tôi sẽ kiểm tra lịch, giá và cách giao nhận rồi liên hệ xác nhận. Xe chưa được giữ chính thức cho đến khi bạn nhận được xác nhận từ Car Match.'
+                      : bookingNeedsConfirmation
+                        ? 'Car Match sẽ kiểm tra giờ trống và liên hệ trước khi gửi QR đặt cọc.'
+                        : 'Lịch đang được giữ tạm thời; Car Match sẽ liên hệ để xác nhận booking.'}
                   </p>
                 </div>
 
@@ -3082,7 +3134,7 @@ export default function BookingWidget({
                       {bookingNeedsConfirmation ? 'YÊU CẦU XÁC NHẬN LỊCH' : 'YÊU CẦU ĐẶT XE'}
                     </span>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${bookingNeedsConfirmation ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                      {bookingNeedsConfirmation ? 'Chờ kiểm tra lịch' : 'Đã gửi · Chờ xác nhận'}
+                      {isServerHeldPending ? 'Giữ tạm · Chờ xác nhận' : 'Đã gửi · Chờ xác nhận'}
                     </span>
                   </div>
 
@@ -3104,6 +3156,15 @@ export default function BookingWidget({
 
                     <span className="text-slate-500">Trả xe</span>
                     <span className="font-semibold text-slate-900">{returnHour} giờ ngày {displayDateSlash(returnDate)}</span>
+
+                    {deliveryMode === 'delivery' && (
+                      <>
+                        <span className="text-slate-500">Địa chỉ nhận</span>
+                        <span className="font-semibold text-slate-900">{deliveryAddress || 'Chờ xác nhận'}</span>
+                        <span className="text-slate-500">Địa chỉ trả</span>
+                        <span className="font-semibold text-slate-900">{returnDeliveryAddress || deliveryAddress || 'Chờ xác nhận'}</span>
+                      </>
+                    )}
 
                     {holidayBookingPolicy.matchedWindow && (
                       <>
@@ -3185,7 +3246,13 @@ export default function BookingWidget({
                 {/* Bước tiếp theo */}
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800 space-y-1.5">
                   <p className="font-bold text-blue-900 text-sm">Bước tiếp theo</p>
-                  {bookingNeedsConfirmation ? (
+                  {pageType === 'local_rental' ? (
+                    <>
+                      <p>1️⃣ Car Match kiểm tra lịch, giá và địa chỉ giao nhận.</p>
+                      <p>2️⃣ Chỉ thực hiện cọc giữ xe sau khi nhận hướng dẫn xác nhận phù hợp.</p>
+                      <p>3️⃣ Chuẩn bị giấy tờ theo chính sách của xe trước giờ bàn giao.</p>
+                    </>
+                  ) : bookingNeedsConfirmation ? (
                     <>
                       <p>1️⃣ Nhân viên kiểm tra xe và giờ bàn giao.</p>
                       <p>2️⃣ Khi lịch chắc chắn, Car Match mới gửi <strong>QR cọc {depositAmount.toLocaleString('vi-VN')}đ</strong>.</p>
@@ -3275,6 +3342,7 @@ export default function BookingWidget({
                     setCustomerEmail('');
                     setCustomerNote('');
                     setDeliveryAddress('');
+                    setReturnDeliveryAddress('');
                     setPromoCode('');
                     setPromoResult(null);
                     setPromoError('');
@@ -3291,20 +3359,18 @@ export default function BookingWidget({
           {bookingStep < 3 && (
           <div className="px-5 py-4 border-t border-gray-100 shrink-0 space-y-2">
             {bookingStep === 1 && (
-              <button
-                onClick={handleBookingSubmit}
-                disabled={bookingLoading}
-                className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2"
-              >
-                {bookingLoading ? <span className="animate-spin">⟳</span> : <CalendarDays className="w-4 h-4" />}
-                {bookingLoading
-                  ? 'Đang xử lý…'
-                  : needsManualConfirmation
-                    ? isPriceTrustVariant ? 'Gửi yêu cầu kiểm tra lịch' : 'Gửi yêu cầu · Chưa cần thanh toán'
-                    : isPriceTrustVariant
-                      ? BANK_QR_ENABLED ? 'Giữ xe theo giá trên · Xem QR cọc' : 'Gửi yêu cầu giữ xe'
-                      : BANK_QR_ENABLED ? 'Giữ xe 15 phút · Xem QR cọc' : 'Gửi yêu cầu đặt xe'}
-              </button>
+              <>
+                <button
+                  onClick={handleBookingSubmit}
+                  disabled={bookingLoading}
+                  className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+                >
+                  {bookingLoading ? <span className="animate-spin">⟳</span> : <CalendarDays className="w-4 h-4" />}
+                  {bookingLoading
+                    ? 'Đang xử lý…'
+                    : 'Gửi yêu cầu thuê xe'}
+                </button>
+              </>
             )}
             {bookingStep === 2 && (
               <>
