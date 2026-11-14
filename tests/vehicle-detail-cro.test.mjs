@@ -42,3 +42,14 @@ test('availability retries use a fresh timeout and preserve actionable error met
   assert.match(source, /error_message: errorMessage/);
   assert.match(source, /attempt_timeout_ms: 4_500/);
 });
+
+test('vehicle detail keeps default verified pickup locations after widget reuse on local landing', async () => {
+  const carDetail = await readFile(CAR_DETAIL_PATH, 'utf8');
+  const bookingWidget = await readFile(BOOKING_WIDGET_PATH, 'utf8');
+
+  assert.match(bookingWidget, /pickupLocations = DEFAULT_PICKUP_LOCATIONS/);
+  assert.match(bookingWidget, /initialDeliveryMode[\s\S]*initialDeliverySelection\.mode/);
+  assert.match(bookingWidget, /pickupLocations\.some\(\(location\) => location\.id === initialDeliverySelection\.location\)/);
+  assert.match(bookingWidget, /pickupLocations\[0\]\?\.id \?\? ''/);
+  assert.doesNotMatch(carDetail, /pickupLocations=/);
+});

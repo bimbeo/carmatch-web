@@ -68,7 +68,7 @@ interface SupabaseVehicle {
   color: string | null;
   model_year: number | null;
   daily_base_price: number | null;
-  monthly_price?: number | null;
+  monthly_sale_price?: number | null;
   current_km?: number | null;
   status?: string | null;
   published?: boolean | null;
@@ -279,10 +279,11 @@ function mapToCar(v: SupabaseVehicle): Car {
     slug: primarySlug,
     slugAliases,
     plateNumber: undefined,
+    color: v.color?.trim() || undefined,
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
     brand: make,
     price: v.daily_base_price || 0,
-    priceMonth: v.monthly_price || undefined,
+    priceMonth: v.monthly_sale_price || undefined,
     seats,
     fuel,
     transmission: mapTransmission(vm?.transmission || ''),

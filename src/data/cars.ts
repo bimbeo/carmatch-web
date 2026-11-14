@@ -3,6 +3,7 @@ export interface Car {
   slug: string;
   slugAliases?: string[];
   plateNumber?: string;
+  color?: string;
   name: string;
   brand: string;
   price: number;

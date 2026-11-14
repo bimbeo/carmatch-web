@@ -47,6 +47,7 @@ export function sanitizeAttribution(value) {
     session_id: cleanText(attribution.session_id, 100),
     first_seen_at: safeTimestamp(attribution.first_seen_at),
     landing_page: cleanText(attribution.landing_page, 500),
+    booking_page: cleanText(attribution.booking_page, 500),
     referrer_host: cleanText(attribution.referrer_host, 200),
     traffic_source: cleanText(attribution.traffic_source, 120) || 'direct',
     traffic_medium: cleanText(attribution.traffic_medium, 120) || '(none)',

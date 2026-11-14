@@ -9,9 +9,55 @@ const PHONE = '0971 163 290';
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white pt-16 pb-8">
+    <footer className="bg-gray-900 pb-28 pt-10 text-white md:pb-8 md:pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+        {/* Mobile: keep only the actions and links people need at the end of the page. */}
+        <div className="md:hidden">
+          <Link to="/" className="inline-flex items-center" aria-label="Car Match">
+            <img
+              src="/brand/carmatch-lockup-white.png"
+              alt="Car Match"
+              width="288"
+              height="66"
+              loading="lazy"
+              decoding="async"
+              className="h-9 w-auto object-contain"
+            />
+          </Link>
+          <p className="mt-3 text-sm text-gray-400">Thuê xe tự lái tại Hà Nội.</p>
+
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <a
+              href={`tel:${PHONE.replace(/\s/g, '')}`}
+              onClick={() => trackPhoneClick('footer_mobile')}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-gray-900"
+            >
+              <Phone className="h-4 w-4" /> Gọi
+            </a>
+            <a
+              href={ZALO_LINK}
+              target="_blank"
+              rel="me noopener noreferrer"
+              onClick={() => trackZaloClick('footer_mobile')}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0068FF] px-4 text-sm font-bold text-white"
+            >
+              <span className="font-black">Z</span> Zalo
+            </a>
+          </div>
+
+          <nav className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/10 pt-5 text-sm" aria-label="Liên kết cuối trang">
+            <Link to="/xe" className="text-gray-300 hover:text-white">Danh sách xe</Link>
+            <Link to="/thue-xe-thang" className="text-gray-300 hover:text-white">Thuê xe tháng</Link>
+            <Link to="/chinh-sach" className="text-gray-300 hover:text-white">Chính sách</Link>
+            <Link to="/lien-he" className="text-gray-300 hover:text-white">Liên hệ</Link>
+          </nav>
+
+          <p className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-500">
+            © {new Date().getFullYear()} Car Match
+          </p>
+        </div>
+
+        <div className="mb-12 hidden grid-cols-1 gap-10 md:grid md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="mb-4 inline-flex items-center" aria-label="Car Match">
@@ -121,7 +167,10 @@ export default function Footer() {
               <li>
                 <div className="flex items-start gap-3 text-gray-400">
                   <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span className="text-sm">Hà Nội, Việt Nam</span>
+                  <span className="text-sm leading-5">
+                    Hỗ trợ tại Cầu Giấy, Nguyễn Xiển và Ocean Park<br />
+                    07:00–22:00 hằng ngày
+                  </span>
                 </div>
               </li>
             </ul>
@@ -129,12 +178,12 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="hidden border-t border-white/10 pt-6 md:flex md:flex-row md:items-center md:justify-between md:gap-4">
           <p className="text-gray-400 text-xs">© {new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
           <div className="flex items-center gap-6">
-            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Chính sách</Link>
+            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Chính sách & Điều khoản</Link>
+            <Link to="/faq" className="text-gray-400 text-xs hover:text-white transition-colors">Câu hỏi thường gặp</Link>
             <Link to="/lien-he" className="text-gray-400 text-xs hover:text-white transition-colors">Liên hệ</Link>
-            <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Điều khoản</Link>
           </div>
         </div>
       </div>

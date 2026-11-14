@@ -37,9 +37,9 @@ function buildZaloHref(message: string) {
 }
 
 const HERO_STATS = [
-  ['20+ mẫu xe', 'xem theo số chỗ, nhiên liệu và giá'],
+  [`${cars.length} mẫu xe`, 'xem theo số chỗ, nhiên liệu và giá'],
   ['Từ 600.000đ/ngày', 'giá tham khảo theo từng xe'],
-  ['30 phút', 'Car Match xác nhận khi có xe phù hợp'],
+  ['Kiểm tra lịch', 'Car Match xác nhận theo yêu cầu thực tế'],
 ];
 
 const BENEFITS = [
@@ -232,7 +232,7 @@ export default function ReEngagement() {
               </h1>
 
               <p className="mt-5 max-w-2xl text-base font-medium leading-8 text-white/78 sm:text-lg">
-                Car Match đã đưa danh sách xe, giá tham khảo và form đặt xe lên website để bạn không phải nhắn nhiều vòng chỉ để hỏi xe nào còn phù hợp. Chọn xe, gửi lịch thuê, đội vận hành xác nhận lại trong khoảng 30 phút khi có xe phù hợp.
+                Car Match đã đưa danh sách xe, giá tham khảo và form đặt xe lên website để bạn không phải nhắn nhiều vòng chỉ để hỏi xe nào còn phù hợp. Chọn xe, gửi lịch thuê, đội vận hành sẽ kiểm tra và liên hệ xác nhận.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">

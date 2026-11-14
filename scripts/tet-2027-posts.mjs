@@ -27,7 +27,7 @@ function createTetPost(item, { siteUrl, brandSocialImage }) {
     <h2>Cách Car Match hỗ trợ</h2>
     <p>${owner
       ? 'Car Match tiếp nhận hồ sơ xe và lịch rảnh, đánh giá khả năng phù hợp với nhu cầu, rồi trao đổi phương án vận hành và đối soát. Mức doanh thu chỉ có thể ước tính sau khi biết mẫu xe, tình trạng, lịch và điều kiện hợp tác; không có một mức cam kết chung cho mọi chủ xe.'
-      : 'Car Match tiếp nhận lịch trình, số người, hành lý và khu vực nhận xe để gợi ý nhóm xe phù hợp. Giá, tiền cọc, giới hạn km, giao nhận và điều kiện thay đổi lịch cần được xác nhận cho đúng booking; bài viết không thể hiện tồn xe theo thời gian thực.'}</p>
+      : 'Car Match tiếp nhận lịch trình, số người, hành lý và khu vực nhận xe để gợi ý nhóm xe phù hợp. Giá, tiền cọc, giới hạn km, giao nhận và điều kiện thay đổi lịch được xác nhận theo từng booking.'}</p>
     <p>Khi cần kiểm tra trường hợp cụ thể, nhắn Zalo hoặc hotline 0971 163 290 và gửi đủ thông tin ngay từ đầu. Bạn cũng có thể xem <a href="/chinh-sach">chính sách thuê xe</a>, <a href="/faq">câu hỏi thường gặp</a> và <a href="/xe">danh sách xe</a> để đối chiếu trước.</p>
     <h2>Câu hỏi thường gặp</h2>
     ${item.faq.map(({ question, answer }) => `<h3>${question}</h3><p>${answer}</p>`).join('')}`;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { MessageCircle, Phone, SlidersHorizontal, X } from 'lucide-react';
@@ -10,7 +10,7 @@ import Footer from '../components/Footer';
 import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
 import { useSEO } from '@/hooks/useSEO';
-import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { trackCtaClick, trackEvent, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 import { DEFAULT_PICKUP_HOUR, DEFAULT_RETURN_HOUR } from '@/lib/rentalDuration';
 
 const ZALO_LINK = 'https://zalo.me/0971163290';
@@ -23,7 +23,32 @@ function buildZaloHref(message: string) {
 type FuelFilter  = 'all' | 'Điện' | 'Xăng' | 'Dầu';
 type SeatsFilter = 'all' | '4' | '5' | '7' | '8+';
 type SortOption  = 'default' | 'price-asc' | 'price-desc';
-type BudgetFilter = 'all' | 'under-1m';
+type BudgetFilter = 'all' | 'under-1m' | '1m-1-5m' | 'over-1-5m';
+
+const PICKUP_AREAS = [
+  { id: 'times-city', label: 'Times City' },
+  { id: 'ocean-park', label: 'Ocean Park' },
+  { id: 'manor', label: 'The Manor' },
+  { id: 'trung-lan', label: 'Cầu Giấy' },
+  { id: 'noi-bai', label: 'Sân bay Nội Bài' },
+] as const;
+
+function parseBudgetFilter(value: string | null): BudgetFilter {
+  return value === 'under-1m' || value === '1m-1-5m' || value === 'over-1-5m'
+    ? value
+    : 'all';
+}
+
+function parseIsoDateTime(value: string | null): { date: string; hour: number } | null {
+  const match = value?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):\d{2}$/);
+  if (!match) return null;
+  const hour = Number(match[2]);
+  return hour >= 7 && hour <= 23 ? { date: match[1], hour } : null;
+}
+
+function toIsoDateTime(date: string, hour: number): string {
+  return `${date}T${String(hour).padStart(2, '0')}:00`;
+}
 
 function parseFuelFilter(value: string | null): FuelFilter {
   return value === 'Điện' || value === 'Xăng' || value === 'Dầu' ? value : 'all';
@@ -114,7 +139,8 @@ export default function Fleet() {
   const seatsFilter  = parseSeatsFilter(searchParams.get('seatFilter') || searchParams.get('seats'));
   const sortByRaw    = searchParams.get('sort') || '';
   const sortBy       = (sortByRaw === 'price-asc' || sortByRaw === 'price-desc' ? sortByRaw : 'default') as SortOption;
-  const budgetFilter = (searchParams.get('budget') === 'under-1m' ? 'under-1m' : 'all') as BudgetFilter;
+  const budgetFilter = parseBudgetFilter(searchParams.get('budget'));
+  const areaFilter = searchParams.get('hub') || 'all';
 
   // Setters update URL, preserving unrelated params (area, from, to, etc.)
   const setBrandFilter = (v: string) => setSearchParams(prev => {
@@ -147,14 +173,27 @@ export default function Fleet() {
     return n;
   }, { replace: true });
 
+  const setAreaFilter = (v: string) => setSearchParams(prev => {
+    const n = new URLSearchParams(prev);
+    if (v === 'all') {
+      n.delete('hub');
+      n.delete('area');
+    } else {
+      n.set('hub', v);
+      const area = PICKUP_AREAS.find((item) => item.id === v);
+      if (area) n.set('area', area.label);
+    }
+    return n;
+  }, { replace: true });
+
+  const { cars, loading, error } = useVehicles();
+
   useSEO({
-    title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
-    description: 'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Chọn ngày, xem xe còn lịch và đặt trực tiếp trên website Car Match.',
+    title: 'Danh Sách Xe Tự Lái Hà Nội | Car Match',
+    description: `${cars.length || 'Nhiều'} mẫu xe tự lái tại Hà Nội. Chọn ngày, điểm nhận xe, xem lịch trống và tổng giá trước khi gửi yêu cầu.`,
     canonical: 'https://www.carmatch.vn/xe',
     noIndex: hasQueryParams,
   });
-
-  const { cars, loading, error } = useVehicles();
 
   const [unavailableVehicles, setUnavailableVehicles] = useState<AvailabilityResult>({
     unavailableVehicleIds: [],
@@ -167,12 +206,14 @@ export default function Fleet() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayStr = toLocalDateStr(today);
     const defaultPickup = toLocalDateStr(addLocalDays(today, 1));
-    const requestedPickup = searchParams.get('from');
+    const requestedPickupIso = parseIsoDateTime(searchParams.get('pickup'));
+    const requestedPickup = searchParams.get('from') || requestedPickupIso?.date || null;
     const pickupDate =
       requestedPickup && /^\d{4}-\d{2}-\d{2}$/.test(requestedPickup) && requestedPickup >= todayStr
         ? requestedPickup
         : defaultPickup;
-    const requestedReturn = searchParams.get('to');
+    const requestedReturnIso = parseIsoDateTime(searchParams.get('return'));
+    const requestedReturn = searchParams.get('to') || requestedReturnIso?.date || null;
     const returnDate =
       requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn >= pickupDate
         ? requestedReturn
@@ -180,12 +221,14 @@ export default function Fleet() {
     return {
       pickupDate,
       returnDate,
-      pickupHour: parseHour(searchParams.get('pickupHour'), DEFAULT_PICKUP_HOUR),
-      returnHour: parseHour(searchParams.get('returnHour'), DEFAULT_RETURN_HOUR),
+      pickupHour: parseHour(searchParams.get('pickupHour'), requestedPickupIso?.hour ?? DEFAULT_PICKUP_HOUR),
+      returnHour: parseHour(searchParams.get('returnHour'), requestedReturnIso?.hour ?? DEFAULT_RETURN_HOUR),
     };
   });
   const [leadArea, setLeadArea] = useState(searchParams.get('area') || '');
   const [leadDate, setLeadDate] = useState(searchParams.get('from') || '');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [leadVehicle, setLeadVehicle] = useState('');
   const [leadPassengers, setLeadPassengers] = useState('');
   const [leadNeed, setLeadNeed] = useState('');
 
@@ -238,7 +281,47 @@ export default function Fleet() {
   const totalFuelCounts = useMemo(() => ({
     Điện: cars.filter((c) => c.fuel === 'Điện').length,
     Xăng: cars.filter((c) => c.fuel === 'Xăng').length,
+    Dầu: cars.filter((c) => c.fuel === 'Dầu').length,
   }), [cars]);
+
+  const filterTrackingReady = useRef(false);
+  useEffect(() => {
+    if (!filterTrackingReady.current) {
+      filterTrackingReady.current = true;
+      return;
+    }
+    trackEvent('filter_cars', {
+      hub: areaFilter,
+      brand: brandFilter,
+      fuel: fuelFilter,
+      seats: seatsFilter,
+      budget: budgetFilter,
+      sort: sortBy,
+    });
+  }, [areaFilter, brandFilter, budgetFilter, fuelFilter, seatsFilter, sortBy]);
+
+  useEffect(() => {
+    if (cars.length === 0) return undefined;
+    const canonical = 'https://www.carmatch.vn/xe';
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.dataset.fleetStructuredData = 'true';
+    script.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      '@id': `${canonical}#fleet`,
+      name: 'Danh sách xe tự lái Car Match tại Hà Nội',
+      numberOfItems: cars.length,
+      itemListElement: cars.map((car, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `${canonical}/${car.slug}`,
+        name: car.name,
+      })),
+    });
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, [cars]);
 
   // ── filtered + sorted result ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -250,6 +333,8 @@ export default function Fleet() {
       else r = r.filter((c) => c.seats === Number(seatsFilter));
     }
     if (budgetFilter === 'under-1m') r = r.filter((c) => c.price > 0 && c.price < 1_000_000);
+    if (budgetFilter === '1m-1-5m') r = r.filter((c) => c.price >= 1_000_000 && c.price <= 1_500_000);
+    if (budgetFilter === 'over-1-5m') r = r.filter((c) => c.price > 1_500_000);
     if (unavailableVehicles.unavailableVehicleIds.length > 0 || unavailableVehicles.unavailableModels.length > 0) {
       r = r.filter((c) =>
         !unavailableVehicles.unavailableVehicleIds.includes(c.id) &&
@@ -265,7 +350,8 @@ export default function Fleet() {
     (brandFilter  !== 'all' ? 1 : 0) +
     (fuelFilter   !== 'all' ? 1 : 0) +
     (seatsFilter  !== 'all' ? 1 : 0) +
-    (budgetFilter !== 'all' ? 1 : 0);
+    (budgetFilter !== 'all' ? 1 : 0) +
+    (areaFilter !== 'all' ? 1 : 0);
 
   const querySummary = [
     searchParams.get('area') && `Nhận xe: ${searchParams.get('area')}`,
@@ -273,21 +359,24 @@ export default function Fleet() {
     searchParams.get('to') && `Trả ngày: ${searchParams.get('to')}`,
     seatsFilter !== 'all' && `Số chỗ: ${seatsFilter}`,
     fuelFilter !== 'all' && `Nhiên liệu: ${fuelFilter}`,
-    budgetFilter !== 'all' && 'Ngân sách: dưới 1 triệu/ngày',
+    budgetFilter !== 'all' && `Ngân sách: ${budgetFilter === 'under-1m' ? 'dưới 1 triệu/ngày' : budgetFilter === '1m-1-5m' ? '1–1,5 triệu/ngày' : 'trên 1,5 triệu/ngày'}`,
   ].filter(Boolean);
 
   const leadFilterSummary = useMemo(() => [
     brandFilter !== 'all' && `Hãng xe: ${brandFilter}`,
     fuelFilter !== 'all' && `Nhiên liệu: ${fuelFilter}`,
     seatsFilter !== 'all' && `Số chỗ: ${seatsFilter}`,
-    budgetFilter !== 'all' && 'Ngân sách: dưới 1 triệu/ngày',
+    budgetFilter !== 'all' && `Ngân sách: ${budgetFilter === 'under-1m' ? 'dưới 1 triệu/ngày' : budgetFilter === '1m-1-5m' ? '1–1,5 triệu/ngày' : 'trên 1,5 triệu/ngày'}`,
+    areaFilter !== 'all' && `Điểm nhận: ${PICKUP_AREAS.find((item) => item.id === areaFilter)?.label || areaFilter}`,
     sortBy !== 'default' && `Sắp xếp: ${sortBy === 'price-asc' ? 'giá thấp trước' : 'giá cao trước'}`,
-  ].filter(Boolean), [brandFilter, budgetFilter, fuelFilter, seatsFilter, sortBy]);
+  ].filter(Boolean), [areaFilter, brandFilter, budgetFilter, fuelFilter, seatsFilter, sortBy]);
 
   const fleetZaloMessage = useMemo(() => [
     'Xin chào Car Match, tôi cần thuê xe tự lái tại Hà Nội.',
     leadArea.trim() ? `Khu vực nhận xe: ${leadArea.trim()}` : 'Khu vực nhận xe: cần tư vấn',
     leadDate ? `Ngày dự kiến nhận xe: ${leadDate}` : 'Ngày dự kiến nhận xe: cần tư vấn',
+    leadPhone.trim() ? `Số điện thoại/Zalo: ${leadPhone.trim()}` : null,
+    leadVehicle.trim() ? `Dòng xe mong muốn: ${leadVehicle.trim()}` : null,
     leadPassengers.trim() ? `Số người/hành lý: ${leadPassengers.trim()}` : 'Số người/hành lý: chưa chắc',
     leadNeed.trim() ? `Nhu cầu chuyến đi: ${leadNeed.trim()}` : 'Nhu cầu chuyến đi: cần Car Match gợi ý xe phù hợp',
     leadFilterSummary.length ? `Bộ lọc đang xem: ${leadFilterSummary.join(', ')}` : null,
@@ -301,6 +390,8 @@ export default function Fleet() {
     leadFilterSummary,
     leadNeed,
     leadPassengers,
+    leadPhone,
+    leadVehicle,
   ]);
 
   const fleetZaloHref = buildZaloHref(fleetZaloMessage);
@@ -310,6 +401,8 @@ export default function Fleet() {
     trackZaloClick('fleet_quick_lead_form', {
       area: leadArea || null,
       pickup_date: leadDate || null,
+      phone_provided: Boolean(leadPhone.trim()),
+      requested_vehicle: leadVehicle || null,
       passengers: leadPassengers || null,
       need: leadNeed || null,
       filtered_count: filtered.length,
@@ -322,7 +415,7 @@ export default function Fleet() {
 
   const resetAll = () => setSearchParams(prev => {
     const n = new URLSearchParams(prev);
-    ['brand', 'fuelFilter', 'seatFilter', 'sort', 'budget'].forEach(k => n.delete(k));
+    ['brand', 'fuelFilter', 'seatFilter', 'sort', 'budget', 'hub', 'area'].forEach(k => n.delete(k));
     return n;
   }, { replace: true });
 
@@ -358,7 +451,7 @@ export default function Fleet() {
               {[
                 [loading ? '...' : `${cars.length}`, 'mẫu xe'],
                 [`${totalFuelCounts['Điện'] || 0}`, 'xe điện'],
-                [`${totalFuelCounts['Xăng'] || 0}`, 'xe xăng'],
+                [`${(totalFuelCounts['Xăng'] || 0) + (totalFuelCounts['Dầu'] || 0)}`, 'xe xăng/dầu'],
               ].map(([value, label]) => (
                 <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xl font-semibold tracking-tight text-slate-950">{value}</div>
@@ -415,6 +508,8 @@ export default function Fleet() {
               next.set('to', returnDate);
               next.set('pickupHour', String(pickupHour));
               next.set('returnHour', String(returnHour));
+              next.set('pickup', toIsoDateTime(pickupDate, pickupHour));
+              next.set('return', toIsoDateTime(returnDate, returnHour));
               return next;
             }, { replace: true });
           }}
@@ -426,6 +521,19 @@ export default function Fleet() {
               Đang lọc: {filtered.length} xe trống lịch cho ngày bạn chọn
             </div>
           )}
+        </div>
+
+        <div className="mb-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Điểm nhận dự kiến</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+            <Chip active={areaFilter === 'all'} onClick={() => setAreaFilter('all')}>Tất cả khu vực</Chip>
+            {PICKUP_AREAS.map((area) => (
+              <Chip key={area.id} active={areaFilter === area.id} onClick={() => setAreaFilter(area.id)}>
+                {area.label}
+              </Chip>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs leading-5 text-slate-500">Car Match xác nhận điểm giao nhận phù hợp với xe và lịch đã chọn.</p>
         </div>
 
         {/* ── Filter bar (Mioto-style) ── */}
@@ -466,6 +574,18 @@ export default function Fleet() {
                   onClick={() => setBudgetFilter(budgetFilter === 'under-1m' ? 'all' : 'under-1m')}
                 >
                   Dưới 1 triệu
+                </Chip>
+                <Chip
+                  active={budgetFilter === '1m-1-5m'}
+                  onClick={() => setBudgetFilter(budgetFilter === '1m-1-5m' ? 'all' : '1m-1-5m')}
+                >
+                  1–1,5 triệu
+                </Chip>
+                <Chip
+                  active={budgetFilter === 'over-1-5m'}
+                  onClick={() => setBudgetFilter(budgetFilter === 'over-1-5m' ? 'all' : 'over-1-5m')}
+                >
+                  Trên 1,5 triệu
                 </Chip>
               </div>
             </div>
@@ -628,7 +748,7 @@ export default function Fleet() {
           </div>
         ) : filtered.length > 0 ? (
           <div className="grid grid-cols-1 gap-5 pb-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((car) => (
+            {filtered.map((car, index) => (
               <CarCard
                 key={car.id}
                 car={car}
@@ -636,34 +756,51 @@ export default function Fleet() {
                 source="fleet_list"
                 rentalRange={selectedRentalRange}
                 availabilityChecked={dateFilterActive}
+                position={index + 1}
               />
             ))}
           </div>
         ) : (
-          <div className="text-center py-24">
+          <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center shadow-sm">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <SlidersHorizontal className="w-7 h-7 text-gray-400" />
             </div>
-            <h3 className="text-gray-900 font-semibold text-lg mb-2">Không tìm thấy xe phù hợp</h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Thử thay đổi bộ lọc hoặc liên hệ để được tư vấn trực tiếp
-            </p>
-            <div className="flex gap-3 justify-center">
+            <h3 className="text-gray-900 font-semibold text-lg mb-2">Nhận gợi ý xe tương đương</h3>
+            <p className="text-gray-500 text-sm mb-6">Để lại số Zalo và dòng xe cần thuê. Car Match sẽ kiểm tra lịch phù hợp.</p>
+            <form onSubmit={handleLeadSubmit} className="grid gap-2 sm:grid-cols-2">
+              <label className="block text-left">
+                <span className="sr-only">Số điện thoại hoặc Zalo</span>
+                <input
+                  required
+                  type="tel"
+                  inputMode="tel"
+                  value={leadPhone}
+                  onChange={(event) => setLeadPhone(event.target.value)}
+                  placeholder="Số điện thoại / Zalo"
+                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+              <label className="block text-left">
+                <span className="sr-only">Dòng xe mong muốn</span>
+                <input
+                  required
+                  value={leadVehicle}
+                  onChange={(event) => setLeadVehicle(event.target.value)}
+                  placeholder="Dòng xe mong muốn"
+                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+              <button type="submit" className="h-11 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 sm:col-span-2">
+                Gửi nhu cầu qua Zalo
+              </button>
+            </form>
+            <div className="mt-4 flex gap-3 justify-center">
               <button
                 onClick={resetAll}
                 className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors"
               >
                 Xóa bộ lọc
               </button>
-              <a
-                href={fleetZaloHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackZaloClick('fleet_empty_state')}
-                className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors"
-              >
-                Tư vấn qua Zalo
-              </a>
             </div>
           </div>
         )}

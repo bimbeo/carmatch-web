@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /tai-khoan
 
 User-agent: GPTBot
 Allow: /
