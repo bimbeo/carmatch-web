@@ -28,15 +28,16 @@ test('charging-cost guide gives a direct, contract-safe answer without a fixed c
   assert.doesNotMatch(article, /3[.,]858|mọi khách thuê (?:luôn )?được sạc miễn phí|phí sạc luôn (?:được )?bao gồm/i);
 });
 
-test('electric hub and every electric vehicle detail link to the charging guide with analytics', async () => {
+test('electric hub states the current included-charging policy while vehicle detail keeps the policy guide', async () => {
   const [hub, detail] = await Promise.all([
     readFile(HUB_PATH, 'utf8'),
     readFile(DETAIL_PATH, 'utf8'),
   ]);
 
-  assert.match(hub, /to="\/blog\/thue-xe-dien-ai-tra-phi-sac"/);
-  assert.match(hub, /electric_hub_charging_cost_guide/);
-  assert.match(hub, /Ai trả phí sạc khi thuê xe điện\?/);
+  assert.match(hub, /điện sạc tại trụ nằm trong giá thuê/i);
+  assert.match(hub, /phạm vi trụ áp dụng/);
+  assert.match(hub, /phí chiếm dụng vị trí sạc/);
+  assert.doesNotMatch(hub, /đơn giá điện|giá kWh/i);
 
   assert.match(detail, /car\.fuel === 'Điện'/);
   assert.match(detail, /to="\/blog\/thue-xe-dien-ai-tra-phi-sac"/);

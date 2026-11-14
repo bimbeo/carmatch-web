@@ -1,395 +1,172 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import {
-  ArrowRight,
-  BatteryCharging,
-  Calculator,
-  CalendarCheck2,
-  Car,
-  CheckCircle2,
-  FileCheck2,
-  MapPin,
-  MessageCircle,
-  Phone,
-  PlugZap,
-  ShieldCheck,
-  Zap,
-} from 'lucide-react';
+import { ArrowRight, BatteryCharging, CalendarCheck2, CheckCircle2, ExternalLink, MapPin, MessageCircle, Phone, PlugZap, Route, ShieldCheck, Users, WalletCards } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import { cars as fallbackCars, formatPrice, type Car as CarModel } from '@/data/cars';
+import { EV_FAMILIES, evFamilyFromCar, exactSpecForCar } from '@/data/evVehicleSpecs';
 import { useSEO } from '@/hooks/useSEO';
-import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
-import Navbar from '../components/Navbar';
+import { trackCtaClick, trackEvent, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import BookingWidget, { BOOKING_PICKUP_LOCATIONS, type BookingOpenRequest, type BookingSummary } from '../components/BookingWidget';
+import EvRecommendationQuiz from '../components/EvRecommendationQuiz';
+import EvRoutePlanner from '../components/EvRoutePlanner';
+import EvVehicleComparison from '../components/EvVehicleComparison';
 import Footer from '../components/Footer';
-import ZaloFAB from '../components/ZaloFAB';
 import MobileConversionBar from '../components/MobileConversionBar';
-import CarCard from '../components/CarCard';
+import Navbar from '../components/Navbar';
+import ZaloFAB from '../components/ZaloFAB';
 
 const ZALO_LINK = 'https://zalo.me/0971163290';
 const PHONE_LINK = 'tel:0971163290';
-const ELECTRIC_FAMILIES = ['VF3', 'VF5', 'VF6', 'VF7', 'VF8', 'Limo Green'] as const;
-
-const serviceAreas = [
-  'Vinhomes Ocean Park',
-  'Vinhomes Smart City',
-  'Times City',
-  'Ecopark',
-  'The Manor Central Park',
-];
 
 const costItems = [
-  ['Giá thuê xe', 'Tính theo mẫu xe, thời gian thuê và lịch sử dụng thực tế.'],
-  ['Giao nhận xe', 'Xác nhận theo điểm nhận, điểm trả và thời gian bàn giao.'],
-  ['Chi phí sạc', 'Khách dự tính theo quãng đường và kế hoạch sạc trong chuyến đi.'],
-  ['Cầu đường, gửi xe', 'Phát sinh theo hành trình, không mặc định nằm trong giá thuê.'],
-  ['Vượt km hoặc phát sinh', 'Chỉ áp dụng theo điều kiện đã ghi trong xác nhận hoặc hợp đồng.'],
-];
-
-const electricGuides = [
-  { to: '/blog/vf7s-hay-vf7-plus-khac-nhau-the-nao', title: 'VF7S hay VF7 Plus?' },
-  { to: '/blog/chi-phi-sac-vf5-cho-chuyen-di-300-km', title: 'Chi phí sạc VF5 cho 300 km' },
-  { to: '/blog/chi-phi-sac-vf6-cho-chuyen-di-300-km', title: 'Chi phí sạc VF6 cho 300 km' },
-  { to: '/blog/thue-vf5-theo-ngay-hay-theo-thang', title: 'Thuê VF5 ngày hay tháng?' },
-  { to: '/blog/vf3-vf5-hay-vf6-phu-hop-di-pho', title: 'VF3, VF5 hay VF6 đi phố?' },
-  { to: '/blog/fadil-hay-vf3-phu-hop-di-pho', title: 'Fadil hay VF3 đi phố?' },
-  { to: '/blog/creta-hay-vf6-phu-hop-gia-dinh', title: 'Creta hay VF6 cho gia đình?' },
-  { to: '/blog/xpander-hay-limo-green-cho-nhom-dong', title: 'Xpander hay Limo Green?' },
-  { to: '/blog/limo-green-cho-duoc-bao-nhieu-vali', title: 'Limo Green chở bao nhiêu vali?' },
-  { to: '/blog/jaecoo-j7-hay-vf7-di-tinh', title: 'Jaecoo J7 hay VF7 đi tỉnh?' },
-  { to: '/blog/vf5-hay-vf6-phu-hop-gia-dinh-hon', title: 'VF5 hay VF6 cho gia đình?' },
-  { to: '/blog/vf6-hay-vf7-phu-hop-di-tinh-hon', title: 'VF6 hay VF7 đi tỉnh?' },
-  { to: '/blog/vf7-hay-vf8-phu-hop-chuyen-di-dai', title: 'VF7 hay VF8 cho chuyến dài?' },
-  { to: '/blog/vf5-co-phu-hop-di-tinh-khong', title: 'VF5 có phù hợp đi tỉnh?' },
-  { to: '/blog/vf6-co-phu-hop-gia-dinh-5-nguoi-khong', title: 'VF6 cho gia đình 5 người?' },
-  { to: '/blog/vf7-cho-duoc-bao-nhieu-hanh-ly', title: 'VF7 chở được bao nhiêu hành lý?' },
-  { to: '/blog/vf8-co-phu-hop-di-duong-dai-khong', title: 'VF8 có phù hợp đi đường dài?' },
-  { to: '/blog/toyota-raize-hay-vinfast-vf5-di-pho', title: 'Raize hay VF5 đi phố?' },
-  { to: '/blog/vf3-hay-vf5-phu-hop-di-pho', title: 'VF3 hay VF5 phù hợp đi phố?' },
-  { to: '/blog/di-tinh-nen-thue-xe-dien-hay-xe-xang', title: 'Đi tỉnh chọn xe điện hay xe xăng?' },
-  { to: '/blog/lap-ke-hoach-sac-xe-dien-khi-di-tinh', title: 'Lập kế hoạch sạc khi đi tỉnh' },
-  { to: '/blog/xe-dien-thue-het-pin-giua-duong-lam-gi', title: 'Xe điện gần hết pin xử lý thế nào?' },
+  [WalletCards, 'Giá thuê xe', 'Tính theo xe thực tế, lịch thuê, phụ phí và ưu đãi từ công cụ đặt xe dùng chung.'],
+  [BatteryCharging, 'Điện sạc tại trụ', 'Đã nằm trong giá thuê theo chính sách Car Match; không cộng thêm giá điện giả định.'],
+  [MapPin, 'Giao nhận xe', 'Tính theo hình thức nhận/trả, địa chỉ và chính sách đang áp dụng.'],
+  [ShieldCheck, 'Khoản ngoài chính sách', 'Cầu đường, gửi xe, km vượt hoặc phí chiếm dụng trụ có thể phát sinh.'],
 ];
 
 const electricFaqs = [
-  {
-    question: 'Thuê xe điện tự lái tại Hà Nội giá bao nhiêu?',
-    answer: 'Giá ngày được hiển thị theo từng xe trên Car Match. Giá cuối cùng phụ thuộc mẫu xe, thời gian thuê, lịch xe thực tế và điểm giao nhận. Với giá tháng, mẫu xe chưa có dữ liệu công khai sẽ hiển thị “Liên hệ báo giá” thay vì dùng một mức ước tính chung.',
-  },
-  {
-    question: 'Nên chọn VF3, VF5, VF6, VF7, VF8 hay Limo Green?',
-    answer: 'VF3 và VF5 phù hợp nhu cầu gọn, chủ yếu đi phố; VF6 và VF7 cân bằng hơn cho gia đình; VF8 phù hợp khi ưu tiên không gian và tiện nghi; Limo Green là phương án 7 chỗ cho nhóm đông người. Khách vẫn nên đối chiếu số người, hành lý và hành trình trước khi chọn.',
-  },
-  {
-    question: 'Chi phí sạc có nằm trong giá thuê xe không?',
-    answer: 'Không nên mặc định chi phí sạc đã nằm trong giá thuê. Car Match sẽ xác nhận mức pin khi giao và trả xe, phụ kiện sạc theo xe và cách đối soát nếu có. Khách nên cộng chi phí sạc vào tổng ngân sách chuyến đi.',
-  },
-  {
-    question: 'Thuê xe điện đi tỉnh cần lưu ý gì?',
-    answer: 'Hãy ước tính tổng quãng đường, kiểm tra trạm sạc trên tuyến và dành khoảng dự phòng cho thay đổi lịch trình. Khi nhận xe, hai bên cần ghi nhận mức pin, dây sạc hoặc phụ kiện đi kèm và mức pin cần có khi hoàn trả.',
-  },
-  {
-    question: 'Car Match giao xe điện ở khu vực nào?',
-    answer: 'Car Match hỗ trợ giao nhận theo lịch đã xác nhận tại Vinhomes Ocean Park, Vinhomes Smart City, Times City, Ecopark và The Manor Central Park. Với địa điểm khác tại Hà Nội, khách gửi vị trí để đội vận hành kiểm tra phương án và phí giao nhận nếu có.',
-  },
+  { question: 'Nếu pin xuống thấp trong chuyến thì nên làm gì?', answer: 'Giảm tải điện không cần thiết, mở ứng dụng VinFast hoặc bản đồ để tìm trụ phù hợp và chuẩn bị một trạm dự phòng. Không cố đi tiếp nếu mức pin không đủ an toàn theo quãng đường còn lại.' },
+  { question: 'Mức pin khi nhận và trả xe được xác nhận thế nào?', answer: 'Khách và nhân viên Car Match chụp mức pin, số km và tình trạng phụ kiện khi bàn giao. Mức pin trả xe cùng các khoản ngoài chính sách cần được thống nhất trước khi nhận.' },
+  { question: 'Chi phí sạc có bao gồm trong giá thuê không?', answer: 'Có. Theo chính sách kinh doanh Car Match cung cấp cho trang này, điện sạc tại trụ nằm trong giá thuê. Khách vẫn cần xác minh phạm vi trụ áp dụng, mức pin giao/trả và các khoản ngoài tiền điện như phí chiếm dụng vị trí sạc.' },
+  { question: 'Nếu trụ sạc lỗi hoặc đang bận thì xử lý ra sao?', answer: 'Kiểm tra trạng thái trên ứng dụng VinFast, chuyển sang trạm dự phòng và liên hệ hỗ trợ khi cần. Trang này không có dữ liệu trạm theo thời gian thực nên không khẳng định trụ đang trống hoặc hoạt động.' },
+  { question: 'Gửi yêu cầu có nghĩa là xe đã được xác nhận chưa?', answer: 'Chưa. Hệ thống ghi nhận yêu cầu và mã tham chiếu; Car Match chỉ xác nhận đơn đặt xe sau khi kiểm tra lịch xe, điều kiện thuê và khoản cọc cần thiết.' },
 ];
 
-function electricFamily(car: CarModel) {
-  const normalized = car.name.toLocaleLowerCase('vi-VN').replace(/\s+/g, ' ');
-  if (/\bvf\s*3\b/.test(normalized)) return 'VF3';
-  if (/\bvf\s*5\b/.test(normalized)) return 'VF5';
-  if (/\bvf\s*6\b/.test(normalized)) return 'VF6';
-  if (/\bvf\s*7\b/.test(normalized)) return 'VF7';
-  if (/\bvf\s*8\b/.test(normalized)) return 'VF8';
-  if (normalized.includes('limo green')) return 'Limo Green';
-  return car.name;
-}
-
 function familyFit(family: string, car: CarModel) {
-  if (family === 'VF3') return 'Đi phố, 1-4 người, ưu tiên xe nhỏ gọn.';
+  if (family === 'VF3') return 'Đi phố, 1–4 người, ưu tiên xe nhỏ gọn.';
   if (family === 'VF5') return 'Đi làm hằng ngày, gia đình nhỏ, dễ di chuyển nội đô.';
-  if (family === 'VF6') return 'Gia đình 5 người, cần cân bằng không gian và chi phí.';
-  if (family === 'VF7') return 'Gia đình, đi tỉnh ngắn ngày, cần crossover rộng hơn.';
-  if (family === 'VF8') return 'Ưu tiên không gian, tiện nghi và hành trình dài hơn.';
+  if (family === 'VF6') return 'Gia đình 5 người, cân bằng không gian và chi phí.';
+  if (family === 'VF7') return 'Gia đình, đi tỉnh, cần crossover rộng hơn.';
+  if (family === 'VF8') return 'Ưu tiên không gian, tiện nghi và hành trình dài.';
   if (family === 'Limo Green') return 'Nhóm đông người hoặc gia đình cần xe 7 chỗ.';
   return `${car.seats} chỗ, phù hợp nhu cầu cần xe điện tự lái.`;
 }
-
-function monthlyPriceLabel(car: CarModel) {
-  return car.priceMonth ? `${formatPrice(car.priceMonth)}/tháng` : 'Liên hệ báo giá';
+function pickRepresentativeCars(cars: CarModel[]) {
+  const result = new Map<string, CarModel>();
+  for (const family of EV_FAMILIES) {
+    const match = cars.find((car) => evFamilyFromCar(car) === family);
+    if (match) result.set(family, match);
+  }
+  return [...result.values()];
 }
 
 export default function ElectricRental() {
   useSEO({
     title: 'Thuê Xe Điện Tự Lái Hà Nội | Car Match',
-    description: 'Thuê xe điện VinFast tự lái tại Hà Nội. So sánh VF3, VF5, VF6, VF7, VF8 và Limo Green, xem giá ngày, chi phí sạc và cách chọn xe.',
+    description: 'Khám phá xe điện VinFast tại Hà Nội, so sánh pin và phiên bản, lập kế hoạch chuyến đi, kiểm tra lịch và gửi yêu cầu thuê ngay trên Car Match.',
     canonical: 'https://www.carmatch.vn/thue-xe-dien-ha-noi',
   });
 
   const { cars } = useVehicles();
   const availableCatalog = cars.length > 0 ? cars : fallbackCars;
-  const electricCars = availableCatalog
-    .filter((car) => car.fuel === 'Điện' && car.price > 0)
-    .sort((a, b) => a.price - b.price);
-  const familyCars = ELECTRIC_FAMILIES
-    .map((family) => electricCars.find((car) => electricFamily(car) === family))
-    .filter((car): car is CarModel => Boolean(car));
-  const otherElectricCars = electricCars.filter((car) => !ELECTRIC_FAMILIES.includes(electricFamily(car) as typeof ELECTRIC_FAMILIES[number]));
-  const representativeCars = [...familyCars, ...otherElectricCars];
+  const electricCars = useMemo(() => availableCatalog.filter((car) => car.fuel === 'Điện' && car.price > 0).sort((a, b) => a.price - b.price), [availableCatalog]);
+  const bookableCars = useMemo(() => electricCars.filter((car) => car.available !== false), [electricCars]);
+  const showroomCars = useMemo(() => pickRepresentativeCars(bookableCars), [bookableCars]);
+  const initialCar = bookableCars.find((car) => evFamilyFromCar(car) === 'VF5') ?? bookableCars[0] ?? electricCars[0] ?? fallbackCars[0];
+  const [selectedVehicleId, setSelectedVehicleId] = useState(initialCar.id);
+  const [bookingOpenRequest, setBookingOpenRequest] = useState<BookingOpenRequest | null>(null);
+  const [bookingSummary, setBookingSummary] = useState<BookingSummary | null>(null);
+  const [tripPlanSummary, setTripPlanSummary] = useState('');
+  const [showroomImageIndex, setShowroomImageIndex] = useState(0);
+  const selectedCar = bookableCars.find((car) => car.id === selectedVehicleId) ?? bookableCars[0] ?? initialCar;
+  const selectedSpec = exactSpecForCar(selectedCar);
+  const selectedImages = selectedCar.images?.slice(0, 4) ?? [];
   const startingPrice = electricCars.length > 0 ? Math.min(...electricCars.map((car) => car.price)) : null;
   const zaloHref = `${ZALO_LINK}?text=${encodeURIComponent('Tôi muốn thuê xe điện tự lái tại Hà Nội. Nhờ Car Match kiểm tra mẫu xe và lịch phù hợp.')}`;
 
+  useEffect(() => setShowroomImageIndex(0), [selectedCar.id]);
+
+  const chooseForBooking = (car: CarModel, source: string, pickupDate?: string, customerNote?: string) => {
+    if (car.available === false) return;
+    setSelectedVehicleId(car.id);
+    if (customerNote) setTripPlanSummary(customerNote);
+    setBookingOpenRequest({ id: Date.now(), source, vehicleId: car.id, pickupDate, customerNote });
+    trackEvent('booking_start', { vehicle_id: car.id, vehicle_name: car.name, source, pickup_date: pickupDate ?? null });
+    requestAnimationFrame(() => document.getElementById('reserve')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+
   return (
-    <div className="min-h-screen bg-white pb-24 text-slate-950 sm:pb-0">
+    <div className="min-h-screen bg-[#f8f6ef] pb-28 text-slate-950 sm:pb-0">
       <Navbar />
       <main id="main-content">
-        <section className="relative overflow-hidden bg-slate-950 text-white">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.24),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.18),transparent_42%)]" />
-          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+        <section className="relative isolate overflow-hidden bg-slate-950 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_35%,rgba(52,211,153,0.16),transparent_28%),radial-gradient(circle_at_48%_110%,rgba(59,130,246,0.12),transparent_38%)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/95 to-slate-900/80" />
+          <div className="relative mx-auto grid min-h-[640px] max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
             <div className="max-w-3xl">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm font-bold text-emerald-200">
-                <Zap className="h-4 w-4" />
-                Xe điện tự lái tại Hà Nội
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-300">Car Match / Khám phá xe điện</p>
+              <h1 aria-label="Thuê xe điện tự lái tại Hà Nội" className="mt-5 text-5xl font-black tracking-[-0.04em] sm:text-6xl lg:text-7xl">Thuê xe điện<br /><span className="text-emerald-300">tự lái tại Hà Nội.</span></h1>
+              <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-300">Khám phá VF3–VF8 và Limo Green, so sánh phiên bản, lập kế hoạch pin–sạc, kiểm tra lịch và gửi yêu cầu thuê ngay trên trang.</p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <a href="#fleet" onClick={() => trackCtaClick('electric_v5_explore', { target_path: '#fleet' })} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-6 font-black text-slate-950 hover:bg-emerald-200">Chọn xe & xem lịch <ArrowRight className="h-4 w-4" /></a>
+                <a href="#route-planner" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 font-black text-white hover:bg-white/15">Tìm hiểu pin & sạc <BatteryCharging className="h-4 w-4" /></a>
               </div>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
-                Thuê xe điện tự lái tại Hà Nội
-              </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-                So sánh VF3, VF5, VF6, VF7, VF8 và Limo Green theo số chỗ, giá thuê và nhu cầu sử dụng. Chọn xe từ dữ liệu thực tế, sau đó xác nhận lịch và điểm giao nhận trước khi đặt cọc.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#electric-fleet"
-                  onClick={() => trackCtaClick('electric_hub_view_cars', { target_path: '#electric-fleet' })}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 py-3 font-black text-slate-950 transition-colors hover:bg-emerald-300"
-                >
-                  Xem các mẫu xe điện <ArrowRight className="h-4 w-4" />
-                </a>
-                <a
-                  href={zaloHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackZaloClick('electric_hub_hero')}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-black text-white transition-colors hover:bg-white/15"
-                >
-                  <MessageCircle className="h-4 w-4" /> Nhờ kiểm tra lịch xe
-                </a>
+              <div className="mt-12 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><span className="text-xs text-slate-400">Danh mục hiện tại</span><strong className="mt-1 block text-2xl">{electricCars.length} xe điện</strong></div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><span className="text-xs text-slate-400">Giá ngày từ</span><strong className="mt-1 block text-2xl">{startingPrice ? formatPrice(startingPrice) : 'Đang cập nhật'}</strong></div>
+                <div className="col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 sm:col-span-1"><span className="text-xs text-slate-400">Đặt ngay trên trang</span><strong className="mt-1 block text-2xl">Gửi yêu cầu trực tuyến</strong></div>
               </div>
             </div>
-
-            <div className="mt-10 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-                <p className="text-sm text-slate-400">Danh mục đang hiển thị</p>
-                <p className="mt-1 text-2xl font-black">{electricCars.length} xe điện</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-                <p className="text-sm text-slate-400">Giá ngày thấp nhất</p>
-                <p className="mt-1 text-2xl font-black">{startingPrice ? `${formatPrice(startingPrice)}/ngày` : 'Kiểm tra theo lịch'}</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-                <p className="text-sm text-slate-400">Khu vực đã xác nhận</p>
-                <p className="mt-1 text-2xl font-black">5 khu đô thị</p>
-              </div>
+            <div className="relative hidden min-h-[450px] items-center justify-center lg:flex" aria-label="VinFast VF5 trắng của Car Match">
+              <div className="absolute h-80 w-80 rounded-full bg-emerald-300/15 blur-3xl" />
+              <img src="/images/electric-hero-crossover.webp" alt="VinFast VF5 trắng Car Match đã được tách nền" className="relative h-auto max-h-[550px] w-[116%] max-w-none -translate-x-2 object-contain drop-shadow-[0_30px_36px_rgba(0,0,0,0.45)] xl:w-[122%]" fetchPriority="high" decoding="async" />
             </div>
           </div>
         </section>
 
-        <section id="electric-fleet" className="scroll-mt-24 bg-slate-50 py-16 sm:py-20">
+        <section className="border-b border-slate-200 bg-white py-7" aria-label="Trả lời nhanh về thuê xe điện"><div className="mx-auto grid max-w-7xl gap-3 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">{[
+          ['Mẫu xe', showroomCars.length > 0 ? `${showroomCars.map((car) => evFamilyFromCar(car)).filter(Boolean).join(', ')} trong danh mục hiện tại.` : 'Danh mục xe đang được cập nhật.'],
+          ['Giá thuê', startingPrice ? `Từ ${formatPrice(startingPrice)}/ngày; tổng giá thay đổi theo xe, lịch và giao nhận.` : 'Xem giá trên từng xe trước khi gửi yêu cầu.'],
+          ['Điện sạc', 'Điện tại trụ nằm trong giá thuê trong phạm vi chính sách; phí đỗ hoặc chiếm dụng trụ có thể tách riêng.'],
+          ['Đặt thuê', 'Chọn xe và thời gian để kiểm tra lịch. Yêu cầu cần điều phối sẽ được xác nhận trước khi hướng dẫn cọc.'],
+        ].map(([title, answer]) => <article key={title} className="rounded-2xl bg-slate-50 p-4"><h2 className="text-sm font-black text-slate-950">{title}</h2><p className="mt-1 text-sm leading-6 text-slate-600">{answer}</p></article>)}</div></section>
+
+        <section id="fleet" className="scroll-mt-24 py-16 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-              <div className="max-w-3xl">
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Chọn theo nhu cầu thật</p>
-                <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Các mẫu xe điện đang có trên Car Match</h2>
-                <p className="mt-4 text-slate-600">Mỗi thẻ dẫn tới trang xe cụ thể. Lịch xe chỉ được xác nhận sau khi khách chọn ngày nhận, ngày trả và gửi yêu cầu.</p>
-              </div>
-              <Link
-                to="/xe?fuelFilter=%C4%90i%E1%BB%87n"
-                onClick={() => trackCtaClick('electric_hub_all_electric', { target_path: '/xe?fuelFilter=Điện' })}
-                className="inline-flex items-center gap-2 font-black text-brand-700 hover:text-brand-800"
-              >
-                Xem toàn bộ xe điện <ArrowRight className="h-4 w-4" />
-              </Link>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">01 / Khám phá đội xe điện</p>
+            <div className="mt-4 flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><h2 className="text-4xl font-black tracking-tight sm:text-5xl">Khám phá mẫu xe.<br />Đặt lịch khi bạn sẵn sàng.</h2><p className="mt-4 max-w-2xl text-slate-600">Chọn một xe cụ thể từ danh mục Car Match. Công cụ đặt xe sẽ kiểm tra lại giá và lịch của đúng xe đó.</p></div><Link to="/xe?fuelFilter=%C4%90i%E1%BB%87n" className="inline-flex items-center gap-2 font-black text-emerald-800">Xem toàn bộ xe điện <ArrowRight className="h-4 w-4" /></Link></div>
+            <div className="mt-8 flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Chọn xe điện">
+              {showroomCars.map((car) => { const active = car.id === selectedCar.id; return <button key={car.id} type="button" role="tab" aria-selected={active} onClick={() => { setSelectedVehicleId(car.id); trackEvent('ev_showroom_vehicle_select', { vehicle_id: car.id, vehicle_name: car.name, source: 'showroom_tab' }); }} className={`min-w-32 rounded-xl border px-4 py-3 text-left transition ${active ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white hover:border-emerald-400'}`}><span className="block text-[10px] font-black uppercase tracking-wider opacity-60">VinFast / Điện</span><strong className="mt-1 block">{evFamilyFromCar(car) ?? car.name}</strong></button>; })}
             </div>
-
-            {representativeCars.length > 0 ? (
-              <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {representativeCars.map((car) => (
-                  <CarCard key={car.id} car={car} mode="listing" source="electric_hub" />
-                ))}
+            <div className="mt-5 grid overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-300/20 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="bg-slate-100 p-3 sm:p-4"><div className="relative min-h-80 overflow-hidden rounded-2xl bg-slate-200 lg:min-h-[430px]">{selectedImages[showroomImageIndex] ? <img src={selectedImages[showroomImageIndex]} alt={`Ảnh ${showroomImageIndex + 1} của xe ${selectedCar.name}`} className="absolute inset-0 h-full w-full object-contain p-3" loading="lazy" decoding="async" /> : <div className="flex h-full items-center justify-center font-black text-slate-500">Ảnh xe đang cập nhật</div>}<span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1.5 text-xs font-black shadow">Ảnh thật từ danh mục Car Match</span></div>{selectedImages.length > 1 && <div className="mt-3 grid grid-cols-3 gap-2">{selectedImages.slice(0, 3).map((image, index) => <button key={image} type="button" aria-label={`Xem ảnh ${index + 1} của ${selectedCar.name}`} onClick={() => setShowroomImageIndex(index)} className={`overflow-hidden rounded-xl border-2 bg-slate-200 ${showroomImageIndex === index ? 'border-emerald-500' : 'border-transparent'}`}><img src={image} alt="" className="aspect-[16/9] w-full object-contain p-1" loading="lazy" decoding="async" /></button>)}</div>}</div>
+              <div className="flex flex-col justify-center p-6 sm:p-10">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Mẫu xe đang khám phá</p><h3 className="mt-3 text-4xl font-black">{selectedCar.name}</h3><p className="mt-4 leading-7 text-slate-600">{selectedCar.description || familyFit(evFamilyFromCar(selectedCar) ?? selectedCar.name, selectedCar)}</p>
+                <div className="mt-6 grid grid-cols-3 gap-2"><div className="rounded-xl bg-slate-100 p-3"><Users className="h-4 w-4 text-emerald-700" /><span className="mt-2 block text-xs text-slate-500">Chỗ ngồi</span><strong>{selectedCar.seats} chỗ</strong></div><div className="rounded-xl bg-slate-100 p-3"><BatteryCharging className="h-4 w-4 text-emerald-700" /><span className="mt-2 block text-xs text-slate-500">Pin công bố</span><strong>{selectedSpec?.batteryCapacityKwh ? `${selectedSpec.batteryCapacityKwh.toLocaleString('vi-VN')} kWh` : 'Cần xác minh'}</strong></div><div className="rounded-xl bg-slate-100 p-3"><Route className="h-4 w-4 text-emerald-700" /><span className="mt-2 block text-xs text-slate-500">Quãng đường công bố</span><strong>{selectedSpec?.rangeKm ? `${selectedSpec.rangeKm.toLocaleString('vi-VN')} km` : 'Cần xác minh'}</strong></div></div>
+                <p className="mt-3 text-xs leading-5 text-slate-500">Số km hãng đo trong điều kiện thử nghiệm; thực tế có thể thấp hơn. Giới hạn km thuê được hiển thị trong công cụ đặt xe.</p>
+                <div className="mt-7"><span className="text-sm text-slate-500">Giá thuê tham khảo từ</span><strong className="mt-1 block text-3xl">{formatPrice(selectedCar.price)}<span className="text-sm">/ngày</span></strong></div>
+                <button type="button" onClick={() => chooseForBooking(selectedCar, 'ev_showroom')} className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 font-black text-white hover:bg-emerald-800">Xem lịch xe <ArrowRight className="h-4 w-4" /></button>
               </div>
-            ) : (
-              <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                <p className="font-bold text-slate-700">Danh sách xe đang được cập nhật.</p>
-                <a href={zaloHref} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex font-black text-brand-700">Nhắn Car Match kiểm tra xe điện</a>
-              </div>
-            )}
+            </div>
           </div>
         </section>
 
-        <section className="py-16 sm:py-20">
+        <section id="reserve" className="scroll-mt-24 border-y border-slate-200 bg-white py-16 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl">
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Bảng chọn nhanh</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Nên chọn VF3, VF5, VF6, VF7, VF8 hay Limo Green?</h2>
-              <p className="mt-4 text-slate-600">Giá dưới đây lấy từ xe đại diện trong dữ liệu hiện tại. Giá tháng chỉ hiển thị khi đã có dữ liệu xác nhận.</p>
-            </div>
-
-            <div className="mt-8 overflow-x-auto rounded-2xl border border-slate-200">
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="bg-slate-950 text-white">
-                  <tr>
-                    <th className="px-5 py-4 font-black">Mẫu xe</th>
-                    <th className="px-5 py-4 font-black">Số chỗ</th>
-                    <th className="px-5 py-4 font-black">Giá ngày</th>
-                    <th className="px-5 py-4 font-black">Giá tháng</th>
-                    <th className="px-5 py-4 font-black">Phù hợp</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
-                  {representativeCars.map((car) => {
-                    const family = electricFamily(car);
-                    return (
-                      <tr key={`compare-${car.id}`}>
-                        <td className="px-5 py-4 font-black">
-                          <Link to={`/xe/${car.slug}`} className="text-brand-700 hover:underline">{family}</Link>
-                        </td>
-                        <td className="px-5 py-4 text-slate-600">{car.seats} chỗ</td>
-                        <td className="px-5 py-4 font-bold">{formatPrice(car.price)}/ngày</td>
-                        <td className="px-5 py-4 text-slate-600">{monthlyPriceLabel(car)}</td>
-                        <td className="px-5 py-4 text-slate-600">{familyFit(family, car)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">02 / Chọn lịch và chi phí</p>
+            <div className="mt-4 grid gap-8 lg:grid-cols-[0.68fr_1.32fr] lg:items-start">
+              <div className="lg:sticky lg:top-24"><h2 className="text-4xl font-black tracking-tight sm:text-5xl">Chọn lịch thuê.<br />Tự tin trước khi đặt.</h2><p className="mt-4 leading-7 text-slate-600">Chọn ngày giờ, điểm nhận xe và xem chi phí dự kiến trước khi gửi yêu cầu thuê.</p><div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-[#f8f6ef]">{selectedCar.images?.[0] ? <img src={selectedCar.images[0]} alt={`Xe ${selectedCar.name} đang chọn đặt`} className="aspect-[16/9] w-full bg-slate-200 object-contain p-2" loading="lazy" decoding="async" /> : null}<div className="p-4"><strong className="text-xl">{selectedCar.name}</strong><span className="mt-1 block text-sm text-slate-600">{bookingSummary ? `${bookingSummary.pickupDate} ${bookingSummary.pickupHour}:00 → ${bookingSummary.returnDate} ${bookingSummary.returnHour}:00` : `${selectedCar.seats} chỗ · Giá từ ${formatPrice(selectedCar.price)}/ngày`}</span>{tripPlanSummary && <span className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-bold leading-5 text-emerald-900"><Route className="h-4 w-4 flex-none" />Hành trình đã được giữ trong yêu cầu đặt xe.</span>}</div></div><div className="mt-5 grid gap-3">{[[CalendarCheck2, 'Chọn lịch', 'Chọn ngày, giờ và điểm nhận xe.'], [WalletCards, 'Xem chi phí dự kiến', 'Giá và phụ phí được đối chiếu theo lựa chọn.'], [CheckCircle2, 'Gửi yêu cầu', 'Car Match kiểm tra lịch trước khi xác nhận cọc.']].map(([Icon, title, note], index) => <div key={String(title)} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4"><span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-emerald-100 text-emerald-800"><Icon className="h-4 w-4" /></span><div><span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Bước {index + 1}</span><strong className="block">{String(title)}</strong><p className="mt-1 text-xs leading-5 text-slate-500">{String(note)}</p></div></div>)}</div></div>
+              <div className="min-w-0"><BookingWidget basePrice={selectedCar.price} carName={selectedCar.name} carSlug={selectedCar.slug} priceMonth={selectedCar.priceMonth} vehicleId={selectedCar.id} kmPerDay={selectedCar.kmPerDay} kmSurcharge={selectedCar.kmSurcharge} relatedCars={bookableCars.filter((car) => car.id !== selectedCar.id).slice(0, 3).map((car) => ({ slug: car.slug, name: car.name, price: car.price }))} externalOpenRequest={bookingOpenRequest} onBookingSummaryChange={setBookingSummary} onBookingSubmitted={({ bookingRef, requiresConfirmation }) => { if (typeof window !== 'undefined') sessionStorage.setItem('carmatch_ev_booking_ref', bookingRef); trackEvent('booking_request_success', { vehicle_id: selectedCar.id, booking_ref: bookingRef, requires_confirmation: requiresConfirmation }); }} /></div>
             </div>
           </div>
         </section>
 
-        <section className="bg-emerald-50 py-16 sm:py-20">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-            <div>
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white"><Calculator className="h-6 w-6" /></div>
-              <h2 className="mt-5 text-3xl font-black tracking-tight">Thuê xe điện cần tính những chi phí gì?</h2>
-              <p className="mt-4 text-slate-700">Công thức nên dùng: <strong>giá thuê + giao nhận + sạc + cầu đường/gửi xe + phát sinh theo hợp đồng</strong>. Nhìn tổng chi phí giúp so sánh đúng hơn chỉ nhìn giá ngày.</p>
-              <Link to="/thue-xe-thang" className="mt-6 inline-flex items-center gap-2 font-black text-brand-700 hover:underline">
-                Xem phương án thuê xe theo tháng <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {costItems.map(([title, note]) => (
-                <article key={title} className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                  <h3 className="mt-3 font-black">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{note}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        <EvRecommendationQuiz cars={bookableCars} onSelect={chooseForBooking} />
+        <EvVehicleComparison cars={bookableCars} onSelect={chooseForBooking} />
+        <EvRoutePlanner cars={bookableCars} selectedCar={selectedCar} bookingSummary={bookingSummary} onSelect={chooseForBooking} onTripPlanChange={setTripPlanSummary} />
 
-        <section className="py-16 sm:py-20">
-          <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Sạc và bàn giao</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">Kiểm tra pin trước khi bắt đầu chuyến đi</h2>
-              <div className="mt-7 space-y-4">
-                {[
-                  [BatteryCharging, 'Ghi nhận mức pin', 'Chụp lại mức pin và số km tại thời điểm nhận xe.'],
-                  [PlugZap, 'Kiểm tra phụ kiện sạc', 'Đối chiếu dây sạc hoặc phụ kiện đi kèm theo biên bản bàn giao.'],
-                  [MapPin, 'Lập kế hoạch trạm sạc', 'Nếu đi tỉnh, kiểm tra trạm trên tuyến và có khoảng dự phòng cho thay đổi lịch trình.'],
-                  [ShieldCheck, 'Xác nhận mức pin khi trả', 'Thống nhất trước cách hoàn trả pin và đối soát chi phí nếu phát sinh.'],
-                ].map(([Icon, title, desc]) => (
-                  <div key={String(title)} className="flex gap-4 rounded-2xl border border-slate-200 p-5">
-                    <Icon className="mt-0.5 h-6 w-6 flex-none text-emerald-600" />
-                    <div><h3 className="font-black">{String(title)}</h3><p className="mt-1 text-sm leading-6 text-slate-600">{String(desc)}</p></div>
-                  </div>
-                ))}
-              </div>
-              <Link
-                to="/blog/thue-xe-dien-ai-tra-phi-sac"
-                onClick={() => trackCtaClick('electric_hub_charging_cost_guide', {
-                  target_path: '/blog/thue-xe-dien-ai-tra-phi-sac',
-                })}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-black text-emerald-800 transition-colors hover:bg-emerald-100"
-              >
-                Ai trả phí sạc khi thuê xe điện? <ArrowRight className="h-4 w-4" />
-              </Link>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {electricGuides.map((guide) => (
-                  <Link
-                    key={guide.to}
-                    to={guide.to}
-                    onClick={() => trackCtaClick('electric_hub_guide', { target_path: guide.to })}
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition-colors hover:border-emerald-200 hover:bg-emerald-50"
-                  >
-                    {guide.title}
-                  </Link>
-                ))}
-              </div>
-            </div>
+        <section className="bg-emerald-50 py-16 sm:py-20"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr]"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Chi phí minh bạch</p><h2 className="mt-3 text-4xl font-black tracking-tight">Thuê xe điện cần tính những chi phí gì?</h2><p className="mt-4 leading-7 text-slate-600">Không lấy khoản tiền điện ước tính từ công cụ hành trình để cộng vào giá thuê. Hệ thống đặt xe vẫn là nguồn xác thực cuối cùng về giá và trạng thái yêu cầu.</p></div><div className="grid gap-3 sm:grid-cols-2">{costItems.map(([Icon, title, note]) => <article key={String(title)} className="group rounded-2xl border border-emerald-100 bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800"><Icon className="h-5 w-5" /></span><h3 className="mt-4 font-black">{String(title)}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{String(note)}</p></article>)}</div></div></div></section>
 
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Giao nhận tại Hà Nội</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">Các khu vực giao xe đã xác nhận</h2>
-              <p className="mt-4 text-slate-600">Thời gian và phí giao nhận, nếu có, được xác nhận theo từng lịch thuê. Với địa điểm khác, Car Match sẽ kiểm tra phương án trước khi chốt.</p>
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                {serviceAreas.map((area) => (
-                  <div key={area} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 font-bold text-slate-800">
-                    <MapPin className="h-5 w-5 flex-none text-brand-600" /> {area}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8 rounded-2xl bg-slate-950 p-6 text-white">
-                <h3 className="text-xl font-black">Quy trình 4 bước</h3>
-                <ol className="mt-5 grid gap-4 sm:grid-cols-2">
-                  {[
-                    [Car, 'Chọn mẫu xe và ngày thuê'],
-                    [CalendarCheck2, 'Kiểm tra lịch, giá và giao nhận'],
-                    [FileCheck2, 'Chốt giấy tờ, cọc và hợp đồng'],
-                    [BatteryCharging, 'Bàn giao pin, km và phụ kiện'],
-                  ].map(([Icon, label], index) => (
-                    <li key={String(label)} className="flex gap-3 text-sm text-slate-300">
-                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-emerald-400 font-black text-slate-950">{index + 1}</span>
-                      <span className="pt-1.5"><Icon className="mr-1.5 inline h-4 w-4 text-emerald-300" />{String(label)}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
-          </div>
-        </section>
+        <section className="bg-white py-16 sm:py-20"><div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Sạc và bàn giao</p><h2 className="mt-3 text-3xl font-black tracking-tight">Kiểm tra pin trước khi bắt đầu chuyến đi</h2><div className="relative mt-7 space-y-3 before:absolute before:bottom-8 before:left-[1.65rem] before:top-8 before:w-px before:bg-emerald-200">{[[BatteryCharging, 'Ghi nhận mức pin', 'Chụp mức pin và số km tại thời điểm nhận xe.'], [PlugZap, 'Kiểm tra trạm và phụ kiện', 'Đối chiếu phụ kiện, đầu sạc và trạng thái trạm trên ứng dụng VinFast.'], [ShieldCheck, 'Xác nhận điều kiện trả', 'Thống nhất phần trăm pin khi trả xe và khoản ngoài chính sách trước khi nhận.']].map(([Icon, title, desc], index) => <div key={String(title)} className="relative flex gap-4 rounded-2xl border border-slate-200 bg-white p-5"><span className="z-10 flex h-9 w-9 flex-none items-center justify-center rounded-full bg-emerald-100 text-emerald-800"><Icon className="h-5 w-5" /></span><div><span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Kiểm tra {index + 1}</span><h3 className="font-black">{String(title)}</h3><p className="mt-1 text-sm leading-6 text-slate-600">{String(desc)}</p></div></div>)}</div></div><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Giao nhận tại Hà Nội</p><h2 className="mt-3 text-3xl font-black tracking-tight">Các điểm nhận xe tham khảo tại Hà Nội</h2><p className="mt-4 text-slate-600">Điểm bàn giao cụ thể sẽ được xác nhận sau khi kiểm tra xe và lịch thuê. Các điểm tự nhận dưới đây không tính phí giao nhận; khu vực khác được báo phí theo địa chỉ.</p><div className="mt-7 grid gap-3 sm:grid-cols-2">{BOOKING_PICKUP_LOCATIONS.map((location) => <div key={location.id} className="rounded-2xl bg-slate-100 p-4"><div className="flex items-start gap-3"><MapPin className="mt-0.5 h-5 w-5 flex-none text-emerald-700" /><div><strong>{location.name}</strong><span className="mt-1 block text-xs leading-5 text-slate-500">{location.address}</span></div></div><a href={location.mapUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-black text-emerald-800">Xem bản đồ <ExternalLink className="h-3.5 w-3.5" /></a></div>)}</div><button type="button" onClick={() => chooseForBooking(selectedCar, 'ev_delivery_area')} className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl bg-slate-950 px-5 font-black text-white">Chọn hình thức nhận xe <CalendarCheck2 className="h-4 w-4" /></button></div></div></section>
 
-        <section className="bg-slate-50 py-16 sm:py-20">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <p className="text-center text-sm font-black uppercase tracking-[0.18em] text-brand-600">Câu hỏi thường gặp</p>
-            <h2 className="mt-3 text-center text-3xl font-black tracking-tight sm:text-4xl">Trước khi thuê xe điện tự lái</h2>
-            <div className="mt-8 space-y-3">
-              {electricFaqs.map((item) => (
-                <details key={item.question} className="group rounded-2xl border border-slate-200 bg-white p-5 open:shadow-sm">
-                  <summary className="cursor-pointer list-none pr-8 font-black marker:hidden">{item.question}</summary>
-                  <p className="mt-3 leading-7 text-slate-600">{item.answer}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-        </section>
+        <section id="faq" className="bg-[#f2efe7] py-16 sm:py-20"><div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8"><div className="mb-12 grid overflow-hidden rounded-3xl bg-slate-950 text-white sm:grid-cols-[0.8fr_1.2fr]">{selectedCar.images?.[0] ? <img src={selectedCar.images[0]} alt={`Xe ${selectedCar.name} trước phần giải đáp`} className="h-full min-h-52 w-full bg-slate-900 object-contain p-2" loading="lazy" decoding="async" /> : null}<div className="flex flex-col justify-center p-6 sm:p-8"><span className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">Đang xem {selectedCar.name}</span><h2 className="mt-2 text-2xl font-black">Cần kiểm tra lịch trước khi quyết định?</h2><p className="mt-3 text-sm leading-6 text-slate-300">Giữ xe và ngày đã chọn, Car Match sẽ đối chiếu lịch, giá và điểm nhận trước khi hướng dẫn cọc.</p><button type="button" onClick={() => chooseForBooking(selectedCar, 'ev_pre_faq_cta')} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-black text-slate-950">Gửi yêu cầu kiểm tra lịch <ArrowRight className="h-4 w-4" /></button></div></div><p className="text-center text-xs font-black uppercase tracking-[0.22em] text-emerald-700">05 / Giải đáp</p><h2 className="mt-3 text-center text-4xl font-black tracking-tight">Câu hỏi thường gặp khi thuê xe điện Hà Nội</h2><div className="mt-8 space-y-3">{electricFaqs.map((item) => <details key={item.question} className="rounded-2xl border border-slate-200 bg-white p-5 open:shadow-sm"><summary className="cursor-pointer list-none pr-8 font-black marker:hidden">{item.question}</summary><p className="mt-3 leading-7 text-slate-600">{item.answer}</p></details>)}</div><div className="mt-7 flex flex-wrap justify-center gap-3 text-sm font-black"><Link to="/thue-xe-thang" className="rounded-full border border-slate-300 bg-white px-4 py-2">Xe điện theo tháng</Link><Link to="/thue-xe-7-cho-tu-lai-ha-noi" className="rounded-full border border-slate-300 bg-white px-4 py-2">Xe 7 chỗ</Link><Link to="/chinh-sach" className="rounded-full border border-slate-300 bg-white px-4 py-2">Điều kiện thuê xe</Link></div></div></section>
 
-        <section className="bg-brand-700 py-14 text-white">
-          <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 sm:px-6 md:flex-row md:items-center lg:px-8">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-100">Cần kiểm tra lịch xe?</p>
-              <h2 className="mt-2 text-3xl font-black">Gửi ngày thuê và khu vực nhận xe</h2>
-              <p className="mt-2 text-brand-100">Car Match sẽ đối chiếu mẫu xe, lịch thực tế và điều kiện giao nhận trước khi báo phương án.</p>
-            </div>
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <a href={PHONE_LINK} onClick={() => trackPhoneClick('electric_hub_footer')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/30 px-5 font-black hover:bg-white/10"><Phone className="h-4 w-4" /> Gọi 0971 163 290</a>
-              <a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('electric_hub_footer')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 font-black text-brand-700 hover:bg-brand-50"><MessageCircle className="h-4 w-4" /> Nhắn Zalo</a>
-            </div>
-          </div>
-        </section>
+        <section className="bg-emerald-800 py-14 text-white"><div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 sm:px-6 md:flex-row md:items-center lg:px-8"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Car Match / Hà Nội</p><h2 className="mt-2 text-3xl font-black">Chọn đúng xe. Hành trình nhẹ nhàng hơn.</h2><p className="mt-2 text-emerald-100">Xem xe, đối chiếu nhu cầu và kiểm tra lịch ngay trên trang.</p></div><div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row"><a href={PHONE_LINK} onClick={() => trackPhoneClick('electric_v5_footer')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/30 px-5 font-black"><Phone className="h-4 w-4" />Gọi 0971 163 290</a><a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick('electric_v5_footer')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 font-black text-emerald-800"><MessageCircle className="h-4 w-4" />Nhắn Zalo</a></div></div></section>
       </main>
       <Footer />
       <ZaloFAB />
-      <MobileConversionBar source="electric_hub" zaloHref={zaloHref} note="Xác nhận lịch xe trước khi đặt cọc" />
+      <MobileConversionBar source="electric_v5" zaloHref={zaloHref} note={`Đang chọn ${selectedCar.name}`} />
     </div>
   );
 }

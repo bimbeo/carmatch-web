@@ -790,7 +790,7 @@ const routeMeta = [
     path: '/thue-xe-dien-ha-noi',
     title: 'Thuê Xe Điện Tự Lái Hà Nội | Car Match',
     description:
-      'Thuê xe điện VinFast tự lái tại Hà Nội. So sánh VF3, VF5, VF6, VF7, VF8 và Limo Green, xem giá ngày, chi phí sạc và cách chọn xe.',
+      'Khám phá xe điện VinFast tại Hà Nội, so sánh pin và phiên bản, lập kế hoạch chuyến đi, kiểm tra lịch và gửi yêu cầu thuê ngay trên Car Match.',
     canonical: `${siteUrl}/thue-xe-dien-ha-noi`,
     priority: '0.85',
     changefreq: 'weekly',
@@ -2567,24 +2567,24 @@ function electricRentalStructuredData(meta, vehicles = []) {
     : undefined;
   const faqs = [
     {
-      question: 'Thuê xe điện tự lái tại Hà Nội giá bao nhiêu?',
-      answer: 'Giá ngày được hiển thị theo từng xe trên Car Match. Giá cuối cùng phụ thuộc mẫu xe, thời gian thuê, lịch xe thực tế và điểm giao nhận. Với giá tháng, mẫu xe chưa có dữ liệu công khai sẽ hiển thị “Liên hệ báo giá”.',
+      question: 'Nếu pin xuống thấp trong chuyến thì nên làm gì?',
+      answer: 'Giảm tải điện không cần thiết, mở ứng dụng VinFast hoặc bản đồ để tìm trụ phù hợp và chuẩn bị một trạm dự phòng. Không cố đi tiếp nếu mức pin không đủ an toàn theo quãng đường còn lại.',
     },
     {
-      question: 'Nên chọn VF3, VF5, VF6, VF7, VF8 hay Limo Green?',
-      answer: 'VF3 và VF5 phù hợp nhu cầu gọn, chủ yếu đi phố; VF6 và VF7 cân bằng hơn cho gia đình; VF8 phù hợp khi ưu tiên không gian và tiện nghi; Limo Green là phương án 7 chỗ cho nhóm đông người.',
+      question: 'Mức pin khi nhận và trả xe được xác nhận thế nào?',
+      answer: 'Khách và nhân viên Car Match chụp mức pin, số km và tình trạng phụ kiện khi bàn giao. Mức pin trả xe cùng các khoản ngoài chính sách cần được thống nhất trước khi nhận.',
     },
     {
-      question: 'Chi phí sạc có nằm trong giá thuê xe không?',
-      answer: 'Không nên mặc định chi phí sạc đã nằm trong giá thuê. Car Match sẽ xác nhận mức pin khi giao và trả xe, phụ kiện sạc theo xe và cách đối soát nếu có.',
+      question: 'Chi phí sạc có bao gồm trong giá thuê không?',
+      answer: 'Có. Theo chính sách kinh doanh Car Match cung cấp cho trang này, điện sạc tại trụ nằm trong giá thuê. Khách vẫn cần xác minh phạm vi trụ áp dụng, mức pin giao/trả và các khoản ngoài tiền điện như phí chiếm dụng vị trí sạc.',
     },
     {
-      question: 'Thuê xe điện đi tỉnh cần lưu ý gì?',
-      answer: 'Khách nên ước tính tổng quãng đường, kiểm tra trạm sạc trên tuyến và dành khoảng dự phòng cho thay đổi lịch trình. Khi nhận xe, hai bên ghi nhận mức pin và phụ kiện đi kèm.',
+      question: 'Nếu trụ sạc lỗi hoặc đang bận thì xử lý ra sao?',
+      answer: 'Kiểm tra trạng thái trên ứng dụng VinFast, chuyển sang trạm dự phòng và liên hệ hỗ trợ khi cần. Trang này không có dữ liệu trạm theo thời gian thực nên không khẳng định trụ đang trống hoặc hoạt động.',
     },
     {
-      question: 'Car Match giao xe điện ở khu vực nào?',
-      answer: 'Car Match hỗ trợ giao nhận theo lịch đã xác nhận tại Vinhomes Ocean Park, Vinhomes Smart City, Times City, Ecopark và The Manor Central Park. Với địa điểm khác tại Hà Nội, khách gửi vị trí để kiểm tra phương án.',
+      question: 'Gửi yêu cầu có nghĩa là xe đã được xác nhận chưa?',
+      answer: 'Chưa. Hệ thống ghi nhận yêu cầu và mã tham chiếu; Car Match chỉ xác nhận đơn đặt xe sau khi kiểm tra lịch xe, điều kiện thuê và khoản cọc cần thiết.',
     },
   ];
 

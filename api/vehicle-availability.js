@@ -251,9 +251,14 @@ export default async function handler(req, res) {
       })
       .map((e) => ({
         from: datePartInVietnam(e.starts_at),
-        to: e.ends_at ? addDays(datePartInVietnam(e.ends_at), -1) : datePartInVietnam(e.starts_at),
+        to: e.ends_at
+          ? (e.all_day ? addDays(datePartInVietnam(e.ends_at), -1) : datePartInVietnam(e.ends_at))
+          : datePartInVietnam(e.starts_at),
         type: e.event_type,
         allDay: e.all_day,
+        startsAt: e.starts_at,
+        endsAt: e.ends_at,
+        timePrecision: e.all_day ? 'date_only' : 'exact',
       }));
 
     const now = Date.now();
@@ -267,6 +272,9 @@ export default async function handler(req, res) {
           to: datePartInVietnam(reservation.ends_at),
           type: reservation.status === 'held' ? 'held' : 'rental',
           allDay: false,
+          startsAt: reservation.starts_at,
+          endsAt: reservation.ends_at,
+          timePrecision: 'exact',
         }));
 
     let assignmentRanges = [];
@@ -310,6 +318,9 @@ export default async function handler(req, res) {
                 to,
                 type: 'rental',
                 allDay: true,
+                startsAt: null,
+                endsAt: null,
+                timePrecision: 'date_only',
               };
             })
             .filter((range) => range.from && range.to && range.from <= toDate && range.to >= fromDate);
@@ -319,18 +330,20 @@ export default async function handler(req, res) {
 
     const seenRanges = new Set();
     const blockedRanges = [...eventRanges, ...assignmentRanges, ...reservationRanges].filter((range) => {
-      const key = `${range.from}|${range.to}|${range.type}`;
+      const key = `${range.from}|${range.to}|${range.type}|${range.startsAt || ''}|${range.endsAt || ''}`;
       if (seenRanges.has(key)) return false;
       seenRanges.add(key);
       return true;
     });
 
-    // Count website_leads (customer bookings) in last 7 days for social proof
+    // Social proof must come from bookings confirmed by operations,
+    // never from raw leads or temporary holds.
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { count: recentCount } = await supabase
       .from('website_leads')
       .select('id', { count: 'exact', head: true })
       .eq('vehicle_id', vehicleId)
+      .eq('status', 'confirmed')
       .gte('created_at', sevenDaysAgo);
 
     res.setHeader('Cache-Control', 'no-store, max-age=0');

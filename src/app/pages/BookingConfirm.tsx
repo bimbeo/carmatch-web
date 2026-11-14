@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useSEO } from '@/hooks/useSEO';
+import { trackEvent } from '@/lib/analytics';
 
 interface BookingData {
   booking_ref: string;
@@ -68,6 +69,7 @@ export default function BookingConfirm() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofLoading, setProofLoading] = useState(false);
   const [proofError, setProofError] = useState('');
+  const trackedElectricConfirmationRef = useRef('');
 
   const lookup = useCallback(async (ref: string, phone: string, silent = false) => {
     if (!ref.trim()) {
@@ -108,6 +110,19 @@ export default function BookingConfirm() {
     }, 12_000);
     return () => window.clearInterval(timer);
   }, [data?.requires_confirmation, inputPhone, inputRef, lookup]);
+
+  useEffect(() => {
+    if (!data || !['contacted', 'confirmed'].includes(data.status)) return;
+    const electricBookingRef = sessionStorage.getItem('carmatch_ev_booking_ref');
+    if (!electricBookingRef || electricBookingRef !== data.booking_ref || trackedElectricConfirmationRef.current === data.booking_ref) return;
+    trackedElectricConfirmationRef.current = data.booking_ref;
+    sessionStorage.removeItem('carmatch_ev_booking_ref');
+    trackEvent('booking_confirmed', {
+      booking_ref: data.booking_ref,
+      booking_status: data.status,
+      vehicle_name: data.car_model,
+    });
+  }, [data]);
 
   const transferContent = data ? `DATXE ${data.booking_ref}` : '';
 
@@ -200,7 +215,7 @@ export default function BookingConfirm() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Mã Booking</p>
+                  <p className="text-xs text-gray-400 mb-0.5">Mã yêu cầu</p>
                   <p className="font-black text-blue-600 text-lg font-mono">{data.booking_ref}</p>
                 </div>
                 <StatusBadge status={data.status} />

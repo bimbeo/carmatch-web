@@ -89,6 +89,19 @@ test('does not downgrade a middle-of-schedule overlap to a boundary conflict', (
   assert.equal(isBoundaryScheduleConflict(activeRental, '2026-08-27', '2026-08-30'), false);
 });
 
+test('treats a late same-day return as a hard conflict for an early pickup', () => {
+  const lateReturn = {
+    ...activeRental,
+    starts_at: '2026-08-27T08:00:00+07:00',
+    ends_at: '2026-08-28T21:00:00+07:00',
+  };
+
+  assert.equal(isBoundaryScheduleConflict(lateReturn, '2026-08-28', '2026-08-30', 8, 20), false);
+  const conflicts = classifyScheduleConflicts([lateReturn], '2026-08-28', '2026-08-30', 8, 20);
+  assert.equal(conflicts.boundary.length, 0);
+  assert.equal(conflicts.hasHardConflict, true);
+});
+
 test('treats a following schedule start date as a return boundary', () => {
   const followingRental = {
     ...activeRental,

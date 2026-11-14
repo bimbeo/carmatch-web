@@ -121,9 +121,19 @@ export function scheduleEventCalendarRange(event) {
   return { from, to: candidateTo < from ? from : candidateTo };
 }
 
-export function isBoundaryScheduleConflict(event, pickupDate, returnDate) {
+export function isBoundaryScheduleConflict(event, pickupDate, returnDate, pickupHour, returnHour) {
   const range = scheduleEventCalendarRange(event);
   if (!range) return false;
+  if (Number.isFinite(Number(pickupHour)) && Number.isFinite(Number(returnHour))) {
+    const selectedStart = bookingInstant(pickupDate, pickupHour);
+    const selectedEnd = bookingInstant(returnDate, returnHour);
+    const eventStart = new Date(event?.starts_at);
+    const eventEnd = new Date(event?.ends_at || event?.starts_at);
+    const hasExactTimes = selectedStart && selectedEnd
+      && !Number.isNaN(eventStart.getTime())
+      && !Number.isNaN(eventEnd.getTime());
+    if (hasExactTimes && eventStart < selectedEnd && eventEnd > selectedStart) return false;
+  }
   return range.to === pickupDate || range.from === returnDate;
 }
 
@@ -134,10 +144,10 @@ function isBlockingScheduleConflict(event) {
   return true;
 }
 
-export function classifyScheduleConflicts(events, pickupDate, returnDate) {
+export function classifyScheduleConflicts(events, pickupDate, returnDate, pickupHour, returnHour) {
   const blocking = (events || []).filter(isBlockingScheduleConflict);
   const boundary = blocking.filter((event) => (
-    isBoundaryScheduleConflict(event, pickupDate, returnDate)
+    isBoundaryScheduleConflict(event, pickupDate, returnDate, pickupHour, returnHour)
   ));
   return {
     blocking,
@@ -1236,7 +1246,13 @@ export default async function handler(req, res) {
   const {
     blocking: blockingScheduleConflicts,
     hasHardConflict: hasHardScheduleConflict,
-  } = classifyScheduleConflicts(scheduleError ? [] : scheduleConflicts, pickupDate, returnDate);
+  } = classifyScheduleConflicts(
+    scheduleError ? [] : scheduleConflicts,
+    pickupDate,
+    returnDate,
+    body.pickup_hour,
+    body.return_hour,
+  );
   const canSubmitBoundaryConfirmation = requiresConfirmation
     && blockingScheduleConflicts.length > 0
     && !hasHardScheduleConflict;
