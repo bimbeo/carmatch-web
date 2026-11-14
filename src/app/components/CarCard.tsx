@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router';
 import { ArrowRight, CalendarDays, Fuel, Gauge, Truck, Users, Zap } from 'lucide-react';
 import { Car, formatPrice } from '@/data/cars';
-import { trackVehicleClick } from '@/lib/analytics';
+import { trackEvent, trackVehicleClick } from '@/lib/analytics';
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import { calculateRentalBillingDays, formatRentalBillingDays } from '@/lib/rentalDuration';
@@ -37,6 +37,7 @@ interface CarCardProps {
     selected: boolean;
     onSelect: () => void;
   };
+  position?: number;
 }
 
 const PRESERVED_QUERY_KEYS = [
@@ -49,6 +50,9 @@ const PRESERVED_QUERY_KEYS = [
   'to',
   'pickupHour',
   'returnHour',
+  'pickup',
+  'return',
+  'hub',
 ];
 
 function withPreservedCampaign(
@@ -78,6 +82,7 @@ export default function CarCard({
   rentalRange,
   availabilityChecked = false,
   selectionAction,
+  position,
 }: CarCardProps) {
   const location = useLocation();
   const badge = fuelBadge[car.fuel];
@@ -101,13 +106,28 @@ export default function CarCard({
       )
     : 0;
   const showModelYear = Boolean(car.model_year && !/\b20\d{2}\b/.test(car.name));
-  const trackCar = (action: string) => trackVehicleClick(action, {
-    source,
-    vehicle_id: car.id,
-    vehicle_slug: car.slug,
-    vehicle_name: car.name,
-    vehicle_price: car.price,
-  });
+  const displayName = car.color && !car.name.toLowerCase().includes(car.color.toLowerCase())
+    ? `${car.name} — ${car.color}`
+    : car.name;
+  const valueBadge = car.popular
+    ? { label: 'Đặt nhiều', className: 'bg-rose-50 text-rose-700 border-rose-200' }
+    : car.fuel === 'Điện'
+      ? { label: 'Xe điện tiết kiệm', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+      : car.seats >= 7
+        ? { label: 'Phù hợp gia đình', className: 'bg-amber-50 text-amber-800 border-amber-200' }
+        : { label: car.fuel, className: badge.class };
+  const trackCar = (action: string) => {
+    const payload = {
+      source,
+      vehicle_id: car.id,
+      vehicle_slug: car.slug,
+      vehicle_name: car.name,
+      vehicle_price: car.price,
+      item_position: position,
+    };
+    trackVehicleClick(action, payload);
+    trackEvent('select_car_card', { action, ...payload });
+  };
 
   if (mode === 'listing') {
     return (
@@ -132,18 +152,11 @@ export default function CarCard({
             />
           </div>
           <div className="absolute left-3 top-3 pointer-events-none">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur-md ${badge.class} bg-white/90`}>
-              {badge.icon}
-              {car.fuel}
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur-md ${valueBadge.className}`}>
+              {car.fuel === 'Điện' && <Zap className="h-3 w-3" />}
+              {valueBadge.label}
             </span>
           </div>
-          {car.popular && (
-            <div className="absolute right-3 top-3 pointer-events-none">
-              <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
-                Phổ biến
-              </span>
-            </div>
-          )}
         </Link>
 
         <div className="p-4">
@@ -152,7 +165,7 @@ export default function CarCard({
             onClick={() => trackCar('title_click')}
             className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
           >
-            <h3 id={`xe-${car.slug}`} className="line-clamp-1 text-[17px] font-semibold tracking-tight text-slate-950">{car.name}</h3>
+            <h3 id={`xe-${car.slug}`} className="line-clamp-1 text-[17px] font-semibold tracking-tight text-slate-950">{displayName}</h3>
             {!compact && car.description && (
               <p className="mt-1 line-clamp-1 text-sm text-slate-500">{car.description}</p>
             )}
@@ -165,6 +178,8 @@ export default function CarCard({
             </span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
             <span>{car.transmission}</span>
+            <span className="h-1 w-1 rounded-full bg-slate-300" />
+            <span>{car.fuel}</span>
             {showModelYear && (
               <>
                 <span className="h-1 w-1 rounded-full bg-slate-300" />
@@ -209,8 +224,8 @@ export default function CarCard({
                 <span className="text-base font-semibold text-brand-600">Liên hệ báo giá</span>
               )}
             </div>
-            <div className="mt-4 flex gap-2">
-              {selectionAction && (
+            {selectionAction ? (
+              <div className="mt-4 flex gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -222,16 +237,34 @@ export default function CarCard({
                 >
                   {selectionAction.selected ? 'Đã chọn' : 'Chọn xe'}
                 </button>
-              )}
-              <Link
-                to={detailHref}
-                onClick={() => trackCar('detail_click')}
-                className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-800 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${selectionAction ? 'flex-1' : 'ml-auto'}`}
-              >
-                Xem chi tiết
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+                <Link
+                  to={detailHref}
+                  onClick={() => trackCar('detail_click')}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-800 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+                >
+                  Xem chi tiết
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-3 grid grid-cols-[0.8fr_1.2fr] gap-2">
+                <Link
+                  to={detailHref}
+                  onClick={() => trackCar('detail_click')}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+                >
+                  Chi tiết
+                </Link>
+                <Link
+                  to={bookingHref}
+                  onClick={() => trackCar('book_click')}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  Đặt giữ xe
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </article>

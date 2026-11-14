@@ -563,7 +563,7 @@ export default function BlogPost() {
                 <div className="mt-12 bg-brand-50 border border-brand-100 rounded-2xl p-8 text-center">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600 mb-3">Car Match hỗ trợ nhanh</p>
                   <h3 className="text-gray-900 font-bold text-2xl mb-2">{post.ctaTitle || 'Sẵn sàng trải nghiệm?'}</h3>
-                  <p className="text-gray-500 mb-6">{post.ctaDescription || 'Đặt xe ngay qua Zalo — xác nhận trong 30 phút'}</p>
+                  <p className="text-gray-500 mb-6">{post.ctaDescription || 'Gửi lịch thuê qua Zalo để Car Match kiểm tra xe và xác nhận giá.'}</p>
                   <div className="flex flex-wrap justify-center gap-3">
                     {post.ctaPrimaryUrl && (
                       <a href={post.ctaPrimaryUrl} onClick={() => trackBlogClick(post.slug.current, 'cta_primary', post.ctaPrimaryUrl || '')} className="inline-flex items-center gap-2 px-8 py-3.5 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-colors">

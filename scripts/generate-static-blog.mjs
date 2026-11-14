@@ -30,6 +30,11 @@ import {
   cacheVehicleGalleryImages,
 } from './vehicle-cover-cache.mjs';
 import { sanitizeBlogHtml } from '../server/blog/sanitize.js';
+import { deTemplateDirectAnswer as normalizeDirectAnswer } from '../server/blog/content-normalize.js';
+import {
+  assignPriorityRouteCovers,
+  assignUniqueBlogCovers,
+} from './blog-cover-assets.mjs';
 import { createRoadmapContentPosts } from './roadmap-content-posts.mjs';
 import { createModelKeywordPosts } from './model-keyword-posts.mjs';
 import { createModelKeywordBatch2Posts } from './model-keyword-posts-batch2.mjs';
@@ -468,18 +473,18 @@ function renderBlogHubContent() {
 const routeMeta = [
   {
     path: '/',
-    title: 'Car Match — Thuê Xe Tự Lái Hà Nội | Từ 600K/Ngày',
+    title: 'Thuê Xe Tự Lái Hà Nội Từ 600K/Ngày | Car Match',
     description:
-      'Car Match - Thuê xe tự lái Hà Nội. 20+ mẫu xe từ 600K/ngày, giao xe tận nơi. Chọn lịch, xem tổng giá và đặt trực tiếp trên website.',
+      'Thuê xe tự lái Hà Nội từ 600.000đ/ngày. Xem xe, giá theo lịch, giấy tờ, cọc và phí giao nhận trước khi gửi yêu cầu.',
     canonical: `${siteUrl}/`,
     priority: '1.0',
     changefreq: 'weekly',
   },
   {
     path: '/xe',
-    title: 'Thuê Xe Tự Lái Hà Nội — 20+ Mẫu Xe | Car Match',
+    title: 'Danh Sách Xe Tự Lái Hà Nội | Car Match',
     description:
-      'Duyệt 20+ xe tự lái Hà Nội, giá từ 600.000đ/ngày. Lọc theo ngày, xem tổng giá và đặt trực tiếp trên website.',
+      'Xem danh sách xe tự lái Hà Nội đang hoạt động, giá từ 600.000đ/ngày. Lọc theo lịch, loại xe và mức giá trước khi gửi yêu cầu.',
     canonical: `${siteUrl}/xe`,
     priority: '0.9',
     changefreq: 'daily',
@@ -774,9 +779,9 @@ const routeMeta = [
   },
   {
     path: '/thue-xe-thang',
-    title: 'Thuê xe theo tháng Hà Nội từ 10 triệu | Car Match',
+    title: 'Thuê Xe Theo Tháng Hà Nội | Bảng Giá Theo Mẫu Xe',
     description:
-      'Thuê xe tự lái theo tháng tại Hà Nội. Xem giá theo từng mẫu xe, tổng chi phí cần tính, gói doanh nghiệp và xe điện theo tháng.',
+      'Xem giá thuê xe theo tháng tại Hà Nội theo từng mẫu xe, điều kiện km, cọc, giao nhận và tổng chi phí trước khi nhận báo giá.',
     canonical: `${siteUrl}/thue-xe-thang`,
     priority: '0.8',
     changefreq: 'monthly',
@@ -1137,8 +1142,8 @@ const staticGeoBlogPosts = [
     categories: ['Thủ tục thuê xe'],
     author: 'Car Match',
     body: [],
-    bodyHtml: `<p>Trước khi thuê xe tự lái, câu hỏi quan trọng nhất không chỉ là "giá bao nhiêu" mà là "cần giấy tờ gì, cọc thế nào và bàn giao ra sao". Chuẩn bị đúng từ đầu giúp việc nhận xe nhanh hơn và giảm rủi ro tranh chấp khi trả xe.</p>
-      <p>Với Car Match, khách cần chuẩn bị CCCD và GPLX hạng B còn hiệu lực. Tiền cọc, thời gian giữ cọc và các điều kiện hoàn cọc cần được xác nhận theo từng lịch thuê, mẫu xe và thỏa thuận bàn giao thực tế.</p>
+    bodyHtml: `<p>Thuê xe tự lái cần CCCD bản gốc, GPLX hạng B còn hiệu lực và khoản cọc được xác nhận theo mẫu xe. Trước khi chuyển cọc, hãy chốt bằng văn bản số tiền, điều kiện hoàn cọc và biên bản bàn giao.</p>
+      <p>Chuẩn bị đúng giấy tờ và ghi nhận tình trạng xe từ đầu giúp nhận xe nhanh hơn, đồng thời giảm rủi ro tranh chấp khi trả xe.</p>
       <h2>Thuê xe tự lái cần giấy tờ gì?</h2>
       <ul>
         <li><strong>CCCD:</strong> dùng để xác nhận thông tin người thuê và lập hồ sơ thuê xe.</li>
@@ -1449,7 +1454,7 @@ const staticGeoBlogPosts = [
     categories: ['Thủ tục thuê xe'],
     author: 'Car Match',
     body: [],
-    bodyHtml: `<p>Mới có bằng lái vẫn có thể hỏi thuê xe tự lái, nhưng không phải đơn vị nào cũng duyệt mọi trường hợp. Bên cho thuê thường cân nhắc GPLX còn hạn, lịch trình, loại xe, kinh nghiệm lái thực tế, tuyến đi và mức rủi ro của chuyến thuê.</p>
+    bodyHtml: `<p>Có. Người mới có bằng vẫn có thể hỏi thuê xe tự lái, nhưng việc xác nhận phụ thuộc GPLX còn hạn, mẫu xe, lịch trình, kinh nghiệm lái thực tế và điều kiện của chuyến thuê.</p>
       <p>Nếu bạn là tài mới, hãy nói thật ngay từ đầu để được tư vấn mẫu xe, tuyến đi và cách bàn giao phù hợp. Việc giấu kinh nghiệm lái có thể làm tăng rủi ro khi gặp đường khó, hầm chung cư, cao tốc hoặc tình huống va chạm nhỏ.</p>
       <h2>Tài mới nên chuẩn bị gì?</h2>
       <ul>
@@ -1973,6 +1978,18 @@ function normalizeCustomerText(value = '') {
     .replace(/chịu trách nhiệm toàn bộ/gi, 'chịu trách nhiệm theo hợp đồng và quy định đối với');
 }
 
+function deTemplateDirectAnswer(html = '') {
+  return normalizeDirectAnswer(html);
+}
+
+function normalizePostContent(post) {
+  if (!post || typeof post !== 'object') return post;
+  return {
+    ...post,
+    bodyHtml: post.bodyHtml ? deTemplateDirectAnswer(post.bodyHtml) : post.bodyHtml,
+  };
+}
+
 function normalizeOptionalText(value) {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   return normalizeCustomerText(value);
@@ -2076,7 +2093,7 @@ function collapseVehiclesToSeoPages(vehicles = []) {
       .map((vehicle) => Number(vehicle.daily_base_price || 0))
       .filter((price) => price > 0);
     const monthlyPrices = preferredPriceRows
-      .map((vehicle) => Number(vehicle.monthly_price || 0))
+      .map((vehicle) => Number(vehicle.monthly_sale_price || 0))
       .filter((price) => price > 0);
     const updatedAt = group
       .map((vehicle) => vehicle.updated_at || vehicle.created_at)
@@ -2101,7 +2118,8 @@ function collapseVehiclesToSeoPages(vehicles = []) {
       status: availableRows.length > 0 ? 'available' : representative.status,
       published: availableRows.length > 0,
       daily_base_price: prices.length > 0 ? Math.min(...prices) : representative.daily_base_price,
-      monthly_price: monthlyPrices.length > 0 ? Math.min(...monthlyPrices) : representative.monthly_price,
+      monthly_sale_price:
+        monthlyPrices.length > 0 ? Math.min(...monthlyPrices) : representative.monthly_sale_price,
       inventory_count: group.length,
       available_inventory_count: availableRows.length,
       updated_at: updatedAt || representative.updated_at,
@@ -2199,13 +2217,28 @@ function getVehicleName(vehicle) {
   return String(name).replace(/\bvinfast\b/gi, 'VinFast');
 }
 
+function vehicleSeoTitle(vehicle) {
+  const name = getVehicleName(vehicle);
+  const normalizedName = name.toLowerCase();
+  if (normalizedName.includes('carnival')) {
+    return 'Thuê Kia Carnival Tự Lái Hà Nội | Giá & Lịch Xe';
+  }
+  if (/\bvf(?:3|5|6|7|8)\b/i.test(name)) {
+    return `Thuê ${name} Tự Lái Hà Nội | Giá & Lịch Xe`;
+  }
+  const price = Number(vehicle?.daily_base_price || 0);
+  return price > 0
+    ? `Thuê ${name} Tự Lái Hà Nội | ${price.toLocaleString('vi-VN')}đ/Ngày`
+    : `Thuê ${name} Tự Lái Hà Nội | Giá & Lịch Xe`;
+}
+
 function vehicleDescription(vehicle) {
   const model = vehicle.vehicle_models || {};
   const price = vehicle.daily_base_price
     ? `${Number(vehicle.daily_base_price).toLocaleString('vi-VN')}đ/ngày`
     : 'giá tốt theo ngày';
   const isVf3 = /^vf\s*3$/i.test(String(model.model || '').trim());
-  const monthlyPrice = Number(vehicle.monthly_price || 0);
+  const monthlyPrice = Number(vehicle.monthly_sale_price || 0);
   if (isVf3) {
     const monthlyCopy = monthlyPrice > 0
       ? `gói tháng ${monthlyPrice.toLocaleString('vi-VN')}đ`
@@ -2447,7 +2480,7 @@ function homeStructuredData(meta, vehicles) {
 
 function monthlyRentalStructuredData(meta, vehicles = []) {
   const monthlyPrices = vehicles
-    .map((vehicle) => Number(vehicle.monthly_price || 0))
+    .map((vehicle) => Number(vehicle.monthly_sale_price || 0))
     .filter((price) => Number.isFinite(price) && price > 0);
   const offers = monthlyPrices.length > 0
     ? {
@@ -2774,7 +2807,7 @@ function vehicleStructuredData(vehicle) {
   const vehicleNodeId = `${url}#vehicle`;
   const kmPerDay = Number(vehicle.km_per_day || 250);
   const kmSurcharge = Number(vehicle.km_surcharge || 3000);
-  const monthlyPrice = Number(vehicle.monthly_price || 0);
+  const monthlyPrice = Number(vehicle.monthly_sale_price || 0);
   const seats = Number(model.seats || (/^vf\s*3$/i.test(String(model.model || '').trim()) ? 4 : 0));
   const bookable = Number(vehicle.available_inventory_count || 0) > 0 ||
     (vehicle.status === 'available' && vehicle.published !== false);
@@ -3022,7 +3055,7 @@ async function fetchVehicles() {
   }
 
   const baseSelect =
-    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,monthly_sale_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const datedSelect = `created_at,updated_at,${baseSelect}`;
   let result = await supabase
     .from('vehicles')
@@ -3063,7 +3096,7 @@ async function fetchSeoVehicles(fallbackVehicles = []) {
   if (!supabase) return fallbackVehicles;
 
   const select =
-    'id,display_name,color,model_year,daily_base_price,monthly_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,created_at,updated_at,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
+    'id,display_name,color,model_year,daily_base_price,monthly_sale_price,external_refs,website_description,km_per_day,km_surcharge,rental_conditions,status,published,seo_indexable,seo_slug,seo_slug_aliases,created_at,updated_at,vehicle_models(make,model,variant,seats,fuel_type,transmission)';
   const { data, error } = await supabase
     .from('vehicles')
     .select(select)
@@ -3181,7 +3214,7 @@ function pruneVehicleForClient(vehicle) {
     color: vehicle.color ?? null,
     model_year: vehicle.model_year ?? null,
     daily_base_price: vehicle.daily_base_price ?? null,
-    monthly_price: vehicle.monthly_price ?? null,
+    monthly_sale_price: vehicle.monthly_sale_price ?? null,
     website_description: vehicle.website_description ?? null,
     km_per_day: vehicle.km_per_day ?? null,
     km_surcharge: vehicle.km_surcharge ?? null,
@@ -3229,7 +3262,7 @@ function prunePostForClient(post) {
     categories: post.categories || [],
     author: post.author || 'Car Match',
     body: post.body || [],
-    bodyHtml: post.bodyHtml || '',
+    bodyHtml: deTemplateDirectAnswer(post.bodyHtml || ''),
     seoTitle: post.seoTitle || undefined,
     seoDescription: post.seoDescription || undefined,
     canonicalUrl: post.canonicalUrl || undefined,
@@ -3965,11 +3998,11 @@ function fleetStaticShell(vehicles = []) {
 function monthlyStaticShell(vehicles = []) {
   const totalVehicles = vehicles.length || 20;
   const monthlyVehicles = vehicles
-    .filter((vehicle) => Number(vehicle.monthly_price || 0) > 0)
-    .sort((a, b) => Number(a.monthly_price) - Number(b.monthly_price))
+    .filter((vehicle) => Number(vehicle.monthly_sale_price || 0) > 0)
+    .sort((a, b) => Number(a.monthly_sale_price) - Number(b.monthly_sale_price))
     .slice(0, 6);
   const monthlyStartingPrice = monthlyVehicles.length > 0
-    ? Number(monthlyVehicles[0].monthly_price)
+    ? Number(monthlyVehicles[0].monthly_sale_price)
     : 10000000;
   const priceGroups = monthlyVehicles.length > 0
     ? monthlyVehicles.map((vehicle) => {
@@ -3978,7 +4011,7 @@ function monthlyStaticShell(vehicles = []) {
         const fuel = model.fuel_type ? String(model.fuel_type) : 'nhiên liệu theo mẫu xe';
         return {
           group: getVehicleName(vehicle),
-          price: `${Number(vehicle.monthly_price).toLocaleString('vi-VN')}đ/tháng`,
+          price: `${Number(vehicle.monthly_sale_price).toLocaleString('vi-VN')}đ/tháng`,
           examples: [seats > 0 ? `${seats} chỗ` : '', fuel].filter(Boolean).join(' · '),
           fit: seats >= 7
             ? 'Phù hợp gia đình đông người, doanh nghiệp hoặc hành trình có nhiều hành lý.'
@@ -4032,7 +4065,7 @@ function monthlyStaticShell(vehicles = []) {
               <div class="cm-static-monthly-stats">
                 <div class="cm-static-monthly-stat"><strong>Từ ${escapeHtml((monthlyStartingPrice / 1000000).toLocaleString('vi-VN'))} triệu</strong><span>Giá tham khảo mỗi tháng</span></div>
                 <div class="cm-static-monthly-stat"><strong>1-12 tháng</strong><span>Linh hoạt thời hạn thuê</span></div>
-                <div class="cm-static-monthly-stat"><strong>30 phút</strong><span>Phản hồi báo giá khi có xe</span></div>
+                <div class="cm-static-monthly-stat"><strong>Có tư vấn</strong><span>Xác nhận theo nhu cầu thực tế</span></div>
               </div>
             </div>
             <aside class="cm-static-monthly-panel">
@@ -4359,7 +4392,7 @@ function trustStaticShell(config) {
     </div></div>`;
 }
 
-function aboutStaticShell() {
+function aboutStaticShell(totalVehicles = 0) {
   return trustStaticShell({
     shellName: 'about',
     eyebrow: 'Giới thiệu Car Match',
@@ -4377,7 +4410,7 @@ function aboutStaticShell() {
       'Tập trung phục vụ cư dân chung cư, khu đô thị và khách cần xe linh hoạt tại Hà Nội.',
     ],
     stats: [
-      { value: '20+', label: 'Mẫu xe tham khảo' },
+      { value: totalVehicles ? String(totalVehicles) : 'Đội xe', label: 'Mẫu xe công khai' },
       { value: '7h-22h', label: 'Giờ hỗ trợ vận hành' },
       { value: 'CCCD + GPLX', label: 'Giấy tờ chính' },
       { value: 'Zalo', label: 'Kênh kiểm tra lịch xe' },
@@ -4504,7 +4537,7 @@ function faqStaticShell() {
       text: post.excerpt,
     })),
     faqTitle: 'Các câu hỏi được hỏi nhiều nhất',
-    faqLead: 'Các câu trả lời này tránh hứa quá mức; mỗi xe cụ thể vẫn cần được Car Match xác nhận trước khi khách đặt cọc.',
+    faqLead: 'Các điều kiện cụ thể được đối chiếu theo mẫu xe và lịch thuê trước khi khách đặt cọc.',
     faqs: [
       { q: 'Quy trình đặt xe online như thế nào?', a: 'Khách chọn xe, chọn ngày giờ, điền thông tin hoặc nhắn Zalo. Car Match kiểm tra lịch xe thật, xác nhận giá thuê, giấy tờ, khoản cọc và lịch giao nhận trước khi chốt.' },
       { q: 'Tôi có thể hủy và hoàn cọc không?', a: 'Có thể hủy, nhưng điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ. Khách nên liên hệ hotline/Zalo để được xác nhận phương án cụ thể.' },
@@ -4640,10 +4673,10 @@ ${renderStaticFleet(vehicles)}
       </main>
       <section class="cm-static-stats">
         <div class="cm-static-wrap cm-static-stats-grid">
-          <div class="cm-static-stat"><strong>20+</strong><span>Mẫu xe</span></div>
+          <div class="cm-static-stat"><strong>${totalVehicles}</strong><span>Mẫu xe công khai</span></div>
           <div class="cm-static-stat"><strong>7h-22h</strong><span>Hỗ trợ mỗi ngày</span></div>
           <div class="cm-static-stat"><strong>CCCD + GPLX</strong><span>Giấy tờ chính</span></div>
-          <div class="cm-static-stat"><strong>30 phút</strong><span>Phản hồi lịch xe</span></div>
+          <div class="cm-static-stat"><strong>Có tư vấn</strong><span>Kiểm tra lịch theo yêu cầu</span></div>
         </div>
       </section>
       <section class="cm-static-summary">
@@ -4832,6 +4865,8 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   const rawImage = meta.image || brandSocialImage;
   const image = escapeHtml(rawImage);
   const usesBrandSocialImage = rawImage === brandSocialImage;
+  const usesGeneratedSocialImage = /\/(?:blog|seo)\/covers\//.test(rawImage);
+  const hasKnownSocialImageSize = usesBrandSocialImage || usesGeneratedSocialImage;
   const imageAlt = escapeHtml(usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title);
   const preloadImage = escapeHtml(meta.preloadImage || '/brand/carmatch-lockup-navy.png');
   const robots = meta.noIndex
@@ -4854,10 +4889,10 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   html = replaceOrInsertHead(html, /<meta property="og:url" content="[^"]*"\s*\/>/, `<meta property="og:url" content="${canonical}" />`);
   html = replaceOrInsertHead(html, /<meta property="og:image" content="[^"]*"\s*\/>/, `<meta property="og:image" content="${image}" />`);
   html = replaceOrInsertHead(html, /<meta property="og:image:alt" content="[^"]*"\s*\/>/, `<meta property="og:image:alt" content="${imageAlt}" />`);
-  if (usesBrandSocialImage) {
+  if (hasKnownSocialImageSize) {
     html = replaceOrInsertHead(html, /<meta property="og:image:width" content="[^"]*"\s*\/>/, '<meta property="og:image:width" content="1200" />');
     html = replaceOrInsertHead(html, /<meta property="og:image:height" content="[^"]*"\s*\/>/, '<meta property="og:image:height" content="630" />');
-    html = replaceOrInsertHead(html, /<meta property="og:image:type" content="[^"]*"\s*\/>/, '<meta property="og:image:type" content="image/png" />');
+    html = replaceOrInsertHead(html, /<meta property="og:image:type" content="[^"]*"\s*\/>/, `<meta property="og:image:type" content="${usesGeneratedSocialImage ? 'image/jpeg' : 'image/png'}" />`);
   } else {
     html = html
       .replace(/\s*<meta property="og:image:width" content="[^"]*"\s*\/>/, '')
@@ -4916,7 +4951,7 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
     html = applyRootCriticalCss(html, Boolean(prerenderedContactRoot));
     html = html.replace(/<div id="root"><\/div>/, root);
   } else if (meta.path === '/gioi-thieu') {
-    const root = prerenderedAboutRoot || aboutStaticShell();
+    const root = prerenderedAboutRoot || aboutStaticShell(vehicles.length);
     html = moveStylesheetsBeforeModuleScripts(html);
     html = applyRootCriticalCss(html, Boolean(prerenderedAboutRoot));
     html = html.replace(/<div id="root"><\/div>/, root);
@@ -5147,7 +5182,7 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
       const routePath = `/xe/${vehicle.slug}`;
       await writeSpaShell(baseHtml, {
         path: routePath,
-        title: `Thuê ${name} Tự Lái Hà Nội | Car Match`,
+        title: vehicleSeoTitle(vehicle),
         description: vehicleDescription(vehicle),
         canonical: `${siteUrl}/xe/${vehicle.slug}`,
         image: getVehicleImage(vehicle),
@@ -5174,7 +5209,7 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
         const routePath = `/xe/${alias}`;
         await writeSpaShell(baseHtml, {
           path: routePath,
-          title: `Thuê ${name} Tự Lái Hà Nội | Car Match`,
+          title: vehicleSeoTitle(vehicle),
           description: vehicleDescription(vehicle),
           canonical: `${siteUrl}/xe/${vehicle.slug}`,
           image: getVehicleImage(vehicle),
@@ -5273,7 +5308,8 @@ function renderPortableText(blocks = []) {
 
 function layout({ title, description, canonical, image, type = 'article', body, structuredData, publishedAt, modifiedAt }) {
   const ogImage = image || brandSocialImage;
-  const socialImageMeta = ogImage === brandSocialImage
+  const hasKnownSocialImageSize = ogImage === brandSocialImage || /\/(?:blog|seo)\/covers\//.test(ogImage);
+  const socialImageMeta = hasKnownSocialImageSize
     ? '<meta property="og:image:width" content="1200" />\n    <meta property="og:image:height" content="630" />\n    <meta property="og:image:type" content="image/png" />'
     : '';
   const articleMeta = type === 'article' && publishedAt
@@ -5380,6 +5416,7 @@ function layout({ title, description, canonical, image, type = 'article', body, 
       .card p { font-size: 15px; line-height: 1.6; margin: 0; }
       .meta { color: #6b7280; font-size: 13px; font-weight: 700; margin-top: 14px; }
       .article { padding: clamp(22px, 5vw, 56px); }
+      .article .direct-answer { background: #eef8f4; border: 1px solid #ccecdf; border-radius: 12px; color: #163c31; font-weight: 650; padding: 16px 18px; }
       .article img.hero { aspect-ratio: 16/9; border-radius: 8px; display: block; margin: 28px 0 34px; object-fit: cover; width: 100%; }
       .related { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; margin-top: 40px; padding: 22px; }
       .related h2 { font-size: 22px; margin: 0 0 10px; }
@@ -5686,7 +5723,7 @@ function renderPost(post, contentIndex) {
   const canonical = postUrl(post);
   const image = postImage(post);
   const modifiedAt = post.updatedAt || post.publishedAt;
-  const bodyHtml = post.bodyHtml ? sanitizeBlogHtml(optimizeStaticBodyImages(normalizeCustomerText(post.bodyHtml), post.title)) : '';
+  const bodyHtml = post.bodyHtml ? deTemplateDirectAnswer(sanitizeBlogHtml(optimizeStaticBodyImages(normalizeCustomerText(post.bodyHtml), post.title))) : '';
   const hasInlineBodyImages = /<img\b/i.test(bodyHtml);
 
   return layout({
@@ -6013,8 +6050,8 @@ function createHanoiLandingFallbackPage() {
     slug: 'thue-xe-tu-lai-ha-noi',
     title: 'Thuê xe tự lái Hà Nội - giao xe tận sảnh chung cư | Car Match',
     seo_title: 'Thuê xe tự lái Hà Nội - giao xe tận sảnh chung cư | Car Match',
-    description: 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ, xe điện VinFast, đặt Zalo xác nhận 30 phút.',
-    seo_description: 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ, xe điện VinFast, đặt Zalo xác nhận 30 phút.',
+    description: 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ và xe điện VinFast. Gửi lịch qua Zalo để kiểm tra xe và giá.',
+    seo_description: 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ và xe điện VinFast. Gửi lịch qua Zalo để kiểm tra xe và giá.',
     canonical_url: `${siteUrl}/thue-xe-tu-lai-ha-noi`,
     hero_kicker: 'Car Match · giao xe tận sảnh Hà Nội',
     hero_title: 'Thuê xe tự lái Hà Nội cho cư dân chung cư và gia đình trẻ',
@@ -6027,7 +6064,7 @@ function createHanoiLandingFallbackPage() {
     page_content: {
       blockOrder: ['proof', 'vehicles', 'price', 'areas', 'scenarios', 'process', 'trust', 'blog', 'faq'],
       stats: [
-        ['20+ mẫu xe', '5 chỗ, 7 chỗ, xe điện'],
+        ['Đội xe đa dạng', '5 chỗ, 7 chỗ, xe điện'],
         ['Từ 600K/ngày', 'tùy xe và thời điểm'],
         ['7:00-22:00', 'hỗ trợ giao nhận'],
       ],
@@ -6090,7 +6127,7 @@ function createHanoiLandingFallbackPage() {
         },
         {
           question: 'Đặt xe qua Car Match mất bao lâu để xác nhận?',
-          answer: 'Khách nhắn Zalo 0971 163 290, Car Match kiểm tra lịch xe và phản hồi xác nhận trong khoảng 30 phút khi có xe phù hợp.',
+          answer: 'Khách nhắn Zalo 0971 163 290 kèm ngày nhận, ngày trả và khu vực nhận xe. Car Match kiểm tra lịch thực tế rồi liên hệ xác nhận mẫu xe, giá và điều kiện thuê.',
         },
       ],
     },
@@ -6099,14 +6136,14 @@ function createHanoiLandingFallbackPage() {
 
 function renderHanoiLanding() {
   const title = 'Thuê xe tự lái Hà Nội - giao xe tận sảnh chung cư | Car Match';
-  const description = 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ, xe điện VinFast, đặt Zalo xác nhận 30 phút.';
+  const description = 'Thuê xe tự lái Hà Nội qua Car Match, giao xe tận sảnh chung cư/khu đô thị, xe 5 chỗ, 7 chỗ và xe điện VinFast. Gửi lịch qua Zalo để kiểm tra xe và giá.';
   const canonical = `${siteUrl}/thue-xe-tu-lai-ha-noi`;
   const heroImage = 'https://ohuibfpxlxqvqistycrc.supabase.co/storage/v1/object/public/team-media/images/2026-06-04/21246fc6-1f47-4460-b94d-266b416dedf9.jpg';
   const faqItems = [
     ['Thuê xe tự lái Hà Nội tại Car Match cần giấy tờ gì?', 'Khách thuê cần CCCD và GPLX hạng B hợp lệ. Tùy lịch thuê và mẫu xe, Car Match sẽ xác nhận thêm thông tin đặt cọc khi tư vấn qua Zalo.'],
     ['Car Match có giao xe tận sảnh chung cư không?', 'Có. Car Match tập trung phục vụ cư dân chung cư/khu đô thị tại Hà Nội và hỗ trợ giao xe tận sảnh hoặc điểm hẹn phù hợp trong khu vực phục vụ.'],
     ['Giá thuê xe tự lái Hà Nội bắt đầu từ bao nhiêu?', 'Giá thuê xe tự lái tại Car Match tham khảo từ 600.000 VND/ngày. Gói thuê theo tháng tham khảo từ 10.000.000 VND/tháng.'],
-    ['Đặt xe qua Car Match mất bao lâu để xác nhận?', 'Khách nhắn Zalo 0971 163 290, Car Match kiểm tra lịch xe và phản hồi xác nhận trong khoảng 30 phút khi có xe phù hợp.'],
+    ['Đặt xe qua Car Match được xác nhận như thế nào?', 'Khách nhắn Zalo 0971 163 290 kèm ngày nhận, ngày trả và khu vực nhận xe. Car Match kiểm tra lịch thực tế rồi liên hệ xác nhận mẫu xe, giá và điều kiện thuê.'],
   ];
   const structuredData = [
     {
@@ -6287,7 +6324,7 @@ function renderHanoiLanding() {
           <h1>Thuê xe tự lái Hà Nội cho cư dân chung cư và gia đình trẻ</h1>
           <p class="lead">Chọn xe theo ngày hoặc theo tháng, nhận xe tại sảnh chung cư/khu đô thị, kiểm tra lịch qua Zalo và xác nhận rõ giá, giấy tờ, điểm giao nhận trước chuyến đi.</p>
           <div class="stats">
-            <div class="stat"><strong>20+ mẫu xe</strong><span>5 chỗ, 7 chỗ, xe điện</span></div>
+            <div class="stat"><strong>Đội xe đa dạng</strong><span>5 chỗ, 7 chỗ, xe điện</span></div>
             <div class="stat"><strong>Từ 600K/ngày</strong><span>tùy xe và thời điểm</span></div>
             <div class="stat"><strong>7:00-22:00</strong><span>hỗ trợ giao nhận</span></div>
           </div>
@@ -6328,7 +6365,7 @@ function renderHanoiLanding() {
       <section id="xe-phu-hop" class="container section-pad">
         <div class="section-head">
           <div><p class="eyebrow">Chọn xe theo nhu cầu</p><h2>Nhóm xe Car Match thường tư vấn tại Hà Nội</h2><p class="muted">Mỗi chuyến đi cần một loại xe khác nhau. Car Match ưu tiên hỏi rõ số người, hành lý, cung đường và điểm nhận xe trước khi chốt mẫu.</p></div>
-          <a class="btn-secondary" href="/xe">Xem 20+ mẫu xe</a>
+          <a class="btn-secondary" href="/xe">Xem danh sách xe</a>
         </div>
         <div class="vehicle-grid">
           <article class="vehicle"><div class="vehicle-top"><span>Xe điện 5 chỗ</span><h3>VinFast VF5 / VF6</h3></div><div class="vehicle-body"><p>Đi phố, đi làm, gia đình trẻ, ưu tiên nhận xe gọn trong nội thành.</p><strong>từ 600.000đ/ngày</strong></div></article>
@@ -6339,7 +6376,7 @@ function renderHanoiLanding() {
       </section>
       <section id="bang-gia" class="band">
         <div class="container section-pad two-col">
-          <div><p class="eyebrow">Bảng giá tham khảo</p><h2>Giá thuê xe tự lái Hà Nội từ 600K/ngày</h2><p>Giá cuối cùng phụ thuộc mẫu xe, thời điểm thuê, số ngày sử dụng và khu vực giao nhận. Khi nhắn Zalo, anh/chị sẽ được báo rõ xe còn trống, phí giao nhận và giấy tờ cần chuẩn bị.</p><div class="mini-grid"><div class="mini"><strong>600K+</strong><span>xe đô thị/ngày</span></div><div class="mini"><strong>100K</strong><span>phí giao nhận/chiều</span></div><div class="mini"><strong>30 phút</strong><span>phản hồi khi có xe</span></div></div></div>
+          <div><p class="eyebrow">Bảng giá tham khảo</p><h2>Giá thuê xe tự lái Hà Nội từ 600K/ngày</h2><p>Giá cuối cùng phụ thuộc mẫu xe, thời điểm thuê, số ngày sử dụng và khu vực giao nhận. Khi nhắn Zalo, anh/chị sẽ được báo rõ xe còn trống, phí giao nhận và giấy tờ cần chuẩn bị.</p><div class="mini-grid"><div class="mini"><strong>600K+</strong><span>xe đô thị/ngày</span></div><div class="mini"><strong>100K</strong><span>phí giao nhận/chiều</span></div><div class="mini"><strong>Có tư vấn</strong><span>kiểm tra lịch thực tế</span></div></div></div>
           <div class="price-panel"><div class="price-panel-head"><h3>Bảng giá theo nhóm xe</h3><p>Mức tham khảo để dự tính ngân sách trước khi đặt xe.</p></div><div class="price-table"><table><thead><tr><th>Nhóm xe</th><th>Giá tham khảo</th><th>Phù hợp</th></tr></thead><tbody>
             <tr><td>Xe điện/xe 5 chỗ đô thị</td><td>Từ 600.000đ/ngày</td><td>Đi phố, đi làm, gia đình trẻ, nhận xe tại chung cư</td></tr>
             <tr><td>SUV/Crossover</td><td>Tùy dòng xe</td><td>Gia đình 3-5 người, đi tỉnh cuối tuần</td></tr>
@@ -6349,7 +6386,7 @@ function renderHanoiLanding() {
         </div>
       </section>
       <section id="khu-vuc" class="container section-pad two-col">
-        <div><p class="eyebrow">Khu vực phục vụ</p><h2>Tập trung vào cư dân chung cư và khu đô thị lớn</h2><p>Đây là điểm khác biệt nên giữ cho Car Match: không cố nói “có mặt khắp nơi”, mà làm tốt bài toán nhận xe tận sảnh ở những cụm khách có nhu cầu thuê thật.</p></div>
+        <div><p class="eyebrow">Khu vực phục vụ</p><h2>Tập trung vào cư dân chung cư và khu đô thị lớn</h2><p>Car Match ưu tiên nhận xe tận sảnh hoặc điểm hẹn phù hợp tại các cụm đô thị có nhu cầu thuê thường xuyên.</p></div>
         <div class="area-grid">
           <article class="area"><h3>Khu Đông</h3><p>Vinhomes Ocean Park, Ecopark, Gia Lâm, Long Biên</p></article>
           <article class="area"><h3>Khu Tây</h3><p>Vinhomes Smart City, Mỹ Đình, Nam Từ Liêm</p></article>
@@ -6374,7 +6411,7 @@ function renderHanoiLanding() {
           <div class="step"><span class="step-num">03</span><div><h3>Xác nhận</h3><p>Thống nhất lịch, đặt cọc qua chuyển khoản và điểm giao nhận.</p></div></div>
           <div class="step"><span class="step-num">04</span><div><h3>Nhận xe</h3><p>Kiểm tra xe, ký hợp đồng, bàn giao chìa khóa và bắt đầu chuyến đi.</p></div></div>
         </div></div>
-        <aside class="dark-cta"><h2 style="color:white">Cần kiểm tra lịch xe hôm nay?</h2><p>Nhắn Zalo 0971 163 290. Khi có xe phù hợp, Car Match phản hồi lịch, giá và điều kiện thuê trong khoảng 30 phút.</p><a class="btn-primary" href="https://zalo.me/0971163290">Nhắn Zalo Car Match</a></aside>
+        <aside class="dark-cta"><h2 style="color:white">Cần kiểm tra lịch xe hôm nay?</h2><p>Nhắn Zalo 0971 163 290 kèm ngày nhận, ngày trả và khu vực nhận xe. Car Match kiểm tra lịch thực tế rồi liên hệ xác nhận giá và điều kiện thuê.</p><a class="btn-primary" href="https://zalo.me/0971163290">Nhắn Zalo Car Match</a></aside>
       </section>
       <section class="band">
         <div class="container section-pad two-col">
@@ -6608,12 +6645,14 @@ function spaAssetTags() {
   ).join('\n    ');
 }
 
-function renderSeoLandingLayout({ title, description, canonical, structuredData, active = '', body, includeAppAssets = true }) {
+function renderSeoLandingLayout({ title, description, canonical, structuredData, active = '', body, image = brandSocialImage, includeAppAssets = true }) {
   const normalizedTitle = normalizeBrandText(title);
   const normalizedDescription = normalizeBrandText(description);
   const normalizedStructuredData = jsonLdString(structuredData);
   const appAssets = includeAppAssets ? spaAssetTags() : '';
   const rootAttributes = appAssets ? ' id="root" data-static-page="seo-landing"' : '';
+  const normalizedImage = image || brandSocialImage;
+  const generatedImage = /\/(?:blog|seo)\/covers\//.test(normalizedImage);
 
   return `<!doctype html>
 <html lang="vi">
@@ -6633,16 +6672,16 @@ function renderSeoLandingLayout({ title, description, canonical, structuredData,
     <meta property="og:title" content="${escapeHtml(normalizedTitle)}" />
     <meta property="og:description" content="${escapeHtml(normalizedDescription)}" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
-    <meta property="og:image" content="${escapeHtml(brandSocialImage)}" />
-    <meta property="og:image:alt" content="Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư" />
+    <meta property="og:image" content="${escapeHtml(normalizedImage)}" />
+    <meta property="og:image:alt" content="${escapeHtml(generatedImage ? normalizedTitle : 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư')}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:type" content="${generatedImage ? 'image/jpeg' : 'image/png'}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(normalizedTitle)}" />
     <meta name="twitter:description" content="${escapeHtml(normalizedDescription)}" />
-    <meta name="twitter:image" content="${escapeHtml(brandSocialImage)}" />
-    <meta name="twitter:image:alt" content="Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư" />
+    <meta name="twitter:image" content="${escapeHtml(normalizedImage)}" />
+    <meta name="twitter:image:alt" content="${escapeHtml(generatedImage ? normalizedTitle : 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư')}" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="preload" as="image" href="/brand/carmatch-lockup-navy.png" />
     <script type="application/ld+json">${normalizedStructuredData}</script>
@@ -6833,6 +6872,7 @@ function renderAirportTransferLanding(vehicles = []) {
     title,
     description,
     canonical,
+    image: `${siteUrl}/seo/covers/xe-san-bay-noi-bai.jpg`,
     active: 'airport',
     structuredData,
     body: `<main>
@@ -7230,7 +7270,7 @@ function renderTripPlannerLanding() {
           <div class="metric-grid">
             <div class="metric"><strong>4 bước</strong><span>lên kế hoạch</span></div>
             <div class="metric"><strong>5-7 chỗ</strong><span>gợi ý theo người</span></div>
-            <div class="metric"><strong>30 phút</strong><span>phản hồi khi có xe</span></div>
+            <div class="metric"><strong>Có tư vấn</strong><span>kiểm tra lịch theo yêu cầu</span></div>
           </div>
         </div>
         <aside class="panel">
@@ -7853,22 +7893,53 @@ async function main() {
   const seoVehicles = await fetchSeoVehicles(vehicles);
   let posts = mergeStaticBlogPosts(cmsPosts)
     .filter((post) => !redirectedBlogSlugs.has(post?.slug?.current));
+  posts = posts.map(normalizePostContent);
   let travelDestinations = mergeBySlug(destinations, fallbackTripDestinations);
   let travelCollections = mergeBySlug(cmsCollections, fallbackTravelCollections);
   vehicleCoverCacheUrls = await cacheVehicleCoverImages(seoVehicles, distDir, {
     loggerPrefix: 'generate-static-blog',
+    sourceBaseUrl: siteUrl,
   });
   vehicleGalleryCacheUrls = await cacheVehicleGalleryImages(seoVehicles, distDir, {
     loggerPrefix: 'generate-static-blog',
+    sourceBaseUrl: siteUrl,
   });
   staticImageCacheUrls = await cacheStaticImageUrls(
     Array.from(collectStaticImageUrls([posts, landingPages, travelDestinations, travelCollections])),
     distDir,
-    { loggerPrefix: 'generate-static-blog' },
+    { loggerPrefix: 'generate-static-blog', sourceBaseUrl: siteUrl },
   );
   posts = replaceCachedStaticImageUrls(posts);
   travelDestinations = replaceCachedStaticImageUrls(travelDestinations);
   travelCollections = replaceCachedStaticImageUrls(travelCollections);
+  const coverVehicles = seoVehicles.map((vehicle) => ({
+    name: getVehicleName(vehicle),
+    model: vehicle?.vehicle_models?.model || getVehicleName(vehicle),
+    seats: vehicle?.vehicle_models?.seats,
+    fuelType: vehicle?.vehicle_models?.fuel_type,
+    imageUrl: getVehicleCoverImage(vehicle),
+  }));
+  const coverOptions = {
+    distDir,
+    siteUrl,
+    brandSocialImage,
+    vehicles: coverVehicles,
+    destinations: travelDestinations,
+  };
+  posts = await assignUniqueBlogCovers(posts, coverOptions);
+  await assignPriorityRouteCovers(routeMeta, {
+    ...coverOptions,
+    priorityPaths: [
+      '/',
+      '/xe',
+      '/xe-san-bay-noi-bai',
+      '/thue-xe-thang',
+      '/thue-xe-dien-ha-noi',
+      '/thue-xe-7-cho-tu-lai-ha-noi',
+      '/thue-xe-tu-lai-tet-ha-noi',
+      '/hop-tac-chu-xe-cho-thue-tet',
+    ],
+  });
   const cachedLandingPages = replaceCachedStaticImageUrls(landingPages);
   const reservedLandingSlugs = new Set([
     'thue-xe-tu-lai-ha-noi',
@@ -7921,7 +7992,8 @@ async function main() {
     [
       'User-agent: *',
       'Allow: /',
-      'Allow: /blog',
+      'Disallow: /api/',
+      'Disallow: /tai-khoan',
       '',
       'User-agent: GPTBot',
       'Allow: /',
@@ -7943,6 +8015,9 @@ async function main() {
       '',
       `Sitemap: ${siteUrl}/sitemap.xml`,
       `Sitemap: ${siteUrl}/rss.xml`,
+      '',
+      '# AI Content Signals',
+      'Content-Signal: ai-train=no, search=yes, ai-input=yes',
       '',
     ].join('\n'),
     'utf8',

@@ -48,7 +48,7 @@ test('vehicle schema publishes monthly price only when verified', async () => {
     source.indexOf('function fleetStructuredData'),
   );
 
-  assert.match(schemaBlock, /Number\(vehicle\.monthly_price \|\| 0\)/);
+  assert.match(schemaBlock, /Number\(vehicle\.monthly_sale_price \|\| 0\)/);
   assert.match(schemaBlock, /monthlyPrice > 0/);
   assert.match(schemaBlock, /Giá thuê tháng tham khảo/);
   assert.match(schemaBlock, /\? 4 : 0/);

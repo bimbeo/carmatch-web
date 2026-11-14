@@ -1,13 +1,110 @@
 import { createClient } from '@supabase/supabase-js';
 import { applyCors, isPreflightAllowed, rateLimit } from './_security.js';
+import {
+  evaluatePromoTargeting,
+  promoDiscountAmount,
+  sortPromosForCustomer,
+} from './_promo-engine.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 const COMPANY_CODE = 'carmatch';
 const HOLIDAY_PRICING_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const BOOKED_STATUSES = ['pending_deposit', 'confirmed', 'assigned', 'pickup_due', 'running', 'return_due', 'completed'];
+const LEGACY_PROMO_FIELDS = 'code, description, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, secret_only, first_time_only, weekends_only, phone_restriction';
+const TARGETING_PROMO_FIELDS = `${LEGACY_PROMO_FIELDS}, starts_at, min_rental_days, max_rental_days, applicable_weekdays, min_advance_days, max_advance_days, auto_apply, priority, campaign_type`;
 
-function formatVND(value) {
-  return `${Number(value || 0).toLocaleString('vi-VN')}đ`;
+function isMissingTargetingColumn(error) {
+  return Boolean(error && /column|schema cache|starts_at|min_rental_days|auto_apply|campaign_type/i.test(error.message || ''));
+}
+
+function withPromoTargetingDefaults(promo) {
+  return {
+    starts_at: null,
+    min_rental_days: null,
+    max_rental_days: null,
+    applicable_weekdays: null,
+    min_advance_days: null,
+    max_advance_days: null,
+    auto_apply: false,
+    priority: 0,
+    campaign_type: 'coupon',
+    ...promo,
+  };
+}
+
+function normalizePhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('84') && digits.length === 11) return `0${digits.slice(2)}`;
+  return digits;
+}
+
+async function getCompanyId(supabase) {
+  const { data, error } = await supabase.from('companies').select('id').eq('code', COMPANY_CODE).maybeSingle();
+  if (error) throw error;
+  return data?.id || null;
+}
+
+async function hasPriorBooking(supabase, phoneValue) {
+  const phone = normalizePhone(phoneValue);
+  if (!phone) return false;
+  const companyId = await getCompanyId(supabase);
+  if (!companyId) return false;
+  const phone84 = phone.startsWith('0') ? `84${phone.slice(1)}` : phone;
+  const { data: customers, error: customerError } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('company_id', companyId)
+    .or(`phone.eq.${phone},normalized_phone.eq.${phone},phone.eq.${phone84},normalized_phone.eq.${phone84}`);
+  if (customerError) throw customerError;
+  const customerIds = (customers || []).map((item) => item.id).filter(Boolean);
+  if (customerIds.length === 0) return false;
+  const { count, error } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .in('customer_id', customerIds)
+    .in('status', BOOKED_STATUSES);
+  if (error) throw error;
+  return Number(count || 0) > 0;
+}
+
+async function loadPromoList(supabase) {
+  let query = supabase
+    .from('promo_codes')
+    .select(TARGETING_PROMO_FIELDS)
+    .eq('active', true)
+    .eq('secret_only', false)
+    .order('created_at', { ascending: false });
+  let { data, error } = await query;
+  if (isMissingTargetingColumn(error)) {
+    ({ data, error } = await supabase
+      .from('promo_codes')
+      .select(LEGACY_PROMO_FIELDS)
+      .eq('active', true)
+      .eq('secret_only', false)
+      .order('created_at', { ascending: false }));
+  }
+  if (error) throw error;
+  return (data || []).map(withPromoTargetingDefaults);
+}
+
+async function loadPromoByCode(supabase, code) {
+  let { data, error } = await supabase
+    .from('promo_codes')
+    .select(TARGETING_PROMO_FIELDS)
+    .eq('code', code)
+    .eq('active', true)
+    .maybeSingle();
+  if (isMissingTargetingColumn(error)) {
+    ({ data, error } = await supabase
+      .from('promo_codes')
+      .select(LEGACY_PROMO_FIELDS)
+      .eq('code', code)
+      .eq('active', true)
+      .maybeSingle());
+  }
+  if (error) throw error;
+  return data ? withPromoTargetingDefaults(data) : null;
 }
 
 function createSupabaseClient() {
@@ -51,6 +148,8 @@ async function bookingRangeTouchesHoliday(supabase, pickupDateValue, returnDateV
 
 async function listPromos(req, res) {
   const totalAmount = Number(req.query.total || 0);
+  const rentalDays = Number(req.query.rental_days || 0);
+  const customerPhone = String(req.query.phone || '').trim();
 
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(200).json({ promos: [] });
 
@@ -66,16 +165,21 @@ async function listPromos(req, res) {
     console.error('[promos:list] Holiday lookup error:', holidayError.message);
   }
 
-  const { data, error } = await supabase
-    .from('promo_codes')
-    .select('code, description, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, secret_only')
-    .eq('active', true)
-    .eq('secret_only', false)
-    .order('created_at', { ascending: false });
-
-  if (error) {
+  let data;
+  try {
+    data = await loadPromoList(supabase);
+  } catch (error) {
     console.error('[promos:list] Supabase error:', error.message);
     return res.status(200).json({ promos: [] });
+  }
+
+  let customerHasPriorBooking = false;
+  if (customerPhone && data.some((promo) => promo.first_time_only)) {
+    try {
+      customerHasPriorBooking = await hasPriorBooking(supabase, customerPhone);
+    } catch (error) {
+      console.error('[promos:list] First booking lookup error:', error.message);
+    }
   }
 
   const now = new Date();
@@ -83,18 +187,29 @@ async function listPromos(req, res) {
     let applicable = true;
     let reason = null;
 
+    const targetingReason = evaluatePromoTargeting(p, {
+      totalAmount,
+      rentalDays,
+      pickupDate: req.query.pickup_date,
+    });
     if (holidayPromoBlocked) {
       applicable = false;
       reason = 'Không áp dụng vào ngày lễ / cao điểm';
-    } else if (p.expires_at && new Date(p.expires_at) < now) {
+    } else if (targetingReason) {
       applicable = false;
-      reason = 'Đã hết hạn';
-    } else if (p.uses_limit !== null && p.uses_limit !== undefined && Number(p.uses_count || 0) >= Number(p.uses_limit)) {
+      reason = targetingReason;
+    } else if (p.phone_restriction && !customerPhone) {
       applicable = false;
-      reason = 'Đã hết lượt sử dụng';
-    } else if (p.min_order && p.min_order > 0 && totalAmount > 0 && totalAmount < Number(p.min_order)) {
+      reason = 'Nhập số điện thoại để kiểm tra';
+    } else if (p.phone_restriction && normalizePhone(p.phone_restriction) !== normalizePhone(customerPhone)) {
       applicable = false;
-      reason = `Đơn tối thiểu ${Number(p.min_order).toLocaleString('vi-VN')}đ`;
+      reason = 'Mã dành riêng cho khách hàng khác';
+    } else if (p.first_time_only && !customerPhone) {
+      applicable = false;
+      reason = 'Nhập số điện thoại để kiểm tra khách lần đầu';
+    } else if (p.first_time_only && customerHasPriorBooking) {
+      applicable = false;
+      reason = 'Chỉ dành cho khách chưa từng có booking';
     }
 
     const discountValue = Number(p.discount_value || 0);
@@ -102,13 +217,7 @@ async function listPromos(req, res) {
 
     let discountAmount = 0;
     if (applicable && totalAmount > 0) {
-      if (p.discount_type === 'percent') {
-        discountAmount = Math.round(((totalAmount * discountValue) / 100) / 10000) * 10000;
-        if (maxDiscount !== null) discountAmount = Math.min(discountAmount, maxDiscount);
-      } else {
-        discountAmount = discountValue;
-      }
-      discountAmount = Math.max(0, Math.min(discountAmount, totalAmount));
+      discountAmount = promoDiscountAmount(p, totalAmount);
     }
 
     const description = p.description || (
@@ -133,12 +242,13 @@ async function listPromos(req, res) {
       applicable,
       reason,
       expires_warning: expiresWarning,
+      auto_apply: Boolean(p.auto_apply),
+      priority: Number(p.priority || 0),
+      campaign_type: p.campaign_type || 'coupon',
     };
   });
 
-  promos.sort((a, b) => Number(b.applicable) - Number(a.applicable));
-
-  return res.status(200).json({ promos });
+  return res.status(200).json({ promos: sortPromosForCustomer(promos) });
 }
 
 async function listHolidayPricing(_req, res) {
@@ -191,6 +301,7 @@ async function validatePromo(req, res) {
   const customerPhone = String(req.query.phone || '').trim();
   const pickupDate = String(req.query.pickup_date || '').trim();
   const returnDate = String(req.query.return_date || pickupDate).trim();
+  const rentalDays = Number(req.query.rental_days || 0);
 
   if (!code) return res.status(400).json({ error: 'Mã không hợp lệ' });
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Service unavailable' });
@@ -204,14 +315,10 @@ async function validatePromo(req, res) {
     console.error('[promos:validate] Holiday lookup error:', holidayError.message);
   }
 
-  const { data, error } = await supabase
-    .from('promo_codes')
-    .select('code, discount_type, discount_value, max_discount, min_order, uses_limit, uses_count, expires_at, active, first_time_only, weekends_only, phone_restriction')
-    .eq('code', code)
-    .eq('active', true)
-    .maybeSingle();
-
-  if (error) {
+  let data;
+  try {
+    data = await loadPromoByCode(supabase, code);
+  } catch (error) {
     console.error('[promos:validate] Supabase error:', error.message);
     return res.status(500).json({ error: 'Lỗi hệ thống, thử lại sau' });
   }
@@ -244,15 +351,8 @@ async function validatePromo(req, res) {
     });
   }
 
-  if (data.expires_at && new Date(data.expires_at) < new Date()) {
-    return res.status(400).json({ error: 'Mã đã hết hạn' });
-  }
-
-  const usesLimit = data.uses_limit;
-  const usesCount = Number(data.uses_count || 0);
-  if (usesLimit !== null && usesLimit !== undefined && usesCount >= Number(usesLimit)) {
-    return res.status(400).json({ error: 'Mã đã hết lượt sử dụng' });
-  }
+  const targetingReason = evaluatePromoTargeting(data, { totalAmount, rentalDays, pickupDate });
+  if (targetingReason) return res.status(400).json({ error: targetingReason });
 
   if (data.phone_restriction) {
     if (!customerPhone) return res.status(400).json({ error: 'Mã này chỉ dành riêng cho một khách hàng cụ thể' });
@@ -263,46 +363,17 @@ async function validatePromo(req, res) {
     }
   }
 
-  const minOrder = data.min_order === null || data.min_order === undefined ? null : Number(data.min_order);
-  if (minOrder !== null && minOrder > 0 && totalAmount < minOrder) {
-    return res.status(400).json({ error: `Đơn tối thiểu ${formatVND(minOrder)}` });
-  }
-
-  if (data.weekends_only && pickupDate) {
-    const day = new Date(pickupDate).getUTCDay();
-    if (day !== 0 && day !== 6) {
-      return res.status(400).json({ error: 'Mã chỉ áp dụng cho đặt xe cuối tuần (Thứ 7 & Chủ nhật)' });
-    }
-  }
-
-  if (data.first_time_only && customerPhone) {
-    const normalizedPhone = customerPhone.replace(/[\s\-().+]/g, '').replace(/^0/, '84');
-    const [{ count: leadsCount }, { count: customersCount }] = await Promise.all([
-      supabase
-        .from('website_leads')
-        .select('id', { count: 'exact', head: true })
-        .or(`phone.eq.${customerPhone},phone.eq.${normalizedPhone}`),
-      supabase
-        .from('customers')
-        .select('id', { count: 'exact', head: true })
-        .or(`phone.eq.${customerPhone},normalized_phone.eq.${normalizedPhone}`),
-    ]);
-    if ((leadsCount && leadsCount > 0) || (customersCount && customersCount > 0)) {
-      return res.status(400).json({ error: 'Mã chỉ dành cho khách đặt xe lần đầu' });
+  if (data.first_time_only) {
+    if (!customerPhone) return res.status(400).json({ error: 'Nhập số điện thoại để kiểm tra ưu đãi khách lần đầu' });
+    if (await hasPriorBooking(supabase, customerPhone)) {
+      return res.status(400).json({ error: 'Mã chỉ dành cho khách chưa từng có booking' });
     }
   }
 
   const discountValue = Number(data.discount_value || 0);
   const maxDiscount = data.max_discount ? Number(data.max_discount) : null;
 
-  let discountAmount = 0;
-  if (data.discount_type === 'percent') {
-    discountAmount = Math.round(((totalAmount * discountValue) / 100) / 10000) * 10000;
-    if (maxDiscount !== null) discountAmount = Math.min(discountAmount, maxDiscount);
-  } else {
-    discountAmount = discountValue;
-  }
-  discountAmount = Math.max(0, Math.min(discountAmount, totalAmount));
+  const discountAmount = promoDiscountAmount(data, totalAmount);
 
   return res.status(200).json({
     code: data.code,
@@ -310,6 +381,9 @@ async function validatePromo(req, res) {
     discount_value: discountValue,
     max_discount: maxDiscount,
     discount_amount: discountAmount,
+    auto_apply: Boolean(data.auto_apply),
+    priority: Number(data.priority || 0),
+    campaign_type: data.campaign_type || 'coupon',
   });
 }
 

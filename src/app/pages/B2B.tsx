@@ -208,8 +208,8 @@ interface FormData {
 
 export default function B2B() {
   useSEO({
-    title: 'Thuê xe theo tháng Hà Nội từ 10 triệu | Car Match',
-    description: 'Thuê xe tự lái theo tháng tại Hà Nội. Xem giá theo từng mẫu xe, tổng chi phí cần tính, gói doanh nghiệp và xe điện theo tháng.',
+    title: 'Thuê Xe Theo Tháng Hà Nội | Bảng Giá Theo Mẫu Xe',
+    description: 'Xem giá thuê xe theo tháng tại Hà Nội theo từng mẫu xe, điều kiện km, cọc, giao nhận và tổng chi phí trước khi nhận báo giá.',
     canonical: 'https://www.carmatch.vn/thue-xe-thang',
   });
 
@@ -327,7 +327,7 @@ export default function B2B() {
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a href="#form"
                 className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-600 px-6 py-3 text-center text-sm font-black text-white shadow-md shadow-brand-200 transition-colors hover:bg-brand-700">
-                Nhận báo giá xe tháng trong 30 phút
+                Nhận báo giá xe tháng
               </a>
               <a href={ZALO_LINK} target="_blank" rel="noopener noreferrer"
                 onClick={() => trackZaloClick('b2b_hero')}
@@ -339,7 +339,7 @@ export default function B2B() {
               {[
                 { value: `Từ ${formatPrice(monthlyStartingPrice)}`, label: 'giá tham khảo/tháng' },
                 { value: '1-12 tháng', label: 'thời hạn theo nhu cầu' },
-                { value: '30 phút', label: 'phản hồi báo giá' },
+                { value: 'Có tư vấn', label: 'xác nhận theo nhu cầu' },
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl bg-white/80 border border-gray-100 px-4 py-3 shadow-sm">
                   <div className="text-brand-600 font-bold text-lg">{item.value}</div>
@@ -384,7 +384,7 @@ export default function B2B() {
                   <p className="text-brand-600 font-semibold text-sm uppercase tracking-wide">Báo giá nhanh</p>
                   <h2 className="mt-1 text-2xl font-bold text-gray-900">4 thông tin để lọc xe phù hợp</h2>
                 </div>
-                <div className="rounded-full bg-brand-50 px-4 py-2 text-sm font-black text-brand-700">30 phút</div>
+                <div className="rounded-full bg-brand-50 px-4 py-2 text-sm font-black text-brand-700">Tư vấn theo nhu cầu</div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {monthlyProcess.map((item) => (
@@ -792,7 +792,7 @@ export default function B2B() {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Nhận báo giá miễn phí</h2>
-            <p className="text-gray-500">Điền thông tin — đội ngũ Car Match sẽ liên hệ trong 30 phút.</p>
+            <p className="text-gray-500">Điền thông tin — đội ngũ Car Match sẽ liên hệ để xác nhận nhu cầu và báo giá.</p>
           </div>
 
           {submitted ? (

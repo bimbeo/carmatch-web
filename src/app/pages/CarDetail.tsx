@@ -3,7 +3,7 @@ import { useParams, Link, useLocation } from 'react-router';
 import {
   Users, Fuel, Settings, Gauge, Check, Shield, ArrowLeft,
   Zap, ChevronLeft, ChevronRight, Phone,
-  MapPin, BadgeCheck, Clock, Share2, CalendarDays,
+  MapPin, BadgeCheck, Clock, CalendarDays, ChevronDown, Tag,
 } from 'lucide-react';
 import { formatPrice, type Car } from '@/data/cars';
 import { findVehicleBySlug, useVehicles } from '@/hooks/useVehicles';
@@ -303,21 +303,6 @@ function Gallery({ images, name }: { images: string[]; name: string }) {
   );
 }
 
-/* ─── Spec chip ─── */
-function SpecChip({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex min-h-[86px] items-center gap-3 rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-        {icon}
-      </div>
-      <div>
-        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">{label}</div>
-        <div className="mt-1 text-sm font-black text-gray-950">{value}</div>
-      </div>
-    </div>
-  );
-}
-
 function vehicleSeoDescription(car: Car): string {
   if (/\bvf3\b/i.test(`${car.slug} ${car.name}`)) {
     const monthlyPrice = car.priceMonth
@@ -332,6 +317,17 @@ function vehicleSeoDescription(car: Car): string {
   return `Thuê ${car.name} tự lái tại Hà Nội: ${car.seats} chỗ, ${car.fuel}, ${car.transmission}, giá tham khảo từ ${formatPrice(car.price)}/ngày. Car Match xác nhận lịch xe, điều kiện cọc và hỗ trợ giao nhận tận sảnh trước khi chốt.`;
 }
 
+function vehicleSeoTitle(car: Car): string {
+  const identity = `${car.slug} ${car.name}`;
+  if (/carnival/i.test(identity)) {
+    return 'Thuê Kia Carnival Tự Lái Hà Nội | Giá & Lịch Xe';
+  }
+  if (/\bvf[3-8]\b/i.test(identity)) {
+    return `Thuê ${car.name} Tự Lái Hà Nội | Giá & Lịch Xe`;
+  }
+  return `Thuê ${car.name} Tự Lái Hà Nội | ${formatPrice(car.price)}/Ngày`;
+}
+
 function isVf3Car(car: Car) {
   return /\bvf3\b/i.test(`${car.slug} ${car.name}`);
 }
@@ -344,39 +340,118 @@ function vf3DisplayName(car: Car) {
   return car.name.replace(/\bvinfast\b/i, 'VinFast');
 }
 
-function PromoBanner({ promos, loading }: { promos: { code: string; description: string }[]; loading: boolean }) {
+function PromoBanner({
+  promos,
+  loading,
+  className = '',
+}: {
+  promos: { code: string; description: string }[];
+  loading: boolean;
+  className?: string;
+}) {
   if (loading) {
     return (
-      <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3 animate-pulse">
-        <div className="h-4 w-28 bg-green-200 rounded mb-2" />
-        <div className="space-y-1.5">
-          <div className="h-5 bg-green-200 rounded" />
-          <div className="h-5 bg-green-200 rounded w-4/5" />
-        </div>
-        <div className="h-3 w-44 bg-green-100 rounded mt-2" />
+      <div className={`rounded-2xl border border-emerald-100 bg-emerald-50 p-4 ${className}`}>
+        <div className="h-4 w-28 animate-pulse rounded bg-emerald-200" />
+        <div className="mt-3 h-8 animate-pulse rounded-lg bg-emerald-100" />
       </div>
     );
   }
   if (!promos.length) return null;
 
   return (
-    <div className="rounded-2xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-base">🎁</span>
-        <span className="text-sm font-bold text-green-800">Ưu đãi đang có</span>
+    <aside className={`overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm ${className}`} aria-label="Ưu đãi hiện có">
+      <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50 px-4 py-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
+          <Tag className="h-4 w-4" />
+        </span>
+        <div>
+          <p className="text-sm font-black text-emerald-950">Ưu đãi hiện có</p>
+          <p className="text-[11px] font-medium text-emerald-700">Chọn khi đặt xe</p>
+        </div>
       </div>
-      <div className="space-y-1">
-        {promos.map(p => (
-          <div key={p.code} className="flex items-center gap-2">
-            <span className="font-mono text-xs font-bold text-green-700 bg-white border border-green-200 px-2 py-0.5 rounded-md">
-              {p.code}
+      <div className="divide-y divide-emerald-50 px-4">
+        {promos.map((promo) => (
+          <div key={promo.code} className="flex items-start gap-3 py-2.5">
+            <span className="shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 font-mono text-[11px] font-black text-emerald-800">
+              {promo.code}
             </span>
-            <span className="text-xs text-green-700">{p.description}</span>
+            <span className="pt-0.5 text-xs font-medium leading-5 text-slate-600">{promo.description}</span>
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-green-600 mt-1.5">Nhập mã trong bước đặt xe để được giảm giá</p>
-    </div>
+    </aside>
+  );
+}
+
+function RentalEssentials({ car }: { car: Car }) {
+  const conditions = car.conditions.slice(0, 3).map((condition) => condition
+    .replace('Căn cước và bằng lái xe hạng B (Đối chiếu)', 'CCCD và bằng lái hạng B (đối chiếu)')
+    .replace('Đặt cọc tiền từ ', 'Cọc từ '));
+
+  return (
+    <section
+      id="specs"
+      className="scroll-mt-28 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      aria-labelledby="rental-essentials-heading"
+    >
+      <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+        <div>
+          <h2 id="rental-essentials-heading" className="text-lg font-black text-slate-950">Thông tin chính</h2>
+        </div>
+      </div>
+
+      <dl className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
+        {[
+          { label: 'Số chỗ', value: `${car.seats} chỗ`, icon: <Users className="h-4 w-4" /> },
+          { label: 'Nhiên liệu', value: car.fuel, icon: car.fuel === 'Điện' ? <Zap className="h-4 w-4" /> : <Fuel className="h-4 w-4" /> },
+          { label: 'Hộp số', value: car.transmission, icon: <Settings className="h-4 w-4" /> },
+        ].map((spec) => (
+          <div key={spec.label} className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:px-6">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">{spec.icon}</span>
+            <div className="min-w-0">
+              <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">{spec.label}</dt>
+              <dd className="mt-0.5 truncate text-sm font-black text-slate-950">{spec.value}</dd>
+            </div>
+          </div>
+        ))}
+      </dl>
+
+      <div className="grid md:grid-cols-2 md:divide-x md:divide-slate-100">
+        <div className="px-5 py-5 sm:px-6">
+          <div className="flex items-center gap-2 text-sm font-black text-slate-950">
+            <Shield className="h-4 w-4 text-brand-600" /> Điều kiện thuê
+          </div>
+          <ul className="mt-3 space-y-2.5">
+            {conditions.map((condition) => (
+              <li key={condition} className="flex items-start gap-2.5 text-sm font-medium leading-6 text-slate-600">
+                <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                <span>{condition}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-5 sm:px-6 md:border-t-0">
+          <div className="flex items-center gap-2 text-sm font-black text-slate-950">
+            <Gauge className="h-4 w-4 text-brand-600" /> Giới hạn và phụ phí
+          </div>
+          <dl className="mt-3 space-y-2.5 text-sm">
+            {[
+              ['Đã gồm', `${car.kmPerDay} km/ngày`],
+              ['Vượt km', `${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km`],
+              ['Trả xe trễ', '100.000đ/giờ'],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between gap-4">
+                <dt className="text-slate-500">{label}</dt>
+                <dd className="font-black text-slate-900">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Phí giao nhận và sạc/nhiên liệu được báo trước khi cọc.</p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -399,9 +474,7 @@ function VehicleBookingPanel({
 }) {
   return (
     <div className="space-y-3">
-      <div className="min-h-[76px]">
-        <PromoBanner promos={activePromoCodes} loading={promoLoading} />
-      </div>
+      <PromoBanner promos={activePromoCodes} loading={promoLoading} className="hidden lg:block" />
       <BookingWidget
         basePrice={car.price}
         carName={car.name}
@@ -425,7 +498,7 @@ function UnavailableVehiclePanel({ car, relatedCars }: { car: Car; relatedCars: 
       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">Tạm ngừng nhận lịch</p>
       <h2 className="mt-2 text-xl font-black text-gray-950">{car.name} hiện chưa nhận đặt trực tiếp</h2>
       <p className="mt-2 text-sm font-medium leading-6 text-gray-600">
-        Trang thông tin vẫn được giữ để bạn tham khảo mẫu xe và giá. Chọn xe tương đương đang sẵn sàng hoặc nhắn Car Match để kiểm tra phương án thay thế.
+        Xem giá tham khảo, chọn xe tương đương hoặc nhắn Car Match để kiểm tra phương án khác.
       </p>
       <div className="mt-4 space-y-2">
         {relatedCars.slice(0, 3).map((related) => (
@@ -459,28 +532,53 @@ function UnavailableVehiclePanel({ car, relatedCars }: { car: Car; relatedCars: 
 }
 
 function VehicleSeoSummary({ car }: { car: Car }) {
-  const costNotes = [
-    `${car.kmPerDay} km/ngày đã gồm trong giá`,
-    `Vượt km: ${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km`,
-    'Cọc và lịch giao nhận xác nhận trước khi nhận tiền',
-  ];
+  const fit = car.seats >= 7
+    ? 'phù hợp gia đình đông người hoặc nhóm có hành lý; nên gửi số người và số vali để kiểm tra không gian thực tế'
+    : car.fuel === 'Điện'
+      ? 'phù hợp đi phố hoặc chuyến đã có kế hoạch sạc; mức pin giao–trả được xác nhận trước khi nhận xe'
+      : 'phù hợp cá nhân hoặc gia đình nhỏ cần chủ động lịch đi trong và ngoài Hà Nội';
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-brand-600">Tóm tắt nhanh</p>
+    <section className="border-t border-gray-200 py-6">
       <h2 className="mt-2 text-lg font-black text-gray-950">Thuê {car.name} tự lái tại Hà Nội</h2>
       <p className="mt-2 text-sm leading-6 text-gray-600">
-        {car.name} phù hợp khách cần xe {car.seats} chỗ, {car.fuel.toLowerCase()}, {car.transmission.toLowerCase()} để đi nội thành,
-        đi tỉnh ngắn ngày hoặc nhận xe tại sảnh chung cư/khu đô thị theo lịch hẹn. Lịch xe, tổng giá và điều kiện cọc được hiển thị trước khi gửi yêu cầu.
+        Xe {car.seats} chỗ, {car.fuel.toLowerCase()}, {car.transmission.toLowerCase()}, giá từ {formatPrice(car.price)}/ngày;
+        {' '}{fit}. Chọn ngày nhận/trả để xem lịch xe, tổng giá và điều kiện cọc.
       </p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {costNotes.map((note) => (
-          <div key={note} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-xs font-bold leading-5 text-gray-700">
-            {note}
-          </div>
-        ))}
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-bold">
+        <Link to="/xe" className="text-brand-700 hover:text-brand-800">Xem đội xe đang nhận lịch</Link>
+        <Link to="/thue-xe-thang" className="text-brand-700 hover:text-brand-800">Xem giá thuê theo tháng</Link>
       </div>
     </section>
+  );
+}
+
+function VehicleGuideLinks({ car }: { car: Car }) {
+  if (car.fuel !== 'Điện' && car.seats !== 7) return null;
+
+  return (
+    <nav aria-label="Hướng dẫn chọn xe" className="flex flex-wrap gap-2">
+      {car.fuel === 'Điện' ? (
+        <Link
+          to="/blog/thue-xe-dien-ai-tra-phi-sac"
+          onClick={() => trackCtaClick('car_detail_ev_charging_guide', { vehicle_slug: car.slug })}
+          className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
+        >
+          <Zap className="h-4 w-4" />
+          Ai trả phí sạc khi thuê xe điện?
+        </Link>
+      ) : null}
+      {car.seats === 7 ? (
+        <Link
+          to="/thue-xe-7-cho-tu-lai-ha-noi"
+          onClick={() => trackCtaClick('car_detail_seven_seat_hub', { vehicle_slug: car.slug })}
+          className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-xs font-bold text-brand-800 hover:bg-brand-100"
+        >
+          <Users className="h-4 w-4" />
+          So sánh xe 7 chỗ
+        </Link>
+      ) : null}
+    </nav>
   );
 }
 
@@ -572,140 +670,63 @@ function CarnivalDecisionPanel({
 function Vf3DecisionPanel({
   car,
   vf5,
-  availabilityLabel,
   onCheckAvailability,
 }: {
   car: Car;
   vf5?: Car;
-  availabilityLabel: string;
   onCheckAvailability: () => void;
 }) {
-  const priceRows = [
-    { duration: '1 ngày', price: car.price, note: 'Giá cơ sở đang công khai' },
-    { duration: '3 ngày', price: car.price * 3, note: 'Ước tính trước ưu đãi' },
-    { duration: 'Theo tháng', price: car.priceMonth || null, note: car.priceMonth ? 'Giá tháng tham khảo' : 'Xác nhận theo lịch xe' },
-  ];
-  const chargingNotes = [
-    'Ghi nhận mức pin, dây sạc và phụ kiện trong biên bản khi nhận xe.',
-    'Trước chuyến đi tỉnh, kiểm tra điểm sạc phù hợp và thời gian dừng trên tuyến.',
-    'Chi phí sạc và mức pin khi trả xe cần được xác nhận trong báo giá; không mặc định đã gồm trong giá thuê.',
-  ];
-
   return (
-    <section className="overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm" aria-labelledby="vf3-rental-heading">
-      <div className="border-b border-emerald-100 bg-emerald-50 px-5 py-5">
-        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">VinFast VF3 tự lái tại Hà Nội</p>
-        <h2 id="vf3-rental-heading" className="mt-2 text-xl font-black text-gray-950">
-          Giá ngày, giá tháng, lịch xe và chi phí sạc
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-          VF3 phù hợp nhu cầu đi phố và nhóm nhỏ cần một mẫu xe điện gọn. Giá ngày lấy từ dữ liệu xe đang công khai; giá tháng, lịch trống và tổng tiền cuối cùng chỉ được chốt sau khi chọn thời gian thuê.
-        </p>
-      </div>
-
-      <div className="grid gap-5 p-5 lg:grid-cols-[0.95fr_1.05fr]">
+    <details className="group rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
         <div>
-          <h3 className="text-sm font-black text-gray-950">Giá thuê VF3 tham khảo</h3>
-          <div className="mt-3 overflow-hidden rounded-xl border border-gray-100">
-            {priceRows.map((row) => (
-              <div key={row.duration} className="grid grid-cols-[84px_1fr] gap-3 border-b border-gray-100 px-3 py-3 last:border-b-0 sm:grid-cols-[96px_150px_1fr]">
-                <span className="text-sm font-black text-gray-950">{row.duration}</span>
-                <span className="text-sm font-black text-emerald-700">
-                  {row.price ? formatPrice(row.price) : 'Liên hệ báo giá'}
-                </span>
-                <span className="col-span-2 text-xs font-medium text-gray-500 sm:col-span-1">{row.note}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-xl bg-slate-950 p-4 text-white">
-            <p className="text-[11px] font-black uppercase tracking-[0.14em] text-emerald-200">Tổng chi phí cần tính</p>
-            <p className="mt-2 text-sm font-black leading-6">
-              Tiền thuê + giao nhận + sạc + cầu đường/gửi xe + vượt km hoặc phát sinh theo hợp đồng
-            </p>
-            <p className="mt-2 text-xs leading-5 text-white/65">Chọn ngày nhận/trả để hệ thống tính tiền thuê; các khoản còn lại được xác nhận trước khi cọc.</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">Thuê VinFast VF3 tự lái tại Hà Nội</p>
+          <h2 className="mt-1 text-base font-black text-gray-950">Giá ngày, giá tháng, lịch xe và chi phí sạc</h2>
+        </div>
+        <ChevronDown className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="grid gap-5 border-t border-gray-100 px-5 py-4 sm:grid-cols-2">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-black text-gray-950"><Zap className="h-4 w-4 text-emerald-700" /> Thuê VF3 thì sạc xe thế nào?</h3>
+          <ul className="mt-3 space-y-2 text-xs font-medium leading-5 text-gray-600">
+            <li>• Ghi nhận mức pin và phụ kiện khi nhận xe.</li>
+            <li>• Chi phí sạc, mức pin trả xe được xác nhận trước khi cọc.</li>
+            <li>• Đi tỉnh nên kiểm tra điểm sạc trên tuyến.</li>
+          </ul>
+          <Link
+            to="/blog/thue-xe-dien-ai-tra-phi-sac"
+            onClick={() => trackCtaClick('car_detail_ev_charging_guide', { vehicle_slug: car.slug })}
+            className="mt-3 inline-block text-xs font-bold text-brand-700 hover:text-brand-800"
+          >
+            Xem hướng dẫn sạc chi tiết
+          </Link>
+        </div>
+        <div>
+          <h3 className="text-sm font-black text-gray-950">VF3 hay VF5 phù hợp hơn?</h3>
+          <p className="mt-3 text-xs font-medium leading-5 text-gray-600">
+            VF3: {car.seats} chỗ, từ {formatPrice(car.price)}/ngày; giá tháng {car.priceMonth ? formatPrice(car.priceMonth) : 'Liên hệ báo giá'}.
+            VF5: {vf5 ? formatPrice(vf5.price) : 'Xem xe để báo giá'}/ngày, phù hợp khi cần thêm không gian.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-bold">
+            <Link to="/thue-xe-thang" className="text-brand-700 hover:text-brand-800">Thuê xe theo tháng</Link>
+            <Link to={vf5 ? `/xe/${vf5.slug}` : '/xe'} className="text-brand-700 hover:text-brand-800">
+              {vf5 ? `Xem ${vf5.name}` : 'Xem xe điện 5 chỗ'}
+            </Link>
           </div>
         </div>
-
-        <div className="space-y-4">
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-            <div className="flex items-center gap-2 text-sm font-black text-gray-950">
-              <CalendarDays className="h-4 w-4 text-emerald-700" />
-              Lịch VF3: {availabilityLabel}
-            </div>
-            <p className="mt-2 text-xs font-medium leading-5 text-gray-600">
-              Chọn ngày cụ thể để kiểm tra lịch thật. Trang VF3 vẫn được giữ khi một xe tạm bận để khách xem giá và chọn chiếc tương đương.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-            <div className="flex items-center gap-2 text-sm font-black text-gray-950">
-              <Zap className="h-4 w-4 text-emerald-700" />
-              Thuê VF3 thì sạc xe thế nào?
-            </div>
-            <ul className="mt-3 space-y-2">
-              {chargingNotes.map((note) => (
-                <li key={note} className="flex items-start gap-2 text-xs font-medium leading-5 text-gray-600">
-                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />
-                  <span>{note}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
+        <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-semibold text-gray-600"><strong className="text-gray-950">Tổng chi phí cần tính:</strong> tiền thuê, giao nhận và khoản phát sinh theo thực tế.</p>
           <button
             type="button"
             onClick={onCheckAvailability}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white hover:bg-brand-700"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white hover:bg-brand-700"
           >
             <CalendarDays className="h-4 w-4" />
             Chọn ngày và xem tổng giá
           </button>
         </div>
       </div>
-
-      <div className="border-t border-gray-100 bg-gray-50 px-5 py-5">
-        <h3 className="text-sm font-black text-gray-950">VF3 hay VF5 phù hợp hơn?</h3>
-        <div className="mt-3 overflow-x-auto rounded-xl border border-gray-200 bg-white">
-          <table className="w-full min-w-[620px] text-left text-xs">
-            <thead className="bg-gray-50 text-gray-600">
-              <tr>
-                <th className="px-4 py-3 font-black">Tiêu chí</th>
-                <th className="px-4 py-3 font-black">VinFast VF3</th>
-                <th className="px-4 py-3 font-black">VinFast VF5</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-gray-600">
-              <tr>
-                <th scope="row" className="px-4 py-3 font-black text-gray-900">Số chỗ</th>
-                <td className="px-4 py-3">{car.seats} chỗ</td>
-                <td className="px-4 py-3">{vf5 ? `${vf5.seats} chỗ` : '5 chỗ'}</td>
-              </tr>
-              <tr>
-                <th scope="row" className="px-4 py-3 font-black text-gray-900">Giá ngày</th>
-                <td className="px-4 py-3 font-bold text-emerald-700">{formatPrice(car.price)}</td>
-                <td className="px-4 py-3 font-bold text-emerald-700">{vf5 ? formatPrice(vf5.price) : 'Xem xe để báo giá'}</td>
-              </tr>
-              <tr>
-                <th scope="row" className="px-4 py-3 font-black text-gray-900">Giá tháng</th>
-                <td className="px-4 py-3">{car.priceMonth ? formatPrice(car.priceMonth) : 'Liên hệ báo giá'}</td>
-                <td className="px-4 py-3">{vf5?.priceMonth ? formatPrice(vf5.priceMonth) : 'Liên hệ báo giá'}</td>
-              </tr>
-              <tr>
-                <th scope="row" className="px-4 py-3 font-black text-gray-900">Phù hợp</th>
-                <td className="px-4 py-3">Đi phố, nhóm nhỏ, ưu tiên xe gọn.</td>
-                <td className="px-4 py-3">Gia đình nhỏ, cần thêm chỗ ngồi và không gian sử dụng.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold">
-          <Link to="/thue-xe-thang" className="text-brand-700 hover:text-brand-800">Xem gói thuê xe theo tháng</Link>
-          <Link to={vf5 ? `/xe/${vf5.slug}` : '/xe'} className="text-brand-700 hover:text-brand-800">
-            {vf5 ? `Xem ${vf5.name}` : 'Xem xe điện 5 chỗ'}
-          </Link>
-        </div>
-      </div>
-    </section>
+    </details>
   );
 }
 
@@ -790,11 +811,7 @@ export default function CarDetail() {
   const seoDescription = car ? vehicleSeoDescription(car) : 'Xem chi tiết xe cho thuê tại Car Match Hà Nội.';
 
   useSEO({
-    title: car
-      ? isVf3Car(car)
-        ? `Thuê ${vf3DisplayName(car)} Hà Nội — ${formatPrice(car.price)}/ngày | Car Match`
-        : `Thuê ${car.name} Hà Nội — ${formatPrice(car.price)}/ngày | Car Match`
-      : 'Thuê Xe Tự Lái Hà Nội | Car Match',
+    title: car ? vehicleSeoTitle(car) : 'Thuê Xe Tự Lái Hà Nội | Car Match',
     description: seoDescription,
     canonical: detailUrl,
     ogImage: car?.images?.[0] ?? undefined,
@@ -942,7 +959,6 @@ export default function CarDetail() {
     );
   }
 
-  const shareTitle = `Thuê ${car.name} tự lái tại Hà Nội | Car Match`;
   const isCarnival = /carnival/i.test(`${car.slug} ${car.name}`);
   const isVf3 = isVf3Car(car);
   const vf5ComparisonCar = cars.find((candidate) => candidate.available && isVf5Car(candidate));
@@ -971,14 +987,6 @@ export default function CarDetail() {
       vehicleId: car.id,
     }));
   };
-  const bookingProcess = [
-    'Chọn ngày, giờ nhận/trả xe',
-    bookingAvailabilityStatus.requiresConfirmation
-      ? 'Car Match phản hồi tình trạng xe trong 30 phút'
-      : 'Hệ thống giữ lịch xe trong 15 phút',
-    'Đặt cọc giữ xe, nhận hợp đồng/điều kiện',
-    'Bàn giao xe, chụp hiện trạng và bắt đầu chuyến đi',
-  ];
   const hardConflictRange = formatBlockedRange(bookingAvailabilityStatus.firstHardConflict);
   const availabilityBadgeMeta = !car.available
     ? {
@@ -1016,7 +1024,7 @@ export default function CarDetail() {
             }
           : bookingAvailabilityStatus.hasBlockedRanges
             ? {
-                label: 'Có lịch bận, chọn ngày để kiểm tra',
+                label: 'Có ngày đã kín',
                 className: 'bg-amber-50 text-amber-800 border-amber-200',
                 dotClassName: 'bg-amber-500',
                 notice: '',
@@ -1024,17 +1032,17 @@ export default function CarDetail() {
               }
             : bookingAvailabilityStatus.requiresConfirmation
               ? {
-                  label: 'Yêu cầu kiểm tra lịch',
+                  label: 'Cần xác nhận lịch',
                   className: 'bg-amber-50 text-amber-800 border-amber-200',
                   dotClassName: 'bg-amber-500',
-                  notice: 'Xe này cần kiểm tra thêm với chủ xe. Car Match phản hồi trong 30 phút và chỉ gửi QR cọc sau khi lịch được xác nhận.',
+                  notice: 'Car Match kiểm tra lịch và liên hệ xác nhận. Chưa cần cọc.',
                   noticeClassName: 'border-amber-200 bg-amber-50 text-amber-800',
                 }
             : {
-                label: 'Có thể đặt ngay',
+                label: 'Lịch đang trống',
                 className: 'bg-green-50 text-green-700 border-green-200',
                 dotClassName: 'bg-green-500',
-                notice: 'Lịch đang trống theo hệ thống. Gửi thông tin để giữ xe 15 phút và xem hướng dẫn đặt cọc.',
+                notice: 'Gửi yêu cầu để giữ xe 15 phút.',
                 noticeClassName: 'border-green-200 bg-green-50 text-green-800',
               };
 
@@ -1060,7 +1068,7 @@ export default function CarDetail() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Title + badges */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <header className="py-1">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 border rounded-full text-xs font-bold ${availabilityBadgeMeta.className}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${availabilityBadgeMeta.dotClassName}`} />
@@ -1085,19 +1093,19 @@ export default function CarDetail() {
                   ? 'Thuê Kia Carnival tự lái tại Hà Nội'
                   : isVf3
                     ? `Thuê ${vf3DisplayName(car)} tự lái tại Hà Nội`
-                    : car.name}
+                    : `Thuê ${car.name} tự lái tại Hà Nội`}
               </h1>
               <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-500">
                 <span>Hà Nội</span>
                 <span className="text-gray-300">·</span>
                 <div className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" />
-                  Giao tận tòa nhà
+                  Giao tận nơi
                 </div>
                 <span className="text-gray-300">·</span>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  {bookingAvailabilityStatus.requiresConfirmation ? 'Phản hồi lịch trong 30 phút' : 'Đặt trực tiếp trên web'}
+                  {bookingAvailabilityStatus.requiresConfirmation ? 'Cần xác nhận lịch' : 'Đặt online'}
                 </div>
               </div>
               {availabilityBadgeMeta.notice && (
@@ -1105,86 +1113,18 @@ export default function CarDetail() {
                   {availabilityBadgeMeta.notice}
                 </p>
               )}
-              {car.seats === 7 && (
-                <Link
-                  to="/thue-xe-7-cho-tu-lai-ha-noi"
-                  onClick={() => trackCtaClick('car_detail_seven_seat_hub', { vehicle_slug: car.slug })}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-black text-orange-800 transition-colors hover:bg-orange-100"
-                >
-                  <Users className="h-4 w-4" />
-                  So sánh Carnival, Xpander và Limo Green
-                </Link>
-              )}
-              {car.fuel === 'Điện' && (
-                <Link
-                  to="/blog/thue-xe-dien-ai-tra-phi-sac"
-                  onClick={() => trackCtaClick('car_detail_ev_charging_guide', { vehicle_slug: car.slug })}
-                  className="mt-4 ml-2 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 transition-colors hover:bg-emerald-100"
-                >
-                  <Zap className="h-4 w-4" />
-                  Ai trả phí sạc khi thuê xe điện?
-                </Link>
-              )}
-            </div>
+            </header>
 
             {/* Gallery */}
             <section id="photos" className="scroll-mt-32">
               <Gallery images={car.images} name={car.name} />
             </section>
 
-            {isCarnival ? (
-              <CarnivalDecisionPanel
-                car={car}
-                availabilityLabel={availabilityBadgeMeta.label}
-                onCheckAvailability={scrollToBooking}
-              />
-            ) : null}
+            <PromoBanner promos={activePromoCodes} loading={promoLoading} className="lg:hidden" />
 
-            {isVf3 ? (
-              <Vf3DecisionPanel
-                car={car}
-                vf5={vf5ComparisonCar}
-                availabilityLabel={availabilityBadgeMeta.label}
-                onCheckAvailability={scrollToBooking}
-              />
-            ) : null}
+            <RentalEssentials car={car} />
 
-            {/* Specs grid */}
-            <div id="specs" className="scroll-mt-32 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-              <h2 className="text-base font-bold text-gray-900 mb-4">Thông số xe</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <SpecChip
-                  icon={<Users className="w-4 h-4 text-brand-600" />}
-                  label="Số chỗ"
-                  value={`${car.seats} chỗ`}
-                />
-                <SpecChip
-                  icon={car.fuel === 'Điện' ? <Zap className="w-4 h-4 text-brand-600" /> : <Fuel className="w-4 h-4 text-brand-600" />}
-                  label="Nhiên liệu"
-                  value={car.fuel}
-                />
-                <SpecChip
-                  icon={<Settings className="w-4 h-4 text-brand-600" />}
-                  label="Hộp số"
-                  value={car.transmission}
-                />
-                <SpecChip
-                  icon={<Gauge className="w-4 h-4 text-brand-600" />}
-                  label="Km miễn phí"
-                  value={`${car.kmPerDay} km/ngày`}
-                />
-                <SpecChip
-                  icon={<Gauge className="w-4 h-4 text-brand-600" />}
-                  label="Phụ phí vượt km"
-                  value={`${(car.kmSurcharge || 3000).toLocaleString('vi-VN')}đ/km`}
-                />
-                <SpecChip
-                  icon={<Clock className="w-4 h-4 text-brand-600" />}
-                  label="Trả xe trễ giờ"
-                  value="100.000đ/giờ"
-                />
-              </div>
-            </div>
+            <VehicleGuideLinks car={car} />
 
           </div>
 
@@ -1207,127 +1147,32 @@ export default function CarDetail() {
                 )}
               </div>
 
-              <div className="hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:block">
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Chia sẻ xe này</h3>
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(detailUrl)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                    Facebook
-                  </a>
-                  <a
-                    href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(detailUrl)}`}
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
-                  >
-                    Email
-                  </a>
-                </div>
-              </div>
-
-              <div className="hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:block">
-                <h3 className="text-sm font-black text-gray-950 mb-4">Quy trình đặt xe</h3>
-                <ol className="space-y-3">
-                  {bookingProcess.map((text, index) => (
-                    <li key={text} className="flex items-start gap-3 text-sm font-medium leading-6 text-gray-600">
-                      <span className="w-6 h-6 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        {index + 1}
-                      </span>
-                      {text}
-                    </li>
-                  ))}
-                </ol>
-              </div>
             </div>
           </div>
 
           {/* ── LEFT COLUMN — supporting content ─────────────────────────── */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Description */}
-            {car.description && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <h2 className="text-base font-bold text-gray-900 mb-3">Giới thiệu xe</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">{car.description}</p>
-              </div>
-            )}
+            {isCarnival ? (
+              <CarnivalDecisionPanel
+                car={car}
+                availabilityLabel={availabilityBadgeMeta.label}
+                onCheckAvailability={scrollToBooking}
+              />
+            ) : null}
 
-            {/* Use cases */}
-            {car.useCases && car.useCases.length > 0 && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <h2 className="text-base font-bold text-gray-900 mb-3">Phù hợp cho</h2>
-                <div className="flex flex-wrap gap-2">
-                  {car.useCases.map((uc) => (
-                    <span key={uc} className="px-3 py-1.5 bg-brand-50 border border-brand-100 text-brand-700 text-sm rounded-full font-medium">
-                      {uc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            {isVf3 ? <Vf3DecisionPanel car={car} vf5={vf5ComparisonCar} onCheckAvailability={scrollToBooking} /> : null}
 
-            {/* Amenities */}
-            {car.amenities && car.amenities.length > 0 && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <h2 className="text-base font-bold text-gray-900 mb-4">
-                  Tiện nghi đi kèm
-                  <span className="ml-2 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                    {car.amenities.length} tính năng
-                  </span>
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {car.amenities.map((amenity) => (
-                    <div key={amenity} className="flex items-center gap-2.5">
-                      <div className="w-5 h-5 bg-brand-50 rounded-full flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 text-brand-600" />
-                      </div>
-                      <span className="text-gray-700 text-sm">{amenity}</span>
-                    </div>
-                  ))}
-                </div>
+            <section className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm" aria-labelledby="handover-heading">
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="h-5 w-5 text-brand-600" />
+                <h2 id="handover-heading" className="text-sm font-black text-gray-950">Bàn giao rõ ràng</h2>
               </div>
-            )}
-
-            {/* Rental conditions */}
-            <div id="conditions" className="scroll-mt-32 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-              <h2 className="text-base font-bold text-gray-900 mb-4">Điều kiện thuê xe</h2>
-              <div className="space-y-3">
-                {car.conditions.map((condition) => (
-                  <div key={condition} className="flex items-start gap-3">
-                    <Shield className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />
-                    <span className="text-gray-600 text-sm leading-relaxed">{condition}</span>
-                  </div>
-                ))}
+              <div className="mt-3 grid gap-2 text-xs font-semibold text-gray-600 sm:grid-cols-3">
+                <span>✓ Chụp hiện trạng</span>
+                <span>✓ Chốt phí trước khi cọc</span>
+                <span>✓ Hỗ trợ khi phát sinh</span>
               </div>
-            </div>
-
-            {/* Handover and safety callout */}
-            <div className="overflow-hidden rounded-2xl bg-brand-900 text-white shadow-sm">
-              <div className="border-b border-white/10 px-5 py-5">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-100/70">Bàn giao & an toàn</p>
-                <h2 className="mt-2 text-xl font-black">Kiểm tra xe cùng bạn trước khi chạy</h2>
-                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-white/70">
-                  Trọng tâm của Car Match là giảm tranh chấp: tình trạng xe, nhiên liệu/pin, km, phụ kiện, cọc và lịch giao nhận đều được xác nhận trước khi chốt.
-                </p>
-              </div>
-              <div className="grid gap-px bg-white/10 sm:grid-cols-3">
-                {[
-                  ['Chụp hiện trạng', 'Ngoại thất, nội thất, đồng hồ km và nhiên liệu/pin khi nhận xe.'],
-                  ['Rõ phí trước cọc', 'Giá thuê, phụ phí vượt km, giao nhận và điều kiện cọc được nói rõ trước.'],
-                  ['Có người hỗ trợ', 'Khách nhắn Zalo khi cần đổi giờ, xử lý phát sinh hoặc hỏi điều kiện thuê.'],
-                ].map(([title, desc]) => (
-                  <div key={title} className="bg-brand-900 px-5 py-4">
-                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-900">
-                      <BadgeCheck className="h-5 w-5" />
-                    </div>
-                    <h3 className="text-sm font-black">{title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-white/65">{desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </section>
 
             <div id="reviews" className="scroll-mt-32">
               <CarReviews carSlug={car.slug} />
@@ -1381,9 +1226,7 @@ export default function CarDetail() {
                 <span className="text-xl font-bold text-brand-600">{formatPrice(bookingSummary.totalAmount)}</span>
                 <span className="text-gray-400 text-xs">tổng</span>
               </div>
-              <div className="text-[11px] font-medium text-gray-500">
-                {formatRentalBillingDays(bookingSummary.billingDays)} · {bookingSummary.pickupDate.split('-').reverse().join('/')} → {bookingSummary.returnDate.split('-').reverse().join('/')}
-              </div>
+              <div className="text-[11px] font-medium text-gray-500">{formatRentalBillingDays(bookingSummary.billingDays)}</div>
             </div>
           ) : car.price > 0 ? (
             <div className="flex items-baseline gap-1">
@@ -1395,11 +1238,8 @@ export default function CarDetail() {
           )}
           {car.available && !bookingSummary?.valid && (
             <div className="text-xs text-gray-400">
-              {bookingAvailabilityStatus.requiresConfirmation ? 'Phản hồi trong 30 phút' : 'Chọn lịch để xem tổng giá'}
+              {bookingAvailabilityStatus.requiresConfirmation ? 'Car Match sẽ liên hệ xác nhận' : 'Chọn lịch để xem tổng giá'}
             </div>
-          )}
-          {car.available && bookingSummary?.valid && (
-            <div className="text-[10px] font-medium text-green-700">Chưa cần thanh toán</div>
           )}
         </div>
         <a

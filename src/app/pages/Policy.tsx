@@ -55,6 +55,15 @@ const sections = [
       'Thời gian giao nhận được xác nhận trước theo lịch xe, khu vực nhận và giờ hỗ trợ thực tế',
     ],
   },
+  {
+    title: 'Bảo mật thông tin & giấy tờ khách thuê',
+    items: [
+      'Thông tin định danh, CCCD và giấy phép lái xe chỉ được dùng để xác minh hồ sơ, lập hợp đồng và đối chiếu bàn giao xe',
+      'Quyền truy cập hồ sơ được giới hạn cho bộ phận vận hành có trách nhiệm xử lý đơn thuê',
+      'Car Match không chia sẻ thông tin cho bên thứ ba, trừ trường hợp khách đồng ý hoặc cơ quan có thẩm quyền yêu cầu theo quy định pháp luật',
+      'Dữ liệu liên quan chuyến thuê có thể được dùng để đối soát VETC, phạt nguội và xử lý phát sinh sau khi trả xe',
+    ],
+  },
 ];
 
 const policyGuides = [

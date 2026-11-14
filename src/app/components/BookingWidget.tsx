@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
-import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, CalendarDays, X, Tag, ImageIcon, Upload, Copy, Check } from 'lucide-react';
+import { MessageCircle, Phone, Info, ChevronDown, ChevronRight, MapPin, Truck, Plane, CalendarDays, X, Tag, ImageIcon, Upload, Copy, Check } from 'lucide-react';
 import { DayPicker, type DayContentProps } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
@@ -11,6 +11,7 @@ import {
   trackBookingValidationError,
   trackAvailabilityCheck,
   trackCtaClick,
+  trackEvent,
   trackPhoneClick,
   trackZaloClick,
 } from '@/lib/analytics';
@@ -375,12 +376,20 @@ function getInitialBookingSelection(today: Date) {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const requestedPickup = params.get('from');
+  const parseIsoSelection = (key: string) => {
+    const match = params.get(key)?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):\d{2}$/);
+    if (!match) return null;
+    const hour = Number(match[2]);
+    return hour >= 7 && hour <= 23 ? { date: match[1], hour } : null;
+  };
+  const pickupIso = parseIsoSelection('pickup');
+  const returnIso = parseIsoSelection('return');
+  const requestedPickup = params.get('from') || pickupIso?.date || null;
   const pickupDate =
     requestedPickup && /^\d{4}-\d{2}-\d{2}$/.test(requestedPickup) && requestedPickup >= todayStr
       ? requestedPickup
       : defaultPickupDate;
-  const requestedReturn = params.get('to');
+  const requestedReturn = params.get('to') || returnIso?.date || null;
   const returnDate =
     requestedReturn && /^\d{4}-\d{2}-\d{2}$/.test(requestedReturn) && requestedReturn >= pickupDate
       ? requestedReturn
@@ -393,8 +402,8 @@ function getInitialBookingSelection(today: Date) {
   return {
     pickupDate,
     returnDate,
-    pickupHour: parseHour('pickupHour', DEFAULT_PICKUP_HOUR),
-    returnHour: parseHour('returnHour', DEFAULT_RETURN_HOUR),
+    pickupHour: parseHour('pickupHour', pickupIso?.hour ?? DEFAULT_PICKUP_HOUR),
+    returnHour: parseHour('returnHour', returnIso?.hour ?? DEFAULT_RETURN_HOUR),
   };
 }
 
@@ -495,7 +504,6 @@ function calculateRental(
     returnDateStr,
     returnHour,
   );
-
   const { billingDays: baseDays, priceDays } = pricingUnits;
   let baseAmount = Math.round(BP * priceDays);
 
@@ -533,7 +541,16 @@ const PICKUP_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 2
 const RETURN_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 
 // ─── Pickup locations ─────────────────────────────────────────────────────────
+type DeliveryMode = 'self' | 'delivery' | 'airport';
+type DeliveryDirection = 'pickup' | 'return' | 'roundtrip';
 const DELIVERY_FEE_PER_WAY = 100_000;
+const AIRPORT_DELIVERY_FEE_PER_WAY = 250_000;
+
+const DELIVERY_DIRECTION_OPTIONS: Array<{ value: DeliveryDirection; label: string }> = [
+  { value: 'pickup', label: 'Chỉ giao' },
+  { value: 'return', label: 'Chỉ nhận' },
+  { value: 'roundtrip', label: 'Hai chiều' },
+];
 
 export interface BookingPickupLocation {
   id: string;
@@ -548,6 +565,16 @@ export const DEFAULT_PICKUP_LOCATIONS: BookingPickupLocation[] = [
   { id: 'manor',        name: 'The Manor Central Park', address: 'Hoàng Mai (Nguyễn Xiển), Hà Nội', mapUrl: 'https://maps.app.goo.gl/Nr1DysckyzRMBVqE8' },
   { id: 'trung-lan',    name: 'Cầu Giấy',               address: 'Cầu Giấy, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
 ];
+
+function getInitialDeliverySelection(): { mode: DeliveryMode; location: string } {
+  if (typeof window === 'undefined') return { mode: 'self', location: 'times-city' };
+  const hub = new URLSearchParams(window.location.search).get('hub');
+  if (hub === 'noi-bai') return { mode: 'airport', location: 'times-city' };
+  if (hub === 'delivery') return { mode: 'delivery', location: 'times-city' };
+  return DEFAULT_PICKUP_LOCATIONS.some((location) => location.id === hub)
+    ? { mode: 'self', location: hub as string }
+    : { mode: 'self', location: 'times-city' };
+}
 
 // ─── Bank / QR config ─────────────────────────────────────────────────────────
 const cleanBankValue = (value: unknown) => String(value ?? '').replace(/\\[rn]/g, '').trim();
@@ -575,7 +602,7 @@ interface Props {
   kmSurcharge?: number;
   relatedCars?: RelatedCar[];
   pickupLocations?: BookingPickupLocation[];
-  initialDeliveryMode?: 'self' | 'delivery';
+  initialDeliveryMode?: DeliveryMode;
   pageType?: 'vehicle_detail' | 'local_rental';
   layout?: 'compact' | 'wide';
   deliveryPolicy?: 'standard' | 'conditional';
@@ -636,6 +663,51 @@ function ReferralCopyBlock({ referralCode, rewardAmount }: { referralCode: strin
   );
 }
 
+function DeliveryDirectionSelector({
+  value,
+  onChange,
+  feePerWay,
+}: {
+  value: DeliveryDirection;
+  onChange: (value: DeliveryDirection) => void;
+  feePerWay: number;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-500">
+        Chọn chiều áp dụng
+      </legend>
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-white/80 p-1 ring-1 ring-gray-200">
+        {DELIVERY_DIRECTION_OPTIONS.map((option) => (
+          <label
+            key={option.value}
+            className={`cursor-pointer rounded-lg px-1.5 py-2 text-center text-[11px] font-bold transition-colors sm:text-xs ${
+              value === option.value
+                ? 'bg-brand-600 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <input
+              type="radio"
+              name="deliveryDirection"
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+              className="sr-only"
+            />
+            {option.label}
+            <span className={`mt-0.5 block text-[10px] font-semibold ${
+              value === option.value ? 'text-white/80' : 'text-gray-400'
+            }`}>
+              +{((option.value === 'roundtrip' ? feePerWay * 2 : feePerWay) / 1000).toLocaleString('vi-VN')}k
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 export default function BookingWidget({
   basePrice,
   carName,
@@ -661,6 +733,7 @@ export default function BookingWidget({
   const today = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }, []);
   const todayStr = toDateStr(today);
   const initialBookingSelection = useMemo(() => getInitialBookingSelection(today), [today]);
+  const initialDeliverySelection = useMemo(getInitialDeliverySelection, []);
   const [ctaExperiment] = useState(getBookingCtaExperiment);
   const experimentMeta = useMemo(() => experimentPayload(ctaExperiment), [ctaExperiment]);
   const [pickupDate, setPickupDate] = useState(initialBookingSelection.pickupDate);
@@ -668,12 +741,20 @@ export default function BookingWidget({
   const [returnDate, setReturnDate] = useState(initialBookingSelection.returnDate);
   const [returnHour, setReturnHour] = useState(initialBookingSelection.returnHour);
   const canSelfPickup = pickupLocations.length > 0;
-  const [deliveryMode, setDeliveryMode] = useState<'self' | 'delivery'>(() => (
-    initialDeliveryMode ?? (canSelfPickup ? 'self' : 'delivery')
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(() => (
+    initialDeliveryMode
+      ?? (initialDeliverySelection.mode === 'self' && !canSelfPickup
+        ? 'delivery'
+        : initialDeliverySelection.mode)
   ));
+  const [deliveryDirection, setDeliveryDirection] = useState<DeliveryDirection>('roundtrip');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [returnDeliveryAddress, setReturnDeliveryAddress] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState(pickupLocations[0]?.id ?? '');
+  const [selectedLocation, setSelectedLocation] = useState(() => (
+    pickupLocations.some((location) => location.id === initialDeliverySelection.location)
+      ? initialDeliverySelection.location
+      : pickupLocations[0]?.id ?? ''
+  ));
   const [showModal, setShowModal] = useState(false);
   const initialPromoCode = useMemo(() => getInitialPromoCodeFromUrl(), []);
 
@@ -692,6 +773,9 @@ export default function BookingWidget({
     discount_amount: number;
     discount_type: string;
     discount_value: number;
+    auto_apply?: boolean;
+    auto_applied?: boolean;
+    campaign_type?: string;
   } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
@@ -705,8 +789,12 @@ export default function BookingWidget({
     applicable: boolean;
     reason: string | null;
     expires_warning: string | null;
+    auto_apply: boolean;
+    priority: number;
+    campaign_type: string;
   }>>([]);
   const [promoListLoading, setPromoListLoading] = useState(false);
+  const [autoPromoDismissed, setAutoPromoDismissed] = useState(false);
   const promoAutoAppliedRef = useRef(false);
   const promoCodeRef = useRef(promoCode);
   const bookingIdempotencyRef = useRef('');
@@ -826,6 +914,22 @@ export default function BookingWidget({
     setBookingStep(1);
     promoAutoAppliedRef.current = false;
   }, [vehicleId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('from', pickupDate);
+    url.searchParams.set('to', returnDate);
+    url.searchParams.set('pickupHour', String(pickupHour));
+    url.searchParams.set('returnHour', String(returnHour));
+    url.searchParams.set('pickup', `${pickupDate}T${String(pickupHour).padStart(2, '0')}:00`);
+    url.searchParams.set('return', `${returnDate}T${String(returnHour).padStart(2, '0')}:00`);
+    url.searchParams.set(
+      'hub',
+      deliveryMode === 'self' ? selectedLocation : deliveryMode === 'airport' ? 'noi-bai' : 'delivery',
+    );
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [deliveryMode, pickupDate, pickupHour, returnDate, returnHour, selectedLocation]);
 
   useEffect(() => {
     bookingIdempotencyRef.current = '';
@@ -1188,31 +1292,49 @@ export default function BookingWidget({
   const billingDays = calculateRentalBillingDays(pickupDate, pickupHour, returnDate, returnHour);
   const selectedDurationLabel = formatRentalBillingDays(billingDays);
 
-  const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY * 2 : 0;
-  const deliveryAddressMissing = deliveryMode === 'delivery' && !deliveryAddress.trim();
+  const deliveryDirectionMultiplier = deliveryDirection === 'roundtrip' ? 2 : 1;
+  const deliveryDirectionLabel = deliveryDirection === 'pickup'
+    ? 'Chỉ giao xe'
+    : deliveryDirection === 'return' ? 'Chỉ nhận xe' : 'Hai chiều';
+  const deliveryDirectionAction = deliveryDirection === 'pickup'
+    ? 'Giao xe'
+    : deliveryDirection === 'return' ? 'Nhận lại xe' : 'Giao và nhận xe';
+  const deliveryFeePerWay = deliveryMode === 'airport'
+    ? AIRPORT_DELIVERY_FEE_PER_WAY
+    : deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY : 0;
+  const deliveryFee = deliveryFeePerWay * deliveryDirectionMultiplier;
+  const deliveryAddressMissing = deliveryMode === 'delivery'
+    && (!deliveryAddress.trim()
+      || (separateReturnAddress && deliveryDirection === 'roundtrip' && !returnDeliveryAddress.trim()));
   const orderTotalBeforePromo = rentalResult.valid
     ? rentalResult.total + holidayPricing.total + deliveryFee
     : 0;
   const totalAmount = orderTotalBeforePromo;
-  const loyaltyDiscountAmount = loyaltyDiscount?.discount_amount ?? 0;
+  const availableLoyaltyDiscount = loyaltyDiscount?.discount_amount ?? 0;
+  const availablePromoDiscount = promoResult?.discount_amount ?? 0;
+  const appliedDiscountSource = availablePromoDiscount > availableLoyaltyDiscount
+    ? 'promo'
+    : availableLoyaltyDiscount > 0 ? 'loyalty' : null;
+  const loyaltyDiscountAmount = appliedDiscountSource === 'loyalty' ? availableLoyaltyDiscount : 0;
+  const promoDiscountAmount = appliedDiscountSource === 'promo' ? availablePromoDiscount : 0;
+  const totalSavings = loyaltyDiscountAmount + promoDiscountAmount;
 
   const result = useMemo(() => {
     if (!rentalResult.valid) return rentalResult;
-    const extraFees: Fee[] = deliveryMode === 'delivery'
-      ? [{ label: deliveryPolicy === 'conditional' ? 'Phí giao nhận tạm tính (2 chiều)' : 'Phí giao/trả xe (2 chiều)', amount: deliveryFee }]
-      : [];
-    const loyaltyFee: Fee[] = loyaltyDiscount
-      ? [{ label: loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết', amount: -loyaltyDiscountAmount, highlight: true }]
-      : [];
-    const promoFee: Fee[] = promoResult
-      ? [{ label: `Mã ${promoResult.code}`, amount: -promoResult.discount_amount, highlight: true }]
+    const extraFees: Fee[] = deliveryFee > 0
+      ? [{
+          label: deliveryMode === 'airport'
+            ? `Phí xe sân bay · ${deliveryDirectionLabel}`
+            : `${deliveryPolicy === 'conditional' ? 'Phí giao nhận tạm tính' : 'Phí giao nhận tận nơi'} · ${deliveryDirectionLabel}`,
+          amount: deliveryFee,
+        }]
       : [];
     return {
       ...rentalResult,
-      fees: [...rentalResult.fees, ...holidayPricing.fees, ...extraFees, ...loyaltyFee, ...promoFee],
-      total: Math.max(0, orderTotalBeforePromo - loyaltyDiscountAmount - (promoResult?.discount_amount ?? 0)),
+      fees: [...rentalResult.fees, ...holidayPricing.fees, ...extraFees],
+      total: Math.max(0, orderTotalBeforePromo - totalSavings),
     };
-  }, [rentalResult, holidayPricing.fees, deliveryMode, deliveryFee, deliveryPolicy, orderTotalBeforePromo, loyaltyDiscount, loyaltyDiscountAmount, promoResult]);
+  }, [rentalResult, holidayPricing.fees, deliveryMode, deliveryDirectionLabel, deliveryFee, deliveryPolicy, orderTotalBeforePromo, totalSavings]);
 
   useEffect(() => {
     setServerPriceQuote(null);
@@ -1223,11 +1345,17 @@ export default function BookingWidget({
     returnDate,
     returnHour,
     deliveryMode,
+    deliveryDirection,
     customerPhone,
     loyaltyDiscountAmount,
     promoResult?.code,
     promoResult?.discount_amount,
   ]);
+
+  useEffect(() => {
+    setAutoPromoDismissed(false);
+    setPromoResult((current) => current?.auto_applied ? null : current);
+  }, [pickupDate, pickupHour, returnDate, returnHour, deliveryMode, deliveryDirection]);
 
   useEffect(() => {
     if (!holidayPromoBlocked) return;
@@ -1365,11 +1493,18 @@ export default function BookingWidget({
     try {
       const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
       const res = await fetch(
-        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`,
+        `/api/promo-validate?code=${encodeURIComponent(promoCode.trim())}&total=${totalAmount}&rental_days=${billingDays}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`,
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
       setPromoResult(json);
+      trackEvent('apply_promo_code', {
+        promo_code: String(json.code || promoCode.trim()).toUpperCase(),
+        discount_amount: Number(json.discount_amount) || 0,
+        application_mode: 'manual_input',
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+      });
     } catch (e) {
       setPromoError((e as Error).message);
     } finally {
@@ -1381,6 +1516,7 @@ export default function BookingWidget({
     setPromoCode('');
     setPromoResult(null);
     setPromoError('');
+    setAutoPromoDismissed(true);
   };
 
   const checkLoyaltyDiscount = async (phone: string, autoFillName = false) => {
@@ -1411,13 +1547,18 @@ export default function BookingWidget({
   const fetchPromoList = useCallback(async () => {
     setPromoListLoading(true);
     try {
-      const res = await fetch(`/api/promo-list?total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}`);
+      const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
+      const res = await fetch(`/api/promo-list?total=${totalAmount}&rental_days=${billingDays}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`);
       const json = await res.json();
-      if (res.ok) setPromoList(json.promos || []);
-    } catch { /* silent */ } finally {
+      const promos = res.ok && Array.isArray(json.promos) ? json.promos : [];
+      setPromoList(promos);
+      return promos as typeof promoList;
+    } catch {
+      return [] as typeof promoList;
+    } finally {
       setPromoListLoading(false);
     }
-  }, [pickupDate, returnDate, totalAmount]);
+  }, [billingDays, customerPhone, pickupDate, returnDate, totalAmount]);
 
   const openPromoModal = () => {
     if (holidayPromoBlocked) return;
@@ -1425,7 +1566,7 @@ export default function BookingWidget({
     void fetchPromoList();
   };
 
-  const applyPromoFromList = async (code: string) => {
+  const applyPromoFromList = async (code: string, autoApplied = false) => {
     if (holidayPromoBlocked) {
       setPromoCode(code);
       setPromoResult(null);
@@ -1436,13 +1577,21 @@ export default function BookingWidget({
     setPromoLoading(true);
     setPromoError('');
     setPromoResult(null);
+    if (!autoApplied) setAutoPromoDismissed(true);
     try {
       const phoneParam = customerPhone.trim() ? `&phone=${encodeURIComponent(customerPhone.trim())}` : '';
-      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`);
+      const res = await fetch(`/api/promo-validate?code=${encodeURIComponent(code)}&total=${totalAmount}&rental_days=${billingDays}&pickup_date=${pickupDate}&return_date=${returnDate}${phoneParam}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Mã không hợp lệ');
-      setPromoResult(json);
-      setShowPromoModal(false);
+      setPromoResult({ ...json, auto_applied: autoApplied });
+      trackEvent('apply_promo_code', {
+        promo_code: String(json.code || code).toUpperCase(),
+        discount_amount: Number(json.discount_amount) || 0,
+        application_mode: autoApplied ? 'automatic' : 'promo_list',
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+      });
+      if (!autoApplied) setShowPromoModal(false);
     } catch (e) {
       setPromoError((e as Error).message);
     } finally {
@@ -1453,10 +1602,37 @@ export default function BookingWidget({
   useEffect(() => {
     if (!initialPromoCode || promoAutoAppliedRef.current || totalAmount <= 0 || holidayPromoBlocked) return;
     promoAutoAppliedRef.current = true;
-    void applyPromoFromList(initialPromoCode);
+    void applyPromoFromList(initialPromoCode, false);
     // Run once when the calculator has a valid amount; `applyPromoFromList` reads the latest booking state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holidayPromoBlocked, initialPromoCode, totalAmount, vehicleId]);
+
+  useEffect(() => {
+    if (totalAmount <= 0 || holidayPromoBlocked || autoPromoDismissed) return;
+    if (promoResult && !promoResult.auto_applied) return;
+    let cancelled = false;
+    void fetchPromoList().then((promos) => {
+      if (cancelled) return;
+      const best = promos.find((item) => item.applicable && item.auto_apply && item.discount_amount > 0);
+      if (!best) return;
+      if (promoResult?.code === best.code && promoResult.discount_amount === best.discount_amount) return;
+      void applyPromoFromList(best.code, true);
+    });
+    return () => { cancelled = true; };
+    // The selected promo fields deliberately guard against repeatedly applying the same automatic offer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    autoPromoDismissed,
+    billingDays,
+    customerPhone,
+    holidayPromoBlocked,
+    pickupDate,
+    promoResult?.auto_applied,
+    promoResult?.code,
+    promoResult?.discount_amount,
+    returnDate,
+    totalAmount,
+  ]);
 
   const handleBookingSubmit = async () => {
     const rejectBooking = (reason: string, message: string) => {
@@ -1491,20 +1667,20 @@ export default function BookingWidget({
 
     setBookingLoading(true);
     setBookingError('');
-    const promoForBooking = holidayPromoBlocked ? null : promoResult;
+    const promoForBooking = holidayPromoBlocked || appliedDiscountSource !== 'promo' ? null : promoResult;
     trackBookingSubmit('attempt', {
       vehicle_id: vehicleId || null,
       vehicle_name: carName,
       rental_days: rentalDays,
       total_amount: finalTotal,
       delivery_mode: deliveryMode,
+      delivery_direction: deliveryMode === 'self' ? null : deliveryDirection,
       pickup_date: pickupDate,
       return_date: returnDate,
       promo_code: promoForBooking?.code ?? null,
       ...experimentMeta,
     });
     try {
-      const loc = pickupLocations.find(l => l.id === selectedLocation);
       if (!bookingIdempotencyRef.current) {
         bookingIdempotencyRef.current = typeof crypto.randomUUID === 'function'
           ? crypto.randomUUID()
@@ -1540,13 +1716,12 @@ export default function BookingWidget({
           return_date: returnDate,
           return_hour: returnHour,
           delivery_mode: deliveryMode,
+          delivery_direction: deliveryMode === 'self' ? null : deliveryDirection,
           delivery_address: deliveryMode === 'delivery' ? deliveryAddress.trim() || null : null,
           return_address: deliveryMode === 'delivery'
             ? returnDeliveryAddress.trim() || deliveryAddress.trim() || null
             : null,
-          location_name: deliveryMode === 'self'
-            ? loc?.name
-            : deliveryAddress.trim() || 'Giao tận nơi · bổ sung địa chỉ khi xác nhận',
+          location_name: deliveryLocationName,
           base_amount: clientQuote.base_amount,
           holiday_surcharge: clientQuote.holiday_surcharge,
           holiday_pricing: holidayPricing.applied,
@@ -1604,6 +1779,17 @@ export default function BookingWidget({
         total_amount: result.valid ? result.total : 0,
           deposit_amount: submittedNeedsConfirmation ? 0 : Number(data.depositAmount) || 0,
         delivery_mode: deliveryMode,
+        delivery_direction: deliveryMode === 'self' ? null : deliveryDirection,
+        promo_code: promoForBooking?.code ?? null,
+        ...experimentMeta,
+      });
+      trackEvent('generate_lead_booking', {
+        vehicle_id: vehicleId || null,
+        vehicle_name: carName,
+        booking_ref: data.bookingRef,
+        rental_days: rentalDays,
+        total_amount: result.valid ? result.total : 0,
+        delivery_mode: deliveryMode,
         promo_code: promoForBooking?.code ?? null,
         booking_status: data.bookingStatus || 'request_submitted',
         ...experimentMeta,
@@ -1626,15 +1812,16 @@ export default function BookingWidget({
 
   const buildMessage = () => {
     const priceText = result.valid ? fmtVND(result.total) : 'báo giá';
-    const loc = pickupLocations.find(l => l.id === selectedLocation);
     const locationLine = deliveryMode === 'self'
-      ? `📍 Địa điểm: ${loc?.name || 'Điểm nhận đã chọn'}${loc?.address ? ` (${loc.address})` : ''}`
-      : `🚗 Nhận tại: ${deliveryAddress.trim() || 'chưa cung cấp'}\n🚗 Trả tại: ${returnDeliveryAddress.trim() || deliveryAddress.trim() || 'chưa cung cấp'}\n💡 Phí giao nhận đang tạm tính và cần xác nhận theo địa chỉ`;
+      ? `📍 Địa điểm: ${selectedLocationInfo?.name || 'Điểm nhận xe Car Match'}${selectedLocationInfo?.address ? ` (${selectedLocationInfo.address})` : ''}`
+      : deliveryMode === 'airport'
+        ? `✈️ ${deliveryDirectionAction} tại sân bay Nội Bài (${deliveryDirectionLabel}, phí ${fmtVND(deliveryFee)})`
+        : `🚗 Nhận tại: ${deliveryAddress.trim() || 'chưa cung cấp'}\n🚗 Trả tại: ${returnDeliveryAddress.trim() || deliveryAddress.trim() || 'chưa cung cấp'}\n💡 ${deliveryDirectionAction} · ${deliveryDirectionLabel}; phí giao nhận cần xác nhận theo địa chỉ`;
     const holidayComboLine = holidayBookingPolicy.matchedWindow
       ? `🎉 Combo lễ: ${formatHolidayBookingWindow(holidayBookingPolicy.matchedWindow)}\n`
       : '';
-    const promoLine = promoResult
-      ? `🏷️ Mã giảm giá: ${promoResult.code} (-${fmtVND(promoResult.discount_amount)})\n`
+    const promoLine = appliedDiscountSource === 'promo' && promoResult
+      ? `🏷️ Mã giảm giá: ${promoResult.code} (-${fmtVND(promoDiscountAmount)})\n`
       : '';
     return (
       `[ĐẶT XE - ${carName}]\n` +
@@ -1672,13 +1859,18 @@ export default function BookingWidget({
   }
 
   const selectedLocationInfo = pickupLocations.find(l => l.id === selectedLocation);
+  const deliveryLocationName = deliveryMode === 'self'
+    ? selectedLocationInfo?.name || 'Điểm nhận xe Car Match'
+    : deliveryMode === 'airport'
+      ? `Sân bay Nội Bài · ${deliveryDirectionLabel}`
+      : `${deliveryAddress.trim() || 'Giao tận nơi · bổ sung địa chỉ khi xác nhận'} · ${deliveryDirectionLabel}`;
   const finalTotal = serverPriceQuote?.total_amount ?? (result.valid ? result.total : 0);
   const estimatedDepositAmount = finalTotal > 0
     ? Math.max(200_000, Math.round(finalTotal * 0.3 / 10_000) * 10_000)
     : 0;
   const estimatedRemainingAmount = Math.max(0, finalTotal - estimatedDepositAmount);
-  const promoDiscount = promoResult?.discount_amount ?? 0;
-  const appliedPromo = promoResult?.code ?? '';
+  const promoDiscount = promoDiscountAmount;
+  const appliedPromo = appliedDiscountSource === 'promo' ? promoResult?.code ?? '' : '';
   const rentalDays = billingDays > 0 ? billingDays : 1;
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
@@ -1725,7 +1917,7 @@ export default function BookingWidget({
       promoDiscount > 0 ? `Giảm giá (${appliedPromo}): -${promoDiscount.toLocaleString('vi-VN')}đ` : null,
       (loyaltyDiscountAmount > 0 || promoDiscount > 0) ? `Tổng sau ưu đãi: ${finalTotal.toLocaleString('vi-VN')}đ` : null,
       `${BANK_QR_ENABLED ? 'Cọc giữ lịch đã chuyển' : 'Cọc giữ lịch dự kiến'}: ${depositAmount.toLocaleString('vi-VN')}đ`,
-      deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
+      deliveryFee > 0 ? `Phí giao nhận xe (${deliveryDirectionLabel.toLowerCase()}): ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
       `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: ${kmSurcharge.toLocaleString('vi-VN')}đ/km | 100.000đ/giờ`,
@@ -1749,6 +1941,7 @@ export default function BookingWidget({
     };
     trackCtaClick('booking_widget_open_form', analyticsPayload);
     trackBookingStart(analyticsPayload);
+    trackEvent('open_booking_drawer', analyticsPayload);
     trackedValidationReasonsRef.current.clear();
     setShowBookingModal(true);
     setBookingStep(1);
@@ -1818,10 +2011,10 @@ export default function BookingWidget({
           )}
         </div>
 
-        {priceMonth && savings > 0 && (
+        {priceMonth && savings > 0 && (billingDays >= 7 ? (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
             <div className="flex-1">
-              <div className="text-xs text-emerald-700">Thuê theo tháng</div>
+              <div className="text-xs text-emerald-700">Giá tháng tham khảo</div>
               <div className="font-black text-gray-950">{fmtVND(priceMonth)}/tháng</div>
             </div>
             {pageType !== 'local_rental' && (
@@ -1830,7 +2023,15 @@ export default function BookingWidget({
               </span>
             )}
           </div>
-        )}
+        ) : (
+          <Link
+            to="/thue-xe-thang"
+            className="mt-2 flex items-center justify-between rounded-lg px-1 py-1 text-xs font-semibold text-emerald-700 hover:underline"
+          >
+            <span>Giá tháng từ {fmtVND(priceMonth)}</span>
+            <span>Tiết kiệm {savings}% →</span>
+          </Link>
+        ))}
 
       </div>
 
@@ -1865,7 +2066,7 @@ export default function BookingWidget({
               </span>
               <span className="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-brand-700 transition group-hover:bg-brand-50">
                 <CalendarDays className="h-4 w-4 shrink-0" />
-                {availLoading ? 'Đang tải lịch xe…' : 'Đổi thời gian trên lịch'}
+                {availLoading ? 'Đang tải lịch…' : 'Đổi ngày, giờ'}
                 <span className="ml-auto font-semibold text-gray-500">
                   {selectedDurationLabel}
                 </span>
@@ -1938,7 +2139,7 @@ export default function BookingWidget({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-800 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                    Tôi tự đến lấy xe
+                    Tự nhận xe
                   </span>
                   <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Miễn phí</span>
                 </div>
@@ -1976,56 +2177,94 @@ export default function BookingWidget({
               </div>
             </label>}
 
-            {/* Option 2: delivery */}
-            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${deliveryMode === 'delivery' ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-gray-300'}`}>
-              <input
-                type="radio"
-                name="deliveryMode"
-                value="delivery"
-                checked={deliveryMode === 'delivery'}
-                onChange={() => setDeliveryMode('delivery')}
-                className="mt-0.5 accent-brand-600"
-              />
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-800 flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-gray-400" />
+            {/* Option 2: airport delivery */}
+            <div className={`rounded-xl border p-3 transition-colors ${deliveryMode === 'airport' ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="radio"
+                  name="deliveryMode"
+                  value="airport"
+                  checked={deliveryMode === 'airport'}
+                  onChange={() => setDeliveryMode('airport')}
+                  className="mt-0.5 accent-brand-600"
+                />
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                    <Plane className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                    Sân bay Nội Bài
+                  </span>
+                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">+250k/chiều</span>
+                </div>
+              </label>
+              {deliveryMode === 'airport' && (
+                <div className="ml-7 mt-3">
+                  <DeliveryDirectionSelector
+                    value={deliveryDirection}
+                    onChange={setDeliveryDirection}
+                    feePerWay={AIRPORT_DELIVERY_FEE_PER_WAY}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-gray-500">
+                    {deliveryDirectionAction}. Phí {fmtVND(deliveryFee)}.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Option 3: delivery */}
+            <div className={`rounded-xl border p-3 transition-colors ${deliveryMode === 'delivery' ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="radio"
+                  name="deliveryMode"
+                  value="delivery"
+                  checked={deliveryMode === 'delivery'}
+                  onChange={() => setDeliveryMode('delivery')}
+                  className="mt-0.5 accent-brand-600"
+                />
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                    <Truck className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                     Giao và nhận xe tại địa chỉ của bạn
                   </span>
-                  <span className="text-xs font-semibold text-orange-800 bg-orange-50 px-2 py-0.5 rounded-full">100k/chiều tạm tính</span>
+                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">100k/chiều tạm tính</span>
                 </div>
-                {deliveryMode === 'delivery' && (
-                  <>
-                    <p className="text-xs leading-5 text-gray-700 mt-1">
-                      {deliveryPolicy === 'conditional'
-                        ? `Phí tạm tính trong khu vực áp dụng: ${fmtVND(DELIVERY_FEE_PER_WAY)}/chiều. Car Match xác nhận lại theo địa chỉ; ngoài phạm vi, mức phí có thể thay đổi.`
-                        : `Phí 2 chiều (giao + trả): ${fmtVND(DELIVERY_FEE_PER_WAY * 2)}`}
-                    </p>
+              </label>
+              {deliveryMode === 'delivery' && (
+                <div className="ml-7 mt-3">
+                  <DeliveryDirectionSelector
+                    value={deliveryDirection}
+                    onChange={setDeliveryDirection}
+                    feePerWay={DELIVERY_FEE_PER_WAY}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-gray-500">
+                    {deliveryPolicy === 'conditional'
+                      ? `Phí đang tạm tính theo lựa chọn ${deliveryDirectionLabel.toLowerCase()}: ${fmtVND(deliveryFee)}. Car Match xác nhận lại theo địa chỉ.`
+                      : `${deliveryDirectionAction} · phí ${fmtVND(deliveryFee)}.`}
+                  </p>
+                  <input
+                    value={deliveryAddress}
+                    onChange={e => setDeliveryAddress(e.target.value)}
+                    placeholder={deliveryDirection === 'return' ? 'Địa chỉ nhận lại xe' : 'Địa chỉ nhận xe'}
+                    aria-label={deliveryDirection === 'return' ? 'Địa chỉ nhận lại xe' : 'Địa chỉ nhận xe'}
+                    className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  />
+                  {separateReturnAddress && deliveryDirection === 'roundtrip' && (
                     <input
-                      value={deliveryAddress}
-                      onChange={e => setDeliveryAddress(e.target.value)}
-                      placeholder="Địa chỉ nhận xe"
-                      aria-label="Địa chỉ nhận xe"
+                      value={returnDeliveryAddress}
+                      onChange={e => setReturnDeliveryAddress(e.target.value)}
+                      placeholder="Địa chỉ trả xe (nếu khác địa chỉ nhận)"
+                      aria-label="Địa chỉ trả xe nếu khác địa chỉ nhận"
                       className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
                     />
-                    {separateReturnAddress && (
-                      <input
-                        value={returnDeliveryAddress}
-                        onChange={e => setReturnDeliveryAddress(e.target.value)}
-                        placeholder="Địa chỉ trả xe (nếu khác địa chỉ nhận)"
-                        aria-label="Địa chỉ trả xe nếu khác địa chỉ nhận"
-                        className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
-                      />
-                    )}
-                    <p className="mt-1.5 text-[11px] leading-4 text-gray-700">
-                      {deliveryAddressMissing
-                        ? 'Chưa có địa chỉ: tổng bên cạnh mới là tạm tính và chưa xác minh phạm vi giao nhận.'
-                        : 'Địa chỉ và khoản phí cuối cùng được Car Match đối chiếu trước khi xác nhận.'}
-                    </p>
-                  </>
-                )}
-              </div>
-            </label>
+                  )}
+                  <p className="mt-1.5 text-[11px] leading-4 text-gray-600">
+                    {deliveryAddressMissing
+                      ? 'Chưa có đủ địa chỉ: tổng chi phí vẫn là tạm tính và chưa xác minh phạm vi giao nhận.'
+                      : 'Địa chỉ và khoản phí cuối cùng được Car Match đối chiếu trước khi xác nhận.'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2054,30 +2293,50 @@ export default function BookingWidget({
               ))}
             </div>
 
-            {/* Promo row */}
-            {promoResult ? (
+            {/* Best discount row — only one benefit is applied to avoid accidental stacking. */}
+            {appliedDiscountSource === 'promo' && promoResult ? (
               <div className="px-4 py-2.5 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-6 h-6 rounded-md bg-green-100 flex items-center justify-center shrink-0">
                     <Tag className="w-3.5 h-3.5 text-green-600" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-green-700 truncate">{promoResult.code}</div>
+                    <div className="text-sm font-semibold text-green-700 truncate">
+                      {promoResult.auto_applied ? 'Đã áp dụng ưu đãi tốt nhất' : promoResult.code}
+                    </div>
                     <div className="text-xs text-green-600">
-                      {promoResult.discount_type === 'percent'
-                        ? `Giảm ${promoResult.discount_value}%`
-                        : `Giảm cố định`}
+                      {promoResult.code} · {promoResult.discount_type === 'percent'
+                        ? `giảm ${promoResult.discount_value}%`
+                        : 'giảm trực tiếp'}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm font-bold text-green-600">-{fmtVND(promoResult.discount_amount)}</span>
+                  <span className="text-sm font-bold text-green-600">-{fmtVND(promoDiscountAmount)}</span>
                   <button
                     type="button"
-                    onClick={clearPromo}
-                    className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors"
+                    onClick={openPromoModal}
+                    className="text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors"
                   >
-                    Xoá
+                    Đổi
+                  </button>
+                </div>
+              </div>
+            ) : appliedDiscountSource === 'loyalty' && loyaltyDiscount ? (
+              <div className="flex items-center justify-between gap-2 px-4 py-2.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-100 text-xs">✓</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-violet-700">
+                      Ưu đãi {loyaltyDiscount.tier === 'vip' ? 'VIP' : 'khách thân thiết'}
+                    </div>
+                    <div className="text-xs text-violet-600">Đã chọn mức giảm tốt hơn</div>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-sm font-bold text-violet-600">-{fmtVND(loyaltyDiscountAmount)}</span>
+                  <button type="button" onClick={openPromoModal} className="text-xs font-semibold text-brand-600 hover:text-brand-800">
+                    Đổi
                   </button>
                 </div>
               </div>
@@ -2125,6 +2384,9 @@ export default function BookingWidget({
                       ? 'Tổng chi phí tạm tính'
                       : 'Tổng chi phí thuê dự kiến'}
                   </div>
+                  {totalSavings > 0 && (
+                    <div className="mt-0.5 text-xs font-bold text-emerald-700">Bạn tiết kiệm {fmtVND(totalSavings)}</div>
+                  )}
                   {result.note && (
                     <div className="mt-0.5 text-xs text-gray-400">{result.note}</div>
                   )}
@@ -2294,7 +2556,7 @@ export default function BookingWidget({
                 {rangeStep === 'from' ? '① Chọn ngày nhận xe' : '② Chọn ngày trả xe'}
               </p>
               <p className="hidden text-xs font-medium text-gray-400 sm:block">
-                Ngày có giá cao hơn được đánh dấu màu cam
+                Ngày giá cao hơn có màu cam
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white px-1 py-2 shadow-sm sm:px-3 sm:py-3" style={{ minWidth: isMobile ? 300 : 680 }}>
@@ -2436,7 +2698,7 @@ export default function BookingWidget({
     {/* ── Promo code modal ── */}
     {showPromoModal && createPortal(
       <div
-        className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[600] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
         onClick={() => setShowPromoModal(false)}
       >
         <div
@@ -2494,6 +2756,27 @@ export default function BookingWidget({
 
           {/* Promo list */}
           <div className="overflow-y-auto flex-1 py-2">
+            {activeSuggestedCodes.length > 0 && (
+              <div className="border-b border-gray-100 px-5 py-3">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-cyan-700">Mã dành riêng cho bạn</p>
+                <div className="space-y-2">
+                  {activeSuggestedCodes.map((item) => (
+                    <button
+                      key={item.code}
+                      type="button"
+                      onClick={() => void applyPromoFromList(item.code)}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2.5 text-left transition-colors hover:bg-cyan-100"
+                    >
+                      <span>
+                        <span className="block font-mono text-sm font-black text-cyan-900">{item.code}</span>
+                        <span className="block text-xs font-medium text-cyan-700">Giảm {item.discount_value.toLocaleString('vi-VN')}đ</span>
+                      </span>
+                      <span className="shrink-0 text-xs font-black text-cyan-700">Áp dụng →</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {promoListLoading ? (
               <div className="px-5 py-8 text-center text-sm text-gray-400">Đang tải mã...</div>
             ) : promoList.length === 0 ? (
@@ -2517,6 +2800,11 @@ export default function BookingWidget({
                   <div className="flex-1 min-w-0">
                     <div className={`font-bold text-sm ${item.applicable && !holidayPromoBlocked ? 'text-gray-900' : 'text-gray-400'}`}>
                       {item.code}
+                      {item.auto_apply && item.applicable && (
+                        <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+                          Tự áp dụng
+                        </span>
+                      )}
                     </div>
                     <div className={`text-xs mt-0.5 ${item.applicable && !holidayPromoBlocked ? 'text-gray-500' : 'text-gray-400'}`}>
                       {item.description}
@@ -2590,23 +2878,21 @@ export default function BookingWidget({
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Địa điểm</span>
               <span className="font-semibold text-gray-800 text-right max-w-[55%]">
-                {deliveryMode === 'self'
-                  ? pickupLocations.find(l => l.id === selectedLocation)?.name
-                  : 'Giao tận nơi'}
+                {deliveryLocationName}
               </span>
             </div>
             {result.valid && (
               <>
-                {loyaltyDiscount && (
+                {appliedDiscountSource === 'loyalty' && loyaltyDiscount && (
                   <div className="flex justify-between text-sm text-violet-600">
                     <span>{loyaltyDiscount.tier === 'vip' ? '⭐ Ưu đãi VIP' : '✓ Ưu đãi khách thân thiết'}</span>
                     <span className="font-semibold">-{fmtVND(loyaltyDiscountAmount)}</span>
                   </div>
                 )}
-                {promoResult && (
+                {appliedDiscountSource === 'promo' && promoResult && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Mã {promoResult.code}</span>
-                    <span className="font-semibold">-{fmtVND(promoResult.discount_amount)}</span>
+                    <span className="font-semibold">-{fmtVND(promoDiscountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm pt-1 border-t border-gray-100">
@@ -2720,7 +3006,7 @@ export default function BookingWidget({
                   <div className="flex justify-between text-gray-600">
                     <span>Địa điểm</span>
                     <span className="font-medium text-right max-w-[55%]">
-                      {deliveryMode === 'self' ? pickupLocations.find(l => l.id === selectedLocation)?.name : 'Giao tận nơi'}
+                      {deliveryLocationName}
                     </span>
                   </div>
                   {result.valid && result.fees.map((fee, index) => (
@@ -2732,6 +3018,18 @@ export default function BookingWidget({
                       <span className="font-medium">{fee.amount < 0 ? '-' : ''}{fmtVND(Math.abs(fee.amount))}</span>
                     </div>
                   ))}
+                  {loyaltyDiscountAmount > 0 && (
+                    <div className="flex justify-between gap-3 text-violet-600">
+                      <span>Ưu đãi {loyaltyDiscount?.tier === 'vip' ? 'VIP' : 'khách thân thiết'}</span>
+                      <span className="font-semibold">-{fmtVND(loyaltyDiscountAmount)}</span>
+                    </div>
+                  )}
+                  {promoDiscountAmount > 0 && promoResult && (
+                    <div className="flex justify-between gap-3 text-green-600">
+                      <span>Mã {promoResult.code}</span>
+                      <span className="font-semibold">-{fmtVND(promoDiscountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between pt-2 border-t border-gray-200">
                     <span className="font-bold text-gray-800">Tổng dự kiến</span>
                     <span className="font-bold text-brand-600 text-base">{result.valid ? fmtVND(result.total) : '—'}</span>
@@ -2789,7 +3087,9 @@ export default function BookingWidget({
                           {loyaltyDiscount.tier === 'vip' ? '⭐ Khách VIP' : '🔄 Khách thân thiết'} — Ưu đãi dành riêng
                         </p>
                         <p className="text-xs text-violet-600 mt-0.5">
-                          Giảm {loyaltyDiscount.discount_amount.toLocaleString('vi-VN')}đ — tự động áp dụng ✓
+                          Giảm {loyaltyDiscount.discount_amount.toLocaleString('vi-VN')}đ — {appliedDiscountSource === 'loyalty'
+                            ? 'đang được tự động áp dụng ✓'
+                            : 'đã dùng mức giảm tốt hơn'}
                         </p>
                       </div>
                     </div>
@@ -2824,7 +3124,7 @@ export default function BookingWidget({
                     className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
                     aria-expanded={showOptionalDetails}
                   >
-                    <span>Email, mã giảm giá hoặc ghi chú</span>
+                    <span>Thông tin thêm (tùy chọn)</span>
                     <ChevronDown className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${showOptionalDetails ? 'rotate-180' : ''}`} />
                   </button>
                   {showOptionalDetails && (
@@ -2845,58 +3145,56 @@ export default function BookingWidget({
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                           Mã giảm giá <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
                         </label>
-                        <div className="flex gap-2">
-                          <input
-                            value={promoCode}
-                            onChange={e => {
-                              setPromoCode(e.target.value.toUpperCase());
-                              setPromoError('');
-                              setPromoResult(null);
-                            }}
-                            onKeyDown={e => e.key === 'Enter' && void validatePromo()}
-                            placeholder={holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'SUMMER10'}
-                            type="text"
-                            disabled={Boolean(promoResult) || holidayPromoBlocked}
-                            className="min-w-0 flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors disabled:bg-gray-50 disabled:text-gray-400"
-                            autoCapitalize="characters"
-                          />
+                        {promoResult ? (
+                          <div className="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2.5">
+                            <div className="min-w-0">
+                              <div className="font-mono text-sm font-bold text-green-800">{promoResult.code}</div>
+                              <div className="text-xs font-medium text-green-700">
+                                Giảm {fmtVND(promoResult.discount_amount)} · {appliedDiscountSource === 'promo'
+                                  ? 'đang áp dụng'
+                                  : 'ưu đãi thân thiết đang tốt hơn'}
+                              </div>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={openPromoModal}
+                                className="rounded-lg border border-green-200 bg-white px-2.5 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100"
+                              >
+                                Đổi mã
+                              </button>
+                              <button
+                                type="button"
+                                onClick={clearPromo}
+                                className="rounded-lg px-2 py-1.5 text-xs font-bold text-gray-500 hover:bg-white hover:text-red-500"
+                              >
+                                Xoá
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            onClick={() => void validatePromo()}
-                            disabled={promoLoading || Boolean(promoResult) || holidayPromoBlocked}
-                            className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
-                              promoResult
-                                ? 'bg-green-100 text-green-700 border border-green-200 cursor-default'
-                                : 'bg-cyan-500 text-white hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed'
-                            }`}
+                            onClick={openPromoModal}
+                            disabled={holidayPromoBlocked}
+                            className="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-3 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:bg-amber-50"
                           >
-                            {promoLoading ? '...' : promoResult ? '✓ Đã áp dụng' : 'Áp dụng'}
+                            <span className="flex items-center gap-2.5">
+                              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-green-600">
+                                <Tag className="h-4 w-4" />
+                              </span>
+                              <span>
+                                <span className="block text-sm font-bold text-gray-800">
+                                  {holidayPromoBlocked ? 'Không áp dụng trong kỳ lễ' : 'Chọn mã giảm giá'}
+                                </span>
+                                {!holidayPromoBlocked && <span className="block text-xs text-gray-500">Xem mã đang có và bấm áp dụng</span>}
+                              </span>
+                            </span>
+                            {!holidayPromoBlocked && <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />}
                           </button>
-                        </div>
-                        {promoResult && (
-                          <div className="mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 text-xs text-green-700 flex items-center justify-between gap-1.5">
-                            <span>✅ Giảm {fmtVND(promoResult.discount_amount)}</span>
-                            <button type="button" onClick={clearPromo} className="font-bold text-green-700 hover:text-red-500" aria-label="Xóa mã giảm giá">×</button>
-                          </div>
                         )}
-                        {holidayPromoBlocked && <p className="text-xs text-amber-700 font-medium mt-1">{holidayPromoBlockMessage}</p>}
-                        {promoError && <p className="text-xs text-red-500 font-medium mt-1">{promoError}</p>}
-                        {!promoResult && !holidayPromoBlocked && activeSuggestedCodes.length > 0 && (
-                          <div className="mt-2 space-y-1.5">
-                            <p className="text-xs text-gray-400 font-medium">Mã của bạn:</p>
-                            {activeSuggestedCodes.map(c => (
-                              <button
-                                key={c.code}
-                                type="button"
-                                onClick={() => void applyPromoFromList(c.code)}
-                                className="w-full flex items-center justify-between rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs hover:bg-cyan-100 transition-colors"
-                              >
-                                <span className="font-mono font-bold text-cyan-800">{c.code}</span>
-                                <span className="text-cyan-600 font-semibold">Giảm {c.discount_value.toLocaleString('vi-VN')}đ · Áp dụng →</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {holidayPromoBlocked && <p className="mt-1 text-xs font-medium text-amber-700">{holidayPromoBlockMessage}</p>}
+                        {promoError && <p className="mt-1 text-xs font-medium text-red-500">{promoError}</p>}
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Ghi chú (tuỳ chọn)</label>
@@ -2919,10 +3217,9 @@ export default function BookingWidget({
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs text-amber-700 flex items-start gap-2">
                   <span className="shrink-0">ℹ️</span>
                   <span>
-                    <strong>Chính sách hủy:</strong> Điều kiện hoàn cọc phụ thuộc thời điểm hủy,
-                    mẫu xe và lịch đã giữ.{' '}
+                    Hủy/hoàn cọc theo xe và lịch thuê.{' '}
                     <a href="/chinh-sach" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2 hover:text-amber-900">
-                      Xem chi tiết →
+                      Xem chính sách
                     </a>
                   </span>
                 </div>
@@ -2936,9 +3233,9 @@ export default function BookingWidget({
                   <div className="font-bold text-gray-900 text-base">Cọc giữ lịch thuê xe</div>
                   <p className="text-sm text-gray-500 mt-1">Chuyển khoản <strong className="text-brand-600">{fmtVND(depositAmount)}</strong> theo hướng dẫn để giữ lịch; Car Match vẫn xác nhận trạng thái booking.</p>
                   <p className="text-xs text-gray-400 mt-0.5">Cọc trừ vào tổng tiền khi nhận xe · Điều kiện hoàn cọc được xác nhận theo lịch thuê</p>
-                  {promoResult && (
+                  {appliedDiscountSource === 'promo' && promoResult && (
                     <p className="text-xs font-semibold text-green-600 mt-1">
-                      Đã áp dụng mã {promoResult.code} — giảm {fmtVND(promoResult.discount_amount)}
+                      Đã áp dụng mã {promoResult.code} — giảm {fmtVND(promoDiscountAmount)}
                     </p>
                   )}
                 </div>
@@ -3002,15 +3299,15 @@ export default function BookingWidget({
 
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-700">
                       <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-                      <span>Nhập <strong>đúng nội dung chuyển khoản</strong> để Car Match đối soát nhanh hơn. Phần cọc sẽ trừ vào tổng tiền thuê.</span>
+                      <span>Nhập đúng nội dung để Car Match đối soát. Tiền cọc được trừ vào tổng thuê.</span>
                     </div>
 
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
                       <span className="shrink-0 mt-0.5">ℹ️</span>
                       <span>
-                        <strong>Chính sách hủy:</strong> Điều kiện hoàn cọc phụ thuộc thời điểm hủy, mẫu xe và lịch đã giữ.{' '}
+                        Hủy/hoàn cọc theo xe và lịch thuê.{' '}
                         <a href="/chinh-sach" className="underline text-amber-600 hover:text-amber-800" target="_blank" rel="noopener noreferrer">
-                          Xem chi tiết →
+                          Xem chính sách
                         </a>
                       </span>
                     </div>
@@ -3018,7 +3315,7 @@ export default function BookingWidget({
                     {/* Upload ảnh chuyển khoản */}
                     <div>
                       <p className="text-xs font-semibold text-gray-600 mb-2">
-                        Tải ảnh chuyển khoản <span className="text-gray-400 font-normal">(tuỳ chọn — giúp xác nhận nhanh hơn)</span>
+                        Ảnh chuyển khoản <span className="text-gray-400 font-normal">(tùy chọn)</span>
                       </p>
                       <label className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-colors overflow-hidden ${
                         paymentProofPreview
@@ -3260,7 +3557,7 @@ export default function BookingWidget({
                     </>
                   ) : (
                     <>
-                      <p>1️⃣ Nhân viên gọi xác nhận trong <strong>30 phút</strong> (giờ hành chính)</p>
+                      <p>1️⃣ Nhân viên liên hệ xác nhận lịch và thông tin thuê xe</p>
                       <p>2️⃣ Chuẩn bị <strong>CCCD + GPLX</strong> khi đến nhận xe</p>
                       <p>3️⃣ Thanh toán phần còn lại <strong>{remainingAmount.toLocaleString('vi-VN')}đ</strong> khi nhận xe</p>
                     </>
@@ -3299,9 +3596,7 @@ export default function BookingWidget({
                 {/* Utility actions — gộp thành 1 hàng compact */}
                 {(() => {
                   const fmt = (dateStr: string, hour: number) => `${dateStr.replace(/-/g, '')}T${String(hour).padStart(2, '0')}0000`;
-                  const loc = deliveryMode === 'self'
-                    ? (pickupLocations.find(l => l.id === selectedLocation)?.name || '')
-                    : (deliveryAddress || 'Giao tận nơi');
+                  const loc = deliveryLocationName;
                   const details = `Mã đặt xe: ${bookingRef}\nXe: ${carName}\nLiên hệ Car Match: 0971163290`;
                   const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Nhận xe ${carName}`)}&dates=${fmt(pickupDate, pickupHour)}/${fmt(returnDate, returnHour)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(loc)}`;
                   return (
@@ -3359,7 +3654,6 @@ export default function BookingWidget({
           {bookingStep < 3 && (
           <div className="px-5 py-4 border-t border-gray-100 shrink-0 space-y-2">
             {bookingStep === 1 && (
-              <>
                 <button
                   onClick={handleBookingSubmit}
                   disabled={bookingLoading}
@@ -3370,7 +3664,6 @@ export default function BookingWidget({
                     ? 'Đang xử lý…'
                     : 'Gửi yêu cầu thuê xe'}
                 </button>
-              </>
             )}
             {bookingStep === 2 && (
               <>

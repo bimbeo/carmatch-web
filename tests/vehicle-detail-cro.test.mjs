@@ -48,6 +48,8 @@ test('vehicle detail keeps default verified pickup locations after widget reuse 
   const bookingWidget = await readFile(BOOKING_WIDGET_PATH, 'utf8');
 
   assert.match(bookingWidget, /pickupLocations = DEFAULT_PICKUP_LOCATIONS/);
-  assert.match(bookingWidget, /initialDeliveryMode \?\? \(canSelfPickup \? 'self' : 'delivery'\)/);
+  assert.match(bookingWidget, /initialDeliveryMode[\s\S]*initialDeliverySelection\.mode/);
+  assert.match(bookingWidget, /pickupLocations\.some\(\(location\) => location\.id === initialDeliverySelection\.location\)/);
+  assert.match(bookingWidget, /pickupLocations\[0\]\?\.id \?\? ''/);
   assert.doesNotMatch(carDetail, /pickupLocations=/);
 });
