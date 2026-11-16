@@ -9,6 +9,55 @@
   }
 }
 
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body.cm-monthly-printing {
+    background: #fff !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+  }
+
+  body.cm-monthly-printing #root,
+  body.cm-monthly-printing #root > div {
+    height: 297mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+  }
+
+  body.cm-monthly-printing #root > div > :not(#monthly-print-sheet) {
+    display: none !important;
+  }
+
+  body.cm-monthly-printing * {
+    visibility: hidden !important;
+  }
+
+  body.cm-monthly-printing #monthly-print-sheet,
+  body.cm-monthly-printing #monthly-print-sheet * {
+    visibility: visible !important;
+  }
+
+  body.cm-monthly-printing #monthly-print-sheet {
+    background: #fff !important;
+    box-sizing: border-box;
+    color: #101936 !important;
+    display: block !important;
+    font-family: "Be Vietnam Pro", Arial, sans-serif !important;
+    height: 297mm;
+    inset: 0;
+    overflow: hidden;
+    padding: 15mm 14mm;
+    position: fixed;
+    width: 210mm;
+  }
+}
+
 .cms-blog-body table {
   display: block;
   width: 100%;

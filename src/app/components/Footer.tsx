@@ -182,7 +182,6 @@ export default function Footer() {
           <p className="text-gray-400 text-xs">© {new Date().getFullYear()} Car Match. Bảo lưu mọi quyền.</p>
           <div className="flex items-center gap-6">
             <Link to="/chinh-sach" className="text-gray-400 text-xs hover:text-white transition-colors">Chính sách & Điều khoản</Link>
-            <Link to="/faq" className="text-gray-400 text-xs hover:text-white transition-colors">Câu hỏi thường gặp</Link>
             <Link to="/lien-he" className="text-gray-400 text-xs hover:text-white transition-colors">Liên hệ</Link>
           </div>
         </div>

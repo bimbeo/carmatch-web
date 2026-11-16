@@ -20,6 +20,18 @@ const TRACKED_EVENT_NAMES = new Set([
   'cm_lead_submit_error',
   'cm_web_vital',
   'cm_experiment_exposure',
+  'monthly_audience_selected',
+  'monthly_scenario_selected',
+  'monthly_config_started',
+  'monthly_config_changed',
+  'monthly_quote_preview',
+  'monthly_vehicle_selected_from_pricing',
+  'monthly_print_a4',
+  'monthly_quote_submit_attempt',
+  'monthly_quote_submit_success',
+  'monthly_quote_submit_error',
+  'monthly_zalo_click',
+  'monthly_phone_click',
 ]);
 
 const RESPONDED_STATUSES = new Set(['contacted', 'converted', 'lost']);

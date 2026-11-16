@@ -779,9 +779,9 @@ const routeMeta = [
   },
   {
     path: '/thue-xe-thang',
-    title: 'Thuê Xe Theo Tháng Hà Nội | Bảng Giá Theo Mẫu Xe',
+    title: 'Thuê Xe Tự Lái Theo Tháng Hà Nội Cho Công Ty & Cá Nhân | Car Match',
     description:
-      'Xem giá thuê xe theo tháng tại Hà Nội theo từng mẫu xe, điều kiện km, cọc, giao nhận và tổng chi phí trước khi nhận báo giá.',
+      'Thuê xe tự lái theo tháng tại Hà Nội cho doanh nghiệp, cá nhân, gia đình và chuyên gia. Xem bảng giá theo xe, lập dự toán và gửi yêu cầu báo giá.',
     canonical: `${siteUrl}/thue-xe-thang`,
     priority: '0.8',
     changefreq: 'monthly',
@@ -2495,7 +2495,7 @@ function monthlyRentalStructuredData(meta, vehicles = []) {
   const faqs = [
     {
       question: 'Thuê xe tự lái theo tháng tại Hà Nội giá bao nhiêu?',
-      answer: 'Giá thuê xe tháng tại Car Match được hiển thị theo từng mẫu xe khi dữ liệu đã được xác nhận. Mức tham khảo hiện bắt đầu từ 10.000.000đ/tháng; giá cuối cùng phụ thuộc mẫu xe, thời hạn thuê, số km dự kiến, khu vực giao nhận và lịch xe thực tế.',
+      answer: 'Giá thuê xe tháng tại Car Match được hiển thị theo từng mẫu xe khi dữ liệu đã được xác nhận. Giá cuối cùng phụ thuộc mẫu xe, thời hạn thuê, số km dự kiến, khu vực giao nhận và lịch xe thực tế.',
     },
     {
       question: 'Thuê xe tháng có giới hạn km không?',
@@ -2524,6 +2524,12 @@ function monthlyRentalStructuredData(meta, vehicles = []) {
   ];
 
   return [
+    webPageData(meta, {
+      fields: {
+        about: 'Thuê xe tự lái theo tháng tại Hà Nội cho doanh nghiệp và cá nhân',
+        mainEntity: { '@id': `${meta.canonical}#service` },
+      },
+    }),
     buildServiceSchema(meta, {
       serviceType: 'Thuê xe tự lái theo tháng',
       areaServed: {
@@ -2532,8 +2538,8 @@ function monthlyRentalStructuredData(meta, vehicles = []) {
         addressCountry: 'VN',
       },
       ...(offers ? { offers } : {}),
+      fields: { '@id': `${meta.canonical}#service` },
     }),
-    buildFAQSchema({ title: 'FAQ thuê xe tự lái theo tháng tại Hà Nội', canonical: meta.canonical }, faqs, seoSchemaConfig),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Thuê xe tự lái theo tháng', path: '/thue-xe-thang' },
@@ -3995,11 +4001,48 @@ function fleetStaticShell(vehicles = []) {
     </div></div>`;
 }
 
+function monthlyVehicleFamily(vehicle) {
+  const name = getVehicleName(vehicle).toLowerCase();
+  for (const family of ['vf3', 'fadil', 'vf5', 'xpander', 'vf6', 'creta', 'vf7', 'vf8', 'carnival']) {
+    if (name.includes(family)) return family;
+  }
+  return name
+    .replace(/\b(?:19|20)\d{2}\b/g, '')
+    .replace(/\b(?:plus|premium|luxury|standard|base)\b/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim() || String(vehicle.id || 'unknown');
+}
+
+function monthlyVehicleRepresentativePriority(vehicle) {
+  const name = getVehicleName(vehicle).toLowerCase();
+  const year = Number(name.match(/\b(20\d{2})\b/)?.[1] || vehicle.model_year || 0);
+  const variantPenalty = /\b(?:plus|premium|luxury)\b/.test(name) ? 10000 : 0;
+  const approvedMonthlyPrice = Number(vehicle.monthly_sale_price || 0) > 0 ? 100000 : 0;
+  return approvedMonthlyPrice + year - variantPenalty;
+}
+
+function uniqueMonthlyVehicles(vehicles) {
+  const representatives = new Map();
+  for (const vehicle of vehicles) {
+    const family = monthlyVehicleFamily(vehicle);
+    const current = representatives.get(family);
+    if (!current || monthlyVehicleRepresentativePriority(vehicle) > monthlyVehicleRepresentativePriority(current)) {
+      representatives.set(family, vehicle);
+    }
+  }
+  return [...representatives.values()];
+}
+
 function monthlyStaticShell(vehicles = []) {
   const totalVehicles = vehicles.length || 20;
-  const monthlyVehicles = vehicles
+  const monthlyCatalog = uniqueMonthlyVehicles(vehicles);
+  const monthlyVehicles = monthlyCatalog
     .filter((vehicle) => Number(vehicle.monthly_sale_price || 0) > 0)
     .sort((a, b) => Number(a.monthly_sale_price) - Number(b.monthly_sale_price))
+    .slice(0, 6);
+  const advisoryVehicles = monthlyCatalog
+    .filter((vehicle) => Number(vehicle.monthly_sale_price || 0) <= 0)
+    .sort((a, b) => Number(a.daily_base_price || 0) - Number(b.daily_base_price || 0))
     .slice(0, 6);
   const monthlyStartingPrice = monthlyVehicles.length > 0
     ? Number(monthlyVehicles[0].monthly_sale_price)
@@ -4026,6 +4069,15 @@ function monthlyStaticShell(vehicles = []) {
         examples: 'Car Match kiểm tra giá tháng và lịch xe thật trước khi chốt.',
         fit: 'Gửi thời hạn thuê, số km dự kiến và khu vực giao nhận để nhận phương án phù hợp.',
       }];
+  const advisoryGroups = advisoryVehicles.map((vehicle) => {
+    const model = vehicle.vehicle_models || {};
+    const seats = Number(model.seats || 0);
+    const fuel = model.fuel_type ? String(model.fuel_type) : 'nhiên liệu theo mẫu xe';
+    return {
+      group: getVehicleName(vehicle),
+      examples: [seats > 0 ? `${seats} chỗ` : '', fuel].filter(Boolean).join(' · '),
+    };
+  });
   const steps = [
     ['Gửi nhu cầu', 'Cho biết khu vực nhận xe, số xe cần dùng, thời gian thuê, số km dự kiến và loại xe mong muốn.'],
     ['Kiểm tra lịch xe', 'Car Match đối chiếu xe còn trống, tình trạng xe, giới hạn km và điều kiện giao nhận.'],
@@ -4101,6 +4153,7 @@ function monthlyStaticShell(vehicles = []) {
             <div class="cm-static-price-grid">
               ${priceGroups.map((item) => `<article class="cm-static-price-card"><h3>${escapeHtml(item.group)}</h3><p>${escapeHtml(item.examples)}</p><strong>${escapeHtml(item.price)}</strong><p>${escapeHtml(item.fit)}</p></article>`).join('')}
             </div>
+            ${advisoryGroups.length > 0 ? `<div class="cm-static-monthly-head" style="margin-top:36px"><h3>Các dòng xe khác có thể tư vấn thuê tháng</h3><p>Các mẫu xe dưới đây có trong danh mục nhưng chưa có giá tháng được duyệt. Car Match sẽ kiểm tra lịch và báo giá riêng, không dùng giá minh họa.</p></div><div class="cm-static-price-grid">${advisoryGroups.map((item) => `<article class="cm-static-price-card"><h3>${escapeHtml(item.group)}</h3><p>${escapeHtml(item.examples)}</p><strong>Liên hệ</strong><p>Liên hệ Car Match để kiểm tra lịch xe và nhận báo giá chính thức.</p></article>`).join('')}</div>` : ''}
           </div>
         </section>
         <section class="cm-static-monthly-section alt">

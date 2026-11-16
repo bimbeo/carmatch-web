@@ -9,6 +9,21 @@ export interface LeadPayload {
   car_model?: string;
   building?: string;
   note?: string;
+  email?: string;
+  company_name?: string;
+  tax_code?: string;
+  scenario?: string;
+  vehicle_group?: string;
+  vehicle_id?: string;
+  expected_km_per_vehicle_month?: number;
+  days_plan?: '30';
+  operation_mode?: 'self';
+  invoice_required?: boolean;
+  formal_quote_required?: boolean;
+  preferred_contact_channel?: 'zalo' | 'email' | 'both';
+  contract_sample_requested?: boolean;
+  source_page?: string;
+  idempotency_key?: string;
 }
 
 function buildLeadContext() {
@@ -31,19 +46,40 @@ function buildLeadContext() {
   ].join('\n');
 }
 
-export async function submitLead(payload: LeadPayload): Promise<{ ok: boolean; error?: string }> {
+export interface LeadSubmitResult {
+  ok: boolean;
+  error?: string;
+  errorCode?: string;
+  requestId?: string;
+  duplicate?: boolean;
+}
+
+export async function submitLead(payload: LeadPayload): Promise<LeadSubmitResult> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 12_000);
   try {
     const note = [payload.note, buildLeadContext()].filter(Boolean).join('\n\n');
     const res = await fetch('/api/leads', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(payload.idempotency_key ? { 'Idempotency-Key': payload.idempotency_key } : {}),
+      },
       body: JSON.stringify({ ...payload, note }),
+      signal: controller.signal,
     });
     const data = await res.json();
-    if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}` };
-    return { ok: true };
+    if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}`, errorCode: data.error || `http_${res.status}` };
+    return { ok: true, requestId: data.request_id, duplicate: Boolean(data.duplicate) };
   } catch (err) {
     console.error('[submitLead]', err);
-    return { ok: false, error: 'Network error' };
+    const timedOut = err instanceof DOMException && err.name === 'AbortError';
+    return {
+      ok: false,
+      error: timedOut ? 'Máy chủ phản hồi quá chậm. Vui lòng thử lại.' : 'Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.',
+      errorCode: timedOut ? 'timeout' : 'network_error',
+    };
+  } finally {
+    window.clearTimeout(timeout);
   }
 }

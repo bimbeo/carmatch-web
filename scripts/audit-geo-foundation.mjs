@@ -139,7 +139,7 @@ function expectedJsonLdGroups(routePath) {
   if (routePath.startsWith('/xe/')) return [['Product'], ['BreadcrumbList']];
   if (routePath === '/blog') return [['Blog'], ['BreadcrumbList']];
   if (routePath.startsWith('/blog/')) return [['BlogPosting', 'Article'], ['BreadcrumbList']];
-  if (routePath === '/thue-xe-thang') return [['Service'], ['FAQPage'], ['BreadcrumbList']];
+  if (routePath === '/thue-xe-thang') return [['WebPage'], ['Service'], ['BreadcrumbList']];
   if (routePath === '/thue-xe-dien-ha-noi') return [['CollectionPage', 'WebPage'], ['Service'], ['FAQPage'], ['BreadcrumbList']];
   if (routePath === '/thue-xe-7-cho-tu-lai-ha-noi') return [['CollectionPage', 'WebPage'], ['Service'], ['FAQPage'], ['BreadcrumbList']];
   if (localRentalRoutePaths.has(routePath)) return [['AutoRental', 'LocalBusiness'], ['CollectionPage', 'WebPage'], ['Service'], ['FAQPage'], ['BreadcrumbList']];

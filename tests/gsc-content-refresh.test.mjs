@@ -23,9 +23,9 @@ test('GSC priority pages use exact commercial intent in titles and internal link
   assert.match(home, /href: '\/xe\/vinfast-vf6'/);
   assert.match(detail, /Thuê Kia Carnival Tự Lái Hà Nội \| Giá & Lịch Xe/);
   assert.match(detail, /`Thuê \$\{car\.name\} tự lái tại Hà Nội`/);
-  assert.match(monthly, /Thuê Xe Theo Tháng Hà Nội \| Bảng Giá Theo Mẫu Xe/);
+  assert.match(monthly, /Thuê Xe Tự Lái Theo Tháng Hà Nội Cho Công Ty & Cá Nhân/);
   assert.match(generator, /Thuê Xe Tự Lái Hà Nội Từ 600K\/Ngày \| Car Match/);
-  assert.match(generator, /Thuê Xe Theo Tháng Hà Nội \| Bảng Giá Theo Mẫu Xe/);
+  assert.match(generator, /Thuê Xe Tự Lái Theo Tháng Hà Nội Cho Công Ty & Cá Nhân/);
   assert.match(generator, /function vehicleSeoTitle/);
   assert.match(generator, /Thuê Kia Carnival Tự Lái Hà Nội \| Giá & Lịch Xe/);
 });

@@ -342,8 +342,8 @@ export const geoKnowledgeBase: GeoKnowledgeEntry[] = [
     summary:
       'Gói thuê xe theo tháng phù hợp khách dùng xe đều đặn, muốn kiểm soát chi phí và không muốn sở hữu xe riêng.',
     facts: [
-      'Giá gói tháng tham khảo từ 10.000.000đ/tháng, tùy mẫu xe, thời gian thuê, lịch sử dụng và điểm giao nhận.',
-      'Car Match tư vấn theo nhu cầu thực tế: cư dân chung cư, doanh nghiệp, gia đình cần xe cuối tuần hoặc dùng hằng ngày.',
+      'Giá gói tháng được lấy theo trường giá tháng đã duyệt của từng xe; mẫu chưa có giá công khai cần Sales báo riêng.',
+      'Car Match tư vấn theo nhu cầu thực tế của doanh nghiệp, cá nhân, gia đình và chuyên gia cần xe trong 1–12 tháng.',
       'Hợp đồng, đặt cọc, giới hạn sử dụng và phí phát sinh cần được xác nhận trước khi nhận xe.',
     ],
     relatedRoutes: ['/thue-xe-thang', '/xe', '/faq', '/lien-he'],

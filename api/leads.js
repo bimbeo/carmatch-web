@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit } from './_security.js';
+import {
+  buildMonthlyLeadInsert,
+  isMonthlyLead,
+  monthlyRequestRef,
+  validateMonthlyLead,
+} from './_monthly-lead.js';
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -71,19 +77,33 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields: name, phone' });
     }
 
-    const { error } = await supabase.from('website_leads').insert([payload]);
+    const monthly = isMonthlyLead(payload);
+    const idempotencyKey = req.headers['idempotency-key'] || payload?.idempotency_key;
+    const validationError = monthly ? validateMonthlyLead(payload, idempotencyKey) : null;
+    if (validationError) {
+      return res.status(400).json({ ok: false, error: validationError });
+    }
+
+    const requestRef = monthly ? monthlyRequestRef(idempotencyKey) : null;
+    const insertPayload = monthly ? buildMonthlyLeadInsert(payload, requestRef) : payload;
+    const { error } = await supabase.from('website_leads').insert([insertPayload]);
+    if (error?.code === '23505' && monthly) {
+      return res.status(200).json({ ok: true, request_id: requestRef, duplicate: true });
+    }
     if (error) throw error;
 
     // Await trước khi trả response — Vercel đóng băng Lambda ngay sau
     // res.json(), fire-and-forget phía sau đó sẽ bị cắt ngang giữa chừng.
-    const carInfo = payload.car_model ? ` · ${payload.car_model}` : '';
+    const carInfo = insertPayload.car_model ? ` · ${insertPayload.car_model}` : '';
     await sendPushToCompany({
-      title: '🔔 Lead website mới',
-      body: `${payload.name}${carInfo}`,
+      title: monthly
+        ? `🔔 ${payload.customer_type === 'business' ? 'Lead tháng doanh nghiệp' : 'Lead tháng cá nhân'}`
+        : '🔔 Lead website mới',
+      body: `${insertPayload.name}${carInfo}`,
       url: '/web-leads',
     }).catch(() => {});
 
-    res.status(200).json({ ok: true });
+    res.status(200).json({ ok: true, ...(requestRef ? { request_id: requestRef } : {}) });
   } catch (err) {
     console.error('[api/leads]', err);
     res.status(500).json({ ok: false, error: 'Failed to submit lead' });
