@@ -23,7 +23,7 @@ import {
   safeJsonLdStringify,
 } from '../src/lib/seoSchemas.ts';
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
-import { localRentalAreas } from '../src/data/localRentalAreas.ts';
+import { LOCAL_HUBS_DATA as localRentalAreas } from '../src/data/localHubsData.ts';
 import {
   cacheStaticImageUrls,
   cacheVehicleCoverImages,
@@ -806,8 +806,8 @@ const routeMeta = [
   },
   ...localRentalAreas.map((area) => ({
     path: area.path,
-    title: area.seoTitle,
-    description: area.description,
+    title: `${area.h1Title} | Car Match`,
+    description: area.heroSubtitle,
     canonical: `${siteUrl}${area.path}`,
     priority: '0.82',
     changefreq: 'weekly',
@@ -2720,25 +2720,41 @@ function sevenSeatRentalStructuredData(meta, vehicles = []) {
   ];
 }
 
+const localRentalModelDefinitions = [
+  { key: 'vinfast-vf3-2025', name: 'VinFast VF3', matches: /\bvf\s*3\b/i },
+  { key: 'vinfast-fadil-2021', name: 'VinFast Fadil', matches: /\bfadil\b/i },
+  { key: 'vinfast-vf5-plus', name: 'VinFast VF5 Plus', matches: /\bvf\s*5\b/i },
+  { key: 'mazda-3-2018', name: 'Mazda 3', matches: /\bmazda\s*3\b/i },
+  { key: 'toyota-raize-2022', name: 'Toyota Raize', matches: /\braize\b/i },
+  { key: 'vinfast-vf6-plus', name: 'VinFast VF6 Plus', matches: /\bvf\s*6\b/i },
+  { key: 'hyundai-creta-2025', name: 'Hyundai Creta', matches: /\bcreta\b/i },
+  { key: 'mitsubishi-xpander-2023', name: 'Mitsubishi Xpander', matches: /\bxpander\b/i },
+  { key: 'vinfast-limo-green-2025', name: 'VinFast Limo Green', matches: /\blimo\s*green\b/i },
+  { key: 'kia-carnival', name: 'Kia Carnival', matches: /\bcarnival\b/i },
+  { key: 'vinfast-vf8-plus-2024', name: 'VinFast VF8 Plus', matches: /\bvf\s*8\b/i },
+];
+
 function localRentalStructuredData(meta, vehicles = [], area) {
   const pricedVehicles = vehicles
     .filter((vehicle) => Number(vehicle.daily_base_price || 0) > 0)
     .sort((a, b) => Number(a.daily_base_price) - Number(b.daily_base_price));
-  const representativeVehicles = [];
-
-  for (const keyword of area.recommendedKeywords) {
-    const match = pricedVehicles.find((vehicle) => (
-      getVehicleName(vehicle).toLowerCase().includes(keyword) &&
-      !representativeVehicles.some((item) => item.slug === vehicle.slug)
-    ));
-    if (match) representativeVehicles.push(match);
-    if (representativeVehicles.length === 3) break;
-  }
-
+  const representativesByModel = new Map();
   for (const vehicle of pricedVehicles) {
-    if (!representativeVehicles.some((item) => item.slug === vehicle.slug)) representativeVehicles.push(vehicle);
-    if (representativeVehicles.length === 3) break;
+    const searchable = `${getVehicleName(vehicle)} ${vehicle.slug || ''}`.replace(/[-_]+/g, ' ');
+    const definition = localRentalModelDefinitions.find((item) => item.matches.test(searchable));
+    if (definition && !representativesByModel.has(definition.key)) {
+      representativesByModel.set(definition.key, { vehicle, definition });
+    }
   }
+  const preferredModelOrder = [
+    ...area.recommendedModels,
+    ...localRentalModelDefinitions.map((item) => item.key).filter((key) => !area.recommendedModels.includes(key)),
+  ];
+  const representativeModels = preferredModelOrder
+    .map((key) => representativesByModel.get(key))
+    .filter(Boolean)
+    .slice(0, 8);
+  const representativeVehicles = representativeModels.map((item) => item.vehicle);
 
   const dailyPrices = representativeVehicles.map((vehicle) => Number(vehicle.daily_base_price));
   const offers = dailyPrices.length > 0
@@ -2753,10 +2769,10 @@ function localRentalStructuredData(meta, vehicles = [], area) {
     : undefined;
   const areaServed = {
     '@type': 'Place',
-    name: area.name,
+    name: area.locationShortName,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: area.locality,
+      addressLocality: area.locationName,
       addressCountry: 'VN',
     },
   };
@@ -2768,37 +2784,33 @@ function localRentalStructuredData(meta, vehicles = [], area) {
       fields: {
         '@id': `${meta.canonical}#collection`,
         about: [
-          { '@type': 'Thing', name: `Thuê xe tự lái ${area.name}` },
-          { '@type': 'Thing', name: `Giao nhận xe tại ${area.locality}` },
+          { '@type': 'Thing', name: `Thuê xe tự lái ${area.locationShortName}` },
+          { '@type': 'Thing', name: `Giao nhận xe tại ${area.locationName}` },
         ],
         areaServed,
         provider: { '@id': `${siteUrl}/#localbusiness` },
         mainEntity: {
           '@type': 'ItemList',
-          name: `Xe tự lái gợi ý tại ${area.name}`,
+          name: `Xe tự lái gợi ý tại ${area.locationShortName}`,
           numberOfItems: representativeVehicles.length,
-          itemListElement: representativeVehicles.map((vehicle, index) => ({
+          itemListElement: representativeModels.map(({ vehicle, definition }, index) => ({
             '@type': 'ListItem',
             position: index + 1,
-            name: getVehicleName(vehicle),
+            name: definition.name,
             url: `${siteUrl}/xe/${vehicle.slug}`,
           })),
         },
       },
     }),
     buildServiceSchema(meta, {
-      serviceType: `Thuê xe tự lái tại ${area.name}`,
+      serviceType: `Thuê xe tự lái tại ${area.locationShortName}`,
       areaServed,
       ...(offers ? { offers } : {}),
     }),
-    buildFAQSchema({
-      title: `FAQ thuê xe tự lái tại ${area.name}`,
-      canonical: meta.canonical,
-    }, area.faqs, seoSchemaConfig),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Thuê xe tự lái', path: '/xe' },
-      { name: area.name, path: area.path },
+      { name: area.locationShortName, path: area.path },
     ]),
   ];
 }
@@ -3013,6 +3025,29 @@ function routeStructuredData(meta, vehicles) {
       { name: 'Trang chủ', path: '/' },
       { name: 'Hợp tác chủ xe', path: '/hop-tac' },
       { name: 'Hợp tác dịp Tết 2027', path: meta.path },
+    ]),
+  ];
+  if (meta.path === '/hop-tac') return [
+    organizationData(),
+    webPageData(meta, {
+      fields: {
+        about: 'Hợp tác với chủ xe có xe nhàn rỗi tại Hà Nội',
+        mainEntity: { '@type': 'Service', '@id': `${meta.canonical}#service` },
+      },
+    }),
+    buildServiceSchema(meta, {
+      serviceType: 'Hợp tác cho thuê ô tô nhàn rỗi tại Hà Nội',
+      name: 'Hợp tác chủ xe Car Match',
+      areaServed: { '@type': 'City', name: 'Hà Nội', addressCountry: 'VN' },
+      fields: {
+        '@id': `${meta.canonical}#service`,
+        provider: { '@id': `${siteUrl}/#organization` },
+        serviceOutput: 'Phương án hợp tác theo tháng hoặc ủy thác theo ngày rảnh',
+      },
+    }, seoSchemaConfig),
+    breadcrumbData([
+      { name: 'Trang chủ', path: '/' },
+      { name: 'Hợp tác chủ xe', path: meta.path },
     ]),
   ];
   const localArea = localRentalAreas.find((area) => area.path === meta.path);

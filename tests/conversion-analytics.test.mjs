@@ -130,6 +130,26 @@ test('buildConversionEventInsert accepts funnel/contact events and strips invali
     experiment_id: 'vehicle-detail-cta-trust-v1',
     variant_id: 'price-trust',
   });
+
+  for (const [index, eventName] of [
+    'cm_partner_mode_select',
+    'cm_partner_calculator_use',
+    'cm_partner_document_open',
+    'cm_partner_form_open',
+    'cm_partner_vehicle_assessed',
+  ].entries()) {
+    const partnerEvent = buildConversionEventInsert({
+      companyId: '11111111-1111-4111-8111-111111111111',
+      body: {
+        event_id: `cme_partner_${String(index).padStart(2, '0')}_123456789012`,
+        event_name: eventName,
+        page_path: '/hop-tac',
+        attribution: { session_id: 'cms_123456789012' },
+        metadata: { lead_source: 'partner' },
+      },
+    });
+    assert.equal(partnerEvent.event_name, eventName);
+  }
 });
 
 test('buildLeadStatusUpdate preserves first response and records lost reason', () => {

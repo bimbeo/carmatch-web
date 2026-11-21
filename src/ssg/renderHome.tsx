@@ -7,7 +7,7 @@ import B2B from '../app/pages/B2B';
 import ElectricRental from '../app/pages/ElectricRental';
 import SevenSeatRental from '../app/pages/SevenSeatRental';
 import LocalRental from '../app/pages/LocalRental';
-import type { LocalRentalAreaSlug } from '../data/localRentalAreas';
+import type { LocalHubSlug } from '../data/localHubsData';
 import Contact from '../app/pages/Contact';
 import About from '../app/pages/About';
 import Partner from '../app/pages/Partner';
@@ -98,7 +98,7 @@ export function renderSevenSeatRental(vehicles: unknown[]) {
   }
 }
 
-export function renderLocalRental(areaSlug: LocalRentalAreaSlug, routePath: string, vehicles: unknown[]) {
+export function renderLocalRental(areaSlug: LocalHubSlug, routePath: string, vehicles: unknown[]) {
   globalThis.__CM_INITIAL_VEHICLES__ = vehicles as typeof globalThis.__CM_INITIAL_VEHICLES__;
 
   try {

@@ -59,12 +59,11 @@ export async function submitLead(payload: LeadPayload): Promise<LeadSubmitResult
   const timeout = window.setTimeout(() => controller.abort(), 12_000);
   try {
     const note = [payload.note, buildLeadContext()].filter(Boolean).join('\n\n');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (payload.idempotency_key) headers['Idempotency-Key'] = payload.idempotency_key;
     const res = await fetch('/api/leads', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(payload.idempotency_key ? { 'Idempotency-Key': payload.idempotency_key } : {}),
-      },
+      headers,
       body: JSON.stringify({ ...payload, note }),
       signal: controller.signal,
     });
