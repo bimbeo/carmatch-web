@@ -40,7 +40,10 @@ export default function Partner() {
     'pattern=".{9,18}"',
   ).replace(
     '<a aria-label="Car Match, về trang chủ" class="logo" href="https://www.carmatch.vn/"><span class="logo-mark">C</span>Car <strong>Match</strong></a>',
-    '<a aria-label="Car Match, về trang chủ" class="logo" href="https://www.carmatch.vn/"><img class="partner-logo-image" src="/brand/carmatch-partner-lockup.png" alt="Car Match" width="150" height="43" /></a>',
+    '<a aria-label="Car Match, về trang chủ" class="logo" href="https://www.carmatch.vn/"><img class="partner-logo-image" src="/brand/carmatch-lockup-navy.png" alt="Car Match" width="288" height="66" /></a>',
+  ).replace(
+    '<a class="logo" href="https://www.carmatch.vn/"><span class="logo-mark">C</span>Car <strong>Match</strong></a>',
+    '<a aria-label="Car Match, về trang chủ" class="logo" href="https://www.carmatch.vn/"><img class="partner-logo-image" src="/brand/carmatch-lockup-white.png" alt="Car Match" width="288" height="66" decoding="async" loading="lazy" /></a>',
   );
   previewMarkup = previewMarkup
     .replace(/<div aria-label="Vị trí ảnh quy trình vận hành Car Match" class="proof-gallery">[\s\S]*?<div class="document-teaser">/, '<div class="document-teaser">')

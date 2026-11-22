@@ -37,10 +37,7 @@
 
 .table-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
 
-/* The preview uses the approved Car Match lockup, not a text approximation. */
-.partner-preview-root .nav .logo{font-size:0;gap:0}
-.partner-preview-root .footer .logo{font-size:23px;gap:9px}
-.partner-preview-root .partner-logo-image{display:block;width:150px;height:43px;object-fit:contain}
+.partner-preview-root .partner-logo-image{display:block;width:157px;height:auto}
 .partner-preview-root .hero h1{font-weight:820}
 .partner-preview-root h3{font-weight:750}
 .partner-preview-root .hero-media{isolation:isolate}
@@ -61,7 +58,7 @@
 .calc-explainer{margin-top:15px;padding:14px 16px;border:1px solid #dce8e0;border-radius:13px;background:#f6faf7;color:#526d62;font-size:12px;line-height:1.55;display:grid;gap:7px}
 .calc-explainer p{margin:0}.calc-explainer b{color:var(--ink)}
 .direct-contact{display:flex;gap:9px;flex-wrap:wrap}.direct-contact .btn{flex:1}
-@media(max-width:760px){.partner-preview-root .partner-logo-image{width:126px;height:36px}}
+@media(max-width:760px){.partner-preview-root .partner-logo-image{width:138px}}
 @media(max-width:800px){.responsibility-grid,.prep-list{grid-template-columns:1fr}.responsibility-card,.prep-list li{padding:19px}}
 @media(max-width:760px){.direct-contact{flex-direction:column}.direct-contact .btn{width:100%}}
 
