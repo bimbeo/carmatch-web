@@ -45,12 +45,14 @@ const desktopNavHrefs = new Set([
   '/blog',
 ]);
 
-export default function Navbar() {
+export default function Navbar({ collapseAtLg = false }: { collapseAtLg?: boolean }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [session, setSession] = useState<Session | null>(getStoredSession);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const location = useLocation();
+  const desktopDisplay = collapseAtLg ? 'hidden lg:flex' : 'hidden md:flex';
+  const mobileDisplay = collapseAtLg ? 'lg:hidden' : 'md:hidden';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -103,7 +105,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-6 lg:gap-8">
+          <div className={`${desktopDisplay} items-center gap-6 lg:gap-8`}>
             {navLinks.filter(link => desktopNavHrefs.has(link.href)).map((link) => {
               const className = `text-sm font-medium transition-colors ${
                 location.pathname === link.href
@@ -124,7 +126,7 @@ export default function Navbar() {
           </div>
 
           {/* CTA */}
-          <div className="hidden md:flex items-center gap-3" suppressHydrationWarning>
+          <div className={`${desktopDisplay} items-center gap-3`} suppressHydrationWarning>
             {session ? (
               <Link
                 to="/tai-khoan"
@@ -179,7 +181,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className={`${mobileDisplay} text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors`}
             aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
@@ -191,7 +193,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div id="mobile-navigation" className="md:hidden bg-white border-t border-gray-100">
+        <div id="mobile-navigation" className={`${mobileDisplay} bg-white border-t border-gray-100`}>
           <div className="px-4 py-3 space-y-1">
             {navLinks.filter(l => l.href !== '/tai-khoan').map((link) => {
               const className = `block px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${

@@ -56,11 +56,12 @@ test('local area data contains five distinct, confirmed service-area pages', asy
 test('shared local page derives prices from the catalog and makes availability conditional', async () => {
   const source = await readFile(PAGE_PATH, 'utf8');
 
-  assert.match(source, /catalog\.filter\(\(car\) => car\.price > 0\)/);
+  assert.match(source, /selectLocalRentalCars\(catalog, hub\.recommendedModels\)/);
   assert.match(source, /Math\.min\(\.\.\.representativeCars\.map\(\(car\) => car\.price\)\)/);
-  assert.match(source, /Lịch, tổng tiền và điểm giao nhận chỉ được chốt sau khi Car Match kiểm tra/);
-  assert.match(source, /Thuê xe tự lái tại \{area\.name\}/);
-  assert.match(source, /localRentalAreas\.map/);
+  assert.match(source, /Lịch xe và tổng tiền được kiểm tra theo ngày giờ bạn chọn/);
+  assert.match(source, /Thuê xe tự lái \{area\.name\}/);
+  assert.match(source, /nearbyAreas\.map/);
+  assert.match(source, /localRentalAreas\.filter/);
   assert.doesNotMatch(source, /luôn (còn|trống)|InStock|LimitedAvailability/i);
 });
 
@@ -77,13 +78,13 @@ test('local pages are prerendered with catalog data and receive local schemas', 
     readFile(AUDIT_PATH, 'utf8'),
   ]);
 
-  assert.match(ssg, /export function renderLocalRental\(areaSlug: LocalRentalAreaSlug, routePath: string, vehicles: unknown\[\]\)/);
+  assert.match(ssg, /export function renderLocalRental\(areaSlug: LocalHubSlug, routePath: string, vehicles: unknown\[\]\)/);
   assert.match(generator, /async function renderReactLocalRoot\(area, vehicles\)/);
   assert.match(generator, /prerenderedLocalRoots\.set\(area\.path, await renderReactLocalRoot\(area, vehicles\)\)/);
   assert.match(generator, /function localRentalStructuredData\(meta, vehicles = \[\], area\)/);
   assert.match(generator, /localBusinessData\(\)/);
   assert.match(generator, /buildServiceSchema/);
-  assert.match(generator, /buildFAQSchema/);
+  assert.match(generator, /buildFAQSchema\(meta, area\.faqs, seoSchemaConfig\)/);
   assert.match(generator, /breadcrumbData/);
   assert.match(audit, /localRentalRoutePaths\.has\(routePath\)/);
 });

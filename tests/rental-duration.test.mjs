@@ -38,6 +38,11 @@ test('morning pickup through next morning counts and charges 1.5 days', () => {
   assert.equal(formatRentalBillingDays(units.billingDays), '1,5 ngày');
 });
 
+test('08:00 through 11:00 next day counts and charges 1.5 days', () => {
+  const units = calculateRentalPricingUnits('2026-11-17', 8, '2026-11-18', 11);
+  assert.deepEqual(units, { billingDays: 1.5, priceDays: 1.5 });
+});
+
 test('morning pickup through 20:00 next day counts two days', () => {
   assert.deepEqual(
     calculateRentalPricingUnits('2026-11-11', 8, '2026-11-12', 20),
@@ -91,6 +96,7 @@ test('a longer evening rental uses its displayed 1.5-day multiplier', () => {
 
 test('booking API charges the correct amount for the requested examples', () => {
   const dailyPrice = 1_000_000;
+  assert.equal(calculateRentalAmount('2026-11-17', 8, '2026-11-18', 11, dailyPrice), 1_500_000);
   assert.equal(calculateRentalAmount('2026-11-11', 8, '2026-11-12', 8, dailyPrice), 1_500_000);
   assert.equal(calculateRentalAmount('2026-11-11', 8, '2026-11-12', 20, dailyPrice), 2_000_000);
   assert.equal(calculateRentalAmount('2026-11-11', 13, '2026-11-12', 8, dailyPrice), 1_000_000);
@@ -99,6 +105,7 @@ test('booking API charges the correct amount for the requested examples', () => 
 
 test('frontend and booking API use the same pricing matrix', () => {
   const cases = [
+    ['2026-11-17', 8, '2026-11-18', 11],
     ['2026-11-11', 8, '2026-11-12', 8],
     ['2026-11-11', 8, '2026-11-12', 20],
     ['2026-11-11', 13, '2026-11-12', 8],

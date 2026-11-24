@@ -282,6 +282,7 @@ function mapToCar(v: SupabaseVehicle): Car {
     color: v.color?.trim() || undefined,
     name: v.display_name || `${make} ${model}`.trim() || 'Xe',
     brand: make,
+    model: [make, model].filter(Boolean).join(' '),
     price: v.daily_base_price || 0,
     priceMonth: v.monthly_sale_price || undefined,
     seats,

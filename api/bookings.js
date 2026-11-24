@@ -1325,6 +1325,7 @@ export default async function handler(req, res) {
     `Nhận: ${pickupText}`,
     `Trả: ${returnText}`,
     locationName ? `Địa điểm: ${locationName}` : '',
+    body.return_address ? `Địa chỉ trả xe: ${String(body.return_address).slice(0, 300)}` : '',
     `Tổng dự kiến: ${totalAmount.toLocaleString('vi-VN')}đ`,
     holidayComboSnapshot
       ? `Mức tăng combo lễ: +${Number(holidayComboSnapshot.combo_adjustment_value).toLocaleString('vi-VN')}đ/ngày × ${holidayComboSnapshot.combo_days} ngày`
@@ -1336,8 +1337,8 @@ export default async function handler(req, res) {
         : deliveryDirection === 'roundtrip' ? 'Chiều giao nhận: Hai chiều' : '',
     deliveryFee > 0 ? `Phí giao nhận xe: ${deliveryFee.toLocaleString('vi-VN')}đ` : '',
     requiresConfirmation
-      ? `Cọc dự kiến sau khi xác nhận lịch: ${depositAmount.toLocaleString('vi-VN')}đ`
-      : `Cọc VietQR: ${depositAmount.toLocaleString('vi-VN')}đ`,
+      ? `Cọc giữ lịch dự kiến sau khi xác nhận: ${depositAmount.toLocaleString('vi-VN')}đ`
+      : `Cọc giữ lịch VietQR: ${depositAmount.toLocaleString('vi-VN')}đ`,
     loyaltyDiscount > 0 ? `Ưu đãi ${body.loyalty_tier === 'vip' ? 'VIP' : 'khách thân thiết'}: -${loyaltyDiscount.toLocaleString('vi-VN')}đ` : '',
     appliedPromoCode ? `Mã KM: ${appliedPromoCode} (-${promoDiscount.toLocaleString('vi-VN')}đ)` : '',
     availabilityCheckUnavailable
@@ -1503,10 +1504,10 @@ export default async function handler(req, res) {
   // Gửi email xác nhận nếu khách cung cấp email (fire-and-forget)
   const customerEmail = body.customer_email || null;
   if (customerEmail && process.env.RESEND_API_KEY) {
-    const subject = `[Car Match] Xác nhận đặt xe ${bookingRef}`;
+    const subject = `[Car Match] Đã nhận yêu cầu đặt xe ${bookingRef}`;
     const htmlBody = `
       <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1e293b">
-        <h2 style="color:#0891b2">✅ Đặt xe thành công!</h2>
+        <h2 style="color:#0891b2">✅ Car Match đã nhận yêu cầu đặt xe</h2>
         <p>Mã booking: <strong style="color:#2563eb">${bookingRef}</strong></p>
         <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0">
           <tr><td style="padding:6px 0;color:#64748b">Xe</td><td style="padding:6px 0;font-weight:600">${body.car_name}</td></tr>
@@ -1516,8 +1517,8 @@ export default async function handler(req, res) {
           <tr><td style="padding:6px 0;color:#64748b">Còn lại khi nhận xe</td><td style="padding:6px 0;font-weight:600;color:#dc2626">${(totalAmount - depositAmount).toLocaleString('vi-VN')}đ</td></tr>
         </table>
         <p style="font-size:13px;color:#64748b">
-          Car Match sẽ liên hệ xác nhận trong vòng 30 phút.<br>
-          Hotline: <strong>0971 593 290</strong>
+          Car Match sẽ kiểm tra lịch, giá và cách giao nhận rồi liên hệ xác nhận. Yêu cầu này chưa phải booking đã được xác nhận.<br>
+          Hotline: <strong>0971 163 290</strong>
         </p>
         <p style="font-size:12px;color:#94a3b8">Lưu mã booking để tra cứu: <strong>${bookingRef}</strong></p>
       </div>
@@ -1565,6 +1566,7 @@ export default async function handler(req, res) {
     holdExpiresAt: reservationId ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null,
     paymentRequired: !requiresConfirmation,
     requiresConfirmation,
+    bookingStatus: requiresConfirmation ? 'request_submitted' : 'held_pending_confirmation',
   };
   if (idempotency.id) {
     await supabase.from('api_idempotency_keys').update({

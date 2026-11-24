@@ -132,7 +132,7 @@ test('booking CRO claims require verified data and preserve the trip note', asyn
   assert.match(booking, /customerNote\?: string/);
   assert.match(booking, /requestedCustomerNote/);
   assert.match(booking, /Tổng tạm tính/);
-  assert.match(booking, /phụ phí giao nhận chỉ là tạm tính/);
+  assert.match(booking, /Phí giao nhận sẽ được xác nhận theo địa chỉ/);
   assert.match(availability, /\.eq\('status', 'confirmed'\)/);
   assert.match(availability, /timePrecision: 'exact'/);
 });
