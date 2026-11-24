@@ -108,7 +108,8 @@ test('hub reuses the booking widget pickup locations instead of asserting extra 
     readFile(PAGE_PATH, 'utf8'),
     readFile(BOOKING_PATH, 'utf8'),
   ]);
-  const areasBlock = booking.slice(booking.indexOf('export const BOOKING_PICKUP_LOCATIONS'), booking.indexOf('function getInitialDeliverySelection'));
+  const areasBlock = await readFile(new URL('../src/data/bookingPickupLocations.ts', import.meta.url), 'utf8');
+  assert.match(booking, /pickupLocations = BOOKING_PICKUP_LOCATIONS/);
 
   for (const area of [
     'Ocean Park',

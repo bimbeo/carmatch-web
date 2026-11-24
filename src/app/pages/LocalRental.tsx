@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import {
   ArrowRight,
@@ -20,15 +20,15 @@ import {
 import { formatPrice } from '@/data/cars';
 import {
   getLocalRentalArea,
-  localRentalAreas,
   type LocalRentalAreaSlug,
 } from '@/data/localRentalAreas';
 import { useVehicles } from '@/hooks/useVehicles';
 import { useSEO } from '@/hooks/useSEO';
-import { trackCtaClick, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
+import { trackCtaClick, trackLocalRentalEvent, trackPhoneClick, trackZaloClick } from '@/lib/analytics';
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import { vehicleImageAlt } from '@/lib/imageAlt';
-import { getLocalHubData, LOCAL_RENTAL_HERO_POINTS } from '@/data/localHubsData';
+import { getLocalHubData } from '@/data/localHubsData';
+import { BOOKING_PICKUP_LOCATIONS } from '@/data/bookingPickupLocations';
 import { localRentalModelKey, selectLocalRentalCars } from '@/data/localRentalFleet.ts';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -47,13 +47,9 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
   const area = getLocalRentalArea(areaSlug);
   if (!area) throw new Error(`Unknown local rental area: ${areaSlug}`);
 
-  useSEO({
-    title: area.seoTitle,
-    description: area.description,
-    canonical: `${SITE_URL}${area.path}`,
-  });
-
   const hub = getLocalHubData(area.slug);
+  const localPickup = BOOKING_PICKUP_LOCATIONS.find((location) => location.id === hub.selfPickupId);
+  const areaMapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${area.name}, ${area.slug === 'ecopark' ? 'Hưng Yên' : 'Hà Nội'}`)}`;
   const { cars: catalog, loading } = useVehicles();
   const representativeCars = useMemo(() => selectLocalRentalCars(catalog, hub.recommendedModels), [catalog, hub]);
   const [fleetFilter, setFleetFilter] = useState<'all' | 'electric' | 'five-seat' | 'seven-seat'>('all');
@@ -72,15 +68,37 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
     ? Math.min(...representativeCars.map((car) => car.price))
     : null;
   const heroCar = representativeCars.find((car) => car.images[0]);
-  const nearbyAreas = localRentalAreas.filter((item) => item.slug !== area.slug);
+  useSEO({
+    title: area.seoTitle,
+    description: area.description,
+    canonical: `${SITE_URL}${area.path}`,
+    ogImage: heroCar ? new URL(heroCar.images[0], SITE_URL).href : undefined,
+    ogImageAlt: heroCar ? `${heroCar.name} trong danh mục thuê xe Car Match` : undefined,
+  });
+  const nearbyAreas = area.nearbySlugs.flatMap((slug) => {
+    const nearbyArea = getLocalRentalArea(slug);
+    return nearbyArea ? [nearbyArea] : [];
+  });
   const source = `local_${area.slug.replace(/-/g, '_')}`;
+  const hasTrackedView = useRef(false);
+  const selectedVehicleId = selectedCar?.id;
+  useEffect(() => {
+    if (hasTrackedView.current) return;
+    hasTrackedView.current = true;
+    trackLocalRentalEvent('area_landing_view', areaSlug, selectedVehicleId);
+  }, [areaSlug, selectedVehicleId]);
   const zaloHref = `${ZALO_LINK}?text=${encodeURIComponent(
     `Tôi muốn thuê xe tự lái tại ${area.name}. Nhờ Car Match kiểm tra xe, lịch và điểm giao nhận phù hợp.`,
   )}`;
   const handleSelectCar = (carId: string) => {
     setSelectedCarId(carId);
     trackCtaClick(`${source}_vehicle_select`, { vehicle_id: carId });
+    trackLocalRentalEvent('vehicle_select', areaSlug, carId);
     window.requestAnimationFrame(() => document.getElementById('booking-tool')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  const handleZalo = (placement: 'hero' | 'faq') => {
+    trackZaloClick(`${source}_${placement}`, { area_slug: areaSlug, vehicle_id: selectedVehicleId });
+    trackLocalRentalEvent('zalo_click', areaSlug, selectedVehicleId, placement);
   };
 
   return (
@@ -101,20 +119,13 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
             <div className="grid items-center gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14">
               <div>
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-3.5 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-brand-700 shadow-sm">
-                  <MapPin className="h-4 w-4" /> {area.locality}
+                  <MapPin className="h-4 w-4 shrink-0" /> Khu vực {area.shortName} · {area.slug === 'ecopark' ? 'Hưng Yên' : 'Hà Nội'}
                 </div>
                 <h1 className="max-w-3xl text-[2.65rem] font-black leading-[1.06] tracking-[-0.045em] sm:text-6xl lg:text-[4.15rem]">
                   Thuê xe tự lái {area.name}{area.slug === 'ecopark' ? ', Hưng Yên' : ', Hà Nội'}
                 </h1>
-                <p className="mt-4 text-2xl font-black tracking-[-0.03em] text-brand-700 sm:text-3xl">Chọn xe dễ dàng. Giao nhận thuận tiện.</p>
+                <div className="mt-4 text-2xl font-black tracking-[-0.03em] text-brand-700 sm:text-3xl">{area.heroSubhead}</div>
                 <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">{area.heroAnswer}</p>
-                <div className="mt-6 flex flex-wrap gap-2.5 text-sm font-semibold text-slate-700">
-                  {LOCAL_RENTAL_HERO_POINTS.map((item) => (
-                    <span key={item} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" /> {item}
-                    </span>
-                  ))}
-                </div>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <a
                     href="#xe-goi-y"
@@ -127,7 +138,7 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
                     href={zaloHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => trackZaloClick(`${source}_hero`)}
+                    onClick={() => handleZalo('hero')}
                     className="inline-flex min-h-13 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-bold text-brand-800 transition hover:border-brand-300 hover:bg-brand-50"
                   >
                     <MessageCircle className="h-4 w-4" /> Tư vấn xe phù hợp
@@ -150,7 +161,7 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
                       className="aspect-[4/3] h-full w-full object-cover"
                     />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent p-6 pt-20 text-white sm:p-8">
-                      <p className="text-sm font-semibold text-blue-100">Xe gợi ý tại {area.shortName}</p>
+                      <p className="text-sm font-semibold text-blue-100">Mẫu xe trong danh mục Car Match</p>
                       <div className="mt-1 flex items-end justify-between gap-4">
                         <div>
                           <p className="text-2xl font-black">{heroCar.name}</p>
@@ -167,16 +178,16 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
             <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:grid-cols-3 lg:mt-16">
               <div className="bg-white p-5">
                 <p className="flex items-center gap-2 text-sm font-semibold text-slate-500"><Car className="h-4 w-4 text-brand-600" /> Danh mục xe 4–7 chỗ</p>
-                <p className="mt-1 text-2xl font-black">{fleetModelCount} mẫu trong danh mục Car Match</p>
+                <p className="mt-1 text-2xl font-black">{fleetModelCount ? `${fleetModelCount} dòng xe trên toàn hệ thống` : 'Xem danh mục xe'}</p>
               </div>
               <div className="bg-white p-5">
-                <p className="flex items-center gap-2 text-sm font-semibold text-slate-500"><Gauge className="h-4 w-4 text-brand-600" /> Giá niêm yết từ</p>
+                <p className="flex items-center gap-2 text-sm font-semibold text-slate-500"><Gauge className="h-4 w-4 text-brand-600" /> Giá thuê xe từ</p>
                 <p className="mt-1 text-2xl font-black">{startingPrice ? `${formatPrice(startingPrice)}/ngày` : 'Kiểm tra theo lịch'}</p>
-                <p className="mt-1 text-xs text-slate-500">Chưa gồm phụ phí hoặc giá cao điểm nếu có</p>
+                <p className="mt-1 text-xs text-slate-500">Giá mẫu gợi ý, chưa gồm phí giao nhận và phụ phí theo lựa chọn.</p>
               </div>
               <div className="bg-white p-5">
                 <p className="flex items-center gap-2 text-sm font-semibold text-slate-500"><Clock3 className="h-4 w-4 text-brand-600" /> Điểm giao nhận</p>
-                <p className="mt-1 text-xl font-black">Chọn điểm nhận hoặc yêu cầu giao tận nơi</p>
+                <p className="mt-1 text-xl font-black">{localPickup ? `Tự nhận tại ${localPickup.name} hoặc hẹn giao` : 'Hẹn giao xe theo địa chỉ'}</p>
               </div>
             </div>
           </div>
@@ -190,7 +201,7 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
               <div className="max-w-3xl">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Xe phù hợp cho khách khu vực</p>
                 <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Chọn xe tự lái tại {area.shortName}</h2>
-                <p className="mt-4 text-slate-600">{`So sánh ${representativeCars.length} mẫu xe gợi ý theo số ghế, nhiên liệu và giá niêm yết. Lịch xe và tổng tiền được kiểm tra theo ngày giờ bạn chọn. Giá tham khảo, có thể thay đổi theo thời điểm thuê và điều kiện áp dụng.`}</p>
+                <p className="mt-4 text-slate-600">So sánh theo số ghế, nhiên liệu và giá ngày. Chọn một mẫu để kiểm tra lịch và tính chi phí cho chuyến đi.</p>
               </div>
               <Link
                 to="/xe"
@@ -272,7 +283,8 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
         {selectedCar && (
           <LocalRentalPlanner
             area={area}
-            preferredPickupId={hub.selfPickupId}
+            preferredPickupId={localPickup?.id}
+            pickupOrderHint={hub.hubSlug}
             cars={representativeCars}
             source={source}
             selectedCarId={selectedCar.id}
@@ -286,18 +298,10 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blue-200">Giao nhận xe tại {area.shortName}</p>
               <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] sm:text-4xl">Hẹn đúng điểm, nhận xe thuận tiện</h2>
               <p className="mt-5 leading-7 text-slate-300">{area.pickupNote}</p>
-              <div className="mt-7 rounded-2xl border border-white/10 bg-white/10 p-5">
-                <p className="flex items-center gap-2 font-black"><MapPin className="h-5 w-5 text-blue-200" /> Vị trí cần đối chiếu</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{area.locationNote}</p>
+              <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-blue-200">
+                {localPickup?.mapUrl && <a href={localPickup.mapUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline underline-offset-4"><MapPin className="h-4 w-4" /> Bản đồ điểm tự nhận {localPickup.name}</a>}
+                <a href={areaMapHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline underline-offset-4"><MapPin className="h-4 w-4" /> Bản đồ khu vực {area.shortName}</a>
               </div>
-              <ul className="mt-5 space-y-2 text-sm leading-6 text-slate-300">
-                {area.localContexts.map(({ title, description }) => (
-                  <li key={title} className="flex gap-2">
-                    <CheckCircle2 className="mt-1 h-4 w-4 flex-none text-blue-200" />
-                    <span><strong className="text-white">{title}.</strong> {description}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
@@ -344,7 +348,6 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
             <div>
               <FileCheck2 className="h-10 w-10 text-orange-400" />
               <h2 className="mt-4 text-3xl font-black tracking-tight">Giấy tờ và điều kiện cần kiểm tra trước khi thuê</h2>
-              <p className="mt-4 max-w-3xl leading-7 text-slate-300">Điều kiện thuê, cọc và phụ phí có thể khác nhau theo từng xe. Kiểm tra thông tin được báo trước khi xác nhận.</p>
               <ul className="mt-6 space-y-3 text-slate-300">
                 {[
                   'Giấy tờ định danh và giấy phép lái xe phù hợp theo chính sách của từng xe.',
@@ -376,8 +379,8 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
               <aside className="h-fit rounded-[1.75rem] border border-slate-200 bg-[#f4f5f9] p-6 sm:p-8">
                 <span className="inline-flex rounded-xl bg-white p-2.5 text-brand-700 shadow-sm"><MessageCircle className="h-6 w-6" /></span>
                 <h3 className="mt-5 text-2xl font-black">Chưa biết chọn xe nào?</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">Gửi số người, hành lý, tuyến đi, ngày giờ và địa chỉ nhận. Car Match sẽ kiểm tra các phương án để bạn đối chiếu.</p>
-                <a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick(`${source}_faq`)} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-bold text-white hover:bg-brand-700">
+                  <p className="mt-3 text-sm leading-6 text-slate-600">Gửi số người, hành lý và nơi đến để được tư vấn mẫu phù hợp.</p>
+                  <a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => handleZalo('faq')} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-bold text-white hover:bg-brand-700">
                   Tư vấn trên Zalo <ArrowRight className="h-4 w-4" />
                 </a>
                 <a href={PHONE_LINK} onClick={() => trackPhoneClick(`${source}_faq`)} className="mt-3 inline-flex min-h-11 items-center gap-2 font-bold text-brand-700"><Phone className="h-4 w-4" /> 0971 163 290</a>
@@ -390,13 +393,10 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid items-center gap-8 overflow-hidden rounded-[2rem] bg-[#10163f] p-7 text-white shadow-[0_28px_75px_rgba(15,23,42,0.2)] sm:p-10 lg:grid-cols-[1fr_auto] lg:p-12">
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blue-200">Bước tiếp theo</p>
-                <h2 className="mt-3 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Đã chọn được xe? Gửi lịch thuê để Car Match kiểm tra.</h2>
-                <p className="mt-3 max-w-2xl leading-7 text-slate-300">Gửi ngày giờ, địa chỉ tại {area.shortName}, số người và hành lý. Car Match kiểm tra lịch xe, tổng chi phí, cọc và điều kiện giao nhận trước khi xác nhận.</p>
+                <h2 className="text-3xl font-black tracking-[-0.035em] sm:text-4xl">Đã có lịch cho chuyến đi?</h2>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                <a href="#booking-tool" onClick={() => trackCtaClick(`${source}_final_booking`, { target_path: '#booking-tool' })} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-bold text-brand-900 hover:bg-blue-50"><CalendarCheck2 className="h-4 w-4" /> Gửi yêu cầu thuê xe</a>
-                <a href={zaloHref} target="_blank" rel="noopener noreferrer" onClick={() => trackZaloClick(`${source}_final`)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 px-6 py-3 font-bold text-white hover:bg-white/10"><MessageCircle className="h-4 w-4" /> Nhắn Zalo để được tư vấn</a>
+                  <a href={selectedCar ? '#booking-tool' : '#xe-goi-y'} onClick={() => trackCtaClick(`${source}_final_booking`)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-bold text-brand-900 hover:bg-blue-50"><CalendarCheck2 className="h-4 w-4" /> Xem xe &amp; chọn lịch</a>
               </div>
             </div>
           </div>
@@ -409,7 +409,7 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Khu vực giao nhận khác</p>
                 <h2 className="mt-2 text-2xl font-black">Thuê xe tại các khu vực lân cận</h2>
               </div>
-              <Link to="/" className="inline-flex items-center gap-2 font-black text-brand-700">Dịch vụ thuê xe Hà Nội <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/#khu-vuc-giao-xe" className="inline-flex items-center gap-2 font-black text-brand-700">Xem tất cả khu vực giao xe <ArrowRight className="h-4 w-4" /></Link>
             </div>
             <nav aria-label="Các khu vực giao xe" className="mt-6 flex flex-wrap gap-2">
               {nearbyAreas.map((item) => (

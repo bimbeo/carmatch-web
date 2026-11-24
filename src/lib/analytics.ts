@@ -150,6 +150,30 @@ export function trackCtaClick(cta: string, payload: AnalyticsPayload = {}) {
   });
 }
 
+type LocalRentalEvent =
+  | 'area_landing_view'
+  | 'vehicle_select'
+  | 'pickup_option_select'
+  | 'booking_start'
+  | 'booking_request_success'
+  | 'booking_error'
+  | 'zalo_click';
+
+export function trackLocalRentalEvent(
+  event: LocalRentalEvent,
+  areaSlug: string,
+  vehicleId?: string,
+  detail?: string,
+) {
+  if (typeof window === 'undefined') return;
+  trackEvent(event, {
+    area_slug: areaSlug,
+    vehicle_id: vehicleId ?? null,
+    page_location: `${window.location.origin}${window.location.pathname}`,
+    detail,
+  });
+}
+
 export function trackZaloClick(source: string, payload: AnalyticsPayload = {}) {
   const contactPayload = {
     source,

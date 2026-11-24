@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Fuel, Gauge, Settings, ShieldCheck, Users } from 'lucide-react';
 import { formatPrice, type Car } from '@/data/cars';
+import { LATE_RETURN_FEE_PER_HOUR } from '@/lib/rentalDuration';
 import { trackCtaClick } from '@/lib/analytics';
 import type { LocalRentalArea } from '@/data/localRentalAreas';
+import { BOOKING_PICKUP_LOCATIONS } from '@/data/bookingPickupLocations';
 import BookingWidget, {
   type BookingAvailabilityStatus,
   type BookingOpenRequest,
@@ -16,6 +18,7 @@ interface AreaProps {
 
 interface PlannerProps extends AreaProps {
   preferredPickupId?: string;
+  pickupOrderHint: string;
   cars: Car[];
   source: string;
   selectedCarId: string;
@@ -90,7 +93,7 @@ function SelectedVehicleMainInfo({ car }: { car: Car }) {
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between gap-4"><dt className="text-slate-600">Số km đã gồm</dt><dd className="font-black text-slate-950">{car.kmPerDay} km/ngày</dd></div>
             <div className="flex items-center justify-between gap-4"><dt className="text-slate-600">Phí vượt km</dt><dd className="font-black text-slate-950">{formatPrice(car.kmSurcharge)}/km</dd></div>
-            <div className="flex items-center justify-between gap-4"><dt className="flex items-center gap-1.5 text-slate-600"><Clock3 className="h-4 w-4" /> Trả xe trễ</dt><dd className="font-black text-slate-950">100.000đ/giờ</dd></div>
+            <div className="flex items-center justify-between gap-4"><dt className="flex items-center gap-1.5 text-slate-600"><Clock3 className="h-4 w-4" /> Trả xe trễ</dt><dd className="font-black text-slate-950">{formatPrice(LATE_RETURN_FEE_PER_HOUR)}/giờ</dd></div>
           </dl>
           <p className="mt-5 text-xs leading-5 text-slate-500">Phí giao nhận và nhiên liệu hoặc sạc được tính riêng theo lựa chọn thực tế và xác nhận trước khi booking được chốt.</p>
         </div>
@@ -100,6 +103,7 @@ function SelectedVehicleMainInfo({ car }: { car: Car }) {
 }
 
 export function LocalRentalQuickAnswer({ area }: AreaProps) {
+  const [vehicleTip, ...handoverTips] = area.localContexts;
   return (
     <section className="border-b border-slate-200 bg-white py-10 sm:py-14" aria-label="Thông tin thuê xe nhanh">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -118,51 +122,43 @@ export function LocalRentalQuickAnswer({ area }: AreaProps) {
         </nav>
         <div className="grid overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#f7f8fb] shadow-[0_16px_45px_rgba(15,23,42,0.06)] lg:grid-cols-[1.2fr_0.8fr]">
           <div className="p-6 sm:p-8 lg:p-10">
-            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-brand-700">Thông tin thuê xe tại {area.shortName}</p>
-            <h2 className="mt-3 max-w-2xl text-2xl font-black tracking-[-0.025em] text-slate-950 sm:text-3xl">
-              Thuê xe tại {area.shortName} cần biết gì?
+            <h2 className="max-w-2xl text-2xl font-black tracking-[-0.025em] text-slate-950 sm:text-3xl">
+              Nhận xe tại {area.shortName}: thông tin cần biết
             </h2>
-            <p className="mt-4 max-w-3xl leading-7 text-slate-700">
-              Bạn có thể chọn xe và ngày giờ ngay trên trang. Car Match kiểm tra lịch của xe, báo tổng chi phí và thống nhất điểm bàn giao theo địa chỉ bạn cung cấp trước khi xác nhận đơn.
-            </p>
+            <h3 className="mt-4 text-sm font-bold text-brand-700">{vehicleTip.title}</h3>
+            <p className="mt-2 max-w-3xl leading-7 text-slate-700">{vehicleTip.description}</p>
           </div>
           <div className="bg-[#10163f] p-6 text-white sm:p-8 lg:p-10">
-            <p className="text-sm font-bold text-blue-200">Thông tin cần có</p>
-            <div className="mt-5 space-y-4 text-sm text-slate-200">
-              {['Ngày & giờ nhận/trả', 'Điểm nhận xe', 'Số người và hành lý'].map((text) => (
-                <p key={text} className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-blue-300" />{text}</p>
+            <div className="space-y-4 text-sm text-slate-200">
+              {handoverTips.map(({ title, description }) => (
+                <div key={title}>
+                  <h3 className="font-bold text-blue-200">{title}</h3>
+                  <p className="mt-1 leading-6">{description}</p>
+                </div>
               ))}
             </div>
-            <a href="#xe-goi-y" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 font-bold text-brand-900 transition hover:bg-blue-50">
-              Chọn xe và tính tiền thuê <ArrowRight className="h-4 w-4" />
-            </a>
           </div>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {[
-            [Gauge, 'Đa dạng xe tự động', 'So sánh theo số ghế, nhiên liệu và giá niêm yết'],
-            [ShieldCheck, 'Giấy tờ theo chính sách thuê', 'Giấy tờ định danh, giấy phép lái xe phù hợp và tài sản bảo đảm theo từng xe'],
-            [CalendarDays, 'Hỗ trợ giao nhận theo lịch', 'Điểm hẹn và chi phí được xác nhận theo địa chỉ'],
-          ].map(([Icon, label, note]) => {
-            const FactIcon = Icon as typeof Gauge;
-            return (
-              <div key={label as string} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-                <span className="rounded-xl bg-brand-50 p-2 text-brand-700"><FactIcon className="h-5 w-5" /></span>
-                <div><p className="font-bold text-slate-900">{label as string}</p><p className="mt-0.5 text-sm text-slate-500">{note as string}</p></div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </section>
   );
 }
 
-export function LocalRentalPlanner({ area, cars, source, selectedCarId, onSelectCar, preferredPickupId }: PlannerProps) {
+export function LocalRentalPlanner({ area, cars, source, selectedCarId, onSelectCar, preferredPickupId, pickupOrderHint }: PlannerProps) {
   const car = cars.find((item) => item.id === selectedCarId) || cars[0];
   const [availabilityStatus, setAvailabilityStatus] = useState<BookingAvailabilityStatus | null>(null);
   const [bookingSummary, setBookingSummary] = useState<BookingSummary | null>(null);
   const [openRequest, setOpenRequest] = useState<BookingOpenRequest | null>(null);
+  const pickupLocations = useMemo(() => {
+    const preferredId = preferredPickupId ?? ({
+      'cau-giay': 'trung-lan',
+      'the-manor': 'manor',
+    } as Record<string, string>)[pickupOrderHint] ?? pickupOrderHint;
+    return [
+      ...BOOKING_PICKUP_LOCATIONS.filter((location) => location.id === preferredId),
+      ...BOOKING_PICKUP_LOCATIONS.filter((location) => location.id !== preferredId),
+    ];
+  }, [preferredPickupId, pickupOrderHint]);
   const relatedCars = useMemo(() => (
     cars
       .filter((item) => item.id !== car?.id)
@@ -212,6 +208,8 @@ export function LocalRentalPlanner({ area, cars, source, selectedCarId, onSelect
                 kmPerDay={car.kmPerDay}
                 kmSurcharge={car.kmSurcharge}
                 relatedCars={relatedCars}
+                pickupLocations={pickupLocations}
+                areaSlug={area.slug}
                 initialDeliveryMode={preferredPickupId ? 'self' : 'delivery'}
                 initialPickupLocationId={preferredPickupId}
                 pageType="local_rental"
@@ -233,7 +231,7 @@ export function LocalRentalPlanner({ area, cars, source, selectedCarId, onSelect
       {car && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-[0_-12px_30px_rgba(15,23,42,0.14)] backdrop-blur sm:hidden">
           <button type="button" onClick={openBooking} className="mx-auto flex min-h-12 w-full max-w-md items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-black text-white shadow-sm hover:bg-brand-700">
-            <CalendarDays className="h-4 w-4" /> {mobileAction}{bookingSummary?.valid ? ` · ${formatPrice(bookingSummary.totalAmount)}` : ''}
+            <CalendarDays className="h-4 w-4" /> {mobileAction}{bookingSummary?.valid && !availabilityStatus?.selectedRangeHasHardConflict ? ` · ${formatPrice(bookingSummary.totalAmount)}` : ''}
           </button>
         </div>
       )}

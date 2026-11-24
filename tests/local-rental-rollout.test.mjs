@@ -4,6 +4,7 @@ import test from 'node:test';
 import { localRentalAreas } from '../src/data/localRentalAreas.ts';
 import { LOCAL_HUBS_DATA } from '../src/data/localHubsData.ts';
 import { selectLocalRentalCars } from '../src/data/localRentalFleet.ts';
+import { BOOKING_PICKUP_LOCATIONS } from '../src/data/bookingPickupLocations.ts';
 
 const localPage = new URL('../src/app/pages/LocalRental.tsx', import.meta.url);
 const decisionTools = new URL('../src/app/components/LocalRentalDecisionTools.tsx', import.meta.url);
@@ -19,15 +20,23 @@ test('the shared landing is enabled for all 17 configured routes', async () => {
     LOCAL_HUBS_DATA.map(({ slug, path }) => [slug, path]),
   );
   assert.equal(new Set(localRentalAreas.map(({ path }) => path)).size, 17);
+  const knownSlugs = new Set(localRentalAreas.map(({ slug }) => slug));
+  for (const field of ['heroSubhead', 'heroAnswer', 'description', 'pickupNote']) {
+    assert.equal(new Set(localRentalAreas.map((area) => area[field])).size, 17, field);
+  }
   for (const area of localRentalAreas) {
-    assert.ok(area.localContexts.length >= 3, area.slug);
-    assert.ok(area.faqs.length >= 4, area.slug);
+    assert.deepEqual(area.localContexts.map(({ title }) => title), ['Xe và giá', 'Giao nhận', 'Lịch và điều kiện']);
+    assert.equal(area.useCases.length, 3, area.slug);
+    assert.ok(area.faqs.length >= 4 && area.faqs.length <= 6, area.slug);
+    assert.ok(area.nearbySlugs.length >= 4 && area.nearbySlugs.length <= 8, area.slug);
+    assert.equal(new Set(area.nearbySlugs).size, area.nearbySlugs.length);
+    assert.ok(area.nearbySlugs.every((slug) => knownSlugs.has(slug) && slug !== area.slug), area.slug);
   }
   assert.match(source, /<LocalRentalPage key=\{areaSlug\}/);
   assert.match(source, /<LocalRentalQuickAnswer area=\{area\}/);
   assert.match(source, /<LocalRentalPlanner/);
   assert.match(source, /selectionAction=/);
-  assert.match(source, /area\.localContexts\.map/);
+  assert.match(source, /area\.heroSubhead/);
   assert.match(source, /area\.faqs\.map/);
   assert.doesNotMatch(source, /isCauGiayPilot|application\/ld\+json|<ZaloFAB|<MobileConversionBar/);
 });
@@ -72,10 +81,14 @@ test('landing reuses the single BookingWidget engine instead of maintaining a se
   assert.match(tools, /separateReturnAddress/);
   assert.match(tools, /externalOpenRequest=\{openRequest\}/);
   assert.match(widget, /calculateRentalBillingDays\(pickupDate, pickupHour, returnDate, returnHour\)/);
-  assert.match(widget, /export const BOOKING_PICKUP_LOCATIONS/);
-  assert.match(widget, /name: 'Cầu Giấy'/);
+  assert.match(widget, /pickupLocations = BOOKING_PICKUP_LOCATIONS/);
+  assert.equal(BOOKING_PICKUP_LOCATIONS.find(({ id }) => id === 'trung-lan')?.name, 'Cầu Giấy');
+  assert.ok(BOOKING_PICKUP_LOCATIONS.every(({ mapUrl }) => new URL(mapUrl).hostname === 'maps.app.goo.gl'));
   assert.match(widget, /fetch\('\/api\/bookings'/);
   assert.match(widget, /Idempotency-Key/);
+  assert.match(widget, /if \(bookingSubmittingRef\.current\) return/);
+  assert.match(widget, /if \(areaSlug && deliveryAddressMissing\)/);
+  assert.match(widget, /Chi phí tham khảo · Xe trùng lịch/);
   assert.match(widget, /\{ \.\.\.\(attribution \?\? \{\}\), booking_page: bookingPage \}/);
   assert.doesNotMatch(widget, /attribution: attribution \? \{ \.\.\.attribution, booking_page: bookingPage \} : null/);
   assert.match(widget, /Tài sản bảo đảm khi nhận xe được xác nhận riêng theo từng xe/);
@@ -107,7 +120,7 @@ test('switching vehicle keeps inputs but invalidates availability, quote and pro
 test('Cau Giay has search-intent title and localized meta copy', async () => {
   const source = await readFile(areaData, 'utf8');
   assert.match(source, /Thuê Xe Tự Lái Cầu Giấy, Hà Nội/);
-  assert.match(source, /tính tổng chi phí dự kiến trước khi gửi yêu cầu/);
+  assert.match(source, /description: 'Thuê xe tự lái Cầu Giấy.*Duy Tân.*Nội Bài/);
 });
 
 test('only four explicitly configured self-pickup hubs are defaulted', () => {

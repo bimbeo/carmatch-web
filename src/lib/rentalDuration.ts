@@ -1,5 +1,6 @@
 export const DEFAULT_PICKUP_HOUR = 8;
 export const DEFAULT_RETURN_HOUR = 20;
+export const LATE_RETURN_FEE_PER_HOUR = 100_000;
 
 export interface RentalPricingUnits {
   /** Số ngày/ca hiển thị cho khách và lưu cùng booking. */

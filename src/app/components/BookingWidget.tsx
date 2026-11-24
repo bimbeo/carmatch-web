@@ -12,14 +12,18 @@ import {
   trackAvailabilityCheck,
   trackCtaClick,
   trackEvent,
+  trackLocalRentalEvent,
   trackPhoneClick,
   trackZaloClick,
 } from '@/lib/analytics';
+import { BOOKING_PICKUP_LOCATIONS, type BookingPickupLocation } from '@/data/bookingPickupLocations';
+export { BOOKING_PICKUP_LOCATIONS } from '@/data/bookingPickupLocations';
 import {
   calculateRentalBillingDays,
   calculateRentalPricingUnits,
   DEFAULT_PICKUP_HOUR,
   DEFAULT_RETURN_HOUR,
+  LATE_RETURN_FEE_PER_HOUR,
   formatRentalBillingDays,
 } from '@/lib/rentalDuration';
 import { supabase } from '@/lib/supabase';
@@ -574,19 +578,6 @@ const DELIVERY_DIRECTION_OPTIONS: Array<{ value: DeliveryDirection; label: strin
   { value: 'roundtrip', label: 'Hai chiều' },
 ];
 
-export interface BookingPickupLocation {
-  id: string;
-  name: string;
-  address: string;
-  mapUrl?: string;
-}
-
-export const BOOKING_PICKUP_LOCATIONS: BookingPickupLocation[] = [
-  { id: 'times-city',   name: 'Times City',             address: 'Hai Bà Trưng, Hà Nội', mapUrl: 'https://maps.app.goo.gl/aytjYtSmkNVvDnJb9' },
-  { id: 'ocean-park',   name: 'Ocean Park',             address: 'Gia Lâm, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/G8UHdiVEqe7TFqxk9' },
-  { id: 'manor',        name: 'The Manor Central Park', address: 'Hoàng Mai (Nguyễn Xiển), Hà Nội', mapUrl: 'https://maps.app.goo.gl/Nr1DysckyzRMBVqE8' },
-  { id: 'trung-lan',    name: 'Cầu Giấy',               address: 'Cầu Giấy, Hà Nội',      mapUrl: 'https://maps.app.goo.gl/DHu1nP1h6Gwb3FjZ8' },
-];
 function getInitialDeliverySelection(
   locations: BookingPickupLocation[],
   configuredMode?: DeliveryMode,
@@ -626,6 +617,7 @@ interface Props {
   kmSurcharge?: number;
   relatedCars?: RelatedCar[];
   pickupLocations?: BookingPickupLocation[];
+  areaSlug?: string;
   initialDeliveryMode?: DeliveryMode;
   initialPickupLocationId?: string;
   pageType?: 'vehicle_detail' | 'local_rental';
@@ -744,6 +736,7 @@ export default function BookingWidget({
   kmSurcharge = 3000,
   relatedCars = [],
   pickupLocations = BOOKING_PICKUP_LOCATIONS,
+  areaSlug,
   initialDeliveryMode,
   initialPickupLocationId,
   pageType = 'vehicle_detail',
@@ -772,6 +765,7 @@ export default function BookingWidget({
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(initialDeliverySelection.mode);
   const [deliveryDirection, setDeliveryDirection] = useState<DeliveryDirection>('roundtrip');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const deliveryAddressRef = useRef<HTMLInputElement>(null);
   const [returnDeliveryAddress, setReturnDeliveryAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(initialDeliverySelection.location);
   const [showModal, setShowModal] = useState(false);
@@ -819,6 +813,7 @@ export default function BookingWidget({
   const promoValidationRef = useRef(0);
   const promoCodeRef = useRef(promoCode);
   const bookingIdempotencyRef = useRef('');
+  const bookingSubmittingRef = useRef(false);
   const handledExternalOpenRequestRef = useRef('');
   const availabilityRequestRef = useRef(0);
   const bookingModalRef = useRef<HTMLDivElement>(null);
@@ -963,6 +958,7 @@ export default function BookingWidget({
     returnDate,
     returnHour,
     deliveryMode,
+    deliveryDirection,
     deliveryAddress,
     returnDeliveryAddress,
     selectedLocation,
@@ -1332,9 +1328,15 @@ export default function BookingWidget({
     ? AIRPORT_DELIVERY_FEE_PER_WAY
     : deliveryMode === 'delivery' ? DELIVERY_FEE_PER_WAY : 0;
   const deliveryFee = deliveryFeePerWay * deliveryDirectionMultiplier;
-  const deliveryAddressMissing = deliveryMode === 'delivery'
-    && (!deliveryAddress.trim()
-      || (separateReturnAddress && deliveryDirection === 'roundtrip' && !returnDeliveryAddress.trim()));
+  const deliveryAddressMissing = deliveryMode === 'delivery' && !deliveryAddress.trim();
+  const chooseDeliveryMode = (mode: DeliveryMode) => {
+    setDeliveryMode(mode);
+    if (areaSlug) trackLocalRentalEvent('pickup_option_select', areaSlug, vehicleId, mode);
+  };
+  const chooseDeliveryDirection = (direction: DeliveryDirection) => {
+    setDeliveryDirection(direction);
+    if (areaSlug) trackLocalRentalEvent('pickup_option_select', areaSlug, vehicleId, direction);
+  };
   const orderTotalBeforePromo = rentalResult.valid
     ? rentalResult.total + holidayPricing.total + deliveryFee
     : 0;
@@ -1664,10 +1666,12 @@ export default function BookingWidget({
   ]);
 
   const handleBookingSubmit = async () => {
+    if (bookingSubmittingRef.current) return;
     const rejectBooking = (reason: string, message: string) => {
       setBookingError(message);
       if (!trackedValidationReasonsRef.current.has(reason)) {
         trackedValidationReasonsRef.current.add(reason);
+        if (areaSlug) trackLocalRentalEvent('booking_error', areaSlug, vehicleId, reason);
         trackBookingValidationError(reason, {
           vehicle_id: vehicleId || null,
           vehicle_name: carName,
@@ -1679,6 +1683,10 @@ export default function BookingWidget({
     };
     if (hardConflicts.length > 0) {
       rejectBooking('hard_conflict', 'Xe đã có lịch trong khoảng này. Vui lòng chọn ngày khác.');
+      return;
+    }
+    if (areaSlug && deliveryAddressMissing) {
+      rejectBooking('missing_delivery_address', 'Vui lòng bổ sung địa chỉ giao nhận xe.');
       return;
     }
     if (!customerName.trim()) { rejectBooking('missing_name', 'Vui lòng nhập họ tên'); return; }
@@ -1694,6 +1702,7 @@ export default function BookingWidget({
       return;
     }
 
+    bookingSubmittingRef.current = true;
     setBookingLoading(true);
     setBookingError('');
     const promoForBooking = holidayPromoBlocked || appliedDiscountSource !== 'promo' ? null : promoResult;
@@ -1794,6 +1803,7 @@ export default function BookingWidget({
       }
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Lỗi tạo đơn');
       const submittedNeedsConfirmation = data.requiresConfirmation === true || needsManualConfirmation;
+      if (areaSlug) trackLocalRentalEvent('booking_request_success', areaSlug, vehicleId);
       setBookingRef(String(data.bookingRef || ''));
       setDepositAmount(Number(data.depositAmount) || 0);
       setBookingNeedsConfirmation(submittedNeedsConfirmation);
@@ -1830,15 +1840,17 @@ export default function BookingWidget({
     } catch (e: unknown) {
       const message = (e as Error)?.message || 'Lỗi kết nối, thử lại sau';
       setBookingError(message);
+      if (areaSlug) trackLocalRentalEvent('booking_error', areaSlug, vehicleId, 'booking_submit_failed');
       trackBookingSubmit('error', {
         vehicle_id: vehicleId || null,
         vehicle_name: carName,
         rental_days: rentalDays,
         total_amount: finalTotal,
-        error_message: message,
+        error_message: areaSlug ? 'booking_submit_failed' : message,
         ...experimentMeta,
       });
     } finally {
+      bookingSubmittingRef.current = false;
       setBookingLoading(false);
     }
   };
@@ -1961,7 +1973,7 @@ export default function BookingWidget({
       deliveryFee > 0 ? `Phí giao nhận xe (${deliveryDirectionLabel.toLowerCase()}): ${deliveryFee.toLocaleString('vi-VN')}đ` : null,
       `Thanh toán khi nhận xe: ${remainingAmount.toLocaleString('vi-VN')}đ`,
       '',
-      `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: ${kmSurcharge.toLocaleString('vi-VN')}đ/km | 100.000đ/giờ`,
+      `Giới hạn: ${kmPerDay} km/ngày | Phụ trội: ${fmtVND(kmSurcharge)}/km | Trả trễ: ${fmtVND(LATE_RETURN_FEE_PER_HOUR)}/giờ`,
       'Liên hệ: Car Match Vận Hành 0971163290',
     ].filter(l => l !== null).join('\n');
     try {
@@ -1970,6 +1982,11 @@ export default function BookingWidget({
   };
 
   const openBookingForm = useCallback((source: string) => {
+    if (areaSlug && deliveryAddressMissing) {
+      trackLocalRentalEvent('booking_error', areaSlug, vehicleId, 'missing_delivery_address');
+      deliveryAddressRef.current?.focus();
+      return;
+    }
     const analyticsPayload = {
       vehicle_id: vehicleId || null,
       vehicle_name: carName,
@@ -1982,6 +1999,7 @@ export default function BookingWidget({
     };
     trackCtaClick('booking_widget_open_form', analyticsPayload);
     trackBookingStart(analyticsPayload);
+    if (areaSlug) trackLocalRentalEvent('booking_start', areaSlug, vehicleId);
     trackEvent('open_booking_drawer', analyticsPayload);
     trackedValidationReasonsRef.current.clear();
     setShowBookingModal(true);
@@ -1989,7 +2007,7 @@ export default function BookingWidget({
     setBookingNeedsConfirmation(false);
     setBookingError('');
     setConfirmTransfer(false);
-  }, [carName, experimentMeta, finalTotal, needsManualConfirmation, rentalDays, vehicleId]);
+  }, [areaSlug, carName, deliveryAddressMissing, experimentMeta, finalTotal, needsManualConfirmation, rentalDays, vehicleId]);
 
   useEffect(() => {
     const requestId = externalOpenRequest?.id ?? 0;
@@ -2193,7 +2211,7 @@ export default function BookingWidget({
                 name="deliveryMode"
                 value="self"
                 checked={deliveryMode === 'self'}
-                onChange={() => setDeliveryMode('self')}
+                onChange={() => chooseDeliveryMode('self')}
                 className="mt-0.5 accent-brand-600"
               />
               <div className="flex-1 min-w-0">
@@ -2215,7 +2233,10 @@ export default function BookingWidget({
                           name="location"
                           value={loc.id}
                           checked={selectedLocation === loc.id}
-                          onChange={() => setSelectedLocation(loc.id)}
+                          onChange={() => {
+                            setSelectedLocation(loc.id);
+                            if (areaSlug) trackLocalRentalEvent('pickup_option_select', areaSlug, vehicleId, loc.id);
+                          }}
                           className="accent-brand-600"
                         />
                         <div className="flex-1 min-w-0">
@@ -2246,7 +2267,7 @@ export default function BookingWidget({
                   name="deliveryMode"
                   value="airport"
                   checked={deliveryMode === 'airport'}
-                  onChange={() => setDeliveryMode('airport')}
+                  onChange={() => chooseDeliveryMode('airport')}
                   className="mt-0.5 accent-brand-600"
                 />
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
@@ -2254,14 +2275,14 @@ export default function BookingWidget({
                     <Plane className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                     Sân bay Nội Bài
                   </span>
-                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">+250k/chiều</span>
+                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">+{fmtCalendarPrice(AIRPORT_DELIVERY_FEE_PER_WAY)}/chiều</span>
                 </div>
               </label>
               {deliveryMode === 'airport' && (
                 <div className="ml-7 mt-3">
                   <DeliveryDirectionSelector
                     value={deliveryDirection}
-                    onChange={setDeliveryDirection}
+                    onChange={chooseDeliveryDirection}
                     feePerWay={AIRPORT_DELIVERY_FEE_PER_WAY}
                   />
                   <p className="mt-2 text-xs leading-5 text-gray-500">
@@ -2279,7 +2300,7 @@ export default function BookingWidget({
                   name="deliveryMode"
                   value="delivery"
                   checked={deliveryMode === 'delivery'}
-                  onChange={() => setDeliveryMode('delivery')}
+                  onChange={() => chooseDeliveryMode('delivery')}
                   className="mt-0.5 accent-brand-600"
                 />
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
@@ -2287,22 +2308,18 @@ export default function BookingWidget({
                     <Truck className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                     Giao và nhận xe tại địa chỉ của bạn
                   </span>
-                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">100k/chiều tạm tính</span>
+                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">{fmtCalendarPrice(DELIVERY_FEE_PER_WAY)}/chiều tạm tính</span>
                 </div>
               </label>
               {deliveryMode === 'delivery' && (
                 <div className="ml-7 mt-3">
                   <DeliveryDirectionSelector
                     value={deliveryDirection}
-                    onChange={setDeliveryDirection}
+                    onChange={chooseDeliveryDirection}
                     feePerWay={DELIVERY_FEE_PER_WAY}
                   />
-                  <p className="mt-2 text-xs leading-5 text-gray-500">
-                    {deliveryPolicy === 'conditional'
-                      ? `Phí đang tạm tính theo lựa chọn ${deliveryDirectionLabel.toLowerCase()}: ${fmtVND(deliveryFee)}. Car Match xác nhận lại theo địa chỉ.`
-                      : `${deliveryDirectionAction} · phí ${fmtVND(deliveryFee)}.`}
-                  </p>
                   <input
+                    ref={deliveryAddressRef}
                     value={deliveryAddress}
                     onChange={e => setDeliveryAddress(e.target.value)}
                     placeholder={deliveryDirection === 'return' ? 'Địa chỉ nhận lại xe' : 'Địa chỉ nhận xe'}
@@ -2318,11 +2335,7 @@ export default function BookingWidget({
                       className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors"
                     />
                   )}
-                  <p className="mt-1.5 text-[11px] leading-4 text-gray-600">
-                    {deliveryAddressMissing
-                      ? 'Chưa có đủ địa chỉ: tổng chi phí vẫn là tạm tính và chưa xác minh phạm vi giao nhận.'
-                      : 'Địa chỉ và khoản phí cuối cùng được Car Match đối chiếu trước khi xác nhận.'}
-                  </p>
+                  {deliveryAddressMissing && <p className="mt-1.5 text-[11px] leading-4 text-gray-600">Nhập địa chỉ để Car Match kiểm tra phạm vi và phí giao nhận.</p>}
                 </div>
               )}
             </div>
@@ -2441,7 +2454,9 @@ export default function BookingWidget({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-bold text-brand-600">
-                    {deliveryFeeIsProvisional
+                    {hardConflicts.length > 0
+                      ? 'Chi phí tham khảo · Xe trùng lịch'
+                      : deliveryFeeIsProvisional
                       ? 'Tổng chi phí tạm tính'
                       : 'Tổng chi phí thuê dự kiến'}
                   </div>
@@ -2488,7 +2503,7 @@ export default function BookingWidget({
           </div>
           <div className="mt-1.5 flex justify-between gap-3">
             <span>Trả xe trễ</span>
-            <span className="font-semibold text-slate-800">100.000đ/giờ</span>
+            <span className="font-semibold text-slate-800">{fmtVND(LATE_RETURN_FEE_PER_HOUR)}/giờ</span>
           </div>
           <p className="mt-2 text-[11px] leading-4 text-slate-500">Chỉ tính theo sử dụng thực tế, chưa cộng vào tổng dự kiến.</p>
         </div>
@@ -2527,12 +2542,16 @@ export default function BookingWidget({
             href={bookingZaloHref}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackZaloClick('booking_widget_contact', {
-              vehicle_id: vehicleId || null,
-              vehicle_name: carName,
-              rental_days: rentalDays,
-              total_amount: finalTotal,
-            })}
+            onClick={() => {
+              trackZaloClick('booking_widget_contact', {
+                area_slug: areaSlug,
+                vehicle_id: vehicleId || null,
+                vehicle_name: carName,
+                rental_days: rentalDays,
+                total_amount: finalTotal,
+              });
+              if (areaSlug) trackLocalRentalEvent('zalo_click', areaSlug, vehicleId, 'booking_widget');
+            }}
             className="py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-sm"
           >
             <MessageCircle className="w-4 h-4 text-gray-400" />
@@ -2566,6 +2585,9 @@ export default function BookingWidget({
         <div
           className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-y-auto"
           style={{ width: '94vw', maxWidth: 900, maxHeight: '94vh' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chọn ngày giờ thuê xe"
           onClick={e => e.stopPropagation()}
         >
           {/* ── Header ── */}
@@ -2647,6 +2669,7 @@ export default function BookingWidget({
                 <div className="relative mt-0.5">
                   <select
                     value={pickupHour}
+                    aria-label="Giờ nhận xe"
                     onChange={e => setPickupHour(+e.target.value)}
                     className="w-full appearance-none bg-transparent py-1 text-lg font-black text-gray-950 focus:outline-none pr-8 cursor-pointer"
                   >
@@ -2668,6 +2691,7 @@ export default function BookingWidget({
                 <div className="relative mt-0.5">
                   <select
                     value={returnHour}
+                    aria-label="Giờ trả xe"
                     onChange={e => setReturnHour(+e.target.value)}
                     className="w-full appearance-none bg-transparent py-1 text-lg font-black text-gray-950 focus:outline-none pr-8 cursor-pointer"
                   >

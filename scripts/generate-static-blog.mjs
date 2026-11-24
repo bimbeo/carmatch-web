@@ -813,7 +813,7 @@ const routeMeta = [
     canonical: `${siteUrl}${area.path}`,
     priority: '0.82',
     changefreq: 'weekly',
-    lastmod: '2026-11-08',
+    lastmod: '2026-11-25',
   })),
   {
     path: '/thue-xe-tu-lai-tet-ha-noi',
@@ -2722,16 +2722,21 @@ function sevenSeatRentalStructuredData(meta, vehicles = []) {
   ];
 }
 
-function localRentalStructuredData(meta, vehicles = [], area) {
+function getLocalRentalRepresentatives(vehicles, area) {
   const { recommendedModels } = getLocalHubData(area.slug);
-  const representativeVehicles = selectLocalRentalCars(vehicles.map((vehicle) => ({
+  return selectLocalRentalCars(vehicles.map((vehicle) => ({
     name: getVehicleName(vehicle),
     slug: vehicle.slug || '',
     model: [vehicle.vehicle_models?.make, vehicle.vehicle_models?.model].filter(Boolean).join(' '),
     price: Number(vehicle.daily_base_price || 0),
     seats: vehicle.vehicle_models?.seats || (/^vf\s*3$/i.test(vehicle.vehicle_models?.model?.trim() || '') ? 4 : 5),
     available: vehicle.status !== 'inactive' && vehicle.status !== 'retired' && vehicle.published !== false,
+    cover: getVehicleCoverImage(vehicle),
   })), recommendedModels);
+}
+
+function localRentalStructuredData(meta, vehicles = [], area) {
+  const representativeVehicles = getLocalRentalRepresentatives(vehicles, area);
   const dailyPrices = representativeVehicles.map(({ price }) => price);
   const offers = dailyPrices.length > 0
     ? {
@@ -2748,7 +2753,7 @@ function localRentalStructuredData(meta, vehicles = [], area) {
     name: area.shortName,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: area.locality,
+      addressRegion: area.slug === 'ecopark' ? 'Hưng Yên' : 'Hà Nội',
       addressCountry: 'VN',
     },
   };
@@ -2767,7 +2772,7 @@ function localRentalStructuredData(meta, vehicles = [], area) {
         provider: { '@id': `${siteUrl}/#localbusiness` },
         mainEntity: {
           '@type': 'ItemList',
-          name: `Xe tự lái gợi ý tại ${area.shortName}`,
+          name: `Mẫu xe cho khách thuê tại ${area.shortName}`,
           numberOfItems: representativeVehicles.length,
           itemListElement: representativeVehicles.map((vehicle, index) => ({
             '@type': 'ListItem',
@@ -4927,12 +4932,14 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   const title = escapeHtml(meta.title);
   const description = escapeHtml(meta.description);
   const canonical = escapeHtml(meta.canonical);
-  const rawImage = meta.image || brandSocialImage;
+  const localArea = localRentalAreas.find((area) => area.path === meta.path);
+  const localCover = localArea && getLocalRentalRepresentatives(vehicles, localArea).find((car) => car.cover);
+  const rawImage = meta.image || (localCover?.cover ? new URL(localCover.cover, siteUrl).href : brandSocialImage);
   const image = escapeHtml(rawImage);
   const usesBrandSocialImage = rawImage === brandSocialImage;
   const usesGeneratedSocialImage = /\/(?:blog|seo)\/covers\//.test(rawImage);
   const hasKnownSocialImageSize = usesBrandSocialImage || usesGeneratedSocialImage;
-  const imageAlt = escapeHtml(usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title);
+  const imageAlt = escapeHtml(localCover ? `${localCover.name} trong danh mục thuê xe Car Match` : usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title);
   const preloadImage = escapeHtml(meta.preloadImage || '/brand/carmatch-lockup-navy.png');
   const robots = meta.noIndex
     ? 'noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'

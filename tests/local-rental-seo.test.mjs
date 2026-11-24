@@ -39,11 +39,11 @@ test('local area data contains five distinct, confirmed service-area pages', asy
     'Vinhomes Times City',
     'Ecopark',
     'The Manor Central Park',
-    'Gia Lâm, Hà Nội',
-    'Tây Mỗ – Đại Mỗ, Nam Từ Liêm, Hà Nội',
-    '458 Minh Khai, Hai Bà Trưng, Hà Nội',
+    'Ocean Park tại Gia Lâm',
+    'Tây Mỗ – Đại Mỗ',
+    'trên phố Minh Khai',
     'Văn Giang, Hưng Yên',
-    'Nguyễn Xiển – Nghiêm Xuân Yêm, Hoàng Mai, Hà Nội',
+    'Nguyễn Xiển – Nghiêm Xuân Yêm',
   ]) {
     assert.match(source, new RegExp(value));
   }
@@ -58,10 +58,10 @@ test('shared local page derives prices from the catalog and makes availability c
 
   assert.match(source, /selectLocalRentalCars\(catalog, hub\.recommendedModels\)/);
   assert.match(source, /Math\.min\(\.\.\.representativeCars\.map\(\(car\) => car\.price\)\)/);
-  assert.match(source, /Lịch xe và tổng tiền được kiểm tra theo ngày giờ bạn chọn/);
+  assert.match(source, /Chọn một mẫu để kiểm tra lịch và tính chi phí cho chuyến đi/);
   assert.match(source, /Thuê xe tự lái \{area\.name\}/);
   assert.match(source, /nearbyAreas\.map/);
-  assert.match(source, /localRentalAreas\.filter/);
+  assert.match(source, /area\.nearbySlugs\.flatMap/);
   assert.doesNotMatch(source, /luôn (còn|trống)|InStock|LimitedAvailability/i);
 });
 

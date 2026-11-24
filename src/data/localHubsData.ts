@@ -44,11 +44,6 @@ export interface LocalHubData {
   faqs: LocalHubFaq[];
 }
 
-export const LOCAL_RENTAL_HERO_POINTS = [
-  'Hỗ trợ giao xe theo địa chỉ và lịch đã xác nhận',
-  'Nhiều lựa chọn xe tự động',
-  'Giá, cọc và phụ phí được báo trước khi xác nhận',
-];
 
 export const LOCAL_HUBS_DATA: LocalHubData[] = [
   {

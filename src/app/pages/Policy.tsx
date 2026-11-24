@@ -2,6 +2,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Link } from 'react-router';
 import { useSEO } from '@/hooks/useSEO';
+import { formatPrice } from '@/data/cars';
+import { LATE_RETURN_FEE_PER_HOUR } from '@/lib/rentalDuration';
 
 const sections = [
   {
@@ -16,8 +18,8 @@ const sections = [
   {
     title: 'Phụ phí & chi phí phát sinh',
     items: [
-      'Vượt km giới hạn: 3.000đ/km',
-      'Trả xe trễ giờ: 100.000đ/giờ (tối đa 1 ngày thuê)',
+      'Phí vượt km theo mẫu xe. Xem hạn mức và đơn giá trong phần Thông tin chính của xe bạn chọn.',
+      `Trả xe trễ giờ: ${formatPrice(LATE_RETURN_FEE_PER_HOUR)}/giờ (tối đa 1 ngày thuê)`,
       'Xe bẩn cần vệ sinh: 200.000-500.000đ tùy mức độ',
       'Hết xăng/điện: khách tự chịu chi phí đổ thêm',
     ],
