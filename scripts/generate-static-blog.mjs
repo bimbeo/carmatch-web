@@ -98,7 +98,7 @@ let prerenderedContactRoot = '';
 let prerenderedAboutRoot = '';
 let prerenderedPartnerRoot = '';
 let prerenderedTetOwnerRoot = '';
-let tetOwnerStylesheets = [];
+let tetOwnerInlineCss = '';
 let tetOwnerModule = '';
 let tetOwnerImports = [];
 let prerenderedTetRentalRoot = '';
@@ -5079,7 +5079,6 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
     const fontPreloads = ['latin', 'vietnamese'].map((subset) =>
       `<link rel="preload" as="font" href="/tet-owner/be-vietnam-pro-900-${subset}.woff2" type="font/woff2" crossorigin />`,
     );
-    const stylesheets = tetOwnerStylesheets.map((file) => `<link rel="stylesheet" href="/${escapeHtml(file)}" />`);
     if (tetOwnerModule) {
       html = html
         .replace(/<link\b[^>]*href="\/assets\/[^"]+"[^>]*>/g, '')
@@ -5089,7 +5088,9 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
       ? [...tetOwnerImports.map((file) => `<link rel="modulepreload" crossorigin href="/${escapeHtml(file)}" />`),
         `<script type="module" crossorigin fetchpriority="low" src="/${escapeHtml(tetOwnerModule)}"></script>`]
       : [];
-    html = html.replace('</head>', () => `${[...stylesheets, ...fontPreloads, ...moduleTags].join('\n')}\n</head>`);
+    html = html.replace('</head>', () =>
+      `${[...fontPreloads, `<style data-tet-owner>${tetOwnerInlineCss}</style>`, ...moduleTags].join('\n')}\n</head>`,
+    );
     html = html.replace(/<div id="root"><\/div>/, prerenderedTetOwnerRoot);
   } else if (meta.path === '/thue-xe-tu-lai-tet-ha-noi' && prerenderedTetRentalRoot) {
     html = moveStylesheetsBeforeModuleScripts(html);
@@ -5193,14 +5194,18 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
     visitedAssets.add(key);
     return [...(manifest[key].imports || []).flatMap(collectCss), ...(manifest[key].css || [])];
   };
-  tetOwnerStylesheets = [...new Set(collectCss('src/app/pages/TetOwnerPartnership.tsx'))];
+  const tetOwnerStylesheets = collectCss('src/app/pages/TetOwnerPartnership.tsx');
   const tetEntryKey = 'src/tetOwnerEntry.tsx';
   if (manifest[tetEntryKey]) {
     tetOwnerModule = manifest[tetEntryKey].file;
-    tetOwnerStylesheets = [...new Set(collectCss(tetEntryKey).concat(tetOwnerStylesheets))];
+    tetOwnerStylesheets.unshift(...collectCss(tetEntryKey));
     tetOwnerImports = [...visitedAssets].filter((key) => key !== tetEntryKey)
       .map((key) => manifest[key]?.file).filter(Boolean);
   }
+  const tetOwnerStyles = await Promise.all([...new Set(tetOwnerStylesheets)].map((file) =>
+    readFile(path.join(distDir, file), 'utf8'),
+  ));
+  tetOwnerInlineCss = tetOwnerStyles.join('\n').replace(/<(?=\/style\b)/gi, '\\3c ');
   await writeFile(path.join(distDir, 'static-shell.css'), minifyCss(staticShellCss()), 'utf8');
   prerenderedHomeRoot = '';
   prerenderedFleetRoot = '';
