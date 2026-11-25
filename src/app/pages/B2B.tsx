@@ -121,6 +121,8 @@ const personalProcess = [
 ];
 
 const monthlyGuides = [
+  ['/blog/goi-thue-xe-22-ngay-va-30-ngay-khac-gi-nhau', 'So sánh gói 22 và 30 ngày'],
+  ['/blog/thue-vf5-theo-ngay-hay-theo-thang', 'Thuê VF5 theo ngày hay theo tháng?'],
   ['/blog/thue-xe-thang-cho-doanh-nghiep-nho', 'Thuê xe tháng cho doanh nghiệp nhỏ'],
   ['/blog/thue-xe-thang-cho-chuyen-gia-nuoc-ngoai', 'Xe tháng cho chuyên gia nước ngoài'],
   ['/blog/thue-xe-thang-cho-nhan-vien-di-cong-tac', 'Xe tháng cho nhân viên công tác'],

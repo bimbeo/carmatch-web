@@ -46,6 +46,7 @@ export default function Partner() {
     '<a aria-label="Car Match, về trang chủ" class="logo" href="https://www.carmatch.vn/"><img class="partner-logo-image" src="/brand/carmatch-lockup-white.png" alt="Car Match" width="288" height="66" decoding="async" loading="lazy" /></a>',
   );
   previewMarkup = previewMarkup
+    .replace('<div class="faq-aside">', '<p class="small"><a href="/hop-tac-chu-xe-cho-thue-tet">Xem điều kiện hợp tác cho thuê xe dịp Tết</a></p><div class="faq-aside">')
     .replace(/<div aria-label="Vị trí ảnh quy trình vận hành Car Match" class="proof-gallery">[\s\S]*?<div class="document-teaser">/, '<div class="document-teaser">')
     .replace('<p class="muted small" style="margin-top:7px">Thông tin chỉ được lưu sau khi API xác nhận thành công.</p>', '')
     .replace('<p class="small muted" style="margin-top:12px">Không báo “đã đăng ký thành công” cho đến khi hệ thống lưu yêu cầu thực tế.</p>', '')
