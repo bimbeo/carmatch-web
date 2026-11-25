@@ -159,10 +159,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: validationError });
     }
 
-    const requestRef = monthly ? monthlyRequestRef(idempotencyKey) : null;
     const { idempotency_key: _ignoredIdempotencyKey, ...requestPayload } = payload;
     const tetLead = requestPayload.tet_owner !== undefined ? buildTetOwnerLeadInsert(requestPayload, idempotencyKey) : null;
     if (tetLead?.error) return res.status(400).json({ ok: false, error: tetLead.error });
+    const requestRef = tetLead?.requestRef ?? (monthly ? monthlyRequestRef(idempotencyKey) : null);
     const insertPayload = tetLead?.insert ?? (monthly ? buildMonthlyLeadInsert(requestPayload, requestRef) : requestPayload);
     const idempotency = await acquireIdempotency(payload.phone, idempotencyKey, requestDigest(insertPayload));
     idempotencyId = idempotency.id || null;

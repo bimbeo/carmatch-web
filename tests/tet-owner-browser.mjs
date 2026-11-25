@@ -2,7 +2,7 @@
 async (page) => {
   const origin = new URL(page.url()).origin;
   const path = '/hop-tac-chu-xe-cho-thue-tet';
-  const output = 'output/playwright/tet-owner-final-polish';
+  const output = 'output/playwright/tet-owner-final-release';
   const failures = [];
   const errors = [];
   const requests = [];
@@ -151,10 +151,18 @@ async (page) => {
   await page.locator('#fleetSchedule').selectOption('different');
   await page.locator('#fleetNotes').fill('VF6 rảnh 04–05/02. Xpander rảnh 09–12/02.');
   await page.locator('#ownerNote').fill('Xe thứ hai có lịch riêng.');
-  const reviewButton = page.getByRole('button', { name: 'Kiểm tra thông tin trước khi gửi' });
+  await page.getByRole('link', { name: 'Chưa có lịch? Đăng ký tư vấn trước' }).click();
+  check(await page.locator('#ownerRegion').count() === 0 && await page.locator('#ownerName').inputValue() === 'Chủ xe kiểm thử', 'Quick journey did not retain common form data');
+  await page.getByRole('radio', { name: 'Đã có lịch xe' }).check();
+  check(await page.locator('#fleetNotes').inputValue() === 'VF6 rảnh 04–05/02. Xpander rảnh 09–12/02.', 'Switching journeys lost the individual schedules');
+  const reviewButton = page.getByRole('button', { name: 'Kiểm tra lịch xe trước khi gửi' });
   await reviewButton.click();
   check(!await page.locator('#reviewModal').isVisible(), 'Consent was not enforced');
   await page.locator('#consent').check();
+  await page.locator('#latestReturn').fill('2027-02-08T18:30');
+  await reviewButton.click();
+  check(await page.locator('#ownerForm').getByRole('alert').isVisible() && !await page.locator('#reviewModal').isVisible(), 'Held day allowed as return bound');
+  await page.locator('#latestReturn').fill('2027-02-12T18:30');
   await reviewButton.click();
   const review = page.getByRole('dialog', { name: /Thông tin chủ xe và lịch Tết/ });
   await review.waitFor();
@@ -201,7 +209,7 @@ async (page) => {
   check(await fallback.getByRole('link', { name: /Mở Zalo/ }).getAttribute('href') === 'https://zalo.me/0971163290', 'Blocked popup did not expose the Zalo link');
   await page.keyboard.press('Escape');
   await page.getByText('Xem thêm câu hỏi về hợp tác', { exact: true }).click();
-  check(await page.getByText('Chưa biết lịch Tết có đăng ký được không?', { exact: true }).isVisible(), 'Expanded FAQ is not available');
+  check(await page.getByText('Xe rảnh từ mùng 3 đến mùng 10 có phù hợp không?', { exact: true }).isVisible(), 'Expanded FAQ is not available');
   await page.goto(origin + '/hop-tac');
   const partnerChecklist = page.locator('#openDocs');
   await partnerChecklist.waitFor();
@@ -215,32 +223,42 @@ async (page) => {
   check(await page.getByRole('link', { name: /Hợp tác xe dịp Tết/ }).count() > 0, 'Annual partnership lost the Tet internal link');
   check(failures.length === 0 && errors.length === 0, `Browser errors: ${JSON.stringify({ failures, errors })}`);
   const realWrites = [];
-  const runId = `tet_polish_${Date.now()}`;
+  const runId = `tet_release_${Date.now()}`;
   if (origin === 'http://127.0.0.1:4273') {
     await page.unroute('**/api/leads');
     const capture = async (name, phone, prepare) => {
-      await page.goto(`${origin}${path}?utm_source=qa_fixture&utm_campaign=tet_polish&utm_content=${runId}`);
+      await page.goto(`${origin}${path}?utm_source=qa_fixture&utm_campaign=tet_release&utm_content=${runId}`);
       if (prepare) await prepare();
       await page.locator('#ownerName').fill(name);
       await page.locator('#ownerPhone').fill(phone);
       await page.locator('#carName').fill('Xe thử QA 2025');
       await page.locator('#consent').check();
-      await reviewButton.click();
-      await review.waitFor();
+      await (prepare ? reviewButton : page.getByRole('button', { name: 'Kiểm tra thông tin tư vấn' })).click();
+      const activeReview = page.locator('#reviewModal');
+      await activeReview.waitFor();
       const response = page.waitForResponse((entry) => entry.url() === origin + '/api/leads');
-      await review.getByRole('button', { name: 'Gửi đăng ký hợp tác Tết' }).click();
+      await activeReview.getByRole('button', { name: prepare ? 'Gửi đăng ký hợp tác Tết' : 'Gửi yêu cầu tư vấn' }).click();
       const saved = await response;
       const request = saved.request();
-      check(saved.ok() && (await saved.json()).ok, 'Real local API did not save the lead');
+      const body = await saved.json();
+      check(saved.ok() && body.ok && /^TET-[0-9A-F]{12}$/.test(body.request_id), 'Real API did not return a saved lead with request reference');
       await page.getByText(/Car Match đã nhận đăng ký/).waitFor();
-      realWrites.push({ case: name, http: saved.status() });
-      return request;
+      check(await page.getByText(body.request_id, { exact: true }).isVisible(), 'Saved request reference missing from confirmation');
+      realWrites.push({ case: name, http: saved.status(), requestRef: body.request_id });
+      return { request, requestRef: body.request_id };
     };
     const consult = await capture('QA Tư vấn nhanh', '0900000011');
-    check(consult.postDataJSON().tet_owner.segments === null, 'Illustration leaked into the real quick-consultation write');
+    check(consult.request.postDataJSON().tet_owner.segments === null, 'Illustration leaked into the real quick-consultation write');
     await capture('QA Có lịch xe', '0900000022', async () => {
       await page.getByRole('button', { name: 'Dùng lịch mẫu này' }).click();
       await page.locator('#ownerRegion').selectOption({ label: 'Cầu Giấy / Tôn Thất Thuyết' });
+      await page.locator('#dailyRate').fill('1000000');
+    });
+    await capture('QA Qua giao thừa', '0900000044', async () => {
+      await page.getByRole('button', { name: 'Dùng lịch mẫu này' }).click();
+      await page.locator('#ownerRegion').selectOption({ label: 'Cầu Giấy / Tôn Thất Thuyết' });
+      await page.locator('#earliestHandover').fill('2027-02-04T09:00');
+      check((await page.locator('.insight').innerText()).includes('một phần'), 'Partial day at the start of peak was counted as full coverage');
     });
     await capture('QA Nhiều xe', '0900000033', async () => {
       await page.locator('[data-preset=family]').click();
@@ -252,10 +270,10 @@ async (page) => {
       await page.locator('#latestReturn').fill('2027-02-12T18:30');
     });
     const repeated = await page.request.post(origin + '/api/leads', {
-      data: consult.postDataJSON(), headers: { 'Idempotency-Key': consult.headers()['idempotency-key'] },
+      data: consult.request.postDataJSON(), headers: { 'Idempotency-Key': consult.request.headers()['idempotency-key'] },
     });
     const replay = await repeated.json();
-    check(repeated.ok() && replay.duplicate, `Live local retry did not replay: HTTP ${repeated.status()} ${JSON.stringify(replay)}`);
+    check(repeated.ok() && replay.duplicate && replay.request_id === consult.requestRef, `Live local retry did not replay: HTTP ${repeated.status()} ${JSON.stringify(replay)}`);
     realWrites.push({ case: 'Phát lại cùng khóa', http: repeated.status(), duplicate: true });
   }
   return { viewportChecks, scenarios: 'Calendar, calculator, clipboard, Zalo, confirmation, mock API error and idempotency, analytics privacy, annual partnership', mockRequests: requests.length, realWrites, runId };

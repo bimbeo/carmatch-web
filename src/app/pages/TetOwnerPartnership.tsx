@@ -95,6 +95,12 @@ const initialOwner = { name: '', phone: '', car: '', quantity: '1', note: '', co
 type Option = keyof typeof cooperationOptions;
 type Journey = 'consult' | 'schedule';
 type Review = { key: string; text: string; payload: LeadPayload };
+const handoverErrors = {
+  no_dates: 'Hãy chọn ngày xe rảnh trước khi nhập giờ giao nhận.',
+  earliest: 'Mốc bàn giao phải nằm trong ngày đầu tiên bạn đánh dấu có thể cho thuê.',
+  latest: 'Mốc nhận lại phải nằm trong ngày cuối cùng bạn đánh dấu có thể cho thuê.',
+  order: 'Giờ giao và giờ nhận lại phải để lại thời gian cho thuê trong khoảng đã chọn.',
+};
 const phoneNumber = (value: string) => value.trim().replace(/[ .()-]/g, '').replace(/^(?:\+84|84)/, '0');
 const track = (name: string, detail: Record<string, string> = {}) => trackEvent(name, { ...detail, lead_source: campaign.source });
 
@@ -125,7 +131,7 @@ export default function TetOwnerPartnership() {
   const [sendError, setSendError] = useState('');
   const [formError, setFormError] = useState('');
   const [sending, setSending] = useState(false);
-  const [hasSent, setHasSent] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ key: string; requestId?: string } | null>(null);
   const [toast, setToast] = useState('');
   const [fallback, setFallback] = useState<{ text: string; zalo: boolean } | null>(null);
   const plannerRef = useRef<HTMLElement>(null);
@@ -133,18 +139,22 @@ export default function TetOwnerPartnership() {
   const reviewRef = useRef<HTMLDialogElement>(null);
   const checklistRef = useRef<HTMLDialogElement>(null);
   const fallbackRef = useRef<HTMLDialogElement>(null);
-  const confirmationRef = useRef<HTMLParagraphElement>(null);
+  const confirmationRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<number>();
   const leadKeys = useRef(new Map<string, string>());
   const confirmedKeys = useRef(new Set<string>());
   const inFlight = useRef(false);
   const actions = useRef(new Set<string>());
 
-  const stats = summarizeSchedule(schedule);
+  const stats = summarizeSchedule(schedule, earliest, latest);
   const estimate = estimateIncome(values, stats.free);
   const hasDates = scheduleOrigin === 'selected' && stats.free > 0;
   const multiple = Number(owner.quantity) > 1;
   const withDates = journey === 'schedule';
+  const usesReferenceVehicle = multiple && fleetSchedule === 'different';
+  const reviewWithDates = review?.payload.tet_owner?.schedule_status === 'owner_selected';
+  const firstFreeDate = stats.segments.free[0]?.start;
+  const lastFreeDate = stats.segments.free[stats.segments.free.length - 1]?.end;
   const chosenOption = option || (multiple ? 'multi' : hasDates ? stats.option : 'consult');
   const location = region === regions[regions.length - 1] ? otherRegion.trim() : region;
   const reviewWasSent = Boolean(review && confirmedKeys.current.has(review.key));
@@ -217,6 +227,13 @@ export default function TetOwnerPartnership() {
     once('cm_partner_form_open', { source });
   }
 
+  function startConsultation() {
+    setJourney('consult');
+    setFormError('');
+    startForm('hero_consult');
+    goTo(signupRef.current);
+  }
+
   function finishCalendar(source: string) {
     if (hasDates) once('cm_partner_calendar_complete', { source });
   }
@@ -227,8 +244,8 @@ export default function TetOwnerPartnership() {
     return [
       `Rảnh ${stats.free} ngày: ${list('free')}.`,
       list('hold') ? `Giữ xe: ${list('hold')}.` : '',
-      earliest ? `Giao sớm nhất: ${formatTime(earliest)}.` : '',
-      latest ? `Nhận lại muộn nhất: ${formatTime(latest)}.` : '',
+      !stats.timeError && earliest ? `Có thể bàn giao xe sớm nhất: ${formatTime(earliest)}.` : '',
+      !stats.timeError && latest ? `Cần nhận lại xe chậm nhất: ${formatTime(latest)}.` : '',
       includeEstimate ? `Tính thử: ${money(estimate.dailyRate)}/ngày × ${estimate.bookedDays} ngày × ${estimate.sharePercent}% → ${money(estimate.ownerShare)}.` : '',
     ].filter(Boolean);
   }
@@ -240,7 +257,7 @@ export default function TetOwnerPartnership() {
       includeContact && owner.phone.trim() ? `Điện thoại: ${phoneNumber(owner.phone)}` : '',
       owner.car.trim() ? `Xe: ${owner.car.trim()}${includeDates ? ` · Số lượng: ${owner.quantity || '1'}` : ''}` : '',
       includeDates && location ? `Khu vực: ${location}` : '',
-      includeDates ? `Phương án: ${cooperationOptions[chosenOption]}` : 'Lịch xe: Chưa xác định hoặc chưa gửi lịch.',
+      includeDates ? `Phương án muốn trao đổi: ${cooperationOptions[chosenOption]}` : 'Lịch xe: Chưa xác định hoặc chưa gửi lịch.',
       ...(includeDates ? scheduleLines(usedCalculator) : []),
       includeDates && multiple && fleetSchedule === 'same' ? 'Các xe cùng lịch.' : '',
       includeDates && multiple && fleetSchedule === 'different' ? `Mỗi xe có lịch riêng: ${fleetNotes.trim() || 'Cần trao đổi thêm'}.` : '',
@@ -281,8 +298,8 @@ export default function TetOwnerPartnership() {
       setFormError('Chọn ít nhất một ngày xe rảnh và điền khu vực đỗ xe, hoặc chọn tư vấn khi chưa có lịch.');
       return;
     }
-    if (withDates && earliest && latest && earliest > latest) {
-      setFormError('Thời điểm bàn giao sớm nhất phải trước hoặc bằng thời điểm cần nhận lại xe.');
+    if (withDates && stats.timeError) {
+      setFormError(handoverErrors[stats.timeError]);
       return;
     }
     if (withDates && multiple && (!fleetSchedule || (fleetSchedule === 'different' && !fleetNotes.trim()))) {
@@ -304,6 +321,7 @@ export default function TetOwnerPartnership() {
     const fingerprint = JSON.stringify(payload);
     const key = leadKeys.current.get(fingerprint) ?? makeIdempotencyKey();
     leadKeys.current.set(fingerprint, key);
+    if (confirmation?.key !== key) setConfirmation(null);
     setReview({ key, payload, text });
     setSendError('');
     setFallback(null);
@@ -315,17 +333,18 @@ export default function TetOwnerPartnership() {
     inFlight.current = true;
     setSending(true);
     setSendError('');
-    trackLeadSubmit('attempt', { lead_source: campaign.source, form_type: 'daily' });
+    const context = { lead_source: campaign.source, form_type: 'daily', schedule_status: reviewWithDates ? 'owner_selected' : 'unknown' };
+    trackLeadSubmit('attempt', context);
     try {
       const result = await submitLead({ ...review.payload, idempotency_key: review.key });
       if (!result.ok) {
-        trackLeadSubmit('error', { lead_source: campaign.source, form_type: 'daily' });
+        trackLeadSubmit('error', context);
         setSendError(result.error || 'Chưa lưu được đăng ký. Bạn có thể thử gửi lại.');
         return;
       }
-      if (!result.duplicate) trackLeadSubmit('success', { lead_source: campaign.source, form_type: 'daily' });
+      if (!result.duplicate) trackLeadSubmit('success', context);
       confirmedKeys.current.add(review.key);
-      setHasSent(true);
+      setConfirmation({ key: review.key, requestId: result.requestId });
       reviewRef.current?.close();
       requestAnimationFrame(() => confirmationRef.current?.focus());
     } finally {
@@ -357,6 +376,9 @@ export default function TetOwnerPartnership() {
               <a className="btn btn-red" href="#lich-tet" onClick={() => trackCtaClick('tet_owner_calendar')}>Chọn lịch xe rảnh &amp; tính thử thu nhập</a>
               <button type="button" className="btn btn-light" onClick={() => void copyContext(contactText(false), 'hero')}>Nhận tư vấn hợp tác qua Zalo</button>
             </div>
+            <p className="hero-consult">Chưa chốt lịch Tết? Bạn vẫn có thể đăng ký trước. Trao đổi sớm về phương án khai thác, thu nhập và điều kiện hợp tác trước khi quyết định giao xe.
+              {' '}<a href="#dang-ky" onClick={(event) => { event.preventDefault(); startConsultation(); }}>Chưa có lịch? Đăng ký tư vấn trước</a>
+            </p>
             <div className="hero-tags">
               {['Ưu tiên xe rảnh xuyên Tết', 'Giữ ngày dùng cho gia đình', 'Thẩm định trước hợp tác'].map((tag) => <span className="pill" key={tag}>✓ {tag}</span>)}
             </div>
@@ -385,14 +407,14 @@ export default function TetOwnerPartnership() {
           <article className={`card persona-card ${hasDates && activePreset === 'full' ? 'selected' : ''}`}>
             <CampaignImage image="vf6" alt="Xe điện VinFast màu trắng, minh họa nhóm xe rảnh xuyên Tết" />
             <div className="persona-body"><div className="ribbon">★ Ưu tiên thẩm định</div><h3>Xe rảnh xuyên Tết</h3>
-              <p>Bàn giao một lần trước Tết, cho thuê liên tục qua giao thừa, ví dụ <strong>{dateSpan(presets.full.free[0])}/{year}</strong>. Phù hợp với xe thứ hai, xe dư hoặc đội xe.</p>
+              <p>Ưu tiên thẩm định xe rảnh liên tục cả cao điểm <strong>{dateSpan(campaign.peak)}</strong>, ví dụ <strong>{dateSpan(presets.full.free[0])}/{year}</strong>. Nếu chỉ rảnh qua giao thừa, hãy chọn đúng các ngày có thể bàn giao.</p>
               <button type="button" className="btn btn-outline" onClick={() => replaceSchedule('full', true)}>Chọn lịch xuyên Tết ↗</button>
             </div>
           </article>
           <article className={`card persona-card ${activePreset === 'duxuan' ? 'selected' : ''}`}>
             <CampaignImage image="vf5" alt="Xe điện VinFast màu xanh, minh họa cho thuê du xuân sau Tết" />
             <div className="persona-body"><div className="ribbon">Chặng đầu năm</div><h3>Cho thuê du xuân sau Tết</h3>
-              <p>Gia đình dùng xe đầu năm rồi bàn giao một chặng liên tục từ <strong>mùng 3 đến mùng 10</strong> ({dateSpan(presets.duxuan.free[0])}). Giảm việc giao nhận giữa các ngày Tết.</p>
+              <p>Nếu xe rảnh mùng 3, có thể đề xuất chặng <strong>mùng 3 đến mùng 10</strong> ({dateSpan(presets.duxuan.free[0])}). Giữ trọn mùng 3 thì bắt đầu từ mùng 4.</p>
               <button type="button" className="btn btn-outline" onClick={() => replaceSchedule('duxuan', true)}>Chọn lịch du xuân ↗</button>
             </div>
           </article>
@@ -453,12 +475,19 @@ export default function TetOwnerPartnership() {
               {stats.free ? <ul>{stats.segments.free.map((segment) => <li key={segment.start}>{segmentLabel(segment)} · {segment.days} ngày</li>)}</ul> : <p>Chưa có ngày rảnh.</p>}
             </div>
             <div className="row2 time-fields">
-              <div className="field"><label htmlFor="earliestHandover">Bàn giao sớm nhất (tùy chọn)</label>
-                <input id="earliestHandover" type="datetime-local" value={earliest} onChange={(event) => setEarliest(event.target.value)} /></div>
-              <div className="field"><label htmlFor="latestReturn">Cần nhận lại muộn nhất (tùy chọn)</label>
-                <input id="latestReturn" type="datetime-local" value={latest} onChange={(event) => setLatest(event.target.value)} /></div>
+              <div className="field"><label htmlFor="earliestHandover">Có thể bàn giao xe sớm nhất (tùy chọn)</label>
+                <input id="earliestHandover" type="datetime-local" value={earliest}
+                  min={firstFreeDate && `${firstFreeDate}T00:00`} max={firstFreeDate && `${firstFreeDate}T23:59`}
+                  aria-describedby="tet-time-help" aria-invalid={stats.timeError === 'earliest' || stats.timeError === 'order'}
+                  onChange={(event) => setEarliest(event.target.value)} /></div>
+              <div className="field"><label htmlFor="latestReturn">Cần nhận lại xe chậm nhất (tùy chọn)</label>
+                <input id="latestReturn" type="datetime-local" value={latest}
+                  min={lastFreeDate && `${lastFreeDate}T00:00`} max={lastFreeDate && `${lastFreeDate}T23:59`}
+                  aria-describedby="tet-time-help" aria-invalid={stats.timeError === 'latest' || stats.timeError === 'order'}
+                  onChange={(event) => setLatest(event.target.value)} /></div>
             </div>
-            <p className="tiny time-fields-note">Giờ Việt Nam. Hai mốc giờ được gửi kèm khi bạn đăng ký với lịch đã chọn.</p>
+            <p id="tet-time-help" className="tiny time-fields-note">Giờ Việt Nam. Chọn giờ giao trong ngày rảnh đầu tiên và giờ nhận lại trong ngày rảnh cuối cùng. Khoảng giữa các chặng vẫn theo lịch đã đánh dấu. Nếu mỗi xe có lịch riêng, hai mốc này chỉ dùng cho xe tham khảo.</p>
+            {stats.timeError && <p className="error-message" role="status">{handoverErrors[stats.timeError]}</p>}
           </div>
           <aside className="plan-side card">
             <div className="eyebrow">Bước 2</div><h3>Thông tin xe và giả định thu nhập</h3>
@@ -509,7 +538,8 @@ export default function TetOwnerPartnership() {
                 {[[stats.free, 'Ngày có thể cho thuê'], [stats.longest, 'Ngày rảnh liền nhau'], [stats.peak, 'Ngày trong giai đoạn cao điểm'], [stats.hold, 'Ngày giữ cho gia đình']].map(([num, label]) =>
                   <div key={label}><b>{num}</b><span>{label}</span></div>)}
               </div>
-              <p className="insight">{scheduleOrigin === 'sample' ? 'Số liệu đang tính theo lịch mẫu. Lịch mẫu sẽ không được gửi kèm đăng ký.' : stats.insight}</p>
+              <p className="insight">{scheduleOrigin === 'sample' ? 'Số liệu đang tính theo lịch mẫu. Lịch mẫu sẽ không được gửi kèm đăng ký.'
+                : stats.timeError ? 'Hãy chỉnh lại giờ giao nhận để xem xe rảnh trong giai đoạn nào.' : stats.insight}</p>
             </div>
             <div><div className="owner-revenue"><div className="tiny">Phần chủ xe theo tỷ lệ giả định</div>
               <strong id="estimatedOwnerShare" aria-live="polite">{money(estimate.ownerShare)}</strong><span>Trước chi phí riêng hoặc thuế có thể phát sinh</span>
@@ -540,7 +570,7 @@ export default function TetOwnerPartnership() {
           </article>)}
         </div>
         <div className="trust-action">
-          <div><strong>Xem quy trình đồng kiểm trước khi giao xe</strong><p>Mẫu kiểm tra 15 điểm giúp chủ xe biết những thông tin nào sẽ được đối chiếu và lưu lại khi bàn giao.</p></div>
+          <div><strong>Những điều cần thống nhất trước khi giao xe</strong><p>Chốt ngày giờ giao và nhận lại, khoản chủ xe được nhận, các chi phí có thể phát sinh, phạm vi bảo hiểm, trách nhiệm mỗi bên, cách xử lý trả trễ và kỳ thanh toán. Hai bên đối chiếu hiện trạng và ghi lại theo biên bản 15 điểm.</p></div>
           <button className="btn btn-outline" type="button" onClick={() => {
             track('cm_partner_document_open', { document: 'checklist_15_diem' }); checklistRef.current?.showModal();
           }}>Xem biên bản đồng kiểm 15 điểm ↗</button>
@@ -554,10 +584,10 @@ export default function TetOwnerPartnership() {
           <a className="btn btn-light" href="#dang-ky" onClick={() => startForm('vehicles')}>Gửi thông tin xe &amp; lịch Tết ↗</a>
         </div>
         <figure className="story-gallery">
-          <img src="/partner-v21-process.jpg" width="773" height="560" loading="lazy" decoding="async" alt="Ảnh xe tại khu vực đỗ trong bộ hình vận hành Car Match" />
-          <CampaignImage image="vf6" alt="Xe VinFast màu trắng trong khu vực đỗ xe" />
-          <CampaignImage image="vf3" alt="Xe điện đô thị VinFast VF3 màu xám" />
-          <figcaption className="caption">Ảnh xe trong bộ hình Car Match. Mỗi xe và lịch thuê được thẩm định riêng.</figcaption>
+          <img src={`${assets}gallery-xpander.webp`} width="720" height="360" loading="lazy" decoding="async" alt="Xe Mitsubishi Xpander màu đen trong danh mục Car Match" />
+          <img src={`${assets}gallery-mazda3.webp`} width="480" height="240" loading="lazy" decoding="async" alt="Sedan Mazda 3 màu xám trong danh mục Car Match" />
+          <img src={`${assets}gallery-creta.webp`} width="480" height="240" loading="lazy" decoding="async" alt="Hyundai Creta màu đen trong danh mục Car Match" />
+          <figcaption className="caption">Ảnh xe từ danh mục Car Match. Mỗi xe và lịch thuê được thẩm định riêng.</figcaption>
         </figure>
       </div></section>
 
@@ -595,9 +625,13 @@ export default function TetOwnerPartnership() {
           <p className="signup-zalo-hint">Khi nhấn, trang sẽ thử sao chép lịch đã chọn để bạn dán vào cuộc trò chuyện.</p>
         </aside>
         <div className="card signup-card">
-          <div className="eyebrow">Đăng ký hợp tác Tết</div><h3>Đăng ký xe hợp tác Tết {year}</h3>
+          <div className="eyebrow">Đăng ký hợp tác Tết</div><h3>{withDates ? 'Gửi lịch xe hợp tác Tết' : 'Đăng ký tư vấn hợp tác Tết'} {year}</h3>
           <p className="muted tiny">Gửi thông tin để được tư vấn trước. Bạn chưa cần cam kết giao xe ở bước này.</p>
-          {hasSent && <p className="success-message" role="status" tabIndex={-1} ref={confirmationRef}>Car Match đã nhận đăng ký và sẽ liên hệ qua số điện thoại bạn cung cấp.</p>}
+          {confirmation && <div className="success-message" role="status" tabIndex={-1} ref={confirmationRef}>
+            <strong>Car Match đã nhận đăng ký.</strong>
+            {confirmation.requestId && <div>Mã yêu cầu <b>{confirmation.requestId}</b></div>}
+            <div>Car Match sẽ liên hệ qua số điện thoại bạn cung cấp để trao đổi lịch, hồ sơ xe và điều kiện thẩm định.{confirmation.requestId && ' Bạn có thể dùng mã yêu cầu khi hỏi về đăng ký này.'}</div>
+          </div>}
           <form id="ownerForm" onFocus={() => startForm('form_focus')} onSubmit={openReview}>
             <fieldset className="journey-choice"><legend>Tình trạng lịch xe</legend>
               <label><input type="radio" name="tet-journey" checked={!withDates} onChange={() => { setJourney('consult'); setFormError(''); }} /> Chưa có lịch, cần tư vấn</label>
@@ -624,9 +658,10 @@ export default function TetOwnerPartnership() {
                 <option value="">Chọn cách dùng lịch</option><option value="same">Các xe cùng lịch</option><option value="different">Mỗi xe có lịch riêng</option>
               </select>
             </div>}
-            {multiple && fleetSchedule === 'different' && <div className="field"><label htmlFor="fleetNotes">Mẫu xe và lịch riêng của từng xe *</label>
+            {usesReferenceVehicle && <div className="field"><label htmlFor="fleetNotes">Mẫu xe và lịch riêng của từng xe *</label>
               <textarea id="fleetNotes" required maxLength={700} value={fleetNotes} placeholder="Ví dụ: VF6 rảnh 04–12/02. Xpander rảnh 08–15/02."
                 onChange={(event) => setFleetNotes(event.target.value)} />
+              <p className="tiny">Ghi rõ giờ giao và nhận lại của từng xe nếu đã biết. Lịch và giờ chọn ở trên chỉ dùng cho xe tham khảo.</p>
             </div>}
             <div className="field"><label htmlFor="ownerNote">Ghi chú (nếu có)</label>
               <textarea id="ownerNote" maxLength={1200} placeholder="Ví dụ: cần lấy xe trước 10h hoặc có lịch ngoài khoảng Tết." value={owner.note} onChange={(event) => setOwner({ ...owner, note: event.target.value })} />
@@ -635,7 +670,7 @@ export default function TetOwnerPartnership() {
             <div className="summary-preview" id="formScheduleSummary" aria-live="polite">
               {!withDates ? <p><strong>Lịch xe:</strong> Chưa xác định. Có thể bổ sung sau khi được tư vấn.</p>
                 : hasDates ? <>
-                  <strong>{multiple && fleetSchedule === 'different' ? 'Lịch tham khảo cho một xe' : 'Lịch xe gửi kèm'}</strong>
+                  <strong>{usesReferenceVehicle ? 'Lịch và giờ của một xe tham khảo' : 'Lịch xe gửi kèm'}</strong>
                   <ul>{scheduleLines(usedCalculator).map((line) => <li key={line}>{line}</li>)}</ul>
                   <a href="#lich-tet">Chỉnh lịch hoặc giờ giao nhận</a>
                 </> : <p>Chưa có ngày sẵn sàng cho thuê. <a href="#lich-tet">Chọn lịch xe</a></p>}
@@ -645,7 +680,7 @@ export default function TetOwnerPartnership() {
             </label>
             {formError && <p className="error-message" role="alert">{formError}</p>}
             <div className="form-actions">
-              <button className="btn btn-red" type="submit">Kiểm tra thông tin trước khi gửi</button>
+              <button className="btn btn-red" type="submit">{withDates ? 'Kiểm tra lịch xe trước khi gửi' : 'Kiểm tra thông tin tư vấn'}</button>
               <button className="btn btn-light" type="button" onClick={() => void copyContext(contactText(false), 'form')}>Sao chép &amp; mở Zalo</button>
             </div>
           </form>
@@ -670,7 +705,7 @@ export default function TetOwnerPartnership() {
     <PartnerDialog ref={reviewRef} id="reviewModal" aria-labelledby="reviewTitle" aria-busy={sending} onCancel={(event) => { if (inFlight.current) event.preventDefault(); }}
       onClose={() => setFallback(null)}>
       <div className="partner-dialog-top">
-        <div><div className="eyebrow">Xác nhận trước khi gửi</div><h3 id="reviewTitle">Thông tin chủ xe và lịch Tết</h3></div>
+        <div><div className="eyebrow">Xác nhận trước khi gửi</div><h3 id="reviewTitle">{reviewWithDates ? 'Thông tin chủ xe và lịch Tết' : 'Thông tin đăng ký tư vấn'}</h3></div>
         <button className="partner-dialog-close" type="button" aria-label="Đóng" disabled={sending} onClick={() => reviewRef.current?.close()}>×</button>
       </div>
       {review && <pre>{review.text}</pre>}
@@ -678,7 +713,7 @@ export default function TetOwnerPartnership() {
       {reviewWasSent && <p role="status">Yêu cầu này đã được Car Match tiếp nhận.</p>}
       <div className="partner-dialog-actions">
         <button className="partner-dialog-primary" type="button" onClick={() => void confirmLead()} disabled={sending || reviewWasSent}>
-          {sending ? 'Đang gửi…' : sendError ? 'Thử gửi lại' : 'Gửi đăng ký hợp tác Tết'}
+          {sending ? 'Đang gửi…' : sendError ? 'Thử gửi lại' : reviewWithDates ? 'Gửi đăng ký hợp tác Tết' : 'Gửi yêu cầu tư vấn'}
         </button>
         <button type="button" disabled={sending} onClick={() => reviewRef.current?.close()}>Quay lại chỉnh sửa</button>
         <button type="button" disabled={sending} onClick={() => { if (review) void copyContext(review.text, 'review'); }}>Sao chép &amp; mở Zalo</button>

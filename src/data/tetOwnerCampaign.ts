@@ -1,4 +1,6 @@
-const year = 2027;
+import { classifyAvailability, tetOwnerWindow, validateHandoverTimes } from './tetOwnerAvailability.mjs';
+
+const year = Number(tetOwnerWindow.newYear.slice(0, 4));
 const path = '/hop-tac-chu-xe-cho-thue-tet';
 
 export const tetOwnerCampaign = {
@@ -11,10 +13,9 @@ export const tetOwnerCampaign = {
   description: `Có xe dư dịp Tết ${year}? Hợp tác cho thuê xe cùng Car Match tại Hà Nội. Chủ động chọn lịch xe rảnh, tính thử thu nhập và nhận tư vấn phương án khai thác.`,
   image: '/tet-owner/og-tet-owner-1200.jpg',
   socialImage: { width: 1200, height: 630, type: 'image/jpeg' },
-  newYear: '2027-02-06',
-  peak: ['2027-02-04', '2027-02-10'],
+  newYear: tetOwnerWindow.newYear,
+  peak: tetOwnerWindow.peak,
   handover: ['2027-02-01', '2027-02-04'],
-  lateDuXuan: ['2027-02-07', '2027-02-14'],
   defaults: { dailyRate: 900_000, bookedDays: 7, sharePercent: 80 },
   sampleRates: [700_000, 900_000, 1_200_000],
   presets: {
@@ -52,9 +53,9 @@ export type DayStatus = 'free' | 'hold' | 'maybe';
 export type Schedule = Record<TetDate, DayStatus>;
 export type ScheduleOrigin = 'sample' | 'selected' | 'empty';
 export type FleetSchedule = '' | 'same' | 'different';
-type DateRange = readonly [TetDate, TetDate];
+type DateRange = readonly [string, string];
 
-export const dateLabel = (iso: TetDate) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+export const dateLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 export const inRange = (iso: TetDate, range: DateRange) => iso >= range[0] && iso <= range[1];
 export const dateSpan = ([start, end]: DateRange) => start.slice(5, 7) === end.slice(5, 7)
   ? `${start.slice(8, 10)}–${dateLabel(end)}`
@@ -96,7 +97,8 @@ function getSegments(schedule: Schedule, status: DayStatus) {
 }
 
 export const cooperationOptions = {
-  full: 'Có thể cho thuê xuyên Tết',
+  full: 'Rảnh toàn bộ giai đoạn cao điểm',
+  across_new_year: 'Rảnh liên tục qua giao thừa',
   before: 'Có thể cho thuê trước Tết',
   after: 'Có thể cho thuê du xuân sau Tết',
   flexible: 'Lịch linh hoạt hoặc ngắt quãng',
@@ -104,7 +106,7 @@ export const cooperationOptions = {
   consult: 'Muốn được tư vấn trước',
 } as const;
 
-export function summarizeSchedule(schedule: Schedule) {
+export function summarizeSchedule(schedule: Schedule, earliest = '', latest = '') {
   const segments = {
     free: getSegments(schedule, 'free'),
     hold: getSegments(schedule, 'hold'),
@@ -112,27 +114,22 @@ export function summarizeSchedule(schedule: Schedule) {
   };
   const free = dates.filter((iso) => schedule[iso] === 'free');
   const longest = Math.max(0, ...segments.free.map((segment) => segment.days));
-  const continuous = (range: DateRange) => segments.free.some(({ start, end }) => start <= range[0] && end >= range[1]);
-  const acrossTet = segments.free.some(({ start, end, days }) => start < campaign.newYear && end > campaign.newYear && days >= 7);
-  const afterTet = continuous(campaign.presets.duxuan.free[0]) || continuous(campaign.lateDuXuan);
+  const timeError = validateHandoverTimes(segments.free, earliest, latest);
   const familyBreak = dates.filter((iso) => inRange(iso, campaign.presets.family.hold[0]))
     .every((iso) => schedule[iso] === 'hold') && segments.free.length > 1;
-  const beforeTet = free.length > 0 && free.every((iso) => iso < campaign.newYear);
-  const option: keyof typeof cooperationOptions = !free.length ? 'consult' : acrossTet ? 'full' : familyBreak ? 'flexible' : afterTet ? 'after' : beforeTet ? 'before'
-    : free.every((iso) => iso > campaign.newYear) ? 'after' : 'flexible';
-  const insight = !free.length
-    ? 'Bạn chưa đánh dấu ngày cho thuê. Hãy chọn ngày rảnh hoặc trao đổi với Car Match về lịch phù hợp.'
-    : acrossTet
-      ? 'Bạn có khoảng rảnh liên tục qua giao thừa. Đây là nhóm lịch thuận tiện để Car Match ưu tiên thẩm định thuê theo kỳ.'
-      : familyBreak
-        ? 'Giữ mùng 1–3 sẽ ngắt quãng kỳ thuê xuyên Tết. Car Match có thể xem xét hai chặng riêng trước Tết và từ mùng 4, tùy nhu cầu và khả năng giao nhận.'
-        : afterTet
-          ? 'Xe có thể phục vụ một chặng du xuân liền mạch sau Tết. Car Match sẽ kiểm tra nhu cầu và điều kiện giao nhận theo lịch bạn chọn.'
-          : longest <= 3
-            ? 'Khoảng rảnh hiện khá ngắn. Bạn vẫn có thể gửi lịch để Car Match kiểm tra nhu cầu từng chuyến.'
-            : 'Bạn đã có khoảng ngày rảnh để xem xét. Lịch liền mạch dài hơn thường thuận tiện cho việc ghép khách theo kỳ.';
+  const option = classifyAvailability(segments.free, timeError ? '' : earliest, timeError ? '' : latest);
+  const insights = {
+    consult: 'Bạn chưa đánh dấu ngày cho thuê. Hãy chọn ngày rảnh hoặc trao đổi với Car Match về lịch phù hợp.',
+    full: `Xe rảnh liên tục toàn bộ giai đoạn cao điểm ${dateSpan(campaign.peak)}. Car Match có thể xem xét một kỳ thuê xuyên Tết.`,
+    across_new_year: `Xe rảnh liên tục qua giao thừa. Khoảng rảnh bao phủ một phần giai đoạn cao điểm ${dateSpan(campaign.peak)}.`,
+    before: 'Car Match có thể xem xét các ngày rảnh trước Tết.',
+    after: 'Car Match có thể xem xét các ngày rảnh đầu năm theo lịch và điều kiện giao nhận bạn đề xuất.',
+    flexible: familyBreak
+      ? 'Lịch giữ mùng 1–3 ngắt quãng kỳ thuê. Car Match có thể xem xét từng chặng, với chặng sau Tết từ mùng 4.'
+      : 'Car Match có thể xem xét từng khoảng rảnh bạn đã chọn.',
+  };
   return {
-    segments, longest, option, insight,
+    segments, longest, option, insight: insights[option], timeError,
     free: free.length,
     hold: dates.filter((iso) => schedule[iso] === 'hold').length,
     maybe: dates.filter((iso) => schedule[iso] === 'maybe').length,
@@ -177,7 +174,8 @@ export function leadSchedule({
     schedule_input: confirmed ? 'owner_selected' : origin === 'sample' ? 'sample_ignored' : 'not_set',
     preset: confirmed ? preset : null,
     declared_option: confirmed ? option : 'consult',
-    schedule_class: confirmed && fleet !== 'different' ? stats.option : null,
+    schedule_class: confirmed && fleet !== 'different'
+      ? classifyAvailability(stats.segments.free, earliest, latest) : null,
     schedule_scope: !confirmed ? null : fleet === 'different' ? 'reference_vehicle_only' : fleet === 'same' ? 'same_for_all_vehicles' : 'single_vehicle',
     time_zone: campaign.timeZone,
     segments: confirmed ? { free: stats.segments.free, hold: stats.segments.hold } : null,

@@ -2,20 +2,35 @@ import { dateSpan, tetOwnerCampaign } from './tetOwnerCampaign.ts';
 
 export const tetOwnerFaq = [
   {
-    question: 'Tôi muốn giữ mùng 1–3 cho gia đình thì có hợp tác được không?',
-    answer: 'Có thể gửi lịch. Giữ xe giữa Tết làm ngắt quãng một kỳ thuê xuyên suốt. Car Match sẽ xem xét từng chặng trước và sau Tết theo điều kiện giao nhận và nhu cầu thực tế.',
-  },
-  {
-    question: 'Xe rảnh từ mùng 3 đến mùng 10 có phù hợp không?',
-    answer: `Bạn có thể đề xuất chặng du xuân liên tục từ ${dateSpan(tetOwnerCampaign.presets.duxuan.free[0])}/${tetOwnerCampaign.year}. Car Match sẽ kiểm tra nhu cầu, điều kiện nhận xe và thời điểm bạn cần lấy lại xe.`,
+    question: 'Chưa biết lịch Tết có đăng ký được không?',
+    answer: 'Có. Chọn “Chưa có lịch, cần tư vấn” rồi gửi họ tên, số điện thoại hoặc Zalo và mẫu xe. Bạn có thể trao đổi về thu nhập và điều kiện hợp tác trước khi bổ sung lịch.',
   },
   {
     question: 'Tôi có biết trước khoản tiền chủ xe nhận không?',
     answer: 'Công cụ tính thử doanh thu và phần chủ xe theo tỷ lệ giả định. Sau thẩm định, Car Match trao đổi giá, cách chia sẻ, các khoản chi và lịch thanh toán theo xe thực tế.',
   },
   {
+    question: 'Tôi muốn giữ mùng 1–3 cho gia đình thì có hợp tác được không?',
+    answer: 'Có. Nếu giữ trọn mùng 1–3 (06–08/02), chặng sau Tết bắt đầu từ mùng 4 (09/02). Nếu chỉ cần xe một phần ngày mùng 3, ghi giờ có thể bàn giao để Car Match xem xét cùng bạn trước khi chốt lịch.',
+  },
+  {
     question: 'Nếu khách trả xe muộn thì xử lý thế nào?',
-    answer: 'Báo cho đầu mối Car Match đã thống nhất để cập nhật giờ nhận lại xe. Trách nhiệm và chi phí phát sinh do trả muộn được xử lý theo hợp đồng của chuyến thuê.',
+    answer: 'Báo cho đầu mối đã thống nhất để cập nhật giờ nhận lại xe. Cách xử lý, trách nhiệm và chi phí do trả muộn thực hiện theo hợp đồng của chuyến thuê.',
+  },
+  {
+    question: 'Nếu xe gặp tai nạn hoặc hư hỏng trong chuyến thuê thì sao?',
+    answer: 'Liên hệ đầu mối đã ghi trong thỏa thuận và lưu lại hiện trạng khi an toàn. Hai bên đối chiếu biên bản, hồ sơ sự cố và điều kiện bảo hiểm áp dụng cho xe để xác định cách xử lý và trách nhiệm.',
+  },
+  {
+    question: 'Khi nào chủ xe nhận được tiền hợp tác?',
+    answer: 'Thời điểm thanh toán theo kỳ đối soát đã ghi trong hợp đồng. Trước khi giao xe, hãy thống nhất kỳ hạn, chứng từ và cách xử lý các khoản phát sinh.',
+  },
+];
+
+export const tetOwnerMoreFaq = [
+  {
+    question: 'Xe rảnh từ mùng 3 đến mùng 10 có phù hợp không?',
+    answer: `Có thể đề xuất chặng du xuân ${dateSpan(tetOwnerCampaign.presets.duxuan.free[0])}/${tetOwnerCampaign.year} nếu xe có thể bàn giao từ mùng 3. Nếu bạn giữ trọn mùng 3, hãy chọn chặng từ mùng 4 hoặc ghi rõ giờ bàn giao để trao đổi nếu chỉ dùng xe một phần ngày.`,
   },
   {
     question: 'Phạt nguội phát hiện sau khi trả xe được xử lý thế nào?',
@@ -24,13 +39,6 @@ export const tetOwnerFaq = [
   {
     question: 'Xe cần kiểm tra những gì trước và sau khi giao?',
     answer: 'Hai bên đối chiếu giấy tờ, ngoại thất, nội thất, vệ sinh, km, nhiên liệu hoặc pin, lốp, phụ kiện và chìa khóa. Ghi nhận hiện trạng hoặc nhu cầu vệ sinh khi trả xe để xử lý theo biên bản và thỏa thuận.',
-  },
-];
-
-export const tetOwnerMoreFaq = [
-  {
-    question: 'Chưa biết lịch Tết có đăng ký được không?',
-    answer: 'Có. Chọn “Chưa có lịch, cần tư vấn” và gửi họ tên, SĐT hoặc Zalo cùng mẫu xe. Bạn có thể bổ sung lịch sau khi được tư vấn.',
   },
   {
     question: 'Xe đang trả góp có thể hợp tác không?',
@@ -46,10 +54,6 @@ export const tetOwnerMoreFaq = [
   },
   {
     question: 'Có nhiều xe với lịch khác nhau thì đăng ký thế nào?',
-    answer: 'Chọn số lượng xe, chọn “Mỗi xe có lịch riêng” rồi ghi mẫu xe và khoảng rảnh của từng xe. Car Match sẽ xem xét lịch cho từng xe.',
-  },
-  {
-    question: 'Khi nào chủ xe nhận được tiền hợp tác?',
-    answer: 'Thời điểm thanh toán theo kỳ đối soát và điều khoản hai bên thống nhất trong hợp đồng. Hãy hỏi Car Match về kỳ hạn, chứng từ và cách xử lý các khoản phát sinh trước khi ký.',
+    answer: 'Chọn số lượng xe, chọn “Mỗi xe có lịch riêng” rồi ghi mẫu xe, khoảng rảnh và giờ giao nhận của từng xe nếu đã biết. Mốc giờ nhập cạnh lịch chỉ áp dụng cho xe tham khảo.',
   },
 ];
