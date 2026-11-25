@@ -5,7 +5,7 @@ import {
   Zap, ChevronLeft, ChevronRight, Phone,
   MapPin, BadgeCheck, Clock, CalendarDays, ChevronDown, Tag,
 } from 'lucide-react';
-import { formatPrice, type Car } from '@/data/cars';
+import { describeRentalCondition, formatPrice, type Car } from '@/data/cars';
 import { findVehicleBySlug, useVehicles } from '@/hooks/useVehicles';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -385,9 +385,9 @@ function PromoBanner({
 }
 
 function RentalEssentials({ car }: { car: Car }) {
-  const conditions = car.conditions.slice(0, 3).map((condition) => condition
-    .replace('Căn cước và bằng lái xe hạng B (Đối chiếu)', 'CCCD và bằng lái hạng B (đối chiếu)')
-    .replace('Đặt cọc tiền từ ', 'Cọc từ '));
+  const conditions = car.conditions.slice(0, 3).map((condition) => describeRentalCondition(
+    condition.replace('Căn cước và bằng lái xe hạng B (Đối chiếu)', 'CCCD và bằng lái hạng B (đối chiếu)'),
+  ));
 
   return (
     <section
@@ -448,7 +448,7 @@ function RentalEssentials({ car }: { car: Car }) {
               </div>
             ))}
           </dl>
-          <p className="mt-3 text-xs leading-5 text-slate-500">Phí giao nhận và sạc/nhiên liệu được báo trước khi cọc.</p>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Xem phí giao nhận theo địa chỉ và điều kiện về {car.fuel === 'Điện' ? 'pin, sạc' : 'nhiên liệu'} của gói thuê đã chọn.</p>
         </div>
       </div>
     </section>
@@ -472,6 +472,7 @@ function VehicleBookingPanel({
   onAvailabilityStatusChange: (status: BookingAvailabilityStatus) => void;
   onBookingSummaryChange: (summary: BookingSummary) => void;
 }) {
+  const { state } = useLocation();
   return (
     <div className="space-y-3">
       <PromoBanner promos={activePromoCodes} loading={promoLoading} className="hidden lg:block" />
@@ -483,6 +484,7 @@ function VehicleBookingPanel({
         vehicleId={car.id}
         kmPerDay={car.kmPerDay}
         kmSurcharge={car.kmSurcharge}
+        originAreaSlug={typeof state?.localRentalAreaSlug === 'string' ? state.localRentalAreaSlug : undefined}
         relatedCars={relatedCars.slice(0, 3).map(c => ({ slug: c.slug, name: c.name, price: c.price }))}
         externalOpenRequest={externalOpenRequest}
         onAvailabilityStatusChange={onAvailabilityStatusChange}

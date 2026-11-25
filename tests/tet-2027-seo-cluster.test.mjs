@@ -84,7 +84,7 @@ test('Tet landings are routed, prerendered and registered for sitemap generation
   assert.match(ssr, /renderTetOwnerPartnership/);
   assert.match(ssr, /renderTetRental/);
   assert.match(partner, /\/hop-tac-chu-xe-cho-thue-tet/);
-  assert.doesNotMatch(partner, /0đ|30 phút|800K–2 triệu/);
+  assert.doesNotMatch(partner, /(?<![\d.])0\s*[đ₫](?!\p{L})|30 phút|800K–2 triệu/u);
 });
 
 test('Tet hubs have complete spoke links and are discoverable from strong website pages', async () => {

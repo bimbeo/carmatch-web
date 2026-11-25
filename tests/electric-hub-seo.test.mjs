@@ -108,7 +108,8 @@ test('hub reuses the booking widget pickup locations instead of asserting extra 
     readFile(PAGE_PATH, 'utf8'),
     readFile(BOOKING_PATH, 'utf8'),
   ]);
-  const areasBlock = booking.slice(booking.indexOf('export const BOOKING_PICKUP_LOCATIONS'), booking.indexOf('function getInitialDeliverySelection'));
+  const areasBlock = await readFile(new URL('../src/data/bookingPickupLocations.ts', import.meta.url), 'utf8');
+  assert.match(booking, /pickupLocations = BOOKING_PICKUP_LOCATIONS/);
 
   for (const area of [
     'Ocean Park',
@@ -132,14 +133,14 @@ test('booking CRO claims require verified data and preserve the trip note', asyn
   assert.match(booking, /customerNote\?: string/);
   assert.match(booking, /requestedCustomerNote/);
   assert.match(booking, /Tổng tạm tính/);
-  assert.match(booking, /phụ phí giao nhận chỉ là tạm tính/);
+  assert.match(booking, /Phí giao nhận sẽ được xác nhận theo địa chỉ/);
   assert.match(availability, /\.eq\('status', 'confirmed'\)/);
   assert.match(availability, /timePrecision: 'exact'/);
 });
 
 test('electric booking confirmation is tracked only after confirmed status', async () => {
   const source = await readFile(BOOKING_CONFIRM_PATH, 'utf8');
-  assert.match(source, /\['contacted', 'confirmed'\]\.includes\(data\.status\)/);
+  assert.match(source, /isBookingConfirmedStatus\(data\.status\)/);
   assert.match(source, /booking_confirmed/);
   assert.match(source, /carmatch_ev_booking_ref/);
 });

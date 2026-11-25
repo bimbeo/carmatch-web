@@ -6,6 +6,7 @@ export interface Car {
   color?: string;
   name: string;
   brand: string;
+  model?: string;
   price: number;
   priceMonth?: number;
   seats: number;
@@ -173,6 +174,10 @@ export const cars: Car[] = [
 
 export function formatPrice(price: number): string {
   return price.toLocaleString('vi-VN') + 'đ';
+}
+
+export function describeRentalCondition(condition: string): string {
+  return condition.replace(/^(?:Đặt cọc tiền|Cọc) từ (.+hoặc xe máy.+)$/i, 'Tài sản bảo đảm khi nhận xe: tiền từ $1');
 }
 
 export function formatPriceShort(price: number): string {

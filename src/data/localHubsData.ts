@@ -33,6 +33,7 @@ export interface LocalHubData {
   locationName: string;
   locationShortName: string;
   hubSlug: string;
+  selfPickupId?: string;
   heroBadge: string;
   h1Title: string;
   heroSubtitle: string;
@@ -43,6 +44,7 @@ export interface LocalHubData {
   faqs: LocalHubFaq[];
 }
 
+
 export const LOCAL_HUBS_DATA: LocalHubData[] = [
   {
     "slug": "vinhomes-ocean-park",
@@ -50,6 +52,7 @@ export const LOCAL_HUBS_DATA: LocalHubData[] = [
     "locationName": "Vinhomes Ocean Park 1-2-3, Gia Lâm",
     "locationShortName": "Vinhomes Ocean Park",
     "hubSlug": "ocean-park",
+    "selfPickupId": "ocean-park",
     "heroBadge": "● CÓ HUB XE TRỰC THUỘC GIA LÂM · GIAO TẬN SẢNH 15–30 PHÚT",
     "h1Title": "Thuê Xe Tự Lái Vinhomes Ocean Park — Nhận Xe Ngay Dưới Sảnh Tòa Nhà",
     "heroSubtitle": "Đội xe điện VinFast VF3, VF5, VF6, Limo Green và xe gia đình 5–7 chỗ đỗ sẵn tại Hub Ocean Park. Giao nhận tận sảnh Sapphire, Pavilion, Masteri, Sao Biển đúng giờ hẹn từ 07:00 – 22:00.",
@@ -168,6 +171,7 @@ export const LOCAL_HUBS_DATA: LocalHubData[] = [
     "locationName": "Vinhomes Times City & Park Hill, 458 Minh Khai",
     "locationShortName": "Times City",
     "hubSlug": "times-city",
+    "selfPickupId": "times-city",
     "heroBadge": "● CÓ ĐIỂM NHẬN XE MIỄN PHÍ TẠI TIMES CITY · GIAO NHẬN TRONG 15 PHÚT",
     "h1Title": "Thuê Xe Tự Lái Vinhomes Times City — Điểm Nhận Xe Miễn Phí Ngay 458 Minh Khai",
     "heroSubtitle": "Car Match có điểm giao nhận xe trực tiếp tại Times City (Hai Bà Trưng). Cư dân T1–T18, Park Hill và Park Hill Premium có thể tự nhận xe miễn phí hoặc hẹn giao tận sảnh trong 15 phút.",
@@ -286,6 +290,7 @@ export const LOCAL_HUBS_DATA: LocalHubData[] = [
     "locationName": "The Manor Central Park, Nguyễn Xiển (Hoàng Mai)",
     "locationShortName": "The Manor Central Park",
     "hubSlug": "the-manor",
+    "selfPickupId": "manor",
     "heroBadge": "● TRỤ SỞ HUB PHÍA NAM HÀ NỘI · NHẬN XE MIỄN PHÍ 0đ NGAY NGUYỄN XIỂN",
     "h1Title": "Thuê Xe Tự Lái The Manor Central Park (Nguyễn Xiển) — Điểm Nhận Xe Chính Thức",
     "heroSubtitle": "The Manor Central Park (mặt đường Nguyễn Xiển – Nghiêm Xuân Yêm, Hoàng Mai) là Hub điều phối xe trọng điểm phía Nam của Car Match. Nhận xe miễn phí 0đ trong 10 phút, kết nối thẳng Vành đai 3 và Cao tốc Pháp Vân.",
@@ -345,6 +350,7 @@ export const LOCAL_HUBS_DATA: LocalHubData[] = [
     "locationName": "Quận Cầu Giấy (Hub Tôn Thất Thuyết – Duy Tân)",
     "locationShortName": "Cầu Giấy",
     "hubSlug": "cau-giay",
+    "selfPickupId": "trung-lan",
     "heroBadge": "● CÓ HUB XE TRỰC THUỘC CẦU GIẤY · NHẬN XE MIỄN PHÍ HOẶC GIAO TẬN VĂN PHÒNG",
     "h1Title": "Thuê Xe Tự Lái Cầu Giấy — Nhận Xe Miễn Phí Tại Hub Hoặc Giao Tận Sảnh",
     "heroSubtitle": "Phục vụ nhanh nhất khu vực Tôn Thất Thuyết, Duy Tân, Trung Hòa – Nhân Chính, Xuân Thủy, Cầu Giấy. Tự lấy xe miễn phí tại Hub Cầu Giấy hoặc nhận xe tận sảnh tòa văn phòng/chung cư trong 15–20 phút.",

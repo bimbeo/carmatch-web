@@ -5,7 +5,7 @@ import type { Car } from '@/data/cars';
 const DEFAULT_CONDITIONS = [
   'CCCD công dân (bản gốc)',
   'Giấy phép lái xe hạng B còn hạn',
-  'Khoản đặt cọc theo mẫu xe, xác nhận trước khi giao',
+  'Tài sản bảo đảm theo xe, xác nhận trước khi nhận',
 ];
 
 // Default km/day allowance if not set
@@ -280,8 +280,9 @@ function mapToCar(v: SupabaseVehicle): Car {
     slugAliases,
     plateNumber: undefined,
     color: v.color?.trim() || undefined,
-    name: v.display_name || `${make} ${model}`.trim() || 'Xe',
+    name: (v.display_name || `${make} ${model}`.trim() || 'Xe').replace(/\bvinfast\b/gi, 'VinFast'),
     brand: make,
+    model: [make, model].filter(Boolean).join(' '),
     price: v.daily_base_price || 0,
     priceMonth: v.monthly_sale_price || undefined,
     seats,

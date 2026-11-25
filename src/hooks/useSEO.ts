@@ -5,6 +5,7 @@ interface SEOProps {
   description: string;
   canonical?: string;
   ogImage?: string;
+  ogImageAlt?: string;
   noIndex?: boolean;
 }
 
@@ -56,13 +57,14 @@ function setAlternateLink(hreflang: string, href: string) {
   el.setAttribute('href', href);
 }
 
-export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOProps) {
+export function useSEO({ title, description, canonical, ogImage, ogImageAlt, noIndex }: SEOProps) {
   useEffect(() => {
     const fullTitle = withBrandName(title);
     const normalizedDescription = normalizeBrandName(description);
     const canonicalUrl = canonical ?? (BASE_URL + window.location.pathname);
     const resolvedOgImage = ogImage ?? DEFAULT_IMAGE;
     const usesDefaultOgImage = resolvedOgImage === DEFAULT_IMAGE;
+    const resolvedImageAlt = ogImageAlt ?? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư';
     document.title = fullTitle;
 
     setMeta('description', normalizedDescription);
@@ -80,7 +82,7 @@ export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOP
     setMeta('og:title', fullTitle, 'property');
     setMeta('og:description', normalizedDescription, 'property');
     setMeta('og:image', resolvedOgImage, 'property');
-    setMeta('og:image:alt', 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư', 'property');
+    setMeta('og:image:alt', resolvedImageAlt, 'property');
     if (usesDefaultOgImage) {
       setMeta('og:image:width', '1200', 'property');
       setMeta('og:image:height', '630', 'property');
@@ -97,7 +99,7 @@ export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOP
     setMeta('twitter:title', fullTitle);
     setMeta('twitter:description', normalizedDescription);
     setMeta('twitter:image', resolvedOgImage);
-    setMeta('twitter:image:alt', 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư');
+    setMeta('twitter:image:alt', resolvedImageAlt);
 
     // Canonical
     setLink('canonical', canonicalUrl);
@@ -109,5 +111,5 @@ export function useSEO({ title, description, canonical, ogImage, noIndex }: SEOP
       document.title = 'Thuê Xe Tự Lái Hà Nội Từ 600K/Ngày | Car Match';
       setMeta('description', 'Thuê xe tự lái Hà Nội từ 600.000đ/ngày. Xem xe, giá theo lịch, giấy tờ, cọc và phí giao nhận trước khi gửi yêu cầu.');
     };
-  }, [title, description, canonical, ogImage, noIndex]);
+  }, [title, description, canonical, ogImage, ogImageAlt, noIndex]);
 }

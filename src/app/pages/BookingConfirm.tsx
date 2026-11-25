@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useSEO } from '@/hooks/useSEO';
-import { trackEvent } from '@/lib/analytics';
+import { isBookingConfirmedStatus, trackEvent, trackLocalRentalConfirmation } from '@/lib/analytics';
 
 interface BookingData {
   booking_ref: string;
@@ -37,8 +37,9 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     new: { label: 'Chờ xác nhận', cls: 'bg-yellow-100 text-yellow-700' },
     partner_pending: { label: 'Đang kiểm tra lịch xe', cls: 'bg-amber-100 text-amber-700' },
-    contacted: { label: 'Đã xác nhận', cls: 'bg-green-100 text-green-700' },
+    contacted: { label: 'Car Match đã liên hệ', cls: 'bg-blue-100 text-blue-700' },
     confirmed: { label: 'Đã xác nhận', cls: 'bg-green-100 text-green-700' },
+    converted: { label: 'Đã xác nhận', cls: 'bg-green-100 text-green-700' },
     completed: { label: 'Hoàn thành', cls: 'bg-blue-100 text-blue-700' },
     cancelled: { label: 'Đã hủy', cls: 'bg-red-100 text-red-700' },
   };
@@ -112,7 +113,8 @@ export default function BookingConfirm() {
   }, [data?.requires_confirmation, inputPhone, inputRef, lookup]);
 
   useEffect(() => {
-    if (!data || !['contacted', 'confirmed'].includes(data.status)) return;
+    if (data) trackLocalRentalConfirmation(data.booking_ref, data.status);
+    if (!data || !isBookingConfirmedStatus(data.status)) return;
     const electricBookingRef = sessionStorage.getItem('carmatch_ev_booking_ref');
     if (!electricBookingRef || electricBookingRef !== data.booking_ref || trackedElectricConfirmationRef.current === data.booking_ref) return;
     trackedElectricConfirmationRef.current = data.booking_ref;

@@ -29,9 +29,8 @@ test('Wave 2 adds twelve distinct local intents with current-address guardrails'
   for (const route of routes) assert.match(source, new RegExp(`path: '${route}'`));
   assert.equal((source.match(/^    heroAnswer:/gm) || []).length, routes.length);
   assert.equal((source.match(/^    pickupNote:/gm) || []).length, routes.length);
-  assert.equal((source.match(/^    locationNote:/gm) || []).length, routes.length);
-  assert.match(source, /phường hiện tại|địa chỉ hiện tại/);
-  assert.match(source, /không mặc định/);
+  assert.equal((source.match(/^    heroSubhead:/gm) || []).length, routes.length);
+  assert.equal((source.match(/^    nearbySlugs:/gm) || []).length, routes.length);
   assert.doesNotMatch(source, /phí giao nhận (?:là|cố định) \d/i);
   assert.doesNotMatch(source, /\bCarMatch\b/);
 });

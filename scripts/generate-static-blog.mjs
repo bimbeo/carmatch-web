@@ -23,10 +23,14 @@ import {
   safeJsonLdStringify,
 } from '../src/lib/seoSchemas.ts';
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
-import { LOCAL_HUBS_DATA as localRentalAreas } from '../src/data/localHubsData.ts';
+import { getLocalHubData } from '../src/data/localHubsData.ts';
+import { localRentalAreas } from '../src/data/localRentalAreas.ts';
+import { selectLocalRentalCars } from '../src/data/localRentalFleet.ts';
+import { LOCAL_RENTAL_MOBILE_HERO_MEDIA, LOCAL_RENTAL_MOBILE_HERO_SIZES, localRentalMobileHeroSrcSet } from '../src/data/localRentalImages.ts';
 import {
   cacheStaticImageUrls,
   cacheVehicleCoverImages,
+  cacheMobileVehicleCovers,
   cacheVehicleGalleryImages,
 } from './vehicle-cover-cache.mjs';
 import { sanitizeBlogHtml } from '../server/blog/sanitize.js';
@@ -806,12 +810,12 @@ const routeMeta = [
   },
   ...localRentalAreas.map((area) => ({
     path: area.path,
-    title: `${area.h1Title} | Car Match`,
-    description: area.heroSubtitle,
+    title: area.seoTitle,
+    description: area.description,
     canonical: `${siteUrl}${area.path}`,
     priority: '0.82',
     changefreq: 'weekly',
-    lastmod: '2026-11-08',
+    lastmod: '2026-11-25',
   })),
   {
     path: '/thue-xe-tu-lai-tet-ha-noi',
@@ -2720,43 +2724,22 @@ function sevenSeatRentalStructuredData(meta, vehicles = []) {
   ];
 }
 
-const localRentalModelDefinitions = [
-  { key: 'vinfast-vf3-2025', name: 'VinFast VF3', matches: /\bvf\s*3\b/i },
-  { key: 'vinfast-fadil-2021', name: 'VinFast Fadil', matches: /\bfadil\b/i },
-  { key: 'vinfast-vf5-plus', name: 'VinFast VF5 Plus', matches: /\bvf\s*5\b/i },
-  { key: 'mazda-3-2018', name: 'Mazda 3', matches: /\bmazda\s*3\b/i },
-  { key: 'toyota-raize-2022', name: 'Toyota Raize', matches: /\braize\b/i },
-  { key: 'vinfast-vf6-plus', name: 'VinFast VF6 Plus', matches: /\bvf\s*6\b/i },
-  { key: 'hyundai-creta-2025', name: 'Hyundai Creta', matches: /\bcreta\b/i },
-  { key: 'mitsubishi-xpander-2023', name: 'Mitsubishi Xpander', matches: /\bxpander\b/i },
-  { key: 'vinfast-limo-green-2025', name: 'VinFast Limo Green', matches: /\blimo\s*green\b/i },
-  { key: 'kia-carnival', name: 'Kia Carnival', matches: /\bcarnival\b/i },
-  { key: 'vinfast-vf8-plus-2024', name: 'VinFast VF8 Plus', matches: /\bvf\s*8\b/i },
-];
+function getLocalRentalRepresentatives(vehicles, area) {
+  const { recommendedModels } = getLocalHubData(area.slug);
+  return selectLocalRentalCars(vehicles.map((vehicle) => ({
+    name: getVehicleName(vehicle),
+    slug: vehicle.slug || '',
+    model: [vehicle.vehicle_models?.make, vehicle.vehicle_models?.model].filter(Boolean).join(' '),
+    price: Number(vehicle.daily_base_price || 0),
+    seats: vehicle.vehicle_models?.seats || (/^vf\s*3$/i.test(vehicle.vehicle_models?.model?.trim() || '') ? 4 : 5),
+    available: vehicle.status !== 'inactive' && vehicle.status !== 'retired' && vehicle.published !== false,
+    cover: getVehicleCoverImage(vehicle),
+  })), recommendedModels);
+}
 
 function localRentalStructuredData(meta, vehicles = [], area) {
-  const pricedVehicles = vehicles
-    .filter((vehicle) => Number(vehicle.daily_base_price || 0) > 0)
-    .sort((a, b) => Number(a.daily_base_price) - Number(b.daily_base_price));
-  const representativesByModel = new Map();
-  for (const vehicle of pricedVehicles) {
-    const searchable = `${getVehicleName(vehicle)} ${vehicle.slug || ''}`.replace(/[-_]+/g, ' ');
-    const definition = localRentalModelDefinitions.find((item) => item.matches.test(searchable));
-    if (definition && !representativesByModel.has(definition.key)) {
-      representativesByModel.set(definition.key, { vehicle, definition });
-    }
-  }
-  const preferredModelOrder = [
-    ...area.recommendedModels,
-    ...localRentalModelDefinitions.map((item) => item.key).filter((key) => !area.recommendedModels.includes(key)),
-  ];
-  const representativeModels = preferredModelOrder
-    .map((key) => representativesByModel.get(key))
-    .filter(Boolean)
-    .slice(0, 8);
-  const representativeVehicles = representativeModels.map((item) => item.vehicle);
-
-  const dailyPrices = representativeVehicles.map((vehicle) => Number(vehicle.daily_base_price));
+  const representativeVehicles = getLocalRentalRepresentatives(vehicles, area);
+  const dailyPrices = representativeVehicles.map(({ price }) => price);
   const offers = dailyPrices.length > 0
     ? {
         '@type': 'AggregateOffer',
@@ -2769,10 +2752,10 @@ function localRentalStructuredData(meta, vehicles = [], area) {
     : undefined;
   const areaServed = {
     '@type': 'Place',
-    name: area.locationShortName,
+    name: area.shortName,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: area.locationName,
+      addressRegion: area.slug === 'ecopark' ? 'Hưng Yên' : 'Hà Nội',
       addressCountry: 'VN',
     },
   };
@@ -2784,34 +2767,35 @@ function localRentalStructuredData(meta, vehicles = [], area) {
       fields: {
         '@id': `${meta.canonical}#collection`,
         about: [
-          { '@type': 'Thing', name: `Thuê xe tự lái ${area.locationShortName}` },
-          { '@type': 'Thing', name: `Giao nhận xe tại ${area.locationName}` },
+          { '@type': 'Thing', name: `Thuê xe tự lái ${area.shortName}` },
+          { '@type': 'Thing', name: `Giao nhận xe tại ${area.name}` },
         ],
         areaServed,
         provider: { '@id': `${siteUrl}/#localbusiness` },
         mainEntity: {
           '@type': 'ItemList',
-          name: `Xe tự lái gợi ý tại ${area.locationShortName}`,
+          name: `Mẫu xe cho khách thuê tại ${area.shortName}`,
           numberOfItems: representativeVehicles.length,
-          itemListElement: representativeModels.map(({ vehicle, definition }, index) => ({
+          itemListElement: representativeVehicles.map((vehicle, index) => ({
             '@type': 'ListItem',
             position: index + 1,
-            name: definition.name,
+            name: vehicle.name,
             url: `${siteUrl}/xe/${vehicle.slug}`,
           })),
         },
       },
     }),
     buildServiceSchema(meta, {
-      serviceType: `Thuê xe tự lái tại ${area.locationShortName}`,
+      serviceType: `Thuê xe tự lái tại ${area.shortName}`,
       areaServed,
       ...(offers ? { offers } : {}),
     }),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Thuê xe tự lái', path: '/xe' },
-      { name: area.locationShortName, path: area.path },
+      { name: area.shortName, path: area.path },
     ]),
+    buildFAQSchema(meta, area.faqs, seoSchemaConfig),
   ];
 }
 
@@ -4950,13 +4934,19 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   const title = escapeHtml(meta.title);
   const description = escapeHtml(meta.description);
   const canonical = escapeHtml(meta.canonical);
-  const rawImage = meta.image || brandSocialImage;
+  const localArea = localRentalAreas.find((area) => area.path === meta.path);
+  const localCover = localArea && getLocalRentalRepresentatives(vehicles, localArea).find((car) => car.cover);
+  const rawImage = meta.image || (localCover?.cover ? new URL(localCover.cover, siteUrl).href : brandSocialImage);
   const image = escapeHtml(rawImage);
   const usesBrandSocialImage = rawImage === brandSocialImage;
   const usesGeneratedSocialImage = /\/(?:blog|seo)\/covers\//.test(rawImage);
   const hasKnownSocialImageSize = usesBrandSocialImage || usesGeneratedSocialImage;
-  const imageAlt = escapeHtml(usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title);
+  const imageAlt = escapeHtml(localCover ? `${localCover.name} trong danh mục thuê xe Car Match` : usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title);
   const preloadImage = escapeHtml(meta.preloadImage || '/brand/carmatch-lockup-navy.png');
+  const mobileHeroSrcSet = localCover?.cover && localRentalMobileHeroSrcSet(localCover.cover);
+  const imagePreload = mobileHeroSrcSet
+    ? `<link rel="preload" as="image" media="${LOCAL_RENTAL_MOBILE_HERO_MEDIA}" imagesrcset="${escapeHtml(mobileHeroSrcSet)}" imagesizes="${LOCAL_RENTAL_MOBILE_HERO_SIZES}" fetchpriority="high" />`
+    : `<link rel="preload" as="image" href="${preloadImage}" />`;
   const robots = meta.noIndex
     ? 'noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
     : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
@@ -4968,7 +4958,14 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   html = replaceOrInsertHead(html, /<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${canonical}" />`);
   html = replaceOrInsertHead(html, /<link rel="alternate" hreflang="vi-VN" href="[^"]*"\s*\/>/, `<link rel="alternate" hreflang="vi-VN" href="${canonical}" />`);
   html = replaceOrInsertHead(html, /<link rel="alternate" hreflang="x-default" href="[^"]*"\s*\/>/, `<link rel="alternate" hreflang="x-default" href="${canonical}" />`);
-  html = replaceOrInsertHead(html, /<link rel="preload" as="image" href="[^"]*"\s*\/>/, `<link rel="preload" as="image" href="${preloadImage}" />`);
+  if (mobileHeroSrcSet) {
+    html = html
+      .replace(/<link rel="preload" as="image" href="[^"]*"\s*\/>/, '')
+      .replace(/<meta name="viewport"[^>]*>/, `$&\n    ${imagePreload}`)
+      .replace(/<script type="module" crossorigin src=/, '<script type="module" crossorigin fetchpriority="low" src=');
+  } else {
+    html = replaceOrInsertHead(html, /<link rel="preload" as="image" href="[^"]*"\s*\/>/, imagePreload);
+  }
   html = replaceOrInsertHead(html, /<meta property="og:type" content="[^"]*"\s*\/>/, '<meta property="og:type" content="website" />');
   html = replaceOrInsertHead(html, /<meta property="og:site_name" content="[^"]*"\s*\/>/, '<meta property="og:site_name" content="Car Match" />');
   html = replaceOrInsertHead(html, /<meta property="og:locale" content="[^"]*"\s*\/>/, '<meta property="og:locale" content="vi_VN" />');
@@ -7988,6 +7985,7 @@ async function main() {
     loggerPrefix: 'generate-static-blog',
     sourceBaseUrl: siteUrl,
   });
+  await cacheMobileVehicleCovers(vehicleCoverCacheUrls, distDir);
   vehicleGalleryCacheUrls = await cacheVehicleGalleryImages(seoVehicles, distDir, {
     loggerPrefix: 'generate-static-blog',
     sourceBaseUrl: siteUrl,
