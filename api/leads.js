@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'node:crypto';
 import { rateLimit } from './_security.js';
+import { buildTetOwnerLeadInsert } from './_tet-owner-lead.js';
 import {
   buildMonthlyLeadInsert,
   isMonthlyLead,
@@ -158,15 +159,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: validationError });
     }
 
-    const requestRef = monthly ? monthlyRequestRef(idempotencyKey) : null;
     const { idempotency_key: _ignoredIdempotencyKey, ...requestPayload } = payload;
-    const insertPayload = monthly ? buildMonthlyLeadInsert(requestPayload, requestRef) : requestPayload;
+    const tetLead = requestPayload.tet_owner !== undefined ? buildTetOwnerLeadInsert(requestPayload, idempotencyKey) : null;
+    if (tetLead?.error) return res.status(400).json({ ok: false, error: tetLead.error });
+    const requestRef = tetLead?.requestRef ?? (monthly ? monthlyRequestRef(idempotencyKey) : null);
+    const insertPayload = tetLead?.insert ?? (monthly ? buildMonthlyLeadInsert(requestPayload, requestRef) : requestPayload);
     const idempotency = await acquireIdempotency(payload.phone, idempotencyKey, requestDigest(insertPayload));
     idempotencyId = idempotency.id || null;
     localIdempotencyKey = idempotency.localKey || null;
     if (idempotency.conflict) return res.status(409).json({ error: 'Mã gửi đơn đã được dùng cho nội dung khác' });
     if (idempotency.pending) return res.status(409).json({ error: 'Yêu cầu đang được xử lý, vui lòng thử lại sau vài giây' });
-    if (idempotency.replay) return res.status(idempotency.replay.status || 200).json(idempotency.replay);
+    if (idempotency.replay) return res.status(idempotency.replay.status || 200).json({ ...idempotency.replay, duplicate: true });
 
     const { data: lead, error } = await supabase.from('website_leads').insert([insertPayload]).select('id').single();
     if (error?.code === '23505' && monthly) {

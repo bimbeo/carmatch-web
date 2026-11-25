@@ -1,0 +1,199 @@
+import { classifyAvailability, tetOwnerWindow, validateHandoverTimes } from './tetOwnerAvailability.mjs';
+
+const year = Number(tetOwnerWindow.newYear.slice(0, 4));
+const path = '/hop-tac-chu-xe-cho-thue-tet';
+
+export const tetOwnerCampaign = {
+  year,
+  path,
+  season: 'Đinh Mùi',
+  timeZone: 'Asia/Ho_Chi_Minh',
+  source: `partner_tet_${year}`,
+  title: `Hợp tác chủ xe cho thuê Tết ${year} tại Hà Nội | Car Match`,
+  description: `Có xe dư dịp Tết ${year}? Hợp tác cho thuê xe cùng Car Match tại Hà Nội. Chủ động chọn lịch xe rảnh, tính thử thu nhập và nhận tư vấn phương án khai thác.`,
+  image: '/tet-owner/og-tet-owner-1200.jpg',
+  socialImage: { width: 1200, height: 630, type: 'image/jpeg' },
+  newYear: tetOwnerWindow.newYear,
+  peak: tetOwnerWindow.peak,
+  handover: ['2027-02-01', '2027-02-04'],
+  defaults: { dailyRate: 900_000, bookedDays: 7, sharePercent: 80 },
+  sampleRates: [700_000, 900_000, 1_200_000],
+  presets: {
+    full: { free: [['2027-02-04', '2027-02-12']], hold: [] },
+    duxuan: { free: [['2027-02-08', '2027-02-15']], hold: [['2027-02-06', '2027-02-07']] },
+    before: { free: [['2027-01-27', '2027-02-04']], hold: [] },
+    family: { free: [['2027-02-04', '2027-02-05'], ['2027-02-09', '2027-02-12']], hold: [['2027-02-06', '2027-02-08']] },
+    clear: { free: [], hold: [] },
+  },
+  // Civil dates for Vietnam. Replace this explicit mapping each campaign.
+  days: [
+    ['2027-01-27', '20 Chạp'], ['2027-01-28', '21 Chạp'], ['2027-01-29', '22 Chạp'],
+    ['2027-01-30', '23 Chạp'], ['2027-01-31', '24 Chạp'], ['2027-02-01', '25 Chạp'],
+    ['2027-02-02', '26 Chạp'], ['2027-02-03', '27 Chạp'], ['2027-02-04', '28 Chạp'],
+    ['2027-02-05', '29 Chạp'], ['2027-02-06', 'Mùng 1'], ['2027-02-07', 'Mùng 2'],
+    ['2027-02-08', 'Mùng 3'], ['2027-02-09', 'Mùng 4'], ['2027-02-10', 'Mùng 5'],
+    ['2027-02-11', 'Mùng 6'], ['2027-02-12', 'Mùng 7'], ['2027-02-13', 'Mùng 8'],
+    ['2027-02-14', 'Mùng 9'], ['2027-02-15', 'Mùng 10'],
+  ],
+} as const;
+
+export const tetOwnerHero = {
+  src: '/tet-owner/hero-960.webp',
+  srcSet: [640, 768, 960, 1280].map((width) => `/tet-owner/hero-${width}.webp ${width}w`).join(', '),
+  sizes: '(max-width: 760px) calc(100vw - 36px), (max-width: 1240px) 46vw, 548px',
+  mobileMedia: '(max-width: 760px)',
+  mobileSrcSet: '/tet-owner/hero-420.avif 420w, /tet-owner/hero-768.avif 768w',
+  mobileSizes: 'calc(100vw - 36px)',
+  alt: 'Minh họa chủ xe bên hai ô tô tại nhà trang trí hoa đào và đèn lồng đón Tết',
+};
+
+export type TetDate = (typeof tetOwnerCampaign.days)[number][0];
+export type TetPreset = keyof typeof tetOwnerCampaign.presets;
+export type DayStatus = 'free' | 'hold' | 'maybe';
+export type Schedule = Record<TetDate, DayStatus>;
+export type ScheduleOrigin = 'sample' | 'selected' | 'empty';
+export type FleetSchedule = '' | 'same' | 'different';
+type DateRange = readonly [string, string];
+
+export const dateLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+export const inRange = (iso: TetDate, range: DateRange) => iso >= range[0] && iso <= range[1];
+export const dateSpan = ([start, end]: DateRange) => start.slice(5, 7) === end.slice(5, 7)
+  ? `${start.slice(8, 10)}–${dateLabel(end)}`
+  : `${dateLabel(start)}–${dateLabel(end)}`;
+
+const campaign = tetOwnerCampaign;
+const dates = campaign.days.map(([iso]) => iso);
+export const formatDay = (iso: TetDate) => `${dateLabel(iso)} (${campaign.days.find(([day]) => day === iso)?.[1]})`;
+export const money = (value: number) => `${Math.round(value).toLocaleString('vi-VN')}đ`;
+
+export function makeSchedule(preset: TetPreset): Schedule {
+  const { free, hold } = campaign.presets[preset];
+  return Object.fromEntries(dates.map((iso) => [
+    iso,
+    (hold as readonly DateRange[]).some((range) => inRange(iso, range)) ? 'hold'
+      : (free as readonly DateRange[]).some((range) => inRange(iso, range)) ? 'free' : 'maybe',
+  ])) as Schedule;
+}
+
+export function editSchedule(schedule: Schedule, origin: ScheduleOrigin, day: TetDate, state: DayStatus) {
+  return { ...(origin === 'sample' ? makeSchedule('clear') : schedule), [day]: state };
+}
+
+function getSegments(schedule: Schedule, status: DayStatus) {
+  const segments: { start: TetDate; end: TetDate; days: number }[] = [];
+  let segment: (typeof segments)[number] | undefined;
+  for (const iso of dates) {
+    if (schedule[iso] !== status) {
+      segment = undefined;
+    } else if (segment) {
+      segment.end = iso;
+      segment.days++;
+    } else {
+      segment = { start: iso, end: iso, days: 1 };
+      segments.push(segment);
+    }
+  }
+  return segments;
+}
+
+export const cooperationOptions = {
+  full: 'Rảnh toàn bộ giai đoạn cao điểm',
+  across_new_year: 'Rảnh liên tục qua giao thừa',
+  before: 'Có thể cho thuê trước Tết',
+  after: 'Có thể cho thuê du xuân sau Tết',
+  flexible: 'Lịch linh hoạt hoặc ngắt quãng',
+  multi: 'Có nhiều xe / đội xe',
+  consult: 'Muốn được tư vấn trước',
+} as const;
+
+export function summarizeSchedule(schedule: Schedule, earliest = '', latest = '') {
+  const segments = {
+    free: getSegments(schedule, 'free'),
+    hold: getSegments(schedule, 'hold'),
+    maybe: getSegments(schedule, 'maybe'),
+  };
+  const free = dates.filter((iso) => schedule[iso] === 'free');
+  const longest = Math.max(0, ...segments.free.map((segment) => segment.days));
+  const timeError = validateHandoverTimes(segments.free, earliest, latest);
+  const familyBreak = dates.filter((iso) => inRange(iso, campaign.presets.family.hold[0]))
+    .every((iso) => schedule[iso] === 'hold') && segments.free.length > 1;
+  const option = classifyAvailability(segments.free, timeError ? '' : earliest, timeError ? '' : latest);
+  const insights = {
+    consult: 'Bạn chưa đánh dấu ngày cho thuê. Hãy chọn ngày rảnh hoặc trao đổi với Car Match về lịch phù hợp.',
+    full: `Xe rảnh liên tục toàn bộ giai đoạn cao điểm ${dateSpan(campaign.peak)}. Car Match có thể xem xét một kỳ thuê xuyên Tết.`,
+    across_new_year: `Xe rảnh liên tục qua giao thừa. Khoảng rảnh bao phủ một phần giai đoạn cao điểm ${dateSpan(campaign.peak)}.`,
+    before: 'Car Match có thể xem xét các ngày rảnh trước Tết.',
+    after: 'Car Match có thể xem xét các ngày rảnh đầu năm theo lịch và điều kiện giao nhận bạn đề xuất.',
+    flexible: familyBreak
+      ? 'Lịch giữ mùng 1–3 ngắt quãng kỳ thuê. Car Match có thể xem xét từng chặng, với chặng sau Tết từ mùng 4.'
+      : 'Car Match có thể xem xét từng khoảng rảnh bạn đã chọn.',
+  };
+  return {
+    segments, longest, option, insight: insights[option], timeError,
+    free: free.length,
+    hold: dates.filter((iso) => schedule[iso] === 'hold').length,
+    maybe: dates.filter((iso) => schedule[iso] === 'maybe').length,
+    peak: free.filter((iso) => inRange(iso, campaign.peak)).length,
+  };
+}
+
+export function estimateIncome(values: { dailyRate: string; bookedDays: string; sharePercent: string; monthlyCost: string }, free: number) {
+  const clamp = (input: string, max: number) => {
+    const number = Number(input);
+    return Number.isFinite(number) ? Math.max(0, Math.min(max, number)) : 0;
+  };
+  const dailyRate = Math.round(clamp(values.dailyRate, 100_000_000));
+  const bookedDays = Math.floor(clamp(values.bookedDays, free));
+  const sharePercent = clamp(values.sharePercent, 100);
+  const monthlyCost = Math.round(clamp(values.monthlyCost, 200_000_000));
+  const gross = dailyRate * bookedDays;
+  const ownerShare = gross * sharePercent / 100;
+  return { dailyRate, bookedDays, sharePercent, monthlyCost, gross, ownerShare };
+}
+
+type ScheduleStats = ReturnType<typeof summarizeSchedule>;
+type Estimate = ReturnType<typeof estimateIncome>;
+
+export function segmentLabel({ start, end }: ScheduleStats['segments']['free'][number]) {
+  return start === end ? formatDay(start) : `${formatDay(start)} → ${formatDay(end)}`;
+}
+
+export function leadSchedule({
+  stats, estimate, origin, withDates, earliest, latest, fleet, fleetNotes, option, preset, modelGroup,
+}: {
+  stats: ScheduleStats; estimate: Estimate | null; origin: ScheduleOrigin; withDates: boolean;
+  earliest: string; latest: string; fleet: FleetSchedule; fleetNotes: string;
+  option: keyof typeof cooperationOptions; preset: TetPreset | 'custom'; modelGroup: string;
+}) {
+  const confirmed = withDates && origin === 'selected' && stats.free > 0;
+  return {
+    version: 2,
+    campaign: campaign.source,
+    schedule_status: confirmed ? 'owner_selected' : 'unknown',
+    schedule_input: confirmed ? 'owner_selected' : origin === 'sample' ? 'sample_ignored' : 'not_set',
+    preset: confirmed ? preset : null,
+    declared_option: confirmed ? option : 'consult',
+    schedule_class: confirmed && fleet !== 'different'
+      ? classifyAvailability(stats.segments.free, earliest, latest) : null,
+    schedule_scope: !confirmed ? null : fleet === 'different' ? 'reference_vehicle_only' : fleet === 'same' ? 'same_for_all_vehicles' : 'single_vehicle',
+    time_zone: campaign.timeZone,
+    segments: confirmed ? { free: stats.segments.free, hold: stats.segments.hold } : null,
+    earliest_handover_at_local: confirmed && earliest ? earliest : null,
+    latest_return_at_local: confirmed && latest ? latest : null,
+    fleet_notes: confirmed && fleet === 'different' ? fleetNotes.trim() : null,
+    calculator: confirmed && estimate ? { ...estimate, vehicle_group: modelGroup } : null,
+  };
+}
+
+export function scheduleText(stats: ReturnType<typeof summarizeSchedule>, estimate: ReturnType<typeof estimateIncome>) {
+  const ranges = (status: DayStatus) => stats.segments[status].map(({ start, end }) =>
+    start === end ? formatDay(start) : `${formatDay(start)} → ${formatDay(end)}`).join('; ');
+  return [
+    `${stats.free} ngày có thể cho thuê · ${stats.hold} ngày giữ cho gia đình · ${stats.maybe} ngày chưa quyết định · Dãy liên tục dài nhất ${stats.longest} ngày.`,
+    `Ngày có thể cho thuê: ${ranges('free') || 'Chưa chọn'}.`,
+    `Ngày giữ xe gia đình: ${ranges('hold') || 'Chưa chọn'}.`,
+    `Ngày chưa quyết định: ${ranges('maybe') || 'Không có'}.`,
+    `Tính thử: ${money(estimate.dailyRate)}/ngày × ${estimate.bookedDays} ngày = ${money(estimate.gross)} doanh thu gộp. Tỷ lệ giả định ${estimate.sharePercent}% → ${money(estimate.ownerShare)} trước chi phí riêng/thuế.`,
+    estimate.monthlyCost > 0 ? `Chi phí nuôi xe tự nhập: ${money(estimate.monthlyCost)}/tháng.` : '',
+  ].filter(Boolean).join('\n');
+}

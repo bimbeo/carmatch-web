@@ -23,6 +23,8 @@ const TRACKED_EVENT_NAMES = new Set([
   'cm_partner_document_open',
   'cm_partner_form_open',
   'cm_partner_vehicle_assessed',
+  'cm_partner_calendar_start',
+  'cm_partner_calendar_complete',
   'cm_web_vital',
   'cm_experiment_exposure',
   'monthly_audience_selected',

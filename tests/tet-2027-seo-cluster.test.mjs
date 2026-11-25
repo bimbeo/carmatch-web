@@ -81,6 +81,7 @@ test('Tet landings are routed, prerendered and registered for sitemap generation
   }
   assert.match(generator, /createTet2027Posts/);
   assert.match(generator, /\.\.\.tet2027Posts/);
+  assert.match(generator, /const reservedLandingSlugs = new Set\(\[[^\]]*tetOwnerCampaign\.path\.slice\(1\)/);
   assert.match(ssr, /renderTetOwnerPartnership/);
   assert.match(ssr, /renderTetRental/);
   assert.match(partner, /\/hop-tac-chu-xe-cho-thue-tet/);

@@ -6,6 +6,7 @@ interface SEOProps {
   canonical?: string;
   ogImage?: string;
   ogImageAlt?: string;
+  ogImageSize?: { width: number; height: number; type: string };
   noIndex?: boolean;
 }
 
@@ -57,7 +58,7 @@ function setAlternateLink(hreflang: string, href: string) {
   el.setAttribute('href', href);
 }
 
-export function useSEO({ title, description, canonical, ogImage, ogImageAlt, noIndex }: SEOProps) {
+export function useSEO({ title, description, canonical, ogImage, ogImageAlt, ogImageSize, noIndex }: SEOProps) {
   useEffect(() => {
     const fullTitle = withBrandName(title);
     const normalizedDescription = normalizeBrandName(description);
@@ -83,10 +84,10 @@ export function useSEO({ title, description, canonical, ogImage, ogImageAlt, noI
     setMeta('og:description', normalizedDescription, 'property');
     setMeta('og:image', resolvedOgImage, 'property');
     setMeta('og:image:alt', resolvedImageAlt, 'property');
-    if (usesDefaultOgImage) {
-      setMeta('og:image:width', '1200', 'property');
-      setMeta('og:image:height', '630', 'property');
-      setMeta('og:image:type', 'image/png', 'property');
+    if (ogImageSize || usesDefaultOgImage) {
+      setMeta('og:image:width', String(ogImageSize?.width ?? 1200), 'property');
+      setMeta('og:image:height', String(ogImageSize?.height ?? 630), 'property');
+      setMeta('og:image:type', ogImageSize?.type ?? 'image/png', 'property');
     } else {
       removeMeta('og:image:width', 'property');
       removeMeta('og:image:height', 'property');
@@ -111,5 +112,5 @@ export function useSEO({ title, description, canonical, ogImage, ogImageAlt, noI
       document.title = 'Thuê Xe Tự Lái Hà Nội Từ 600K/Ngày | Car Match';
       setMeta('description', 'Thuê xe tự lái Hà Nội từ 600.000đ/ngày. Xem xe, giá theo lịch, giấy tờ, cọc và phí giao nhận trước khi gửi yêu cầu.');
     };
-  }, [title, description, canonical, ogImage, ogImageAlt, noIndex]);
+  }, [title, description, canonical, ogImage, ogImageAlt, ogImageSize, noIndex]);
 }

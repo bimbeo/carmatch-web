@@ -2,31 +2,17 @@ import { useEffect, useRef } from 'react';
 import { submitLead } from '@/hooks/useLeads';
 import { trackEvent, trackLeadSubmit, trackZaloClick } from '@/lib/analytics';
 import { useSEO } from '@/hooks/useSEO';
+import { copyToClipboard, copyZaloContext, makeIdempotencyKey, partnerContact } from '@/lib/ownerPartnership';
+import { PartnerChecklistDialog } from '../components/PartnerChecklistDialog';
 import { PARTNER_PREVIEW_BODY } from './partnerPreviewBody';
 import './partner.css';
 
-const ZALO_LINK = 'https://zalo.me/0971163290';
 const SIMULATION_START = '[BẮT ĐẦU MÔ PHỎNG]';
 const SIMULATION_END = '[KẾT THÚC MÔ PHỎNG]';
 
 const PARTNER_RESPONSIBILITY_MARKUP = `
 <section class="section partner-ops-section" id="trach-nhiem"><div class="wrap"><div class="tag eyeline">07 / Trách nhiệm &amp; xử lý tình huống</div><h2 class="heading">Phân định trách nhiệm &amp; xử lý tình huống.</h2><p class="lede">Thống nhất rõ cách đối soát, xử lý sự cố và quyền khai thác trước khi ký.</p><div class="responsibility-grid"><article class="responsibility-card"><span class="step-num">01</span><h3>Đối soát ODO, lộ trình, nhiên liệu/pin &amp; chi phí phát sinh</h3><p>Ghi nhận khi giao và nhận xe; đối chiếu VETC/ePass, phí sạc, vệ sinh, vượt định mức và các khoản phát sinh theo thỏa thuận.</p></article><article class="responsibility-card"><span class="step-num">02</span><h3>Xử lý trầy xước, va chạm và sự cố kỹ thuật</h3><p>Dùng ảnh, biên bản và bảo hiểm để xác định tình trạng, phương án xử lý và trách nhiệm chi phí của từng bên.</p></article><article class="responsibility-card"><span class="step-num">03</span><h3>Xe trả góp, xe công ty hoặc đồng sở hữu</h3><p>Xác nhận quyền cho thuê, giấy ủy quyền và điều kiện liên quan trước khi chốt phương án khai thác.</p></article></div><div class="section-cta"><div><b>Phương án này phù hợp với xe của bạn?</b><span>Gửi thông tin cơ bản để Car Match trao đổi trực tiếp.</span></div><a class="btn dark" href="#dang-ky">Đăng ký tư vấn ↗</a></div></div></section>
 <section class="section soft partner-docs-section" id="ho-so-tham-dinh"><div class="wrap"><div class="tag eyeline">08 / Chuẩn bị trước khi thẩm định</div><h2 class="heading">Hồ sơ &amp; thông tin cần chuẩn bị.</h2><p class="lede">Chuẩn bị bốn nhóm thông tin để Car Match tư vấn đúng ngay từ đầu.</p><ul class="prep-list"><li><b>Thông tin &amp; hiện trạng xe</b><span>Mẫu xe, năm sản xuất, số km, hiện trạng và lịch bảo dưỡng gần nhất.</span></li><li><b>Giấy tờ xe &amp; bảo hiểm</b><span>Đăng ký, đăng kiểm, bảo hiểm và giấy tờ về quyền sử dụng xe.</span></li><li><b>Lịch rảnh &amp; khu vực giao nhận</b><span>Ngày có thể khai thác, nơi đỗ xe và điểm giao nhận thuận tiện.</span></li><li><b>Kỳ vọng &amp; điều kiện riêng</b><span>Mức thu mong muốn, ngày cần giữ xe và các giới hạn cần trao đổi.</span></li></ul></div></section>`;
-
-function makeIdempotencyKey() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return `partner-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-async function copyToClipboard(value: string) {
-  try {
-    if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(value); return true; }
-  } catch { /* fallback below */ }
-  try {
-    const node = document.createElement('textarea'); node.value = value; node.style.position = 'fixed'; node.style.left = '-9999px';
-    document.body.appendChild(node); node.focus(); node.select(); const copied = document.execCommand('copy'); node.remove(); return copied;
-  } catch { return false; }
-}
 
 export default function Partner() {
   useSEO({
@@ -35,6 +21,7 @@ export default function Partner() {
     canonical: 'https://www.carmatch.vn/hop-tac',
   });
   const rootRef = useRef<HTMLDivElement>(null);
+  const checklistRef = useRef<HTMLDialogElement>(null);
   let previewMarkup = PARTNER_PREVIEW_BODY.replace(
     'pattern="[0-9+().\\- ]{9,18}"',
     'pattern=".{9,18}"',
@@ -114,8 +101,8 @@ export default function Partner() {
     .replace('Xe VinFast VF3 được chụp tại điểm đỗ, minh họa kiểm tra xe trước khai thác', 'Xe VinFast VF3 trong danh mục hình ảnh thực tế Car Match')
     .replace('<img alt="Xe VinFast VF5 trong danh mục Car Match" height="195"', '<img alt="Xe VinFast VF5 trong danh mục Car Match" decoding="async" loading="lazy" height="195"')
     .replace(/loading="lazy" src="\/partner-v21-/g, 'decoding="async" loading="lazy" src="/partner-v21-')
-    .replace('<div class="modal-actions"><button class="btn dark" id="copyChecklist" type="button">Sao chép checklist</button>', '<div class="modal-actions"><a class="btn dark" href="/tai-lieu/checklist-ban-giao-xe-15-diem.html" id="openChecklistDocument" rel="noopener" target="_blank">Mở tài liệu checklist</a><button class="btn outline" id="copyChecklist" type="button">Sao chép checklist</button>')
-    .replace('Hỗ trợ phối hợp giao nhận: Tôn Thất Thuyết (Cầu Giấy) · Nguyễn Xiển (Thanh Xuân) · Vinhomes Ocean Park (Gia Lâm)', 'Hỗ trợ phối hợp giao nhận: Tôn Thất Thuyết (Cầu Giấy) - Nguyễn Xiển (Thanh Xuân) - Vinhomes Ocean Park (Gia Lâm)')
+    .replace(/<div aria-labelledby="docsTitle"[\s\S]*?(?=<div aria-labelledby="reviewTitle")/, '')
+    .replace(/<div class="legal-identity">[\s\S]*?<\/div>/, `<div class="legal-identity"><strong>${partnerContact.company}</strong><span>Mã số thuế: ${partnerContact.taxCode}</span><span>Trụ sở đăng ký: ${partnerContact.registeredAddress}</span><span>Hỗ trợ phối hợp giao nhận: ${partnerContact.handoverAreas.join(' - ')}</span></div>`)
     .replace(/Thấm định/g, 'Thẩm định')
     .replace(/mô phòng/g, 'mô phỏng')
     .replace(/Vân hành/g, 'Vận hành')
@@ -270,7 +257,7 @@ export default function Partner() {
     };
     const openModal = (modal: HTMLElement, trigger: HTMLElement | null) => { modal.classList.add('show'); modal.hidden = false; document.body.style.overflow = 'hidden'; (modal.querySelector('button') as HTMLElement | null)?.focus(); if (trigger) modal.dataset.returnFocus = trigger.id; };
     const closeModal = (modal: HTMLElement) => { modal.classList.remove('show'); modal.hidden = true; document.body.style.overflow = ''; const returnId = modal.dataset.returnFocus; if (returnId) query<HTMLElement>(`#${returnId}`)?.focus(); };
-    const docs = query<HTMLElement>('#docsModal'); const review = query<HTMLElement>('#reviewModal'); const reviewBody = query<HTMLElement>('#reviewBody');
+    const review = query<HTMLElement>('#reviewModal'); const reviewBody = query<HTMLElement>('#reviewBody');
     const ensureConfirmButton = () => {
       const actions = query<HTMLElement>('#reviewModal .modal-actions'); if (!actions || query('#submitLeadConfirm')) return;
       const button = document.createElement('button'); button.type = 'button'; button.id = 'submitLeadConfirm'; button.className = 'btn dark'; button.textContent = 'Gửi yêu cầu thực tế'; actions.prepend(button);
@@ -309,15 +296,13 @@ export default function Partner() {
       pendingLead = { name: String(data.get('name')), phone: String(data.get('phone')), form_type: String(data.get('form_type')), car_model: carModel, building: String(data.get('location')), duration: mode === 'monthly' ? `${query<HTMLSelectElement>('#months')?.value || ''} tháng` : `${query<HTMLInputElement>('#daysAvailable')?.value || ''} ngày/tháng`, note: [`lead_source=partner_landing`, `partner_mode=${mode}`, comment, carYear ? `Đời xe: ${carYear}` : '', availability ? `Lịch có thể khai thác: ${availability}` : '', readiness ? `Tình trạng sẵn sàng: ${readiness}` : '', `Hành trình: ${Array.from(journey).join(' → ')}`].filter(Boolean).join('\n') };
       if (reviewBody) reviewBody.textContent = requestText; ensureConfirmButton(); openModal(review!, (event as SubmitEvent).submitter as HTMLElement | null); trackLeadSubmit('attempt', { lead_source: 'partner_landing', form_type: String(data.get('form_type')), car_model: String(data.get('car_model')) });
     });
-    listen(query('#closeModal'), 'click', () => closeModal(review!)); listen(query('#closeDocs'), 'click', () => closeModal(docs!));
-    listen(query('#reviewModal'), 'click', (event) => { if (event.target === review) closeModal(review!); }); listen(query('#docsModal'), 'click', (event) => { if (event.target === docs) closeModal(docs!); });
-    const openDocumentModal = (event: Event) => { addJourney('Mở checklist 15 điểm'); trackEvent('cm_partner_document_open', { document: 'checklist_15_diem', lead_source: 'partner_landing' }); openModal(docs!, event.currentTarget as HTMLElement); };
+    listen(query('#closeModal'), 'click', () => closeModal(review!));
+    listen(query('#reviewModal'), 'click', (event) => { if (event.target === review) closeModal(review!); });
+    const openDocumentModal = () => { addJourney('Mở checklist 15 điểm'); trackEvent('cm_partner_document_open', { document: 'checklist_15_diem', lead_source: 'partner_landing' }); checklistRef.current?.showModal(); };
     listen(query('#openDocs'), 'click', openDocumentModal); listen(query('#openDocsFaq'), 'click', openDocumentModal);
-    listen(query('#openChecklistDocument'), 'click', () => { addJourney('Mở tài liệu checklist đầy đủ'); trackEvent('cm_partner_document_open', { document: 'checklist_15_diem_full', lead_source: 'partner_landing' }); });
-    listen(query('#copyChecklist'), 'click', async (event) => { const button = event.currentTarget as HTMLButtonElement; const original = button.textContent; const content = queryAll<HTMLElement>('.inspection-list li').map((item) => item.textContent?.trim()).join('\n'); button.textContent = (await copyToClipboard(content)) ? 'Đã sao chép ✓' : 'Chưa thể sao chép'; window.setTimeout(() => { button.textContent = original; }, 1600); });
     listen(query('#copyRequest'), 'click', async (event) => { const button = event.currentTarget as HTMLButtonElement; const original = button.textContent; button.textContent = (await copyToClipboard(requestText)) ? 'Đã sao chép ✓' : 'Chưa thể sao chép'; window.setTimeout(() => { button.textContent = original; }, 1600); });
     listen(query('#copyPageLink'), 'click', async () => notify((await copyToClipboard('https://www.carmatch.vn/hop-tac')) ? 'Đã sao chép link trang.' : 'Chưa thể sao chép link trang.'));
-    queryAll<HTMLButtonElement>('[data-zalo-context]').forEach((button) => listen(button, 'click', async () => { const type = button.dataset.zaloContext; addJourney(`Mở Zalo (${type || 'unknown'})`); const content = type === 'review' && requestText ? requestText : type === 'form' ? formDraft() : modelDraft(); const popup = window.open('about:blank', '_blank'); const copied = await copyToClipboard(content); notify(copied ? 'Đã sao chép thông tin xe. Bạn chỉ cần dán vào Zalo để được tư vấn.' : 'Trình duyệt chưa cho phép sao chép tự động. Hãy dùng nút Sao chép rồi dán vào Zalo.'); trackZaloClick(`partner_${type || 'unknown'}`, { lead_source: 'partner_landing', form_type: mode }); if (popup) popup.location.href = ZALO_LINK; else window.location.href = ZALO_LINK; }));
+    queryAll<HTMLButtonElement>('[data-zalo-context]').forEach((button) => listen(button, 'click', async () => { const type = button.dataset.zaloContext; addJourney(`Mở Zalo (${type || 'unknown'})`); const content = type === 'review' && requestText ? requestText : type === 'form' ? formDraft() : modelDraft(); const { copied, opened } = await copyZaloContext(content); notify(copied ? 'Đã sao chép thông tin xe. Bạn chỉ cần dán vào Zalo để được tư vấn.' : 'Trình duyệt chưa cho phép sao chép tự động. Hãy dùng nút Sao chép rồi dán vào Zalo.'); trackZaloClick(`partner_${type || 'unknown'}`, { lead_source: 'partner_landing', form_type: mode }); if (!opened) window.location.href = partnerContact.zalo; }));
     queryAll<HTMLAnchorElement>('a[href="#dang-ky"]').forEach((anchor) => listen(anchor, 'click', () => trackFormOpen(anchor.id || anchor.textContent?.trim() || 'anchor')));
     queryAll<HTMLAnchorElement>('a[href^="tel:"]').forEach((anchor) => listen(anchor, 'click', () => trackEvent('cm_phone_click', { source: 'partner_form', lead_source: 'partner_landing' })));
     listen(query('#partnerForm'), 'focusin', () => trackFormOpen('form_focus'));
@@ -336,10 +321,13 @@ export default function Partner() {
       ? new IntersectionObserver(([entry]) => mobileCta.classList.toggle('is-hidden', entry.isIntersecting), { threshold: 0.08 })
       : null;
     if (formObserver && formSection) formObserver.observe(formSection);
-    listen(document, 'keydown', (event) => { const modal = docs?.classList.contains('show') ? docs : review?.classList.contains('show') ? review : null; if (!modal) return; const keyboard = event as KeyboardEvent; if (keyboard.key === 'Escape') { closeModal(modal); return; } if (keyboard.key === 'Tab') { const focusable = queryAll<HTMLElement>('.modal.show a[href], .modal.show button:not([disabled]), .modal.show input:not([disabled]), .modal.show textarea:not([disabled])').filter((item) => item.getClientRects().length); if (!focusable.length) return; const first = focusable[0]; const last = focusable[focusable.length - 1]; if (keyboard.shiftKey && document.activeElement === first) { keyboard.preventDefault(); last.focus(); } else if (!keyboard.shiftKey && document.activeElement === last) { keyboard.preventDefault(); first.focus(); } } });
+    listen(document, 'keydown', (event) => { if (!review?.classList.contains('show')) return; const keyboard = event as KeyboardEvent; if (keyboard.key === 'Escape') { closeModal(review); return; } if (keyboard.key === 'Tab') { const focusable = queryAll<HTMLElement>('.modal.show a[href], .modal.show button:not([disabled]), .modal.show input:not([disabled]), .modal.show textarea:not([disabled])').filter((item) => item.getClientRects().length); if (!focusable.length) return; const first = focusable[0]; const last = focusable[focusable.length - 1]; if (keyboard.shiftKey && document.activeElement === first) { keyboard.preventDefault(); last.focus(); } else if (!keyboard.shiftKey && document.activeElement === last) { keyboard.preventDefault(); first.focus(); } } });
     setMode('monthly'); renderModelDefaults();
     return () => { controller.abort(); formObserver?.disconnect(); document.body.style.overflow = ''; };
   }, []);
 
-  return <div ref={rootRef} className="partner-preview-root" dangerouslySetInnerHTML={{ __html: previewMarkup }} />;
+  return <>
+    <div ref={rootRef} className="partner-preview-root" dangerouslySetInnerHTML={{ __html: previewMarkup }} />
+    <PartnerChecklistDialog ref={checklistRef} onDocument={() => trackEvent('cm_partner_document_open', { document: 'checklist_15_diem_full', lead_source: 'partner_landing' })} />
+  </>;
 }
