@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { useSEO } from '@/hooks/useSEO';
 import { submitLead, type LeadPayload } from '@/hooks/useLeads';
 import {
@@ -20,6 +20,7 @@ const tetDate = dateLabel(campaign.newYear);
 const [firstDay, firstLunar] = days[0];
 const lastDay = days[days.length - 1][0];
 const numberFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+const groupMoneyDigits = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const leadingDays = (new Date(firstDay + 'T00:00:00Z').getUTCDay() + 6) % 7;
 const presetLabels = {
@@ -91,7 +92,7 @@ function RegionSelect({ id, value, onChange, required }: { id: string; value: st
   </select>;
 }
 
-const initialOwner = { name: '', phone: '', car: '', quantity: '1', note: '', consent: false };
+const initialOwner = { name: '', phone: '', car: '', quantity: '1', note: '' };
 type Option = keyof typeof cooperationOptions;
 type Journey = 'consult' | 'schedule';
 type Review = { key: string; text: string; payload: LeadPayload };
@@ -223,6 +224,33 @@ export default function TetOwnerPartnership() {
     if (values[key] !== '' && Number(values[key]) !== estimate[key]) changeAssumption(key, String(estimate[key]));
   }
 
+  function changeMoneyInput(key: 'dailyRate' | 'monthlyCost', event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const typed = input.value;
+    const caret = input.selectionStart ?? typed.length;
+    let before = typed.slice(0, caret).replace(/\D/g, '');
+    let after = typed.slice(caret).replace(/\D/g, '');
+    const inputType = (event.nativeEvent as InputEvent).inputType;
+    const removedSeparator = before + after === values[key] && typed.length < groupMoneyDigits(values[key]).length;
+    if (removedSeparator && inputType === 'deleteContentBackward') before = before.slice(0, -1);
+    if (removedSeparator && inputType === 'deleteContentForward') after = after.slice(1);
+
+    const digits = (before + after).replace(/^0+(?=\d)/, '');
+    const next = digits && /^\s*[-−]/.test(typed) ? '0' : digits;
+    const formatted = groupMoneyDigits(next);
+    if (typed !== formatted) {
+      // Count from the right so regrouping the digits keeps the edit at the same place.
+      let position = formatted.length;
+      for (let remaining = after.length; remaining > 0 && position > 0;) {
+        position--;
+        if (formatted[position] !== '.') remaining--;
+      }
+      input.value = formatted;
+      input.setSelectionRange(position, position);
+    }
+    changeAssumption(key, next);
+  }
+
   function startForm(source: string) {
     once('cm_partner_form_open', { source });
   }
@@ -290,8 +318,8 @@ export default function TetOwnerPartnership() {
     event.preventDefault();
     if (inFlight.current) return;
     const phone = phoneNumber(owner.phone);
-    if (!/^0\d{9}$/.test(phone) || !owner.name.trim() || !owner.car.trim() || !owner.consent) {
-      setFormError('Kiểm tra họ tên, số điện thoại Việt Nam, mẫu xe và sự đồng ý liên hệ.');
+    if (!/^0\d{9}$/.test(phone) || !owner.name.trim() || !owner.car.trim()) {
+      setFormError('Kiểm tra họ tên, số điện thoại Việt Nam và mẫu xe.');
       return;
     }
     if (withDates && (!hasDates || !location)) {
@@ -507,7 +535,8 @@ export default function TetOwnerPartnership() {
               <RegionSelect id="regionCalc" value={region} onChange={(next) => { setRegion(next); once('cm_partner_calculator_use', { action: 'region' }); }} />
             </div>
             <div className="field"><label htmlFor="dailyRate">Đơn giá thuê/ngày muốn thử (VNĐ)</label>
-              <input id="dailyRate" type="number" min="0" max="100000000" inputMode="numeric" value={values.dailyRate} onChange={(event) => changeAssumption('dailyRate', event.target.value)} onBlur={() => normalizeAssumption('dailyRate')} />
+              <input id="dailyRate" type="text" inputMode="numeric" value={groupMoneyDigits(values.dailyRate)}
+                onChange={(event) => changeMoneyInput('dailyRate', event)} onBlur={() => normalizeAssumption('dailyRate')} />
               <div className="quick-picks" role="group" aria-label="Đơn giá minh họa">{campaign.sampleRates.map((rate) =>
                 <button key={rate} type="button" aria-pressed={estimate.dailyRate === rate} onClick={() => changeAssumption('dailyRate', String(rate))}>{money(rate)}</button>)}</div>
               <div className="tiny">{money(estimate.dailyRate)}/ngày · mức minh họa tự chỉnh</div>
@@ -525,7 +554,8 @@ export default function TetOwnerPartnership() {
                 <div className="tiny">Tỷ lệ tùy chỉnh, dùng để tính thử.</div>
               </div>
               <div className="field"><label htmlFor="monthlyCost">Chi phí nuôi xe/tháng (tùy chọn)</label>
-                <input id="monthlyCost" type="number" min="0" max="200000000" inputMode="numeric" placeholder="Ví dụ: 2.500.000" value={values.monthlyCost} onChange={(event) => changeAssumption('monthlyCost', event.target.value)} onBlur={() => normalizeAssumption('monthlyCost')} />
+                <input id="monthlyCost" type="text" inputMode="numeric" placeholder="Ví dụ: 2.500.000" value={groupMoneyDigits(values.monthlyCost)}
+                  onChange={(event) => changeMoneyInput('monthlyCost', event)} onBlur={() => normalizeAssumption('monthlyCost')} />
                 <div className="tiny">Dùng để so sánh chi phí cố định bạn nhập.</div>
               </div>
             </div>
@@ -675,9 +705,6 @@ export default function TetOwnerPartnership() {
                   <a href="#lich-tet">Chỉnh lịch hoặc giờ giao nhận</a>
                 </> : <p>Chưa có ngày sẵn sàng cho thuê. <a href="#lich-tet">Chọn lịch xe</a></p>}
             </div>
-            <label className="consent-check"><input id="consent" type="checkbox" required checked={owner.consent} onChange={(event) => setOwner({ ...owner, consent: event.target.checked })} />
-              <span>Tôi đồng ý để Car Match dùng thông tin đã cung cấp để liên hệ tư vấn theo <a href="/chinh-sach">chính sách quyền riêng tư</a>.</span>
-            </label>
             {formError && <p className="error-message" role="alert">{formError}</p>}
             <div className="form-actions">
               <button className="btn btn-red" type="submit">{withDates ? 'Kiểm tra lịch xe trước khi gửi' : 'Kiểm tra thông tin tư vấn'}</button>

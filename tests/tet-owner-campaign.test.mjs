@@ -116,6 +116,7 @@ test('sample and consultation cannot be serialized as across-Tet supply', () => 
     assert.equal(insert.duration, null);
     assert.equal(crmDetails(insert).schedule_class, null);
     assert.equal(crmDetails(insert).segments, null);
+    assert.equal(Object.hasOwn(crmDetails(insert), 'contact_consent'), false);
     assert.match(insert.note, /lead_source=partner_tet_2027/);
     assert.match(insert.note, /utm_campaign=qa/);
   }
@@ -127,6 +128,8 @@ test('a chosen schedule writes ranges, timestamps and assumptions, with no calcu
   const details = crmDetails(insert);
   assert.equal(insert.duration, '9 ngày rảnh');
   assert.equal(details.schedule_status, 'owner_selected');
+  assert.equal(Object.hasOwn(details, 'contact_consent'), false);
+  assert.equal(crmDetails(toCRM({ ...draft, contact_consent: true }).insert).contact_consent, true);
   assert.equal(details.schedule_class, 'full');
   assert.equal(details.earliest_handover_at_local, approved.earliest);
   assert.equal(details.latest_return_at_local, approved.latest);

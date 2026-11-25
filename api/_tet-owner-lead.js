@@ -46,15 +46,16 @@ export function buildTetOwnerLeadInsert(payload, idempotencyKey) {
   const name = clean(payload.name, 100);
   const phone = clean(payload.phone, 18);
   const quantity = Number(payload.quantity);
-  const reject = () => ({ error: 'Kiểm tra lại thông tin xe, lịch và sự đồng ý liên hệ.' });
+  const reject = () => ({ error: 'Kiểm tra lại thông tin liên hệ, xe và lịch.' });
   if (draft?.campaign !== `partner_tet_${tetOwnerWindow.newYear.slice(0, 4)}` || payload.source !== 'partner' || !idempotencyKey || draft.version !== 2 ||
-      draft.contact_consent !== true || !name || !car || !/^0\d{9}$/.test(phone) ||
+      (draft.contact_consent !== undefined && draft.contact_consent !== true) || !name || !car || !/^0\d{9}$/.test(phone) ||
       !Number.isInteger(quantity) || quantity < 1 || quantity > 99) return reject();
 
   const withDates = draft.schedule_status === 'owner_selected';
   const building = clean(payload.building, 120);
   const details = {
-    version: 2, campaign: draft.campaign, contact_consent: true,
+    version: 2, campaign: draft.campaign,
+    ...(draft.contact_consent === true && { contact_consent: true }),
     schedule_status: withDates ? 'owner_selected' : 'unknown',
     schedule_input: withDates ? 'owner_selected' : draft.schedule_input === 'sample_ignored' ? 'sample_ignored' : 'not_set',
     declared_option: 'consult', schedule_class: null, schedule_scope: null, preset: null,

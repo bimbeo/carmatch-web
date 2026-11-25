@@ -169,7 +169,6 @@ export function leadSchedule({
   return {
     version: 2,
     campaign: campaign.source,
-    contact_consent: true,
     schedule_status: confirmed ? 'owner_selected' : 'unknown',
     schedule_input: confirmed ? 'owner_selected' : origin === 'sample' ? 'sample_ignored' : 'not_set',
     preset: confirmed ? preset : null,

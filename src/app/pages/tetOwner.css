@@ -297,9 +297,6 @@ body:has(.tet-owner) { margin: 0; }
 .tet-owner .signup-zalo-hint { font-size: 11px; color: #ffdbcf; margin: 14px 0 0; }
 .tet-owner .signup-card > h3 { font-size: 25px; margin: 10px 0 6px; }
 .tet-owner .summary-preview { overflow-wrap: anywhere; }
-.tet-owner .consent-check { display: flex; align-items: start; gap: 9px; margin: 14px 0; font-size: 12px; color: #625951; }
-.tet-owner .consent-check input { appearance: auto; accent-color: var(--red); margin-top: 4px; }
-.tet-owner .consent-check a { text-decoration: underline; }
 .tet-owner .success-message, .tet-owner .error-message { padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; }
 .tet-owner .success-message { color: #205840; background: #eaf7ed; }
 .tet-owner .error-message { color: #83252f; background: #fff0ef; }

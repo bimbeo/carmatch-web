@@ -2,7 +2,7 @@
 async (page) => {
   const origin = new URL(page.url()).origin;
   const path = '/hop-tac-chu-xe-cho-thue-tet';
-  const output = 'output/playwright/tet-owner-final-release';
+  const output = 'output/playwright/tet-owner-form-format';
   const failures = [];
   const errors = [];
   const requests = [];
@@ -59,6 +59,8 @@ async (page) => {
     check(result.width === width && result.scrollWidth === width && result.scrollY === 0, `Viewport ${width} overflow or unexpected scroll`);
     check(result.h1 === 1 && result.images === 7 && result.stylesheet.includes('Be Vietnam Pro Tet'), 'Page styling or assets missing');
     check((await page.locator('#estimatedOwnerShare').innerText()) === '5.040.000đ', 'Default owner share is incorrect');
+    check(await page.locator('#dailyRate').inputValue() === '900.000', 'Default daily rate should show thousands separators');
+    check(await page.locator('#ownerForm input[type=checkbox]').count() === 0, 'Quick consultation still requires a checkbox');
     await assertStats('9,9,7,0');
     check(await page.locator('.schedule-status').getAttribute('data-origin') === 'sample', 'Illustration is not tagged');
     check(await page.getByRole('radio', { name: /Chưa có lịch/ }).isChecked(), 'The sample opted the owner into a dated lead');
@@ -101,6 +103,8 @@ async (page) => {
   await assertStats('0,0,0,0');
   await page.locator('[data-preset=family]').click();
   await page.getByRole('group', { name: 'Đơn giá minh họa' }).getByRole('button', { name: '1.200.000đ' }).click();
+  const dailyRate = page.locator('#dailyRate');
+  check(await dailyRate.inputValue() === '1.200.000', 'Quick pick did not format the daily rate input');
   await page.getByRole('button', { name: '5 ngày', exact: true }).click();
   check(await page.locator('#estimatedGross').innerText() === '6.000.000đ', 'Quick picks did not update the estimate');
   await page.locator('#ownerSharePct').fill('125');
@@ -109,12 +113,21 @@ async (page) => {
   await page.locator('#dailyRate').fill('-100');
   await page.locator('#dailyRate').blur();
   check(await page.locator('#estimatedGross').innerText() === '0đ', 'Negative price produced revenue');
-  await page.locator('#dailyRate').fill('');
+  await dailyRate.fill('');
   check(await page.locator('#estimatedGross').innerText() === '0đ', 'Empty price produced revenue');
-  await page.locator('#dailyRate').fill('1000000');
+  await dailyRate.pressSequentially('900000');
+  check(await dailyRate.inputValue() === '900.000', 'Typing did not group digits');
+  await dailyRate.evaluate((element) => element.setSelectionRange(4, 4));
+  await dailyRate.press('Backspace');
+  check(await dailyRate.inputValue() === '90.000', 'Backspace at a separator did not remove the preceding digit');
+  await dailyRate.fill('999.999.999');
+  await dailyRate.blur();
+  check(await dailyRate.inputValue() === '100.000.000', 'Daily rate limit did not apply to a formatted value');
+  await dailyRate.fill('1.000.000');
   await page.locator('#assumedDays').fill('20');
   await page.locator('#ownerSharePct').fill('75');
   await page.locator('#monthlyCost').fill('2500000');
+  check(await page.locator('#monthlyCost').inputValue() === '2.500.000', 'Monthly cost did not group digits');
   check(await page.locator('#assumedDays').inputValue() === '6', 'Booked days were not capped');
   check(await page.locator('#estimatedGross').innerText() === '6.000.000đ', 'Gross estimate is incorrect');
   check(await page.locator('#estimatedOwnerShare').innerText() === '4.500.000đ', 'Owner share is incorrect');
@@ -156,9 +169,7 @@ async (page) => {
   await page.getByRole('radio', { name: 'Đã có lịch xe' }).check();
   check(await page.locator('#fleetNotes').inputValue() === 'VF6 rảnh 04–05/02. Xpander rảnh 09–12/02.', 'Switching journeys lost the individual schedules');
   const reviewButton = page.getByRole('button', { name: 'Kiểm tra lịch xe trước khi gửi' });
-  await reviewButton.click();
-  check(!await page.locator('#reviewModal').isVisible(), 'Consent was not enforced');
-  await page.locator('#consent').check();
+  check(await page.locator('#ownerForm input[type=checkbox]').count() === 0, 'Scheduled signup still requires a checkbox');
   await page.locator('#latestReturn').fill('2027-02-08T18:30');
   await reviewButton.click();
   check(await page.locator('#ownerForm').getByRole('alert').isVisible() && !await page.locator('#reviewModal').isVisible(), 'Held day allowed as return bound');
@@ -176,6 +187,8 @@ async (page) => {
   await page.getByText(/Car Match đã nhận đăng ký/).waitFor();
   check(requests[0].key && requests[0].key === requests[1].key && requests[1].key === requests[2].key, 'Retry used a fresh idempotency key');
   const submitted = requests[0].data.tet_owner;
+  check(!Object.hasOwn(submitted, 'contact_consent'), 'The form reported consent without an explicit checkbox');
+  check(submitted.calculator.dailyRate === 1000000 && submitted.calculator.monthlyCost === 2500000, 'Formatted values were not sent as numeric amounts');
   check(requests[0].data.source === 'partner' && submitted.campaign === 'partner_tet_2027', 'CRM campaign tag missing');
   check(submitted.schedule_scope === 'reference_vehicle_only' && submitted.schedule_class === null && submitted.segments.free[1].start === '2027-02-09', 'CRM details are incomplete');
   check(submitted.earliest_handover_at_local === '2027-02-04T10:30' && submitted.latest_return_at_local === '2027-02-12T18:30', 'Handover times did not carry over');
@@ -232,7 +245,6 @@ async (page) => {
       await page.locator('#ownerName').fill(name);
       await page.locator('#ownerPhone').fill(phone);
       await page.locator('#carName').fill('Xe thử QA 2025');
-      await page.locator('#consent').check();
       await (prepare ? reviewButton : page.getByRole('button', { name: 'Kiểm tra thông tin tư vấn' })).click();
       const activeReview = page.locator('#reviewModal');
       await activeReview.waitFor();
@@ -252,7 +264,7 @@ async (page) => {
     await capture('QA Có lịch xe', '0900000022', async () => {
       await page.getByRole('button', { name: 'Dùng lịch mẫu này' }).click();
       await page.locator('#ownerRegion').selectOption({ label: 'Cầu Giấy / Tôn Thất Thuyết' });
-      await page.locator('#dailyRate').fill('1000000');
+      await page.locator('#dailyRate').fill('1.000.000');
     });
     await capture('QA Qua giao thừa', '0900000044', async () => {
       await page.getByRole('button', { name: 'Dùng lịch mẫu này' }).click();
