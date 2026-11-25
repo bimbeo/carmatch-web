@@ -2,7 +2,7 @@
 async (page) => {
   const origin = new URL(page.url()).origin;
   const path = '/hop-tac-chu-xe-cho-thue-tet';
-  const output = 'output/playwright/tet-owner-content-conversion';
+  const output = 'output/playwright/tet-owner-production-release';
   const failures = [];
   const errors = [];
   const requests = [];
@@ -57,7 +57,9 @@ async (page) => {
       };
     });
     check(result.width === width && result.scrollWidth === width && result.scrollY === 0, `Viewport ${width} overflow or unexpected scroll`);
-    check(result.h1 === 1 && result.images === 7 && result.stylesheet.includes('Be Vietnam Pro Tet'), 'Page styling or assets missing');
+    check(result.h1 === 1 && result.images === 9 && result.stylesheet.includes('Be Vietnam Pro Tet'), 'Page styling or assets missing');
+    check(await page.locator('.nav .logo[href="/"] img[src="/brand/carmatch-lockup-navy.png"]').isVisible(), 'Official navy logo is missing from the heading');
+    check(await page.locator('.footer .logo[href="/"] img[src="/brand/carmatch-lockup-white.png"]').isVisible(), 'Official white logo is missing from the footer');
     check((await page.locator('#estimatedOwnerShare').innerText()) === '5.040.000đ', 'Default owner share is incorrect');
     check(await page.locator('#dailyRate').inputValue() === '900.000', 'Default daily rate should show thousands separators');
     check(await page.locator('.value-grid strong').count() === 4, 'The page must show the four benefits of partnering');

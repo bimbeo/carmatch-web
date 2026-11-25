@@ -386,7 +386,10 @@ export default function TetOwnerPartnership() {
     <div className="topbar">XUÂN {season.toLocaleUpperCase('vi-VN')} {year} · MÙNG 1 TẾT: {tetDate}/{year} · CHUYÊN TRANG DÀNH CHO CHỦ XE</div>
     <header className="nav">
       <div className="wrap nav-in">
-        <a className="logo" href="/" aria-label={`Car Match TẾT ${year}, về trang chủ`}>Car <span>Match</span> <small>TẾT {year}</small></a>
+        <a className="logo" href="/" aria-label={`Car Match Tết ${year}, về trang chủ`}>
+          <img src="/brand/carmatch-lockup-navy.png" alt="Car Match" width="288" height="66" />
+          <small>TẾT {year}</small>
+        </a>
         <nav className="nav-links" aria-label="Điều hướng trang Tết">
           <a href="#phu-hop">Xe phù hợp</a><a href="#lich-tet">Chọn lịch Tết</a>
           <a href="#van-hanh">Quy trình</a><a href="#hoi-dap">Câu hỏi</a>
@@ -728,7 +731,9 @@ export default function TetOwnerPartnership() {
     </main>
 
     <footer className="footer"><div className="wrap foot-flex">
-      <div className="foot-company"><a className="logo" href="/">Car <span>Match</span></a><strong>{partnerContact.company}</strong>
+      <div className="foot-company"><a className="logo" href="/" aria-label="Car Match, về trang chủ">
+        <img src="/brand/carmatch-lockup-white.png" alt="Car Match" width="288" height="66" loading="lazy" decoding="async" />
+      </a><strong>{partnerContact.company}</strong>
         <p>Mã số thuế: {partnerContact.taxCode} · Trụ sở đăng ký: {partnerContact.registeredAddress}</p>
         <p>Hotline: <a href={`tel:${partnerContact.phone}`}>{partnerContact.phoneLabel}</a> · <a href={partnerContact.zalo} target="_blank" rel="noopener noreferrer">Zalo Car Match</a> · <a href={`mailto:${partnerContact.email}`}>{partnerContact.email}</a></p>
         <p>Khu vực hỗ trợ phối hợp giao nhận: {partnerContact.handoverAreas.join(', ')}. Địa điểm bàn giao cụ thể theo lịch đã xác nhận.</p>
