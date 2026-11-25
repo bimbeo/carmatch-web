@@ -8,7 +8,7 @@ export const tetOwnerCampaign = {
   timeZone: 'Asia/Ho_Chi_Minh',
   source: `partner_tet_${year}`,
   title: `Hợp tác chủ xe cho thuê Tết ${year} tại Hà Nội | Car Match`,
-  description: `Có xe dư dịp Tết ${year}? Đăng ký hợp tác cho thuê xe cùng Car Match tại Hà Nội. Chủ động chọn lịch xe rảnh, tính thử thu nhập và nhận tư vấn phương án khai thác phù hợp.`,
+  description: `Có xe dư dịp Tết ${year}? Hợp tác cho thuê xe cùng Car Match tại Hà Nội. Chủ động chọn lịch xe rảnh, tính thử thu nhập và nhận tư vấn phương án khai thác.`,
   image: '/tet-owner/og-tet-owner-1200.jpg',
   socialImage: { width: 1200, height: 630, type: 'image/jpeg' },
   newYear: '2027-02-06',
@@ -16,6 +16,7 @@ export const tetOwnerCampaign = {
   handover: ['2027-02-01', '2027-02-04'],
   lateDuXuan: ['2027-02-07', '2027-02-14'],
   defaults: { dailyRate: 900_000, bookedDays: 7, sharePercent: 80 },
+  sampleRates: [700_000, 900_000, 1_200_000],
   presets: {
     full: { free: [['2027-02-04', '2027-02-12']], hold: [] },
     duxuan: { free: [['2027-02-08', '2027-02-15']], hold: [['2027-02-06', '2027-02-07']] },
@@ -39,6 +40,9 @@ export const tetOwnerHero = {
   src: '/tet-owner/hero-960.webp',
   srcSet: [640, 768, 960, 1280].map((width) => `/tet-owner/hero-${width}.webp ${width}w`).join(', '),
   sizes: '(max-width: 760px) calc(100vw - 36px), (max-width: 1240px) 46vw, 548px',
+  mobileMedia: '(max-width: 760px)',
+  mobileSrcSet: '/tet-owner/hero-420.avif 420w, /tet-owner/hero-768.avif 768w',
+  mobileSizes: 'calc(100vw - 36px)',
   alt: 'Minh họa chủ xe bên hai ô tô tại nhà trang trí hoa đào và đèn lồng đón Tết',
 };
 
@@ -46,6 +50,8 @@ export type TetDate = (typeof tetOwnerCampaign.days)[number][0];
 export type TetPreset = keyof typeof tetOwnerCampaign.presets;
 export type DayStatus = 'free' | 'hold' | 'maybe';
 export type Schedule = Record<TetDate, DayStatus>;
+export type ScheduleOrigin = 'sample' | 'selected' | 'empty';
+export type FleetSchedule = '' | 'same' | 'different';
 type DateRange = readonly [TetDate, TetDate];
 
 export const dateLabel = (iso: TetDate) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
@@ -66,6 +72,10 @@ export function makeSchedule(preset: TetPreset): Schedule {
     (hold as readonly DateRange[]).some((range) => inRange(iso, range)) ? 'hold'
       : (free as readonly DateRange[]).some((range) => inRange(iso, range)) ? 'free' : 'maybe',
   ])) as Schedule;
+}
+
+export function editSchedule(schedule: Schedule, origin: ScheduleOrigin, day: TetDate, state: DayStatus) {
+  return { ...(origin === 'sample' ? makeSchedule('clear') : schedule), [day]: state };
 }
 
 function getSegments(schedule: Schedule, status: DayStatus) {
@@ -142,6 +152,40 @@ export function estimateIncome(values: { dailyRate: string; bookedDays: string; 
   const gross = dailyRate * bookedDays;
   const ownerShare = gross * sharePercent / 100;
   return { dailyRate, bookedDays, sharePercent, monthlyCost, gross, ownerShare };
+}
+
+type ScheduleStats = ReturnType<typeof summarizeSchedule>;
+type Estimate = ReturnType<typeof estimateIncome>;
+
+export function segmentLabel({ start, end }: ScheduleStats['segments']['free'][number]) {
+  return start === end ? formatDay(start) : `${formatDay(start)} → ${formatDay(end)}`;
+}
+
+export function leadSchedule({
+  stats, estimate, origin, withDates, earliest, latest, fleet, fleetNotes, option, preset, modelGroup,
+}: {
+  stats: ScheduleStats; estimate: Estimate | null; origin: ScheduleOrigin; withDates: boolean;
+  earliest: string; latest: string; fleet: FleetSchedule; fleetNotes: string;
+  option: keyof typeof cooperationOptions; preset: TetPreset | 'custom'; modelGroup: string;
+}) {
+  const confirmed = withDates && origin === 'selected' && stats.free > 0;
+  return {
+    version: 2,
+    campaign: campaign.source,
+    contact_consent: true,
+    schedule_status: confirmed ? 'owner_selected' : 'unknown',
+    schedule_input: confirmed ? 'owner_selected' : origin === 'sample' ? 'sample_ignored' : 'not_set',
+    preset: confirmed ? preset : null,
+    declared_option: confirmed ? option : 'consult',
+    schedule_class: confirmed && fleet !== 'different' ? stats.option : null,
+    schedule_scope: !confirmed ? null : fleet === 'different' ? 'reference_vehicle_only' : fleet === 'same' ? 'same_for_all_vehicles' : 'single_vehicle',
+    time_zone: campaign.timeZone,
+    segments: confirmed ? { free: stats.segments.free, hold: stats.segments.hold } : null,
+    earliest_handover_at_local: confirmed && earliest ? earliest : null,
+    latest_return_at_local: confirmed && latest ? latest : null,
+    fleet_notes: confirmed && fleet === 'different' ? fleetNotes.trim() : null,
+    calculator: confirmed && estimate ? { ...estimate, vehicle_group: modelGroup } : null,
+  };
 }
 
 export function scheduleText(stats: ReturnType<typeof summarizeSchedule>, estimate: ReturnType<typeof estimateIncome>) {

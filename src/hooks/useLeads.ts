@@ -1,3 +1,5 @@
+import type { leadSchedule } from '@/data/tetOwnerCampaign';
+
 export interface LeadPayload {
   source: 'b2b' | 'partner';
   name: string;
@@ -24,11 +26,13 @@ export interface LeadPayload {
   contract_sample_requested?: boolean;
   source_page?: string;
   idempotency_key?: string;
+  tet_owner?: ReturnType<typeof leadSchedule>;
 }
 
-function buildLeadContext() {
+function buildLeadContext(omitHash = false) {
   if (typeof window === 'undefined') return '';
   const url = new URL(window.location.href);
+  if (omitHash) url.hash = '';
   const utm = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']
     .map((key) => {
       const value = url.searchParams.get(key);
@@ -40,7 +44,7 @@ function buildLeadContext() {
   return [
     '[LEAD CONTEXT]',
     `Page: ${window.location.pathname}${window.location.search}`,
-    `Full URL: ${window.location.href}`,
+    `Full URL: ${url.href}`,
     `Referrer: ${document.referrer || 'Không có'}`,
     `UTM: ${utm || 'Không có'}`,
   ].join('\n');
@@ -58,7 +62,7 @@ export async function submitLead(payload: LeadPayload): Promise<LeadSubmitResult
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 12_000);
   try {
-    const note = [payload.note, buildLeadContext()].filter(Boolean).join('\n\n');
+    const note = [payload.note, buildLeadContext(Boolean(payload.tet_owner))].filter(Boolean).join('\n\n');
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (payload.idempotency_key) headers['Idempotency-Key'] = payload.idempotency_key;
     const res = await fetch('/api/leads', {

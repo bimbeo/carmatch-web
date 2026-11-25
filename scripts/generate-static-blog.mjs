@@ -26,7 +26,7 @@ import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDe
 import { getLocalHubData } from '../src/data/localHubsData.ts';
 import { localRentalAreas } from '../src/data/localRentalAreas.ts';
 import { tetOwnerCampaign, tetOwnerHero } from '../src/data/tetOwnerCampaign.ts';
-import { tetOwnerFaq } from '../src/data/tetOwnerFaq.ts';
+import { tetOwnerFaq, tetOwnerMoreFaq } from '../src/data/tetOwnerFaq.ts';
 import { selectLocalRentalCars } from '../src/data/localRentalFleet.ts';
 import { LOCAL_RENTAL_MOBILE_HERO_MEDIA, LOCAL_RENTAL_MOBILE_HERO_SIZES, localRentalMobileHeroSrcSet } from '../src/data/localRentalImages.ts';
 import {
@@ -99,6 +99,8 @@ let prerenderedAboutRoot = '';
 let prerenderedPartnerRoot = '';
 let prerenderedTetOwnerRoot = '';
 let tetOwnerStylesheets = [];
+let tetOwnerModule = '';
+let tetOwnerImports = [];
 let prerenderedTetRentalRoot = '';
 let spaBaseHtml = '';
 const hanoiDeliveryDetails = {
@@ -3017,7 +3019,7 @@ function routeStructuredData(meta, vehicles) {
       areaServed: { '@type': 'AdministrativeArea', name: 'Hà Nội' },
       fields: { '@id': `${meta.canonical}#service`, provider: { '@id': `${siteUrl}/#organization` } },
     }, seoSchemaConfig),
-    buildFAQSchema(meta, tetOwnerFaq, seoSchemaConfig, `${meta.canonical}#hoi-dap`),
+    buildFAQSchema(meta, [...tetOwnerFaq, ...tetOwnerMoreFaq], seoSchemaConfig, `${meta.canonical}#hoi-dap`),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Hợp tác chủ xe', path: '/hop-tac' },
@@ -4960,7 +4962,8 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   const preloadImage = escapeHtml(meta.preloadImage || '/brand/carmatch-lockup-navy.png');
   const mobileHeroSrcSet = localCover?.cover && localRentalMobileHeroSrcSet(localCover.cover);
   const imagePreload = meta.responsivePreload
-    ? `<link rel="preload" as="image" imagesrcset="${escapeHtml(meta.responsivePreload.srcSet)}" imagesizes="${escapeHtml(meta.responsivePreload.sizes)}" fetchpriority="high" />`
+    ? `<link rel="preload" as="image" media="${escapeHtml(meta.responsivePreload.mobileMedia)}" type="image/avif" imagesrcset="${escapeHtml(meta.responsivePreload.mobileSrcSet)}" imagesizes="${escapeHtml(meta.responsivePreload.mobileSizes)}" fetchpriority="high" />
+    <link rel="preload" as="image" media="(width > 760px)" imagesrcset="${escapeHtml(meta.responsivePreload.srcSet)}" imagesizes="${escapeHtml(meta.responsivePreload.sizes)}" fetchpriority="high" />`
     : mobileHeroSrcSet
     ? `<link rel="preload" as="image" media="${LOCAL_RENTAL_MOBILE_HERO_MEDIA}" imagesrcset="${escapeHtml(mobileHeroSrcSet)}" imagesizes="${LOCAL_RENTAL_MOBILE_HERO_SIZES}" fetchpriority="high" />`
     : `<link rel="preload" as="image" href="${preloadImage}" />`;
@@ -5077,7 +5080,16 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
       `<link rel="preload" as="font" href="/tet-owner/be-vietnam-pro-900-${subset}.woff2" type="font/woff2" crossorigin />`,
     );
     const stylesheets = tetOwnerStylesheets.map((file) => `<link rel="stylesheet" href="/${escapeHtml(file)}" />`);
-    html = html.replace('</head>', () => `${[...stylesheets, ...fontPreloads].join('\n')}\n</head>`);
+    if (tetOwnerModule) {
+      html = html
+        .replace(/<link\b[^>]*href="\/assets\/[^"]+"[^>]*>/g, '')
+        .replace(/<script type="module"[^>]*src="\/assets\/[^"]+"[^>]*><\/script>/, '');
+    }
+    const moduleTags = tetOwnerModule
+      ? [...tetOwnerImports.map((file) => `<link rel="modulepreload" crossorigin href="/${escapeHtml(file)}" />`),
+        `<script type="module" crossorigin fetchpriority="low" src="/${escapeHtml(tetOwnerModule)}"></script>`]
+      : [];
+    html = html.replace('</head>', () => `${[...stylesheets, ...fontPreloads, ...moduleTags].join('\n')}\n</head>`);
     html = html.replace(/<div id="root"><\/div>/, prerenderedTetOwnerRoot);
   } else if (meta.path === '/thue-xe-tu-lai-tet-ha-noi' && prerenderedTetRentalRoot) {
     html = moveStylesheetsBeforeModuleScripts(html);
@@ -5182,6 +5194,13 @@ async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
     return [...(manifest[key].imports || []).flatMap(collectCss), ...(manifest[key].css || [])];
   };
   tetOwnerStylesheets = [...new Set(collectCss('src/app/pages/TetOwnerPartnership.tsx'))];
+  const tetEntryKey = 'src/tetOwnerEntry.tsx';
+  if (manifest[tetEntryKey]) {
+    tetOwnerModule = manifest[tetEntryKey].file;
+    tetOwnerStylesheets = [...new Set(collectCss(tetEntryKey).concat(tetOwnerStylesheets))];
+    tetOwnerImports = [...visitedAssets].filter((key) => key !== tetEntryKey)
+      .map((key) => manifest[key]?.file).filter(Boolean);
+  }
   await writeFile(path.join(distDir, 'static-shell.css'), minifyCss(staticShellCss()), 'utf8');
   prerenderedHomeRoot = '';
   prerenderedFleetRoot = '';

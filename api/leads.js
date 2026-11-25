@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'node:crypto';
 import { rateLimit } from './_security.js';
+import { buildTetOwnerLeadInsert } from './_tet-owner-lead.js';
 import {
   buildMonthlyLeadInsert,
   isMonthlyLead,
@@ -160,7 +161,9 @@ export default async function handler(req, res) {
 
     const requestRef = monthly ? monthlyRequestRef(idempotencyKey) : null;
     const { idempotency_key: _ignoredIdempotencyKey, ...requestPayload } = payload;
-    const insertPayload = monthly ? buildMonthlyLeadInsert(requestPayload, requestRef) : requestPayload;
+    const tetLead = requestPayload.tet_owner !== undefined ? buildTetOwnerLeadInsert(requestPayload, idempotencyKey) : null;
+    if (tetLead?.error) return res.status(400).json({ ok: false, error: tetLead.error });
+    const insertPayload = tetLead?.insert ?? (monthly ? buildMonthlyLeadInsert(requestPayload, requestRef) : requestPayload);
     const idempotency = await acquireIdempotency(payload.phone, idempotencyKey, requestDigest(insertPayload));
     idempotencyId = idempotency.id || null;
     localIdempotencyKey = idempotency.localKey || null;

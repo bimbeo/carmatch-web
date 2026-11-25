@@ -19,7 +19,15 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
-  build: { manifest: true },
+  build: {
+    manifest: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        tetOwner: path.resolve(__dirname, 'src/tetOwnerEntry.tsx'),
+      },
+    },
+  },
 
   server: {
     port: 5174,

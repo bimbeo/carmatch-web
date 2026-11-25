@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { estimateIncome, makeSchedule, scheduleText, summarizeSchedule, tetOwnerCampaign } from '../src/data/tetOwnerCampaign.ts';
+import { editSchedule, estimateIncome, leadSchedule, makeSchedule, scheduleText, summarizeSchedule, tetOwnerCampaign } from '../src/data/tetOwnerCampaign.ts';
 import { isTrackedConversionEvent } from '../api/_conversion.js';
+import { buildTetOwnerLeadInsert } from '../api/_tet-owner-lead.js';
 
 const defaultInputs = { dailyRate: '900000', bookedDays: '7', sharePercent: '80', monthlyCost: '' };
 
@@ -72,4 +73,83 @@ test('calculator caps days and rate and keeps delivery assumptions separate from
 test('calendar funnel events are accepted by first-party analytics', () => {
   assert.equal(isTrackedConversionEvent('cm_partner_calendar_start'), true);
   assert.equal(isTrackedConversionEvent('cm_partner_calendar_complete'), true);
+});
+
+test('manual selection starts with an empty calendar when the only dates were a sample', () => {
+  const schedule = makeSchedule('full');
+  for (const day of ['2027-01-27', '2027-02-05']) {
+    const edited = summarizeSchedule(editSchedule(schedule, 'sample', day, 'free'));
+    assert.equal(edited.free, 1);
+    assert.equal(edited.segments.free[0].start, day);
+  }
+});
+
+const approved = {
+  stats: summarizeSchedule(makeSchedule('full')),
+  estimate: estimateIncome(defaultInputs, 9),
+  earliest: '2027-02-04T09:15', latest: '2027-02-12T18:30',
+  fleet: '', fleetNotes: '', option: 'full', preset: 'full', modelGroup: 'Sedan 5 chỗ',
+  withDates: true, origin: 'selected',
+};
+const payload = {
+  source: 'partner', name: 'QA Chủ xe', phone: '0900000001', car_model: 'Xe mẫu',
+  quantity: '1', building: 'Cầu Giấy', note: '[LEAD CONTEXT]\nUTM: utm_campaign=qa',
+};
+const toCRM = (draft, overrides = {}) => buildTetOwnerLeadInsert({ ...payload, ...overrides, tet_owner: draft }, 'partner-tet-test-key');
+const crmDetails = (insert) => JSON.parse(insert.note.split('[TET_OWNER_V2]\n')[1]);
+
+test('sample and consultation cannot be serialized as across-Tet supply', () => {
+  for (const inputs of [{ origin: 'sample' }, { withDates: false }, { origin: 'empty' }]) {
+    const result = leadSchedule({ ...approved, ...inputs });
+    assert.equal(result.schedule_status, 'unknown');
+    assert.equal(result.segments, null);
+    assert.equal(result.calculator, null);
+    assert.equal(result.earliest_handover_at_local, null);
+    assert.equal(result.declared_option, 'consult');
+    const { insert } = toCRM({ ...result, segments: approved.stats.segments, calculator: approved.estimate }, { building: undefined });
+    assert.equal(insert.duration, null);
+    assert.equal(crmDetails(insert).schedule_class, null);
+    assert.equal(crmDetails(insert).segments, null);
+    assert.match(insert.note, /lead_source=partner_tet_2027/);
+    assert.match(insert.note, /utm_campaign=qa/);
+  }
+});
+
+test('a chosen schedule writes ranges, timestamps and assumptions, with no calculator required', () => {
+  const { insert } = toCRM(leadSchedule(approved));
+  const details = crmDetails(insert);
+  assert.equal(insert.duration, '9 ngày rảnh');
+  assert.equal(details.schedule_status, 'owner_selected');
+  assert.equal(details.schedule_class, 'full');
+  assert.equal(details.earliest_handover_at_local, approved.earliest);
+  assert.equal(details.latest_return_at_local, approved.latest);
+  assert.equal(details.calculator.ownerShare, 5_040_000);
+  assert.equal(details.segments.free[0].end, '2027-02-12');
+  assert.equal(crmDetails(toCRM(leadSchedule({ ...approved, estimate: null })).insert).calculator, null);
+});
+
+test('mixed fleet dates do not multiply supply and require the individual schedules', () => {
+  const details = leadSchedule({ ...approved, fleet: 'different', fleetNotes: 'Xe A 04–05/02. Xe B 09–12/02.' });
+  assert.equal(details.schedule_scope, 'reference_vehicle_only');
+  assert.equal(details.schedule_class, null);
+  const { insert } = toCRM(details, { quantity: '2' });
+  assert.equal(insert.duration, null);
+  assert.equal(crmDetails(insert).fleet_notes, details.fleet_notes);
+  assert.ok(toCRM({ ...details, fleet_notes: '' }, { quantity: '2' }).error);
+  const same = toCRM(leadSchedule({ ...approved, fleet: 'same' }), { quantity: '2' }).insert;
+  assert.equal(crmDetails(same).schedule_scope, 'same_for_all_vehicles');
+});
+
+test('the lead handler rejects invalid dates, unordered windows and out-of-bounds calculator values', () => {
+  const valid = leadSchedule(approved);
+  for (const invalid of [
+    { schedule_input: 'sample_ignored' },
+    { earliest_handover_at_local: '2027-02-30T12:00' },
+    { latest_return_at_local: '2027-02-02T12:00' },
+    { segments: { free: [{ start: '2027-02-04', end: '2027-02-05', days: 2 }], hold: [{ start: '2027-02-05', end: '2027-02-06', days: 2 }] } },
+    { calculator: { ...valid.calculator, bookedDays: 10 } },
+    { calculator: { ...valid.calculator, sharePercent: 101 } },
+    { contact_consent: false },
+  ]) assert.ok(toCRM({ ...valid, ...invalid }).error);
+  assert.ok(toCRM(valid, { building: '' }).error);
 });
