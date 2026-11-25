@@ -8086,6 +8086,7 @@ async function main() {
   const cachedLandingPages = replaceCachedStaticImageUrls(landingPages);
   const reservedLandingSlugs = new Set([
     'thue-xe-tu-lai-ha-noi',
+    tetOwnerCampaign.path.slice(1),
     ...localRentalAreas.map((area) => area.path.replace(/^\//, '')),
   ]);
   const indexableLandingPages = cachedLandingPages.filter((page) => !reservedLandingSlugs.has(page.slug));
