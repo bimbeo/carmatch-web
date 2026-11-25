@@ -24,6 +24,10 @@ const VISITOR_KEY = 'carmatch_visitor_v1';
 const SESSION_KEY = 'carmatch_session_v2';
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
+export function analyticsPagePath(path: string) {
+  return path.split(/[?#]/, 1)[0];
+}
+
 function safeValue(value: string | null, maxLength = 200) {
   const normalized = value?.trim();
   return normalized ? normalized.slice(0, maxLength) : null;
@@ -82,7 +86,11 @@ export function getAttributionSnapshot(): AttributionSnapshot | null {
         && Number.isFinite(lastActivity)
         && now.getTime() - lastActivity <= SESSION_TIMEOUT_MS
       ) {
-        const attribution = { ...parsed.attribution, device_type: getDeviceType() };
+        const attribution = {
+          ...parsed.attribution,
+          landing_page: analyticsPagePath(parsed.attribution.landing_page || window.location.pathname),
+          device_type: getDeviceType(),
+        };
         localStorage.setItem(SESSION_KEY, JSON.stringify({
           attribution,
           last_activity_at: now.toISOString(),
@@ -98,7 +106,7 @@ export function getAttributionSnapshot(): AttributionSnapshot | null {
       visitor_id: visitorId,
       session_id: createId('cms'),
       first_seen_at: now.toISOString(),
-      landing_page: `${window.location.pathname}${window.location.search}`.slice(0, 500),
+      landing_page: analyticsPagePath(`${window.location.pathname}${window.location.search}`).slice(0, 500),
       referrer_host: referrerHost,
       traffic_source: traffic.source,
       traffic_medium: traffic.medium,

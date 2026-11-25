@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { localRentalAreas } from '../src/data/localRentalAreas.ts';
 import { LOCAL_HUBS_DATA } from '../src/data/localHubsData.ts';
-import { selectLocalRentalCars } from '../src/data/localRentalFleet.ts';
+import { groupLocalRentalCars, selectLocalRentalCars } from '../src/data/localRentalFleet.ts';
 import { BOOKING_PICKUP_LOCATIONS } from '../src/data/bookingPickupLocations.ts';
 
 const localPage = new URL('../src/app/pages/LocalRental.tsx', import.meta.url);
@@ -43,7 +43,7 @@ test('the shared landing is enabled for all 17 configured routes', async () => {
 
 test('vehicle selection ranks local preferences, deduplicates model variants and excludes inactive or unpriced cars', () => {
   const car = (name, slug, price, extra = {}) => ({ name, slug, price, available: true, seats: 5, ...extra });
-  const result = selectLocalRentalCars([
+  const catalog = [
     car('VinFast VF3 2026', 'vf3-2026', 650_000),
     car('VinFast VF3 2025', 'vf3-2025', 600_000),
     car('VinFast VF6', 'vf6', 990_000),
@@ -51,8 +51,12 @@ test('vehicle selection ranks local preferences, deduplicates model variants and
     car('Toyota Corolla Cross V', 'cross-v', 900_000, { model: 'Toyota Corolla Cross' }),
     car('VinFast VF5', 'vf5', 100, { available: false }),
     car('Mitsubishi Xpander', 'xpander', 0),
-  ], ['vinfast-vf6-plus']);
+  ];
+  const preferred = ['vinfast-vf6-plus'];
+  const result = selectLocalRentalCars(catalog, preferred);
   assert.deepEqual(result.map(({ slug }) => slug), ['vf6', 'vf3-2025', 'cross-g']);
+  const variants = groupLocalRentalCars(catalog, preferred).find(({ key }) => key === 'vinfast-vf3-2025');
+  assert.deepEqual(variants?.vehicles.map(({ slug }) => slug), ['vf3-2025', 'vf3-2026']);
 });
 
 test('landing reuses the single BookingWidget engine instead of maintaining a second calculator', async () => {
@@ -79,7 +83,8 @@ test('landing reuses the single BookingWidget engine instead of maintaining a se
   assert.match(tools, /layout="wide"/);
   assert.match(tools, /deliveryPolicy="conditional"/);
   assert.match(tools, /separateReturnAddress/);
-  assert.match(tools, /externalOpenRequest=\{openRequest\}/);
+  assert.match(tools, /externalOpenRequest=\{dateRequest\}/);
+  assert.match(widget, /externalOpenRequest\?\.action === 'calendar'/);
   assert.match(widget, /calculateRentalBillingDays\(pickupDate, pickupHour, returnDate, returnHour\)/);
   assert.match(widget, /pickupLocations = BOOKING_PICKUP_LOCATIONS/);
   assert.equal(BOOKING_PICKUP_LOCATIONS.find(({ id }) => id === 'trung-lan')?.name, 'Cầu Giấy');
@@ -89,7 +94,7 @@ test('landing reuses the single BookingWidget engine instead of maintaining a se
   assert.match(widget, /if \(bookingSubmittingRef\.current\) return/);
   assert.match(widget, /if \(areaSlug && deliveryAddressMissing\)/);
   assert.match(widget, /Chi phí tham khảo · Xe trùng lịch/);
-  assert.match(widget, /\{ \.\.\.\(attribution \?\? \{\}\), booking_page: bookingPage \}/);
+  assert.match(widget, /bookingAttribution = bookingPage\s*\? \{[\s\S]*?landing_page: landingArea\.path[\s\S]*?booking_page: bookingPage/);
   assert.doesNotMatch(widget, /attribution: attribution \? \{ \.\.\.attribution, booking_page: bookingPage \} : null/);
   assert.match(widget, /Tài sản bảo đảm khi nhận xe được xác nhận riêng theo từng xe/);
   assert.match(widget, /Phí giao nhận sẽ được xác nhận theo địa chỉ/);

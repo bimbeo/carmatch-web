@@ -26,9 +26,11 @@ import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDe
 import { getLocalHubData } from '../src/data/localHubsData.ts';
 import { localRentalAreas } from '../src/data/localRentalAreas.ts';
 import { selectLocalRentalCars } from '../src/data/localRentalFleet.ts';
+import { LOCAL_RENTAL_MOBILE_HERO_MEDIA, LOCAL_RENTAL_MOBILE_HERO_SIZES, localRentalMobileHeroSrcSet } from '../src/data/localRentalImages.ts';
 import {
   cacheStaticImageUrls,
   cacheVehicleCoverImages,
+  cacheMobileVehicleCovers,
   cacheVehicleGalleryImages,
 } from './vehicle-cover-cache.mjs';
 import { sanitizeBlogHtml } from '../server/blog/sanitize.js';
@@ -4941,6 +4943,10 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   const hasKnownSocialImageSize = usesBrandSocialImage || usesGeneratedSocialImage;
   const imageAlt = escapeHtml(localCover ? `${localCover.name} trong danh mục thuê xe Car Match` : usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title);
   const preloadImage = escapeHtml(meta.preloadImage || '/brand/carmatch-lockup-navy.png');
+  const mobileHeroSrcSet = localCover?.cover && localRentalMobileHeroSrcSet(localCover.cover);
+  const imagePreload = mobileHeroSrcSet
+    ? `<link rel="preload" as="image" media="${LOCAL_RENTAL_MOBILE_HERO_MEDIA}" imagesrcset="${escapeHtml(mobileHeroSrcSet)}" imagesizes="${LOCAL_RENTAL_MOBILE_HERO_SIZES}" fetchpriority="high" />`
+    : `<link rel="preload" as="image" href="${preloadImage}" />`;
   const robots = meta.noIndex
     ? 'noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
     : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
@@ -4952,7 +4958,14 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   html = replaceOrInsertHead(html, /<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${canonical}" />`);
   html = replaceOrInsertHead(html, /<link rel="alternate" hreflang="vi-VN" href="[^"]*"\s*\/>/, `<link rel="alternate" hreflang="vi-VN" href="${canonical}" />`);
   html = replaceOrInsertHead(html, /<link rel="alternate" hreflang="x-default" href="[^"]*"\s*\/>/, `<link rel="alternate" hreflang="x-default" href="${canonical}" />`);
-  html = replaceOrInsertHead(html, /<link rel="preload" as="image" href="[^"]*"\s*\/>/, `<link rel="preload" as="image" href="${preloadImage}" />`);
+  if (mobileHeroSrcSet) {
+    html = html
+      .replace(/<link rel="preload" as="image" href="[^"]*"\s*\/>/, '')
+      .replace(/<meta name="viewport"[^>]*>/, `$&\n    ${imagePreload}`)
+      .replace(/<script type="module" crossorigin src=/, '<script type="module" crossorigin fetchpriority="low" src=');
+  } else {
+    html = replaceOrInsertHead(html, /<link rel="preload" as="image" href="[^"]*"\s*\/>/, imagePreload);
+  }
   html = replaceOrInsertHead(html, /<meta property="og:type" content="[^"]*"\s*\/>/, '<meta property="og:type" content="website" />');
   html = replaceOrInsertHead(html, /<meta property="og:site_name" content="[^"]*"\s*\/>/, '<meta property="og:site_name" content="Car Match" />');
   html = replaceOrInsertHead(html, /<meta property="og:locale" content="[^"]*"\s*\/>/, '<meta property="og:locale" content="vi_VN" />');
@@ -7972,6 +7985,7 @@ async function main() {
     loggerPrefix: 'generate-static-blog',
     sourceBaseUrl: siteUrl,
   });
+  await cacheMobileVehicleCovers(vehicleCoverCacheUrls, distDir);
   vehicleGalleryCacheUrls = await cacheVehicleGalleryImages(seoVehicles, distDir, {
     loggerPrefix: 'generate-static-blog',
     sourceBaseUrl: siteUrl,

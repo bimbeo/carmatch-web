@@ -2,6 +2,7 @@ import { mkdir, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import sharp from 'sharp';
+import { LOCAL_RENTAL_MOBILE_HERO_WIDTHS, localRentalMobileHeroUrl } from '../src/data/localRentalImages.ts';
 
 const COVER_ROUTE = '/generated/vehicle-covers';
 const GALLERY_ROUTE = '/generated/vehicle-gallery';
@@ -135,6 +136,22 @@ export async function cacheVehicleCoverImages(vehicles, outputRoot, options = {}
   );
 
   return coverUrls;
+}
+
+export async function cacheMobileVehicleCovers(coverUrls, outputRoot) {
+  for (const coverUrl of coverUrls.values()) {
+    const filePath = path.join(outputRoot, coverUrl);
+    await Promise.all(LOCAL_RENTAL_MOBILE_HERO_WIDTHS.map(async (width) => {
+      const mobilePath = path.join(outputRoot, localRentalMobileHeroUrl(coverUrl, width));
+      const existing = await stat(mobilePath).catch(() => null);
+      if (existing?.size > 0) return;
+
+      await sharp(filePath)
+        .resize(width, width / 2, { fit: 'cover', position: 'centre' })
+        .webp({ quality: 58, effort: 5 })
+        .toFile(mobilePath);
+    }));
+  }
 }
 
 export async function cacheVehicleGalleryImages(vehicles, outputRoot, options = {}) {

@@ -176,6 +176,10 @@ export function formatPrice(price: number): string {
   return price.toLocaleString('vi-VN') + 'đ';
 }
 
+export function describeRentalCondition(condition: string): string {
+  return condition.replace(/^(?:Đặt cọc tiền|Cọc) từ (.+hoặc xe máy.+)$/i, 'Tài sản bảo đảm khi nhận xe: tiền từ $1');
+}
+
 export function formatPriceShort(price: number): string {
   if (price >= 1000000) {
     const m = price / 1000000;

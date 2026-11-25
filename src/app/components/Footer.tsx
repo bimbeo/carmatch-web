@@ -52,7 +52,7 @@ export default function Footer() {
             <Link to="/lien-he" className="text-gray-300 hover:text-white">Liên hệ</Link>
           </nav>
 
-          <p className="mt-6 border-t border-white/10 pt-4 text-xs text-gray-500">
+          <p className="mt-6 border-t border-white/10 pt-4 text-xs text-slate-400">
             © {new Date().getFullYear()} Car Match
           </p>
         </div>

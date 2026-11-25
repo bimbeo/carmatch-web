@@ -104,7 +104,9 @@ export function renderLocalRental(areaSlug: LocalHubSlug, routePath: string, veh
   try {
     return renderToString(
       <MemoryRouter initialEntries={[routePath]}>
-        <LocalRental areaSlug={areaSlug} />
+        <React.Suspense fallback={null}>
+          <LocalRental areaSlug={areaSlug} />
+        </React.Suspense>
       </MemoryRouter>,
     );
   } finally {

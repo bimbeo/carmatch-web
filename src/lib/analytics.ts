@@ -1,4 +1,4 @@
-import { createAnalyticsEventId, getAttributionSnapshot } from './attribution';
+import { analyticsPagePath, createAnalyticsEventId, getAttributionSnapshot } from './attribution';
 
 type AnalyticsPayload = Record<string, unknown>;
 
@@ -59,6 +59,7 @@ function cleanPayload(payload: AnalyticsPayload): Record<string, unknown> {
 
 function ga4SafePayload(payload: Record<string, unknown>): Record<string, unknown> {
   const safePayload = { ...payload };
+  delete safePayload.booking_ref;
   const reservedAttributionKeys = ['source', 'medium', 'campaign', 'term', 'content'];
   for (const key of reservedAttributionKeys) {
     if (!(key in safePayload)) continue;
@@ -78,7 +79,7 @@ function recordFirstPartyEvent(eventName: string, eventPayload: Record<string, u
     event_id: createAnalyticsEventId(),
     event_name: eventName,
     client_at: new Date().toISOString(),
-    page_path: String(eventPayload.page_path || `${window.location.pathname}${window.location.search}`),
+    page_path: String(eventPayload.page_path || window.location.pathname),
     vehicle_id: eventPayload.vehicle_id,
     car_slug: eventPayload.car_slug,
     booking_ref: eventPayload.booking_ref,
@@ -92,6 +93,7 @@ function recordFirstPartyEvent(eventName: string, eventPayload: Record<string, u
   void fetch('/api/conversion-events', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    referrerPolicy: 'no-referrer',
     body: JSON.stringify(payload),
     keepalive: true,
   }).catch(() => {
@@ -109,7 +111,7 @@ export function trackPageView(payload: AnalyticsPayload = {}) {
     const sessionPayload = cleanPayload({
       event_category: DEFAULT_CATEGORY,
       page_path: window.location.pathname,
-      page_location: window.location.href,
+      page_location: window.location.origin + analyticsPagePath(window.location.pathname + window.location.search),
       landing_page: attribution.landing_page,
       traffic_source: attribution.traffic_source,
       traffic_medium: attribution.traffic_medium,
@@ -128,9 +130,10 @@ export function trackEvent(eventName: string, payload: AnalyticsPayload = {}) {
 
   const eventPayload = cleanPayload({
     event_category: DEFAULT_CATEGORY,
-    page_path: window.location.pathname,
-    page_location: window.location.href,
     ...payload,
+    page_location: window.location.origin + window.location.pathname,
+    page_referrer: analyticsPagePath(document.referrer),
+    page_path: analyticsPagePath(String(payload.page_path ?? window.location.pathname)),
   });
 
   window.gtag?.('event', eventName, ga4SafePayload(eventPayload));
@@ -153,6 +156,10 @@ export function trackCtaClick(cta: string, payload: AnalyticsPayload = {}) {
 type LocalRentalEvent =
   | 'area_landing_view'
   | 'vehicle_select'
+  | 'vehicle_list_view'
+  | 'availability_check_result'
+  | 'quote_view'
+  | 'booking_confirmed'
   | 'pickup_option_select'
   | 'booking_start'
   | 'booking_request_success'
@@ -164,14 +171,44 @@ export function trackLocalRentalEvent(
   areaSlug: string,
   vehicleId?: string,
   detail?: string,
+  landingPath?: string,
 ) {
   if (typeof window === 'undefined') return;
   trackEvent(event, {
     area_slug: areaSlug,
+    landing_area_id: areaSlug,
+    landing_path: landingPath ?? window.location.pathname,
     vehicle_id: vehicleId ?? null,
     page_location: `${window.location.origin}${window.location.pathname}`,
     detail,
   });
+}
+
+export function rememberLocalRentalBooking(bookingRef: string, areaSlug: string, landingPath: string, vehicleId?: string) {
+  if (!bookingRef) return;
+  try {
+    sessionStorage.setItem(`carmatch_local_booking_${bookingRef}`, JSON.stringify({ areaSlug, landingPath, vehicleId }));
+  } catch {
+    // Storage can be unavailable in privacy mode.
+  }
+}
+
+export function isBookingConfirmedStatus(status: string) {
+  return ['confirmed', 'converted', 'completed'].includes(status);
+}
+
+export function trackLocalRentalConfirmation(bookingRef: string, status: string) {
+  if (!isBookingConfirmedStatus(status)) return;
+  try {
+    const key = `carmatch_local_booking_${bookingRef}`;
+    const value = sessionStorage.getItem(key);
+    if (!value) return;
+    const { areaSlug, landingPath, vehicleId } = JSON.parse(value);
+    sessionStorage.removeItem(key);
+    trackLocalRentalEvent('booking_confirmed', areaSlug, vehicleId, status, landingPath);
+  } catch {
+    // Tracking must never interrupt booking lookup.
+  }
 }
 
 export function trackZaloClick(source: string, payload: AnalyticsPayload = {}) {

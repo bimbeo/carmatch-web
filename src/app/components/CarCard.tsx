@@ -36,6 +36,7 @@ interface CarCardProps {
   selectionAction?: {
     selected: boolean;
     onSelect: () => void;
+    localRentalAreaSlug?: string;
   };
   position?: number;
 }
@@ -96,6 +97,9 @@ export default function CarCard({
       }
     : {};
   const detailHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '', rentalParams);
+  const detailState = selectionAction?.localRentalAreaSlug
+    ? { localRentalAreaSlug: selectionAction.localRentalAreaSlug }
+    : undefined;
   const bookingHref = withPreservedCampaign(`/xe/${car.slug}`, location.search, '#booking', rentalParams);
   const rentalDays = rentalRange
     ? calculateRentalBillingDays(
@@ -134,6 +138,7 @@ export default function CarCard({
       <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]">
         <Link
           to={detailHref}
+          state={detailState}
           onClick={() => trackCar('image_click')}
           className="relative block overflow-hidden bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
         >
@@ -162,6 +167,7 @@ export default function CarCard({
         <div className="p-4">
           <Link
             to={detailHref}
+            state={detailState}
             onClick={() => trackCar('title_click')}
             className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
           >
@@ -239,6 +245,7 @@ export default function CarCard({
                 </button>
                 <Link
                   to={detailHref}
+                  state={detailState}
                   onClick={() => trackCar('detail_click')}
                   className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-800 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
                 >

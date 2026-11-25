@@ -45,11 +45,12 @@ const desktopNavHrefs = new Set([
   '/blog',
 ]);
 
-export default function Navbar({ collapseAtLg = false }: { collapseAtLg?: boolean }) {
+export default function Navbar({ collapseAtLg = false, useServerSnapshot = false }: { collapseAtLg?: boolean; useServerSnapshot?: boolean }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [session, setSession] = useState<Session | null>(getStoredSession);
+  const [session, setSession] = useState<Session | null>(() => useServerSnapshot ? null : getStoredSession());
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const needsAuthSubscription = !useServerSnapshot || showAuthModal || Boolean(session);
   const location = useLocation();
   const desktopDisplay = collapseAtLg ? 'hidden lg:flex' : 'hidden md:flex';
   const mobileDisplay = collapseAtLg ? 'lg:hidden' : 'md:hidden';
@@ -61,6 +62,15 @@ export default function Navbar({ collapseAtLg = false }: { collapseAtLg?: boolea
   }, []);
 
   useEffect(() => {
+    if (!useServerSnapshot) return;
+    const syncStoredSession = () => setSession(getStoredSession());
+    syncStoredSession();
+    window.addEventListener('storage', syncStoredSession);
+    return () => window.removeEventListener('storage', syncStoredSession);
+  }, [useServerSnapshot]);
+
+  useEffect(() => {
+    if (!needsAuthSubscription) return;
     let active = true;
     let unsubscribe: (() => void) | undefined;
 
@@ -79,7 +89,7 @@ export default function Navbar({ collapseAtLg = false }: { collapseAtLg?: boolea
       active = false;
       unsubscribe?.();
     };
-  }, []);
+  }, [needsAuthSubscription]);
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm transition-shadow ${scrolled ? 'shadow-sm' : ''} border-b border-gray-100`}>

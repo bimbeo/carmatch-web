@@ -1,7 +1,8 @@
 import './styles/index.css'
 import { StrictMode, createElement } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import App from './app/App'
+import { localRentalAreas } from './data/localRentalAreas'
 import { scheduleWebVitalsTracking } from './lib/webVitals'
 
 const chunkErrorPattern = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk/i
@@ -32,6 +33,7 @@ function reloadOnceForChunkError(error: unknown) {
 function preloadPrerenderedRoute(pathname = window.location.pathname): Promise<unknown> {
   const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
 
+  if (localRentalAreas.some(({ path }) => path === normalizedPathname)) return import('./app/pages/LocalRental')
   if (normalizedPathname === '/xe') return import('./app/pages/Fleet')
   if (normalizedPathname.startsWith('/xe/')) return import('./app/pages/CarDetail')
   if (normalizedPathname === '/thue-xe-thang') return import('./app/pages/B2B')
@@ -60,11 +62,19 @@ async function bootApp() {
 
   const hadStaticShell = Boolean(root.dataset.staticShell)
   const hadPrerenderedShell = Boolean(root.dataset.prerendered)
+  const app = createElement(StrictMode, null, createElement(App))
+
+  // A query-free local page has the same initial catalog and links as the
+  // prerender. Keep the first paint and let React attach handlers in place.
+  if (root.dataset.prerendered === 'local-rental' && !window.location.search) {
+    hydrateRoot(root, app)
+    delete root.dataset.prerendered
+    return
+  }
 
   // Route chunks remain lazy, but React and the app shell are statically linked
   // so Vite can emit modulepreload hints and avoid a late import waterfall.
   if (hadPrerenderedShell) await preloadPrerenderedRoute()
-  const app = createElement(StrictMode, null, createElement(App))
 
   if (hadPrerenderedShell) {
     // Browser DOM normalization can make the SEO snapshot differ from the

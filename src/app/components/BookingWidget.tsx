@@ -6,6 +6,7 @@ import { DayPicker, type DayContentProps } from 'react-day-picker';
 import { vi } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import {
+  rememberLocalRentalBooking,
   trackBookingStart,
   trackBookingSubmit,
   trackBookingValidationError,
@@ -16,6 +17,7 @@ import {
   trackPhoneClick,
   trackZaloClick,
 } from '@/lib/analytics';
+import { localRentalAreas } from '@/data/localRentalAreas';
 import { BOOKING_PICKUP_LOCATIONS, type BookingPickupLocation } from '@/data/bookingPickupLocations';
 export { BOOKING_PICKUP_LOCATIONS } from '@/data/bookingPickupLocations';
 import {
@@ -114,6 +116,7 @@ export interface BookingOpenRequest {
   vehicleId: string;
   pickupDate?: string;
   customerNote?: string;
+  action?: 'calendar';
 }
 
 /**
@@ -618,6 +621,7 @@ interface Props {
   relatedCars?: RelatedCar[];
   pickupLocations?: BookingPickupLocation[];
   areaSlug?: string;
+  originAreaSlug?: string;
   initialDeliveryMode?: DeliveryMode;
   initialPickupLocationId?: string;
   pageType?: 'vehicle_detail' | 'local_rental';
@@ -629,6 +633,8 @@ interface Props {
   onAvailabilityStatusChange?: (status: BookingAvailabilityStatus) => void;
   onBookingSummaryChange?: (summary: BookingSummary) => void;
   onBookingSubmitted?: (result: { bookingRef: string; requiresConfirmation: boolean }) => void;
+  onDialogOpenChange?: (open: boolean) => void;
+  onExternalCalendarConfirm?: () => void;
 }
 
 function copyToClipboard(text: string): Promise<void> {
@@ -737,6 +743,7 @@ export default function BookingWidget({
   relatedCars = [],
   pickupLocations = BOOKING_PICKUP_LOCATIONS,
   areaSlug,
+  originAreaSlug,
   initialDeliveryMode,
   initialPickupLocationId,
   pageType = 'vehicle_detail',
@@ -747,6 +754,8 @@ export default function BookingWidget({
   externalOpenRequest,
   onAvailabilityStatusChange,
   onBookingSummaryChange,
+  onDialogOpenChange,
+  onExternalCalendarConfirm,
   onBookingSubmitted,
 }: Props) {
   const isMobile = useIsMobile();
@@ -777,6 +786,7 @@ export default function BookingWidget({
   const [availabilityCheckedVehicleId, setAvailabilityCheckedVehicleId] = useState<string | undefined>();
   const [availabilityUnavailable, setAvailabilityUnavailable] = useState(false);
   const [showCalModal, setShowCalModal] = useState(false);
+  const externalCalendarRef = useRef(false);
   const [requiresConfirmation, setRequiresConfirmation] = useState(false);
   const [holidayPricingRules, setHolidayPricingRules] = useState<HolidayPricingRule[]>([]);
 
@@ -830,6 +840,10 @@ export default function BookingWidget({
 
   // ── Booking flow ──────────────────────────────────────────────────────────
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const hasOpenDialog = showModal || showCalModal || showPromoModal || showBookingModal;
+  useEffect(() => {
+    onDialogOpenChange?.(hasOpenDialog);
+  }, [hasOpenDialog, onDialogOpenChange]);
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -1734,11 +1748,19 @@ export default function BookingWidget({
         total_amount: result.valid ? result.total : 0,
       };
       const attribution = getAttributionSnapshot();
+      const bookingAreaSlug = areaSlug ?? originAreaSlug;
+      const sessionLandingPath = attribution?.landing_page.split(/[?#]/, 1)[0].replace(/\/+$/, '');
+      const landingArea = localRentalAreas.find((area) => area.slug === bookingAreaSlug)
+        ?? localRentalAreas.find((area) => area.path === sessionLandingPath);
       const bookingPage = typeof window === 'undefined'
         ? null
         : `${window.location.pathname}${window.location.search}`.slice(0, 500);
       const bookingAttribution = bookingPage
-        ? { ...(attribution ?? {}), booking_page: bookingPage }
+        ? {
+          ...(attribution ?? {}),
+          ...(landingArea ? { landing_page: landingArea.path } : {}),
+          booking_page: bookingPage,
+        }
         : attribution;
       let bookingPayload = {
           idempotency_key: idempotencyKey,
@@ -1803,7 +1825,10 @@ export default function BookingWidget({
       }
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Lỗi tạo đơn');
       const submittedNeedsConfirmation = data.requiresConfirmation === true || needsManualConfirmation;
-      if (areaSlug) trackLocalRentalEvent('booking_request_success', areaSlug, vehicleId);
+      if (landingArea) {
+        trackLocalRentalEvent('booking_request_success', landingArea.slug, vehicleId, undefined, landingArea.path);
+        rememberLocalRentalBooking(String(data.bookingRef || ''), landingArea.slug, landingArea.path, vehicleId);
+      }
       setBookingRef(String(data.bookingRef || ''));
       setDepositAmount(Number(data.depositAmount) || 0);
       setBookingNeedsConfirmation(submittedNeedsConfirmation);
@@ -1846,7 +1871,7 @@ export default function BookingWidget({
         vehicle_name: carName,
         rental_days: rentalDays,
         total_amount: finalTotal,
-        error_message: areaSlug ? 'booking_submit_failed' : message,
+        error_message: 'booking_submit_failed',
         ...experimentMeta,
       });
     } finally {
@@ -1920,6 +1945,35 @@ export default function BookingWidget({
   const remainingAmount = Math.max(0, finalTotal - depositAmount);
   const bookingZaloHref = `${ZALO_LINK}?text=${encodeURIComponent(buildMessage())}`;
   const isServerHeldPending = bookingServerStatus === 'held_pending_confirmation';
+  const quoteTotalRef = useRef<HTMLDivElement>(null);
+  const lastAvailabilityEventRef = useRef('');
+  const lastQuoteEventRef = useRef('');
+  const localAvailabilityResult = availabilityUnavailable
+    ? 'unknown'
+    : hardConflicts.length > 0 ? 'conflict' : boundaryConflicts.length || requiresConfirmation ? 'needs_review' : 'checked';
+  const rentalSelectionKey = `${vehicleId}:${pickupDate}:${pickupHour}:${returnDate}:${returnHour}`;
+
+  useEffect(() => {
+    if (!areaSlug || !vehicleId || availLoading || availabilityCheckedVehicleId !== vehicleId || !result.valid) return;
+    const eventKey = `${rentalSelectionKey}:${localAvailabilityResult}`;
+    if (lastAvailabilityEventRef.current === eventKey) return;
+    lastAvailabilityEventRef.current = eventKey;
+    trackLocalRentalEvent('availability_check_result', areaSlug, vehicleId, localAvailabilityResult);
+  }, [areaSlug, availLoading, availabilityCheckedVehicleId, localAvailabilityResult, rentalSelectionKey, result.valid, vehicleId]);
+
+  useEffect(() => {
+    if (!areaSlug || !result.valid || availLoading || availabilityCheckedVehicleId !== vehicleId || !quoteTotalRef.current) return;
+    const quoteKey = `${rentalSelectionKey}:${finalTotal}:${deliveryFeeIsProvisional}:${localAvailabilityResult}`;
+    if (lastQuoteEventRef.current === quoteKey) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      lastQuoteEventRef.current = quoteKey;
+      trackLocalRentalEvent('quote_view', areaSlug, vehicleId, deliveryFeeIsProvisional ? 'delivery_estimate' : localAvailabilityResult);
+      observer.disconnect();
+    }, { threshold: 0.5 });
+    observer.observe(quoteTotalRef.current);
+    return () => observer.disconnect();
+  }, [areaSlug, availLoading, availabilityCheckedVehicleId, deliveryFeeIsProvisional, finalTotal, localAvailabilityResult, rentalSelectionKey, result.valid, vehicleId]);
 
   useEffect(() => {
     onBookingSummaryChange?.({
@@ -2012,13 +2066,16 @@ export default function BookingWidget({
   useEffect(() => {
     const requestId = externalOpenRequest?.id ?? 0;
     const requestKey = `${externalOpenRequest?.vehicleId || ''}:${requestId}`;
-    if (
-      !requestId
-      || externalOpenRequest?.vehicleId !== vehicleId
-      || handledExternalOpenRequestRef.current === requestKey
-      || availLoading
-      || availabilityCheckedVehicleId !== vehicleId
-    ) return;
+    if (!requestId || externalOpenRequest?.vehicleId !== vehicleId || handledExternalOpenRequestRef.current === requestKey) return;
+    if (externalOpenRequest?.action === 'calendar') {
+      handledExternalOpenRequestRef.current = requestKey;
+      externalCalendarRef.current = true;
+      setRangeStep('from');
+      setCalendarStartPreview(null);
+      setShowCalModal(true);
+      return;
+    }
+    if (availLoading || availabilityCheckedVehicleId !== vehicleId) return;
 
     const requestedPickupDate = externalOpenRequest?.pickupDate;
     if (requestedPickupDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedPickupDate) && pickupDate !== requestedPickupDate) {
@@ -2060,6 +2117,7 @@ export default function BookingWidget({
     availabilityCheckedVehicleId,
     carName,
     experimentMeta,
+    externalOpenRequest?.action,
     externalOpenRequest?.id,
     externalOpenRequest?.customerNote,
     externalOpenRequest?.pickupDate,
@@ -2081,7 +2139,7 @@ export default function BookingWidget({
       <div className="border-b border-gray-100 px-5 pb-3 pt-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-black text-gray-950">{pageType === 'local_rental' ? 'Lịch thuê và chi phí dự kiến' : 'Đặt lịch thuê xe'}</h2>
+            <h2 className="text-base font-black text-gray-950">{pageType === 'local_rental' ? 'Lịch và giá thuê' : 'Đặt lịch thuê xe'}</h2>
             <p className="mt-1 text-xs font-medium leading-5 text-gray-500">Chọn thời gian thuê xe để xem tổng chi phí dự kiến.</p>
           </div>
           {basePrice > 0 ? (
@@ -2123,6 +2181,7 @@ export default function BookingWidget({
               type="button"
               onClick={() => {
                 setShowCalModal(true);
+                externalCalendarRef.current = false;
                 setRangeStep('from');
                 setCalendarStartPreview(null);
                 void fetchAvailability();
@@ -2220,7 +2279,7 @@ export default function BookingWidget({
                     <MapPin className="w-3.5 h-3.5 text-gray-400" />
                     Tự nhận xe
                   </span>
-                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Không phí giao nhận</span>
+                  <span className="text-xs font-semibold text-green-800 bg-green-50 px-2 py-0.5 rounded-full">Không phí giao nhận</span>
                 </div>
 
                 {/* Sub-locations */}
@@ -2241,7 +2300,7 @@ export default function BookingWidget({
                         />
                         <div className="flex-1 min-w-0">
                           <span className="text-sm text-gray-700 font-medium">{loc.name}</span>
-                          <span className="text-xs text-gray-400 ml-1.5">{loc.address}</span>
+                          <span className="text-xs text-slate-600 ml-1.5">{loc.address}</span>
                         </div>
                         <a
                           href={loc.mapUrl}
@@ -2275,7 +2334,7 @@ export default function BookingWidget({
                     <Plane className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                     Sân bay Nội Bài
                   </span>
-                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">+{fmtCalendarPrice(AIRPORT_DELIVERY_FEE_PER_WAY)}/chiều</span>
+                  <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-800">+{fmtCalendarPrice(AIRPORT_DELIVERY_FEE_PER_WAY)}/chiều</span>
                 </div>
               </label>
               {deliveryMode === 'airport' && (
@@ -2450,7 +2509,7 @@ export default function BookingWidget({
             )}
 
             {/* Total row and estimate note stay together to avoid a duplicate alert. */}
-            <div className="bg-brand-50 px-4 py-3">
+            <div ref={quoteTotalRef} className="bg-brand-50 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-bold text-brand-600">
@@ -2767,7 +2826,11 @@ export default function BookingWidget({
 
               <button
                 type="button"
-                onClick={() => setShowCalModal(false)}
+                onClick={() => {
+                  setShowCalModal(false);
+                  if (externalCalendarRef.current) onExternalCalendarConfirm?.();
+                  externalCalendarRef.current = false;
+                }}
                 disabled={rangeStep === 'to' || hardConflicts.length > 0 || !result.valid || holidayBookingBlocked}
                 className="shrink-0 py-3.5 px-8 bg-emerald-500 text-white font-black rounded-xl text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
               >
@@ -3541,10 +3604,18 @@ export default function BookingWidget({
 
                     {deliveryMode === 'delivery' && (
                       <>
-                        <span className="text-slate-500">Địa chỉ nhận</span>
-                        <span className="font-semibold text-slate-900">{deliveryAddress || 'Chờ xác nhận'}</span>
-                        <span className="text-slate-500">Địa chỉ trả</span>
-                        <span className="font-semibold text-slate-900">{returnDeliveryAddress || deliveryAddress || 'Chờ xác nhận'}</span>
+                        {deliveryDirection !== 'return' && (
+                          <>
+                            <span className="text-slate-500">Địa chỉ nhận</span>
+                            <span className="font-semibold text-slate-900">{deliveryAddress || 'Chờ xác nhận'}</span>
+                          </>
+                        )}
+                        {deliveryDirection !== 'pickup' && (
+                          <>
+                            <span className="text-slate-500">Địa chỉ trả</span>
+                            <span className="font-semibold text-slate-900">{(deliveryDirection === 'roundtrip' && returnDeliveryAddress) || deliveryAddress || 'Chờ xác nhận'}</span>
+                          </>
+                        )}
                       </>
                     )}
 
@@ -3556,12 +3627,15 @@ export default function BookingWidget({
                     )}
 
                     <span className="text-slate-500">Số ngày thuê</span>
-                    <span className="font-semibold text-slate-900">{rentalDays} ngày</span>
+                    <span className="font-semibold text-slate-900">{formatRentalBillingDays(rentalDays)}</span>
                   </div>
 
                   <div className="border-t border-slate-200 pt-2 space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Tổng giá</span>
+                      <span className="text-slate-500">
+                        {deliveryFeeIsProvisional ? 'Tổng chi phí tạm tính' : 'Tổng chi phí thuê'}
+                        {(loyaltyDiscountAmount > 0 || promoDiscount > 0) && ' trước ưu đãi'}
+                      </span>
                       <span className="font-bold text-slate-900">{orderTotalBeforePromo.toLocaleString('vi-VN')}đ</span>
                     </div>
                     {loyaltyDiscountAmount > 0 && (
@@ -3578,21 +3652,17 @@ export default function BookingWidget({
                     )}
                     {(loyaltyDiscountAmount > 0 || promoDiscount > 0) && (
                       <div className="flex justify-between border-t border-dashed border-slate-200 pt-1">
-                        <span className="text-slate-500 font-medium">Tổng sau ưu đãi</span>
+                        <span className="text-slate-500 font-medium">{deliveryFeeIsProvisional ? 'Tổng tạm tính sau ưu đãi' : 'Tổng sau ưu đãi'}</span>
                         <span className="font-bold text-slate-900">{finalTotal.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-slate-500">
-                        {bookingNeedsConfirmation
-                          ? 'Cọc giữ lịch sau khi xác nhận'
-                          : BANK_QR_ENABLED ? 'Cọc giữ lịch đã chuyển' : 'Cọc giữ lịch dự kiến'}
-                      </span>
-                      <span className="font-semibold text-blue-600">{depositAmount.toLocaleString('vi-VN')}đ</span>
+                      <span className="text-slate-500">{bookingNeedsConfirmation ? 'Cọc giữ lịch' : 'Cọc giữ lịch dự kiến'}</span>
+                      <span className="font-semibold text-blue-600">{bookingNeedsConfirmation ? 'Chưa cần thanh toán' : fmtVND(depositAmount)}</span>
                     </div>
                     {deliveryFee > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Phí giao nhận xe</span>
+                        <span className="text-slate-500">{deliveryFeeIsProvisional ? 'Phí giao nhận tạm tính' : 'Phí giao nhận xe'}</span>
                         <span className="font-semibold text-slate-900">{deliveryFee.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}

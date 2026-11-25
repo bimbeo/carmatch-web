@@ -28,21 +28,25 @@ export function localRentalModelKey(car: RentalVehicle) {
     ?? (car.model || car.name).toLocaleLowerCase('vi-VN').replace(/\b(19|20)\d{2}\b/g, '').replace(/[^\p{L}\p{N}]/gu, '');
 }
 
-export function selectLocalRentalCars<T extends RentalVehicle>(cars: T[], preferredModels: string[], limit = 6) {
+export function groupLocalRentalCars<T extends RentalVehicle>(cars: T[], preferredModels: string[]) {
   const candidates = cars
     .filter((car) => car.available && car.price > 0 && car.seats >= 4 && car.seats <= 7)
     .sort((a, b) => a.price - b.price || a.slug.localeCompare(b.slug));
-  const representatives = new Map<string, T>();
+  const models = new Map<string, T[]>();
   for (const car of candidates) {
     const key = localRentalModelKey(car);
-    if (!representatives.has(key)) representatives.set(key, car);
+    const group = models.get(key);
+    if (group) group.push(car);
+    else models.set(key, [car]);
   }
 
-  const orderedModels = new Set([...preferredModels, ...representatives.keys()]);
-  return [...orderedModels]
+  return [...new Set([...preferredModels, ...models.keys()])]
     .flatMap((key) => {
-      const car = representatives.get(key);
-      return car ? [car] : [];
-    })
-    .slice(0, limit);
+      const vehicles = models.get(key);
+      return vehicles ? [{ key, vehicles }] : [];
+    });
+}
+
+export function selectLocalRentalCars<T extends RentalVehicle>(cars: T[], preferredModels: string[]) {
+  return groupLocalRentalCars(cars, preferredModels).map(({ vehicles }) => vehicles[0]);
 }

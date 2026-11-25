@@ -56,9 +56,9 @@ test('local area data contains five distinct, confirmed service-area pages', asy
 test('shared local page derives prices from the catalog and makes availability conditional', async () => {
   const source = await readFile(PAGE_PATH, 'utf8');
 
-  assert.match(source, /selectLocalRentalCars\(catalog, hub\.recommendedModels\)/);
-  assert.match(source, /Math\.min\(\.\.\.representativeCars\.map\(\(car\) => car\.price\)\)/);
-  assert.match(source, /Chọn một mẫu để kiểm tra lịch và tính chi phí cho chuyến đi/);
+  assert.match(source, /groupLocalRentalCars\(catalog, hub\.recommendedModels\)/);
+  assert.match(source, /Math\.min\(\.\.\.modelGroups\.map\(\(\{ vehicles \}\) => vehicles\[0\]\.price\)\)/);
+  assert.match(source, /aria-label=\{\x60Chọn lịch cho \$\{selectedCar\.name\}/);
   assert.match(source, /Thuê xe tự lái \{area\.name\}/);
   assert.match(source, /nearbyAreas\.map/);
   assert.match(source, /area\.nearbySlugs\.flatMap/);

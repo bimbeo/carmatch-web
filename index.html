@@ -158,7 +158,11 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-7RGKVMJS7Q', { send_page_view: false });
+      gtag('config', 'G-7RGKVMJS7Q', {
+        send_page_view: false,
+        page_location: location.origin + location.pathname,
+        page_referrer: document.referrer.split(/[?#]/, 1)[0]
+      });
 
       (function loadAnalyticsAfterUserIntent() {
         var loaded = false;

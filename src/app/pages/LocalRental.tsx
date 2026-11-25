@@ -6,15 +6,12 @@ import {
   CalendarCheck2,
   Car,
   CheckCircle2,
-  Clock3,
   FileCheck2,
-  Gauge,
   Luggage,
   MapPin,
   MessageCircle,
   Phone,
   Plane,
-  Route,
   Sparkles,
 } from 'lucide-react';
 import { formatPrice } from '@/data/cars';
@@ -29,15 +26,24 @@ import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/imageUrl';
 import { vehicleImageAlt } from '@/lib/imageAlt';
 import { getLocalHubData } from '@/data/localHubsData';
 import { BOOKING_PICKUP_LOCATIONS } from '@/data/bookingPickupLocations';
-import { localRentalModelKey, selectLocalRentalCars } from '@/data/localRentalFleet.ts';
+import { groupLocalRentalCars } from '@/data/localRentalFleet.ts';
+import { LOCAL_RENTAL_MOBILE_HERO_MEDIA, LOCAL_RENTAL_MOBILE_HERO_SIZES, localRentalMobileHeroSrcSet } from '@/data/localRentalImages';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CarCard from '../components/CarCard';
 import { LocalRentalQuickAnswer, LocalRentalPlanner } from '../components/LocalRentalDecisionTools';
+import type { BookingOpenRequest } from '../components/BookingWidget';
 
 const SITE_URL = 'https://www.carmatch.vn';
 const ZALO_LINK = 'https://zalo.me/0971163290';
 const PHONE_LINK = 'tel:0971163290';
+const FLEET_FILTERS = [
+  ['all', 'Tất cả'],
+  ['electric', 'Xe điện'],
+  ['five-seat', '4–5 chỗ'],
+  ['seven-seat', '7 chỗ'],
+] as const;
+type FleetFilter = typeof FLEET_FILTERS[number][0];
 
 export default function LocalRental({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
   return <LocalRentalPage key={areaSlug} areaSlug={areaSlug} />;
@@ -51,28 +57,43 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
   const localPickup = BOOKING_PICKUP_LOCATIONS.find((location) => location.id === hub.selfPickupId);
   const areaMapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${area.name}, ${area.slug === 'ecopark' ? 'Hưng Yên' : 'Hà Nội'}`)}`;
   const { cars: catalog, loading } = useVehicles();
-  const representativeCars = useMemo(() => selectLocalRentalCars(catalog, hub.recommendedModels), [catalog, hub]);
-  const [fleetFilter, setFleetFilter] = useState<'all' | 'electric' | 'five-seat' | 'seven-seat'>('all');
+  const modelGroups = useMemo(() => groupLocalRentalCars(catalog, hub.recommendedModels), [catalog, hub]);
+  const eligibleCars = useMemo(() => modelGroups.flatMap(({ vehicles }) => vehicles), [modelGroups]);
+  const [fleetFilter, setFleetFilter] = useState<FleetFilter>('all');
   const [selectedCarId, setSelectedCarId] = useState('');
-  const selectedCar = representativeCars.find((car) => car.id === selectedCarId) || representativeCars[0];
-  const filteredRepresentativeCars = representativeCars.filter((car) => {
+  const [variantByModel, setVariantByModel] = useState<Record<string, string>>({});
+  const [showAllModels, setShowAllModels] = useState(false);
+  const [dateRequest, setDateRequest] = useState<BookingOpenRequest | null>(null);
+  const dateRequestId = useRef(0);
+  const [bookingVisible, setBookingVisible] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const selectedCar = eligibleCars.find((car) => car.id === selectedCarId) || eligibleCars[0];
+  const matchesFilter = (car: typeof selectedCar) => {
     if (fleetFilter === 'electric') return car.fuel === 'Điện';
     if (fleetFilter === 'five-seat') return car.seats <= 5;
     if (fleetFilter === 'seven-seat') return car.seats >= 7;
     return true;
+  };
+  const filteredGroups = modelGroups.flatMap(({ key, vehicles }) => {
+    const variants = vehicles.filter(matchesFilter);
+    if (!variants.length) return [];
+    const car = variants.find(({ id }) => id === variantByModel[key]) ?? variants[0];
+    return [{ key, variants, car }];
   });
-  const fleetModelCount = new Set(
-    catalog.filter((car) => car.available && car.price > 0 && car.seats >= 4 && car.seats <= 7).map(localRentalModelKey),
-  ).size;
-  const startingPrice = representativeCars.length > 0
-    ? Math.min(...representativeCars.map((car) => car.price))
-    : null;
-  const heroCar = representativeCars.find((car) => car.images[0]);
+  const visibleGroups = fleetFilter === 'all' && !showAllModels ? filteredGroups.slice(0, 6) : filteredGroups;
+  const startingPrice = modelGroups.length ? Math.min(...modelGroups.map(({ vehicles }) => vehicles[0].price)) : null;
+  const heroCar = modelGroups.map(({ vehicles }) => vehicles[0]).find((car) => car.images[0]);
+  const [initialHeroPhoto] = useState(() => heroCar && { vehicleId: heroCar.id, src: heroCar.images[0] });
+  const heroPhoto = initialHeroPhoto && initialHeroPhoto.vehicleId === heroCar?.id ? initialHeroPhoto.src : heroCar?.images[0];
+  const mobileHeroSrcSet = heroPhoto && localRentalMobileHeroSrcSet(heroPhoto);
+  const heroPhotoSrcSet = heroPhoto && !mobileHeroSrcSet
+    ? optimizedImageSrcSet(heroPhoto, [400, 640, 960, 1280], 72)
+    : undefined;
   useSEO({
     title: area.seoTitle,
     description: area.description,
     canonical: `${SITE_URL}${area.path}`,
-    ogImage: heroCar ? new URL(heroCar.images[0], SITE_URL).href : undefined,
+    ogImage: heroPhoto ? new URL(heroPhoto, SITE_URL).href : undefined,
     ogImageAlt: heroCar ? `${heroCar.name} trong danh mục thuê xe Car Match` : undefined,
   });
   const nearbyAreas = area.nearbySlugs.flatMap((slug) => {
@@ -81,20 +102,45 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
   });
   const source = `local_${area.slug.replace(/-/g, '_')}`;
   const hasTrackedView = useRef(false);
+  const hasTrackedCatalog = useRef(false);
+  const catalogRef = useRef<HTMLElement>(null);
   const selectedVehicleId = selectedCar?.id;
   useEffect(() => {
     if (hasTrackedView.current) return;
     hasTrackedView.current = true;
     trackLocalRentalEvent('area_landing_view', areaSlug, selectedVehicleId);
   }, [areaSlug, selectedVehicleId]);
+  useEffect(() => {
+    if (!catalogRef.current || !eligibleCars.length || hasTrackedCatalog.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      hasTrackedCatalog.current = true;
+      trackLocalRentalEvent('vehicle_list_view', areaSlug);
+      observer.disconnect();
+    });
+    observer.observe(catalogRef.current);
+    return () => observer.disconnect();
+  }, [areaSlug, eligibleCars.length]);
   const zaloHref = `${ZALO_LINK}?text=${encodeURIComponent(
-    `Tôi muốn thuê xe tự lái tại ${area.name}. Nhờ Car Match kiểm tra xe, lịch và điểm giao nhận phù hợp.`,
+    `Tôi muốn thuê ${selectedCarId && selectedCar ? selectedCar.name : 'xe tự lái'} tại ${area.name}. Nhờ Car Match kiểm tra lịch và cách nhận xe.`,
   )}`;
   const handleSelectCar = (carId: string) => {
     setSelectedCarId(carId);
+    const group = modelGroups.find(({ vehicles }) => vehicles.some(({ id }) => id === carId));
+    if (group) setVariantByModel((current) => ({ ...current, [group.key]: carId }));
     trackCtaClick(`${source}_vehicle_select`, { vehicle_id: carId });
     trackLocalRentalEvent('vehicle_select', areaSlug, carId);
     window.requestAnimationFrame(() => document.getElementById('booking-tool')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  const changeFilter = (filter: FleetFilter) => {
+    setFleetFilter(filter);
+    trackCtaClick(`${source}_vehicle_filter`, { filter });
+  };
+  const openDates = (placement: 'catalog' | 'sticky') => {
+    if (!selectedCar) return;
+    const requestSource = `${source}_${placement}_calendar`;
+    trackCtaClick(requestSource, { vehicle_id: selectedCar.id });
+    setDateRequest({ id: ++dateRequestId.current, source: requestSource, vehicleId: selectedCar.id, action: 'calendar' });
   };
   const handleZalo = (placement: 'hero' | 'faq') => {
     trackZaloClick(`${source}_${placement}`, { area_slug: areaSlug, vehicle_id: selectedVehicleId });
@@ -103,105 +149,102 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
 
   return (
     <div className="min-h-screen bg-white pb-24 text-slate-950 sm:pb-0">
-      <Navbar collapseAtLg />
+      <Navbar collapseAtLg useServerSnapshot />
       <main id="main-content">
         <section className="relative overflow-hidden bg-[#f4f5f9] pt-16 text-slate-950">
           <>
             <div className="absolute -left-40 top-10 h-96 w-96 rounded-full bg-white blur-3xl" />
             <div className="absolute -right-28 bottom-0 h-80 w-80 rounded-full bg-brand-100/70 blur-3xl" />
           </>
-          <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-            <nav aria-label="Đường dẫn" className="mb-8 flex flex-wrap items-center gap-2 text-sm font-medium text-slate-500">
+          <div className="relative mx-auto max-w-7xl px-4 pb-6 pt-3 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+            <nav aria-label="Đường dẫn" className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-600 sm:mb-8 sm:text-sm">
               <Link to="/" className="hover:text-brand-700">Trang chủ</Link><span aria-hidden="true">/</span>
-              <Link to="/xe" className="hover:text-brand-700">Thuê xe Hà Nội</Link><span aria-hidden="true">/</span>
+              <Link to="/xe" className="hover:text-brand-700">Thuê xe tự lái</Link><span aria-hidden="true">/</span>
               <span aria-current="page" className="text-slate-800">{area.shortName}</span>
             </nav>
-            <div className="grid items-center gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14">
+            <div className="grid items-center gap-4 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14">
               <div>
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-3.5 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-brand-700 shadow-sm">
+                <div className="mb-5 hidden items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-3.5 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-brand-700 shadow-sm lg:inline-flex">
                   <MapPin className="h-4 w-4 shrink-0" /> Khu vực {area.shortName} · {area.slug === 'ecopark' ? 'Hưng Yên' : 'Hà Nội'}
                 </div>
-                <h1 className="max-w-3xl text-[2.65rem] font-black leading-[1.06] tracking-[-0.045em] sm:text-6xl lg:text-[4.15rem]">
+                <h1 className="max-w-3xl text-[2.0625rem] font-black leading-[1.13] tracking-[-0.035em] sm:text-5xl lg:text-[4.15rem]">
                   Thuê xe tự lái {area.name}{area.slug === 'ecopark' ? ', Hưng Yên' : ', Hà Nội'}
                 </h1>
-                <div className="mt-4 text-2xl font-black tracking-[-0.03em] text-brand-700 sm:text-3xl">{area.heroSubhead}</div>
-                <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">{area.heroAnswer}</p>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <div className="mt-2 text-base font-black leading-snug text-brand-700 sm:mt-4 sm:text-2xl">{area.heroSubhead}</div>
+                <p className="mt-2 max-w-2xl text-sm leading-snug text-slate-600 sm:mt-4 sm:text-lg sm:leading-7">{area.heroAnswer}</p>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3 sm:mt-5 sm:p-4">
+                  <p className="text-sm font-semibold text-slate-600" data-hero-price>
+                    Giá tham khảo {startingPrice ? <>từ <strong className="text-base font-black text-brand-900">{formatPrice(startingPrice)}/ngày</strong></> : 'theo xe và lịch thuê'}
+                    <span className="block text-xs text-slate-500">Giá trên danh mục 4–7 chỗ, chưa gồm giao nhận.</span>
+                  </p>
+                  <a href="#nhan-xe" className="mt-2 flex items-start gap-1.5 text-xs font-bold text-brand-800 underline-offset-4 hover:underline sm:text-sm">
+                    <MapPin className="h-4 w-4 shrink-0" /> {localPickup ? `Tự nhận tại điểm ${localPickup.name} hoặc yêu cầu giao xe` : 'Yêu cầu giao xe theo địa chỉ'}
+                  </a>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 sm:mt-6">
                   <a
                     href="#xe-goi-y"
                     onClick={() => trackCtaClick(`${source}_view_cars`, { target_path: '#xe-goi-y' })}
-                    className="inline-flex min-h-13 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 font-bold text-white shadow-[0_12px_30px_rgba(30,64,175,0.2)] transition hover:-translate-y-0.5 hover:bg-brand-700"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-3.5 py-2.5 text-sm font-bold text-white shadow-[0_12px_30px_rgba(30,64,175,0.2)] hover:bg-brand-700 sm:min-h-12 sm:px-5"
                   >
-                    Xem xe &amp; chọn lịch thuê <ArrowRight className="h-4 w-4" />
+                    Xem xe &amp; giá thuê <ArrowRight className="h-4 w-4" />
                   </a>
                   <a
                     href={zaloHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => handleZalo('hero')}
-                    className="inline-flex min-h-13 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-bold text-brand-800 transition hover:border-brand-300 hover:bg-brand-50"
+                    className="inline-flex min-h-11 items-center justify-center gap-1.5 px-1 text-sm font-bold text-brand-800 hover:underline"
                   >
-                    <MessageCircle className="h-4 w-4" /> Tư vấn xe phù hợp
+                    <MessageCircle className="h-4 w-4" /> Tư vấn Zalo
                   </a>
                 </div>
               </div>
 
-              {heroCar && (
+              {heroCar && heroPhoto && (
                 <div className="relative mx-auto w-full max-w-xl lg:mx-0">
-                  <div className="relative overflow-hidden rounded-[2rem] border-8 border-white bg-slate-200 shadow-[0_30px_80px_rgba(15,23,42,0.18)]">
+                  <figure className="overflow-hidden rounded-2xl border-4 border-white bg-white shadow-[0_15px_40px_rgba(15,23,42,0.12)] lg:rounded-[2rem] lg:border-8">
+                    <picture>
+                    {mobileHeroSrcSet && <source media={LOCAL_RENTAL_MOBILE_HERO_MEDIA} srcSet={mobileHeroSrcSet} sizes={LOCAL_RENTAL_MOBILE_HERO_SIZES} />}
                     <img
-                      src={optimizedImageUrl(heroCar.images[0], 960, 72)}
-                      srcSet={optimizedImageSrcSet(heroCar.images[0], [640, 960, 1280], 72)}
-                      sizes="(min-width: 1024px) 48vw, 100vw"
+                      src={optimizedImageUrl(heroPhoto, 960, 72)}
+                      srcSet={heroPhotoSrcSet}
+                      sizes="(min-width: 1280px) 560px, (min-width: 1024px) 45vw, (min-width: 600px) 560px, calc(100vw - 40px)"
                       alt={vehicleImageAlt(heroCar)}
                       width={960}
                       height={720}
                       loading="eager"
+                      fetchPriority="high"
                       decoding="async"
-                      className="aspect-[4/3] h-full w-full object-cover"
+                      className="aspect-[2/1] w-full object-cover lg:aspect-[4/3]"
                     />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent p-6 pt-20 text-white sm:p-8">
-                      <p className="text-sm font-semibold text-blue-100">Mẫu xe trong danh mục Car Match</p>
-                      <div className="mt-1 flex items-end justify-between gap-4">
+                    </picture>
+                    <figcaption className="px-3 py-2 sm:px-5 sm:py-3">
+                      <div className="flex items-center justify-between gap-2">
                         <div>
-                          <p className="text-2xl font-black">{heroCar.name}</p>
-                          <p className="mt-1 text-sm text-slate-200">{heroCar.seats} chỗ · {heroCar.fuel} · {heroCar.transmission}</p>
+                          <p className="text-sm font-black sm:text-xl">{heroCar.name}</p>
+                          <p className="text-xs text-slate-600">{heroCar.seats} chỗ · {heroCar.fuel} · {heroCar.transmission}</p>
                         </div>
-                        <p className="shrink-0 text-right text-sm text-slate-200"><strong className="block text-xl text-white">{formatPrice(heroCar.price)}</strong>/ngày</p>
+                        <p className="shrink-0 text-right text-xs text-slate-600">Giá mẫu trong ảnh <strong className="block text-sm text-brand-900">{formatPrice(heroCar.price)}/ngày</strong></p>
                       </div>
-                    </div>
-                  </div>
+                    </figcaption>
+                  </figure>
                 </div>
               )}
             </div>
 
-            <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:grid-cols-3 lg:mt-16">
-              <div className="bg-white p-5">
-                <p className="flex items-center gap-2 text-sm font-semibold text-slate-500"><Car className="h-4 w-4 text-brand-600" /> Danh mục xe 4–7 chỗ</p>
-                <p className="mt-1 text-2xl font-black">{fleetModelCount ? `${fleetModelCount} dòng xe trên toàn hệ thống` : 'Xem danh mục xe'}</p>
-              </div>
-              <div className="bg-white p-5">
-                <p className="flex items-center gap-2 text-sm font-semibold text-slate-500"><Gauge className="h-4 w-4 text-brand-600" /> Giá thuê xe từ</p>
-                <p className="mt-1 text-2xl font-black">{startingPrice ? `${formatPrice(startingPrice)}/ngày` : 'Kiểm tra theo lịch'}</p>
-                <p className="mt-1 text-xs text-slate-500">Giá mẫu gợi ý, chưa gồm phí giao nhận và phụ phí theo lựa chọn.</p>
-              </div>
-              <div className="bg-white p-5">
-                <p className="flex items-center gap-2 text-sm font-semibold text-slate-500"><Clock3 className="h-4 w-4 text-brand-600" /> Điểm giao nhận</p>
-                <p className="mt-1 text-xl font-black">{localPickup ? `Tự nhận tại ${localPickup.name} hoặc hẹn giao` : 'Hẹn giao xe theo địa chỉ'}</p>
-              </div>
-            </div>
           </div>
         </section>
 
-        <LocalRentalQuickAnswer area={area} />
+        <LocalRentalQuickAnswer area={area} localPickup={localPickup} />
 
-        <section id="xe-goi-y" className="scroll-mt-24 py-16 sm:py-20">
+        <section id="xe-goi-y" ref={catalogRef} className="scroll-mt-24 py-10 sm:py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
               <div className="max-w-3xl">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-brand-600">Xe phù hợp cho khách khu vực</p>
                 <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Chọn xe tự lái tại {area.shortName}</h2>
-                <p className="mt-4 text-slate-600">So sánh theo số ghế, nhiên liệu và giá ngày. Chọn một mẫu để kiểm tra lịch và tính chi phí cho chuyến đi.</p>
+                <p className="mt-3 text-slate-600">{modelGroups.length ? `${modelGroups.length} dòng xe · ` : ''}Giá tham khảo theo ngày. Số ghế gồm cả tài xế.</p>
               </div>
               <Link
                 to="/xe"
@@ -212,43 +255,89 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
               </Link>
             </div>
 
-            <div className="mt-7 flex gap-2 overflow-x-auto pb-1" aria-label="Lọc đội xe">
-              {[
-                ['all', 'Tất cả'],
-                ['electric', 'Xe điện'],
-                ['five-seat', '4–5 chỗ'],
-                ['seven-seat', '7 chỗ'],
-              ].map(([value, label]) => (
-                <button key={value} type="button" onClick={() => { setFleetFilter(value as typeof fleetFilter); trackCtaClick(`${source}_vehicle_filter`, { filter: value }); }} aria-pressed={fleetFilter === value} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${fleetFilter === value ? 'bg-[#10163f] text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-brand-300'}`}>
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-[#f7f8fb] p-4 sm:p-5">
+              <h3 className="font-black">Gợi ý cho chuyến đi</h3>
+              <div className="mt-3 grid gap-2 md:grid-cols-3">
+                {area.useCases.map((item, index) => {
+                  const Icon = [Building2, Plane, Luggage][index] || Sparkles;
+                  const filter = item.filter;
+                  return (
+                    <article key={item.title} className="flex gap-3 rounded-xl bg-white p-3">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" aria-hidden="true" />
+                      <div>
+                        <h4 className="text-sm font-black">{item.title}</h4>
+                        <p className="mt-1 text-sm leading-5 text-slate-600">{item.description}</p>
+                        {filter && (
+                          <a href="#loc-xe" onClick={() => changeFilter(filter)} className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-brand-800 hover:underline">
+                            {filter === 'seven-seat' ? 'Xem xe 7 chỗ' : 'Xem xe 4–5 chỗ'} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-sm text-slate-600">Đi 5 người kể cả tài xế, chọn xe từ 5 chỗ. Nếu mang nhiều đồ, hỏi sức chứa cốp theo số ghế sử dụng.</p>
+            </div>
+
+            <div id="loc-xe" className="mt-5 flex scroll-mt-24 flex-wrap items-center gap-2" aria-label="Lọc đội xe">
+              {FLEET_FILTERS.map(([value, label]) => (
+                <button key={value} type="button" onClick={() => changeFilter(value)} aria-pressed={fleetFilter === value} className={`min-h-11 rounded-full px-3.5 text-sm font-bold transition ${fleetFilter === value ? 'bg-[#10163f] text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-brand-300'}`}>
                   {label}
                 </button>
               ))}
+              {selectedCar && (
+                <button type="button" onClick={() => openDates('catalog')} aria-label={`Chọn lịch cho ${selectedCar.name}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand-200 px-3.5 text-sm font-bold text-brand-800 hover:bg-brand-50">
+                  <CalendarCheck2 className="h-4 w-4" /> Chọn lịch
+                </button>
+              )}
             </div>
 
-            {filteredRepresentativeCars.length > 0 ? (
-              <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredRepresentativeCars.map((car) => (
-                  <div key={car.id} className={`rounded-2xl ${selectedCar?.id === car.id ? 'ring-2 ring-brand-500 ring-offset-4' : ''}`}>
+            {visibleGroups.length > 0 ? (
+              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {visibleGroups.map(({ key, variants, car }) => (
+                  <div key={key} className={`overflow-hidden rounded-2xl ${selectedCarId === car.id ? 'ring-2 ring-brand-500 ring-offset-4' : ''}`}>
                     <CarCard
                       car={car}
                       mode="listing"
                       source={source}
                       selectionAction={{
-                        selected: selectedCar?.id === car.id,
+                        selected: selectedCarId === car.id,
                         onSelect: () => handleSelectCar(car.id),
+                        localRentalAreaSlug: area.slug,
                       }}
                     />
+                    {variants.length > 1 && (
+                      <label className="block rounded-b-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                        Chọn xe cùng dòng
+                        <select
+                          aria-label={`Chọn xe cùng dòng ${variants[0].name}`}
+                          value={car.id}
+                          onChange={(event) => setVariantByModel((current) => ({ ...current, [key]: event.target.value }))}
+                          className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm font-medium"
+                        >
+                          {variants.map((variant) => (
+                            <option key={variant.id} value={variant.id}>{variant.name}{variant.color ? ` · ${variant.color}` : ''} · {formatPrice(variant.price)}/ngày</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
               <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center">
-                <p className="font-bold text-slate-700">{loading ? 'Đang tải danh mục xe…' : representativeCars.length > 0 ? 'Chưa có xe phù hợp với bộ lọc này.' : 'Danh sách xe đang được cập nhật.'}</p>
-                {representativeCars.length > 0 && <button type="button" onClick={() => setFleetFilter('all')} className="mt-3 font-black text-brand-700">Xem tất cả xe</button>}
+                <p className="font-bold text-slate-700">{loading ? 'Đang tải danh mục xe…' : eligibleCars.length > 0 ? 'Chưa có xe phù hợp với bộ lọc này.' : 'Danh sách xe đang được cập nhật.'}</p>
+                {eligibleCars.length > 0 && <button type="button" onClick={() => changeFilter('all')} className="mt-3 font-black text-brand-700">Xem tất cả xe</button>}
                 <a href={zaloHref} target="_blank" rel="noopener noreferrer" className="ml-3 mt-3 inline-flex font-black text-brand-700">Nhờ Car Match tư vấn</a>
               </div>
             )}
-            {representativeCars.length > 1 && (
+            {visibleGroups.length < filteredGroups.length && (
+              <button type="button" onClick={() => setShowAllModels(true)} className="mt-5 min-h-11 rounded-xl border border-brand-200 px-4 text-sm font-black text-brand-800 hover:bg-brand-50">
+                Xem thêm {filteredGroups.length - visibleGroups.length} dòng xe
+              </button>
+            )}
+            {filteredGroups.length > 1 && (
               <details className="mt-8 rounded-2xl border border-slate-200 bg-white p-5">
                 <summary className="cursor-pointer font-black text-brand-800">So sánh các mẫu xe gợi ý</summary>
                 <div className="mt-4 overflow-x-auto">
@@ -261,7 +350,7 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {representativeCars.map((car) => (
+                      {filteredGroups.map(({ car }) => (
                         <tr key={car.id} className="border-b border-slate-100 last:border-0">
                           <th scope="row" className="p-3">{car.name}</th>
                           <td className="p-3">{car.seats}</td>
@@ -285,9 +374,12 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
             area={area}
             preferredPickupId={localPickup?.id}
             pickupOrderHint={hub.hubSlug}
-            cars={representativeCars}
-            source={source}
+            cars={eligibleCars}
             selectedCarId={selectedCar.id}
+            explicitlySelected={selectedCarId === selectedCar.id}
+            dateRequest={dateRequest}
+            onWidgetVisibleChange={setBookingVisible}
+            onDialogOpenChange={setBookingDialogOpen}
             onSelectCar={handleSelectCar}
           />
         )}
@@ -299,7 +391,6 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
               <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] sm:text-4xl">Hẹn đúng điểm, nhận xe thuận tiện</h2>
               <p className="mt-5 leading-7 text-slate-300">{area.pickupNote}</p>
               <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-blue-200">
-                {localPickup?.mapUrl && <a href={localPickup.mapUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline underline-offset-4"><MapPin className="h-4 w-4" /> Bản đồ điểm tự nhận {localPickup.name}</a>}
                 <a href={areaMapHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline underline-offset-4"><MapPin className="h-4 w-4" /> Bản đồ khu vực {area.shortName}</a>
               </div>
             </div>
@@ -316,29 +407,6 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
                   <p className="mt-2 text-sm leading-6 text-slate-300">{description}</p>
                 </article>
               ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-[#f7f8fb] py-16 sm:py-24">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-12">
-              <div>
-                <Route className="h-10 w-10 text-brand-600" />
-                <h2 className="mt-4 text-3xl font-black tracking-[-0.03em]">Chọn xe phù hợp với chuyến đi của bạn</h2>
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
-                  {area.useCases.map((item, index) => {
-                    const IntentIcon = [Building2, Plane, Luggage][index] || Sparkles;
-                    return (
-                    <article key={item.title} className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_25px_rgba(15,23,42,0.04)]">
-                      <span className="h-fit rounded-xl bg-brand-50 p-2.5 text-brand-700"><IntentIcon className="h-5 w-5" /></span>
-                      <div><h3 className="font-black">{item.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p></div>
-                    </article>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -433,6 +501,19 @@ function LocalRentalPage({ areaSlug }: { areaSlug: LocalRentalAreaSlug }) {
         </section>
       </main>
       <Footer />
+      {selectedCar && !bookingVisible && !bookingDialogOpen && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] sm:hidden">
+          {selectedCarId === selectedCar.id ? (
+            <button type="button" onClick={() => openDates('sticky')} className="mx-auto flex min-h-11 w-full max-w-md items-center justify-center rounded-xl bg-brand-600 px-3 text-sm font-black text-white hover:bg-brand-700">
+              Chọn lịch &amp; xem tổng giá
+            </button>
+          ) : (
+            <a href="#xe-goi-y" className="mx-auto flex min-h-11 w-full max-w-md items-center justify-center rounded-xl bg-brand-600 px-3 text-sm font-black text-white hover:bg-brand-700">
+              Xem xe &amp; giá
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }

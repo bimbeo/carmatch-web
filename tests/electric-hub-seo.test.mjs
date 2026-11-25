@@ -140,7 +140,7 @@ test('booking CRO claims require verified data and preserve the trip note', asyn
 
 test('electric booking confirmation is tracked only after confirmed status', async () => {
   const source = await readFile(BOOKING_CONFIRM_PATH, 'utf8');
-  assert.match(source, /\['contacted', 'confirmed'\]\.includes\(data\.status\)/);
+  assert.match(source, /isBookingConfirmedStatus\(data\.status\)/);
   assert.match(source, /booking_confirmed/);
   assert.match(source, /carmatch_ev_booking_ref/);
 });
