@@ -25,6 +25,8 @@ import {
 import { tripDestinations as fallbackTripDestinations } from '../src/data/tripDestinations.ts';
 import { getLocalHubData } from '../src/data/localHubsData.ts';
 import { localRentalAreas } from '../src/data/localRentalAreas.ts';
+import { tetOwnerCampaign, tetOwnerHero } from '../src/data/tetOwnerCampaign.ts';
+import { tetOwnerFaq } from '../src/data/tetOwnerFaq.ts';
 import { selectLocalRentalCars } from '../src/data/localRentalFleet.ts';
 import { LOCAL_RENTAL_MOBILE_HERO_MEDIA, LOCAL_RENTAL_MOBILE_HERO_SIZES, localRentalMobileHeroSrcSet } from '../src/data/localRentalImages.ts';
 import {
@@ -96,6 +98,7 @@ let prerenderedContactRoot = '';
 let prerenderedAboutRoot = '';
 let prerenderedPartnerRoot = '';
 let prerenderedTetOwnerRoot = '';
+let tetOwnerStylesheets = [];
 let prerenderedTetRentalRoot = '';
 let spaBaseHtml = '';
 const hanoiDeliveryDetails = {
@@ -829,13 +832,16 @@ const routeMeta = [
   },
   {
     path: '/hop-tac-chu-xe-cho-thue-tet',
-    title: 'Hợp Tác Chủ Xe Cho Thuê Dịp Tết 2027 | Car Match',
-    description:
-      'Chủ xe tại Hà Nội có xe nhàn rỗi dịp Tết 2027 có thể gửi lịch rảnh, thông tin xe và khu vực đỗ để Car Match thẩm định phương án hợp tác.',
-    canonical: `${siteUrl}/hop-tac-chu-xe-cho-thue-tet`,
+    title: tetOwnerCampaign.title,
+    description: tetOwnerCampaign.description,
+    canonical: siteUrl + tetOwnerCampaign.path,
+    image: siteUrl + tetOwnerCampaign.image,
+    imageAlt: tetOwnerHero.alt,
+    imageSize: tetOwnerCampaign.socialImage,
+    responsivePreload: tetOwnerHero,
     priority: '0.88',
     changefreq: 'weekly',
-    lastmod: '2026-11-10',
+    lastmod: '2026-11-25',
   },
   {
     path: '/hop-tac',
@@ -3001,14 +3007,21 @@ function routeStructuredData(meta, vehicles) {
     organizationData(),
     webPageData(meta, {
       fields: {
-        about: 'Hợp tác với chủ xe có xe nhàn rỗi dịp Tết 2027 tại Hà Nội',
-        mainEntity: { '@type': 'Organization', '@id': `${siteUrl}/#organization` },
+        about: `Hợp tác với chủ xe có xe nhàn rỗi dịp Tết ${tetOwnerCampaign.year} tại Hà Nội`,
+        mainEntity: { '@type': 'Service', '@id': `${meta.canonical}#service` },
       },
     }),
+    buildServiceSchema(meta, {
+      serviceType: 'Hợp tác khai thác xe nhàn rỗi dịp Tết',
+      name: `Hợp tác chủ xe cho thuê Tết ${tetOwnerCampaign.year} tại Hà Nội`,
+      areaServed: { '@type': 'AdministrativeArea', name: 'Hà Nội' },
+      fields: { '@id': `${meta.canonical}#service`, provider: { '@id': `${siteUrl}/#organization` } },
+    }, seoSchemaConfig),
+    buildFAQSchema(meta, tetOwnerFaq, seoSchemaConfig, `${meta.canonical}#hoi-dap`),
     breadcrumbData([
       { name: 'Trang chủ', path: '/' },
       { name: 'Hợp tác chủ xe', path: '/hop-tac' },
-      { name: 'Hợp tác dịp Tết 2027', path: meta.path },
+      { name: `Hợp tác dịp Tết ${tetOwnerCampaign.year}`, path: meta.path },
     ]),
   ];
   if (meta.path === '/hop-tac') return [
@@ -4940,11 +4953,15 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   const image = escapeHtml(rawImage);
   const usesBrandSocialImage = rawImage === brandSocialImage;
   const usesGeneratedSocialImage = /\/(?:blog|seo)\/covers\//.test(rawImage);
-  const hasKnownSocialImageSize = usesBrandSocialImage || usesGeneratedSocialImage;
-  const imageAlt = escapeHtml(localCover ? `${localCover.name} trong danh mục thuê xe Car Match` : usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title);
+  const imageSize = meta.imageSize || (usesBrandSocialImage || usesGeneratedSocialImage
+    ? { width: 1200, height: 630, type: usesGeneratedSocialImage ? 'image/jpeg' : 'image/png' }
+    : null);
+  const imageAlt = escapeHtml(meta.imageAlt || (localCover ? `${localCover.name} trong danh mục thuê xe Car Match` : usesBrandSocialImage ? 'Car Match - thuê xe tự lái Hà Nội, giao xe tận sảnh chung cư' : meta.title));
   const preloadImage = escapeHtml(meta.preloadImage || '/brand/carmatch-lockup-navy.png');
   const mobileHeroSrcSet = localCover?.cover && localRentalMobileHeroSrcSet(localCover.cover);
-  const imagePreload = mobileHeroSrcSet
+  const imagePreload = meta.responsivePreload
+    ? `<link rel="preload" as="image" imagesrcset="${escapeHtml(meta.responsivePreload.srcSet)}" imagesizes="${escapeHtml(meta.responsivePreload.sizes)}" fetchpriority="high" />`
+    : mobileHeroSrcSet
     ? `<link rel="preload" as="image" media="${LOCAL_RENTAL_MOBILE_HERO_MEDIA}" imagesrcset="${escapeHtml(mobileHeroSrcSet)}" imagesizes="${LOCAL_RENTAL_MOBILE_HERO_SIZES}" fetchpriority="high" />`
     : `<link rel="preload" as="image" href="${preloadImage}" />`;
   const robots = meta.noIndex
@@ -4958,7 +4975,7 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   html = replaceOrInsertHead(html, /<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${canonical}" />`);
   html = replaceOrInsertHead(html, /<link rel="alternate" hreflang="vi-VN" href="[^"]*"\s*\/>/, `<link rel="alternate" hreflang="vi-VN" href="${canonical}" />`);
   html = replaceOrInsertHead(html, /<link rel="alternate" hreflang="x-default" href="[^"]*"\s*\/>/, `<link rel="alternate" hreflang="x-default" href="${canonical}" />`);
-  if (mobileHeroSrcSet) {
+  if (mobileHeroSrcSet || meta.responsivePreload) {
     html = html
       .replace(/<link rel="preload" as="image" href="[^"]*"\s*\/>/, '')
       .replace(/<meta name="viewport"[^>]*>/, `$&\n    ${imagePreload}`)
@@ -4974,10 +4991,10 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   html = replaceOrInsertHead(html, /<meta property="og:url" content="[^"]*"\s*\/>/, `<meta property="og:url" content="${canonical}" />`);
   html = replaceOrInsertHead(html, /<meta property="og:image" content="[^"]*"\s*\/>/, `<meta property="og:image" content="${image}" />`);
   html = replaceOrInsertHead(html, /<meta property="og:image:alt" content="[^"]*"\s*\/>/, `<meta property="og:image:alt" content="${imageAlt}" />`);
-  if (hasKnownSocialImageSize) {
-    html = replaceOrInsertHead(html, /<meta property="og:image:width" content="[^"]*"\s*\/>/, '<meta property="og:image:width" content="1200" />');
-    html = replaceOrInsertHead(html, /<meta property="og:image:height" content="[^"]*"\s*\/>/, '<meta property="og:image:height" content="630" />');
-    html = replaceOrInsertHead(html, /<meta property="og:image:type" content="[^"]*"\s*\/>/, `<meta property="og:image:type" content="${usesGeneratedSocialImage ? 'image/jpeg' : 'image/png'}" />`);
+  if (imageSize) {
+    html = replaceOrInsertHead(html, /<meta property="og:image:width" content="[^"]*"\s*\/>/, `<meta property="og:image:width" content="${imageSize.width}" />`);
+    html = replaceOrInsertHead(html, /<meta property="og:image:height" content="[^"]*"\s*\/>/, `<meta property="og:image:height" content="${imageSize.height}" />`);
+    html = replaceOrInsertHead(html, /<meta property="og:image:type" content="[^"]*"\s*\/>/, `<meta property="og:image:type" content="${escapeHtml(imageSize.type)}" />`);
   } else {
     html = html
       .replace(/\s*<meta property="og:image:width" content="[^"]*"\s*\/>/, '')
@@ -5056,6 +5073,11 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
   } else if (meta.path === '/hop-tac-chu-xe-cho-thue-tet' && prerenderedTetOwnerRoot) {
     html = moveStylesheetsBeforeModuleScripts(html);
     html = applyRootCriticalCss(html, true);
+    const fontPreloads = ['latin', 'vietnamese'].map((subset) =>
+      `<link rel="preload" as="font" href="/tet-owner/be-vietnam-pro-900-${subset}.woff2" type="font/woff2" crossorigin />`,
+    );
+    const stylesheets = tetOwnerStylesheets.map((file) => `<link rel="stylesheet" href="/${escapeHtml(file)}" />`);
+    html = html.replace('</head>', () => `${[...stylesheets, ...fontPreloads].join('\n')}\n</head>`);
     html = html.replace(/<div id="root"><\/div>/, prerenderedTetOwnerRoot);
   } else if (meta.path === '/thue-xe-tu-lai-tet-ha-noi' && prerenderedTetRentalRoot) {
     html = moveStylesheetsBeforeModuleScripts(html);
@@ -5109,6 +5131,10 @@ function renderSpaShell(baseHtml, meta, vehicles = []) {
 }
 
 async function writeSpaShell(baseHtml, meta, vehicles = []) {
+  if (meta.path === tetOwnerCampaign.path) {
+    await writeHtmlRoute(meta.path, renderSpaShell(baseHtml, meta, vehicles));
+    return;
+  }
   const routePath = meta.path === '/' ? '' : meta.path.replace(/^\/+/, '');
   const outputDir = path.join(distDir, routePath);
   await mkdir(outputDir, { recursive: true });
@@ -5148,6 +5174,14 @@ async function writeHtmlRoute(routePath, html) {
 
 async function writeStaticRouteShells(vehicles, seoVehicles = vehicles) {
   const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
+  const manifest = JSON.parse(await readFile(path.join(distDir, '.vite', 'manifest.json'), 'utf8'));
+  const visitedAssets = new Set();
+  const collectCss = (key) => {
+    if (visitedAssets.has(key) || !manifest[key]) return [];
+    visitedAssets.add(key);
+    return [...(manifest[key].imports || []).flatMap(collectCss), ...(manifest[key].css || [])];
+  };
+  tetOwnerStylesheets = [...new Set(collectCss('src/app/pages/TetOwnerPartnership.tsx'))];
   await writeFile(path.join(distDir, 'static-shell.css'), minifyCss(staticShellCss()), 'utf8');
   prerenderedHomeRoot = '';
   prerenderedFleetRoot = '';
@@ -8023,7 +8057,6 @@ async function main() {
       '/thue-xe-dien-ha-noi',
       '/thue-xe-7-cho-tu-lai-ha-noi',
       '/thue-xe-tu-lai-tet-ha-noi',
-      '/hop-tac-chu-xe-cho-thue-tet',
     ],
   });
   const cachedLandingPages = replaceCachedStaticImageUrls(landingPages);

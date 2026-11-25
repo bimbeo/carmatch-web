@@ -1,0 +1,21 @@
+html:has(.partner-dialog[open]) { overflow: hidden; }
+.partner-dialog { --dialog-accent: #183549; position: fixed; inset: 0; margin: auto; width: min(580px, calc(100% - 32px)); max-height: 88dvh; padding: 24px; border: 1px solid #e8ddd5; border-radius: 22px; background: #fff; color: #332b2b; overflow: auto; font: 14px/1.6 'Be Vietnam Pro', system-ui, sans-serif; }
+.tet-owner .partner-dialog { --dialog-accent: #a72e35; font-family: inherit; font-size: 14px; }
+.partner-dialog::backdrop { background: #211719b0; }
+.partner-dialog:focus-visible, .partner-dialog :focus-visible { outline: 3px solid #eab658; outline-offset: 2px; }
+.partner-checklist { width: min(720px, calc(100% - 32px)); }
+.partner-dialog-top { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.partner-dialog .partner-dialog-kicker { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--dialog-accent); }
+.partner-dialog h3 { font-size: 24px; font-weight: 800; margin: 4px 0 0; line-height: 1.2; }
+.partner-dialog h4 { font-size: 15px; font-weight: 800; margin: 12px 0 3px; }
+.partner-dialog p { margin: 0 0 10px; }
+.partner-dialog p:empty { margin: 0; }
+.partner-dialog .partner-dialog-close { border-radius: 10px; background: #f6eee8; font-size: 22px; min-width: 42px; min-height: 42px; border: 0; font-weight: 700; }
+.partner-dialog .partner-checklist-items { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 23px; list-style: decimal; margin: 15px 0; padding-left: 25px; }
+.partner-dialog .partner-dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+.partner-dialog .partner-dialog-actions > :is(a, button) { border: 1px solid #e8d8cb; border-radius: 11px; min-height: 42px; padding: 9px 13px; font-weight: 700; color: var(--dialog-accent); }
+.partner-dialog .partner-dialog-actions > .partner-dialog-primary { background: var(--dialog-accent); color: #fff; }
+.partner-dialog .partner-dialog-actions > :disabled { opacity: .6; cursor: wait; }
+.partner-dialog pre, .partner-dialog textarea { width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; background: #fff8ef; padding: 12px; border-radius: 10px; font: inherit; }
+.partner-dialog textarea { border: 1px solid #e8d8cb; }
+@media (max-width: 560px) { .partner-dialog { padding: 16px; } .partner-dialog .partner-checklist-items { grid-template-columns: 1fr; } }

@@ -39,6 +39,7 @@ function preloadPrerenderedRoute(pathname = window.location.pathname): Promise<u
   if (normalizedPathname === '/thue-xe-thang') return import('./app/pages/B2B')
   if (normalizedPathname === '/gioi-thieu') return import('./app/pages/About')
   if (normalizedPathname === '/hop-tac') return import('./app/pages/Partner')
+  if (normalizedPathname === '/hop-tac-chu-xe-cho-thue-tet') return import('./app/pages/TetOwnerPartnership')
   if (normalizedPathname === '/lien-he') return import('./app/pages/Contact')
   if (normalizedPathname === '/di-dau') return import('./app/pages/GoWhere')
   if (normalizedPathname.startsWith('/di-dau/chu-de/')) return import('./app/pages/GoWhereCollection')
@@ -67,6 +68,13 @@ async function bootApp() {
   // A query-free local page has the same initial catalog and links as the
   // prerender. Keep the first paint and let React attach handlers in place.
   if (root.dataset.prerendered === 'local-rental' && !window.location.search) {
+    hydrateRoot(root, app)
+    delete root.dataset.prerendered
+    return
+  }
+
+  if (root.dataset.prerendered === 'tet-owner') {
+    await preloadPrerenderedRoute()
     hydrateRoot(root, app)
     delete root.dataset.prerendered
     return

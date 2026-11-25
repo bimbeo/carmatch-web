@@ -155,7 +155,7 @@ export function renderPartner() {
 export function renderTetOwnerPartnership() {
   return renderToString(
     <MemoryRouter initialEntries={['/hop-tac-chu-xe-cho-thue-tet']}>
-      <TetOwnerPartnership />
+      <React.Suspense fallback={null}><TetOwnerPartnership /></React.Suspense>
     </MemoryRouter>,
   );
 }

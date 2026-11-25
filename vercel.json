@@ -422,6 +422,7 @@
       "src": "/api/holiday-pricing/?",
       "dest": "/api/promos?action=holiday-pricing"
     },
+    { "src": "/hop-tac-chu-xe-cho-thue-tet/?", "dest": "/hop-tac-chu-xe-cho-thue-tet/index.html" },
     { "src": "/tai-khoan/?", "dest": "/tai-khoan/index.html" },
     { "src": "/chao-ban/?", "dest": "/chao-ban/index.html" },
     { "handle": "filesystem" },

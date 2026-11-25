@@ -69,6 +69,7 @@ export async function submitLead(payload: LeadPayload): Promise<LeadSubmitResult
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}`, errorCode: data.error || `http_${res.status}` };
+    if (data?.ok !== true) return { ok: false, error: 'Máy chủ chưa xác nhận đã lưu yêu cầu. Vui lòng thử lại.', errorCode: 'unconfirmed' };
     return { ok: true, requestId: data.request_id, duplicate: Boolean(data.duplicate) };
   } catch (err) {
     console.error('[submitLead]', err);

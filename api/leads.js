@@ -166,7 +166,7 @@ export default async function handler(req, res) {
     localIdempotencyKey = idempotency.localKey || null;
     if (idempotency.conflict) return res.status(409).json({ error: 'Mã gửi đơn đã được dùng cho nội dung khác' });
     if (idempotency.pending) return res.status(409).json({ error: 'Yêu cầu đang được xử lý, vui lòng thử lại sau vài giây' });
-    if (idempotency.replay) return res.status(idempotency.replay.status || 200).json(idempotency.replay);
+    if (idempotency.replay) return res.status(idempotency.replay.status || 200).json({ ...idempotency.replay, duplicate: true });
 
     const { data: lead, error } = await supabase.from('website_leads').insert([insertPayload]).select('id').single();
     if (error?.code === '23505' && monthly) {
