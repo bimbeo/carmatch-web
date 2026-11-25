@@ -2,7 +2,7 @@
 async (page) => {
   const origin = new URL(page.url()).origin;
   const path = '/hop-tac-chu-xe-cho-thue-tet';
-  const output = 'output/playwright/tet-owner-form-format';
+  const output = 'output/playwright/tet-owner-content-conversion';
   const failures = [];
   const errors = [];
   const requests = [];
@@ -60,6 +60,10 @@ async (page) => {
     check(result.h1 === 1 && result.images === 7 && result.stylesheet.includes('Be Vietnam Pro Tet'), 'Page styling or assets missing');
     check((await page.locator('#estimatedOwnerShare').innerText()) === '5.040.000đ', 'Default owner share is incorrect');
     check(await page.locator('#dailyRate').inputValue() === '900.000', 'Default daily rate should show thousands separators');
+    check(await page.locator('.value-grid strong').count() === 4, 'The page must show the four benefits of partnering');
+    check(await page.locator('.foot-company a[href="tel:0971163290"]').count() === 1, 'Owner hotline route missing');
+    check(await page.locator('.foot-company a[href="https://zalo.me/0971163290"]').count() === 1, 'Owner Zalo route missing');
+    check(await page.locator('.foot-company a[href="mailto:info@carmatch.vn"]').count() === 1, 'Owner email route missing');
     check(await page.locator('#ownerForm input[type=checkbox]').count() === 0, 'Quick consultation still requires a checkbox');
     await assertStats('9,9,7,0');
     check(await page.locator('.schedule-status').getAttribute('data-origin') === 'sample', 'Illustration is not tagged');
@@ -152,7 +156,8 @@ async (page) => {
   await page.locator('#regionCalc').selectOption({ label: 'Cầu Giấy / Tôn Thất Thuyết' });
   await page.locator('#earliestHandover').fill('2027-02-04T10:30');
   await page.locator('#latestReturn').fill('2027-02-12T18:30');
-  await page.getByRole('button', { name: 'Gửi lịch xe để nhận tư vấn' }).click();
+  await page.getByRole('button', { name: 'Nhận phương án thu nhập dành riêng cho xe của tôi' }).click();
+  check(await page.getByRole('heading', { name: 'Gửi lịch xe Tết để nhận phương án theo xe' }).isVisible(), 'Form and sidebar copy did not switch to scheduled mode');
   check(await page.locator('#ownerRegion').inputValue() === 'Cầu Giấy / Tôn Thất Thuyết', 'Region did not carry over');
   check(await page.locator('#carName').inputValue() === 'VF6 2025', 'Car model did not carry over');
   check(await page.locator('#ownerType').inputValue() === 'flexible', 'Schedule class did not carry over');
@@ -165,6 +170,7 @@ async (page) => {
   await page.locator('#fleetNotes').fill('VF6 rảnh 04–05/02. Xpander rảnh 09–12/02.');
   await page.locator('#ownerNote').fill('Xe thứ hai có lịch riêng.');
   await page.getByRole('link', { name: 'Chưa có lịch? Đăng ký tư vấn trước' }).click();
+  check(await page.getByRole('heading', { name: 'Chưa chốt lịch Tết? Trao đổi trước với Car Match.' }).isVisible(), 'Sidebar still asks for dates in consultation mode');
   check(await page.locator('#ownerRegion').count() === 0 && await page.locator('#ownerName').inputValue() === 'Chủ xe kiểm thử', 'Quick journey did not retain common form data');
   await page.getByRole('radio', { name: 'Đã có lịch xe' }).check();
   check(await page.locator('#fleetNotes').inputValue() === 'VF6 rảnh 04–05/02. Xpander rảnh 09–12/02.', 'Switching journeys lost the individual schedules');

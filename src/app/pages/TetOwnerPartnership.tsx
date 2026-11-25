@@ -404,9 +404,10 @@ export default function TetOwnerPartnership() {
               <a className="btn btn-red" href="#lich-tet" onClick={() => trackCtaClick('tet_owner_calendar')}>Chọn lịch xe rảnh &amp; tính thử thu nhập</a>
               <button type="button" className="btn btn-light" onClick={() => void copyContext(contactText(false), 'hero')}>Nhận tư vấn hợp tác qua Zalo</button>
             </div>
-            <p className="hero-consult">Chưa chốt lịch Tết? Bạn vẫn có thể đăng ký trước. Trao đổi sớm về phương án khai thác, thu nhập và điều kiện hợp tác trước khi quyết định giao xe.
-              {' '}<a href="#dang-ky" onClick={(event) => { event.preventDefault(); startConsultation(); }}>Chưa có lịch? Đăng ký tư vấn trước</a>
-            </p>
+            <div className="hero-consult">
+              <a href="#dang-ky" onClick={(event) => { event.preventDefault(); startConsultation(); }}>Chưa có lịch? Đăng ký tư vấn trước <span aria-hidden="true">↗</span></a>
+              <p>Trao đổi về phương án cho thuê, khoản thu dự kiến và điều kiện hợp tác trước khi quyết định giao xe.</p>
+            </div>
             <div className="hero-tags">
               {['Ưu tiên xe rảnh xuyên Tết', 'Giữ ngày dùng cho gia đình', 'Thẩm định trước hợp tác'].map((tag) => <span className="pill" key={tag}>✓ {tag}</span>)}
             </div>
@@ -419,12 +420,16 @@ export default function TetOwnerPartnership() {
         </div>
       </section>
 
-      <div className="value-strip"><div className="wrap value-grid">
-        {[
-          ['◷', 'Lịch xe do bạn chủ động đề xuất', 'Đánh dấu rõ ngày rảnh và ngày muốn sử dụng.'],
-          ['▣', 'Phương án theo từng xe', 'Giá, kỳ thuê và trách nhiệm được đối chiếu trước.'],
-          ['✧', 'Bàn giao có chứng từ', 'Ghi nhận hiện trạng, km, pin/xăng và phụ kiện.'],
-        ].map(([icon, title, copy]) => <div key={title}><span className="symbol" aria-hidden="true">{icon}</span><div><strong>{title}</strong><p>{copy}</p></div></div>)}
+      <div className="value-strip"><div className="wrap">
+        <h2>Chủ xe được hỗ trợ gì khi hợp tác với Car Match?</h2>
+        <div className="value-grid">
+          {[
+            ['↔', 'Kết nối khách thuê', 'Car Match đối chiếu nhu cầu của khách với mẫu xe và những ngày bạn mở lịch.'],
+            ['◷', 'Chủ động lịch Tết', 'Bạn đề xuất ngày cho thuê và giữ riêng những ngày gia đình cần xe.'],
+            ['✧', 'Hỗ trợ giao nhận', 'Hai bên thống nhất đầu mối giao nhận và ghi hiện trạng xe khi bàn giao.'],
+            ['▣', 'Rõ khoản chủ xe nhận', 'Trao đổi trước về giá, phần chủ xe nhận, chi phí và kỳ thanh toán.'],
+          ].map(([icon, title, copy]) => <div key={title}><span className="symbol" aria-hidden="true">{icon}</span><div><strong>{title}</strong><p>{copy}</p></div></div>)}
+        </div>
       </div></div>
 
       <section className="section" id="phu-hop"><div className="wrap">
@@ -583,7 +588,7 @@ export default function TetOwnerPartnership() {
                 setJourney(hasDates ? 'schedule' : 'consult');
                 if (hasDates) { setUsedCalculator(true); finishCalendar('planner'); }
                 startForm('planner'); goTo(signupRef.current);
-              }}>{hasDates ? 'Gửi lịch xe để nhận tư vấn' : 'Nhận tư vấn khi chưa có lịch'}</button>
+              }}>{hasDates ? 'Nhận phương án thu nhập dành riêng cho xe của tôi' : 'Nhận tư vấn khi chưa có lịch'}</button>
               {hasDates && <button className="btn btn-outline" type="button" onClick={() => { finishCalendar('copy'); void copyContext(scheduleLines(true).join('\n')); }}>Sao chép lịch Tết đã chọn</button>}
             </div>
           </section>
@@ -648,11 +653,18 @@ export default function TetOwnerPartnership() {
 
       <section className="section signup" id="dang-ky" ref={signupRef} tabIndex={-1}><div className="wrap signup-grid">
         <aside className="signup-promo">
-          <span className="pill">✿ Chào Xuân {season} {year}</span><h2>Gửi lịch xe Tết. Car Match kiểm tra phương án phù hợp.</h2>
-          <p>Bạn được chọn ngày rảnh, ngày gia đình giữ xe và khoảng còn cân nhắc. Chúng tôi tiếp nhận thông tin để tư vấn phương án theo xe và lịch thực tế.</p>
-          <div className="signup-prep"><strong>Thông tin nên chuẩn bị</strong><p>Ảnh xe, mẫu/năm xe, đăng kiểm, bảo hiểm và khoảng thời gian rảnh. Có nhiều xe, bạn có thể ghi thêm lịch riêng cho từng xe.</p></div>
+          <span className="pill">✿ Chào Xuân {season} {year}</span>
+          <h2>{withDates ? 'Gửi lịch xe Tết để nhận phương án theo xe' : 'Chưa chốt lịch Tết? Trao đổi trước với Car Match.'}</h2>
+          <p>{withDates
+            ? 'Car Match xem mẫu xe, ngày bạn muốn cho thuê và giờ cần nhận lại để trao đổi phương án thu nhập và điều kiện giao nhận.'
+            : 'Cho Car Match biết mẫu xe và cách liên hệ. Bạn có thể hỏi về cách tính khoản thu, điều kiện hợp tác và bổ sung lịch khi đã sắp xếp xong.'}</p>
+          <div className="signup-prep"><strong>Thông tin nên chuẩn bị</strong><p>{withDates
+            ? 'Mẫu và năm sản xuất, khu vực đỗ, ngày rảnh và giờ giao nhận nếu đã biết. Có nhiều xe, hãy ghi lịch riêng cho từng xe.'
+            : 'Họ tên, số điện thoại hoặc Zalo và mẫu xe là đủ để bắt đầu trao đổi.'}</p></div>
           <button className="btn btn-light full-width" type="button" onClick={() => void copyContext(contactText(false), 'promo')}>Trao đổi trước qua Zalo ↗</button>
-          <p className="signup-zalo-hint">Khi nhấn, trang sẽ thử sao chép lịch đã chọn để bạn dán vào cuộc trò chuyện.</p>
+          <p className="signup-zalo-hint">{withDates && hasDates
+            ? 'Trang sẽ thử sao chép lịch xe để bạn dán vào cuộc trò chuyện.'
+            : 'Trang sẽ thử sao chép nội dung tư vấn để bạn dán vào cuộc trò chuyện.'}</p>
         </aside>
         <div className="card signup-card">
           <div className="eyebrow">Đăng ký hợp tác Tết</div><h3>{withDates ? 'Gửi lịch xe hợp tác Tết' : 'Đăng ký tư vấn hợp tác Tết'} {year}</h3>
@@ -718,7 +730,7 @@ export default function TetOwnerPartnership() {
     <footer className="footer"><div className="wrap foot-flex">
       <div className="foot-company"><a className="logo" href="/">Car <span>Match</span></a><strong>{partnerContact.company}</strong>
         <p>Mã số thuế: {partnerContact.taxCode} · Trụ sở đăng ký: {partnerContact.registeredAddress}</p>
-        <p>Hotline/Zalo: <a href={`tel:${partnerContact.phone}`}>{partnerContact.phoneLabel}</a> · <a href={`mailto:${partnerContact.email}`}>{partnerContact.email}</a> · carmatch.vn</p>
+        <p>Hotline: <a href={`tel:${partnerContact.phone}`}>{partnerContact.phoneLabel}</a> · <a href={partnerContact.zalo} target="_blank" rel="noopener noreferrer">Zalo Car Match</a> · <a href={`mailto:${partnerContact.email}`}>{partnerContact.email}</a></p>
         <p>Khu vực hỗ trợ phối hợp giao nhận: {partnerContact.handoverAreas.join(', ')}. Địa điểm bàn giao cụ thể theo lịch đã xác nhận.</p>
       </div>
       <nav className="footlinks" aria-label="Liên kết cuối trang">
