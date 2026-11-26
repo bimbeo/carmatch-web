@@ -95,7 +95,7 @@ export default function Partner() {
     .replace('<label for="availability">Khả năng cho thuê</label>', '<label for="availability">Lịch có thể khai thác (tùy chọn)</label>')
     .replace('<option value="Có thể trao đổi sau">Chưa xác định, cần tư vấn</option>', '<option value="Có thể trao đổi sau">Chưa xác định, cần trao đổi</option>')
     .replace('<div class="field wide"><label for="comment">Điều muốn trao đổi thêm (tùy chọn)</label>', '<div class="field"><label for="readiness">Tình trạng sẵn sàng</label><select id="readiness" name="readiness"><option value="Đang tìm hiểu">Đang tìm hiểu</option><option value="Cần trao đổi thêm">Cần trao đổi thêm</option><option value="Sẵn sàng bàn giao">Xe đã có thể bàn giao</option></select></div><div class="field wide"><label for="comment">Điều muốn trao đổi thêm (tùy chọn)</label>')
-    .replace('Tôi đồng ý để Car Match liên hệ theo thông tin đã cung cấp nhằm tư vấn hợp tác; thông tin chỉ được sử dụng để xử lý yêu cầu này.', 'Tôi đồng ý để Car Match dùng các thông tin cần thiết tôi cung cấp để xử lý yêu cầu tư vấn. Xem <a href="/chinh-sach">chính sách quyền riêng tư</a>; bạn có thể yêu cầu chỉnh sửa hoặc xóa thông tin qua <a href="mailto:info@carmatch.vn">info@carmatch.vn</a>.')
+    .replace(/<label class="consent">[\s\S]*?<\/label>/, '')
     .replace('Gửi xe để nhận phương án cụ thể ↗', 'Đăng ký tư vấn với phương án này ↗')
     .replace('Xe VinFast VF5 trong khu vực để xe, minh họa nguồn xe cho thuê', 'Xe VinFast VF5 trong danh mục hình ảnh thực tế Car Match')
     .replace('Xe VinFast VF3 được chụp tại điểm đỗ, minh họa kiểm tra xe trước khai thác', 'Xe VinFast VF3 trong danh mục hình ảnh thực tế Car Match')
